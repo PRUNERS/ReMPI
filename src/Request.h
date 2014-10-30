@@ -27,6 +27,4 @@ public:
 };
 
 
-
-
 #endif /* REQUEST_H_ */
