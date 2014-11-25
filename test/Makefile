@@ -18,8 +18,9 @@ rempi_test_native_PROGRAM = rempi_test_native
 PROGRAMS= $(rempi_test_PROGRAM)  $(rempi_test_native_PROGRAM)
 OBJS= $(rempi_test_OBJS)   $(rempi_test_native_OBJS)
 
-
-.SUFFIXES: .c .o
+#$@: target name
+#$<: first dependent file
+#$^: all indemendent files
 
 all: $(PROGRAMS) 
 
@@ -36,8 +37,13 @@ $(rempi_test_PROGRAM): $(rempi_test_OBJS)
 $(rempi_test_native_PROGRAM): $(rempi_test_native_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
+.SUFFIXES: .c .o
 .c.o: 
-	$(CC) $(CFLAGS) $(LDFLAGS) -c $<
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ -c $< 
+
+.SUFFIXES: .cpp .o
+.cpp.o: 
+	$(CC) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $< 
 
 
 
