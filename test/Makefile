@@ -1,6 +1,13 @@
 include ./Makefile.config
 
-rempi_OBJS = rempi.o rempi_record_replay.o rempi_record.o rempi_replay.o rempi_event_list.o rempi_thread.o rempi_record_thread.o rempi_mutex.o
+rempi_OBJS = 	$(SRC_DIR)/rempi.o \
+                $(SRC_DIR)/rempi_record_replay.o \
+		$(SRC_DIR)/rempi_record.o \
+		$(SRC_DIR)/rempi_replay.o \
+		$(SRC_DIR)/rempi_event_list.o \
+		$(SRC_DIR)/rempi_thread.o \
+		$(SRC_DIR)/rempi_record_thread.o \
+		$(SRC_DIR)/rempi_mutex.o
 
 rempi_test_OBJS = rempi_test.o $(rempi_OBJS)
 rempi_test_PROGRAM = rempi_test
