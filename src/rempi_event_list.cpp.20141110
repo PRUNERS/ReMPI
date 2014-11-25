@@ -1,0 +1,147 @@
+#include <iostream>
+#include <fstream>
+#include <queue>
+#include <string>
+
+#include "rempi_event_list.h"
+
+
+/* ==================
+   rempi_event
+   =================== */
+
+rempi_event::rempi_event(string ni):name (ni){}
+
+rempi_irecv_event::rempi_irecv_event(string name):rempi_event(name){}
+
+
+
+
+/* ==================
+   rempi_event_list
+   =================== */
+
+rempi_event_list::rempi_event_list(int rank)
+{
+  pair<string, list<rempi_event>> event_list_pair;
+  this->rank = rank;
+
+  //TODO: use for/while
+  event_list_pair.first  = "irecv";
+  event_list_pair.second = irecv_event_list;
+  this->event_list_map.insert(event_list_pair);
+
+  // event_list_pair.first  = "test";
+  // event_list_pair.second = test_event_list;
+  // this->event_list_map.inseart(event_list_pair);
+
+  //  pthread_create(&(this->io_thread), NULL, &rempi_event_list::write_events, this);
+  //  this->io_thread = new thread(this->write_events);
+  this->io_thread = thread(write_events, NULL);
+  return;
+}
+
+rempi_event_list::~rempi_event_list()
+{
+  //  this->io_thrad.join();
+}
+
+
+void rempi_event_list::write_events()
+{
+  //  char *rank = new char[16];
+  //  sprintf(rank, this->rank);
+  //  ofstream fout("./record/rempi_record.jobid." + to_string(this->rank));
+  //  ofstream fout("./record/rempi_record.jobid.0" + to_string((long long int)rank));
+  ofstream fout("./record/rempi_record.jobid.0");
+
+  while(1) {
+    for (map<string, list<rempi_event>>::iterator event_list_itr = event_list_map.begin(); 
+	 event_list_itr != event_list_map.end(); 
+	 event_list_itr++) {
+      list<rempi_event> event_list_to_pop;
+      event_list_to_pop = event_list_itr->second;
+
+      while (!event_list_to_pop.empty()) {
+	rempi_event *event_to_record;
+	vector<int64_t> *mpi_inputs;
+	event_to_record = &(event_list_to_pop.front());
+	mpi_inputs = &(event_to_record->mpi_inputs);
+
+	for(vector<int64_t>::iterator mpi_inputs_iter = mpi_inputs->begin(); 
+	    mpi_inputs_iter != mpi_inputs->end(); 
+	    mpi_inputs_iter++)
+	  {
+	    fout << *mpi_inputs_iter;
+	  }
+
+      }
+    }
+  }
+  fout.close();
+  return (void*)NULL;
+}
+
+// Irecv
+int rempi_event_list::add_event(
+	      int64_t buf,
+	      int count,
+	      int datatype,
+	      int source,
+	      int tag,
+	      int comm,
+	      int64_t request) //irecv
+{
+  rempi_event *recv_event;
+  recv_event = new rempi_event("irecv");
+  recv_event->mpi_inputs.push_back(0);
+  recv_event->mpi_inputs.push_back(request);
+  recv_event->mpi_inputs.push_back(source);
+  recv_event->mpi_inputs.push_back(tag);
+  recv_event->mpi_inputs.push_back(comm);
+  this->irecv_event_list.push_back(*recv_event);
+  return 0;
+}
+
+ // test
+int rempi_event_list::add_event(
+              int64_t request,
+	      int flag,
+	      int source,
+	      int tag)
+{
+  return 0;
+}
+
+ // irecv
+int rempi_event_list::get_event(
+              int64_t &buf,
+	      int &count,
+	      int &datatype,
+	      int &source,
+	      int &tag,
+	      int &comm,
+	      int64_t &request)
+{
+  rempi_event *irecv_event = NULL;
+  *irecv_event = irecv_event_list.front();
+  irecv_event_list.pop_front();
+
+
+  request = irecv_event->mpi_inputs[1];
+  source  = irecv_event->mpi_inputs[2];
+  tag     = irecv_event->mpi_inputs[3];
+  comm    = irecv_event->mpi_inputs[4];
+
+  return 0;
+}
+
+// test
+int rempi_event_list::get_event(
+	      int64_t &request,
+	      int &flag,
+	      int &source,
+              int &tag)
+{
+  return 0;
+}
