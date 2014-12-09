@@ -76,11 +76,6 @@ _EXTERN_C_ int MPI_Init(int *arg_0, char ***arg_1)
   return _wrap_py_return_val;
 }
 
-
-// This generates interceptors that will catch every MPI routine
-// *except* MPI_Init.  The interceptors just make sure that if
-// they are called with an argument of type MPI_Comm that has a
-// value of MPI_COMM_WORLD, they switch it with world48.
 /* ================== C Wrappers for MPI_File_write_all_begin ================== */
 _EXTERN_C_ int PMPI_File_write_all_begin(MPI_File arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3);
 _EXTERN_C_ int MPI_File_write_all_begin(MPI_File arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3) { 
@@ -540,8 +535,6 @@ _EXTERN_C_ int PMPI_Allgather(void *arg_0, int arg_1, MPI_Datatype arg_2, void *
 _EXTERN_C_ int MPI_Allgather(void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_6);
-
    _wrap_py_return_val = PMPI_Allgather(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
 }    return _wrap_py_return_val;
 }
@@ -550,8 +543,10 @@ _EXTERN_C_ int MPI_Allgather(void *arg_0, int arg_1, MPI_Datatype arg_2, void *a
 _EXTERN_C_ int PMPI_Irecv(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
 _EXTERN_C_ int MPI_Irecv(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6)
 { 
-  // return PMPI_Irecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
-  return rempi_record_replay_irecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+  int _wrap_py_return_val = 0;
+  _wrap_py_return_val = PMPI_Irecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+  rempi_record_replay_irecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+  return _wrap_py_return_val;
 }
 
 /* ================== C Wrappers for MPI_Issend ================== */
@@ -578,8 +573,6 @@ _EXTERN_C_ int PMPI_Rsend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3,
 _EXTERN_C_ int MPI_Rsend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_5);
-
    _wrap_py_return_val = PMPI_Rsend(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
 }    return _wrap_py_return_val;
 }
@@ -599,8 +592,6 @@ _EXTERN_C_ int PMPI_Abort(MPI_Comm arg_0, int arg_1);
 _EXTERN_C_ int MPI_Abort(MPI_Comm arg_0, int arg_1) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
-
    _wrap_py_return_val = PMPI_Abort(arg_0, arg_1);
 }    return _wrap_py_return_val;
 }
@@ -610,8 +601,6 @@ _EXTERN_C_ int PMPI_Pack(void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3
 _EXTERN_C_ int MPI_Pack(void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, int *arg_5, MPI_Comm arg_6) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_6);
-
    _wrap_py_return_val = PMPI_Pack(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
 }    return _wrap_py_return_val;
 }
@@ -631,8 +620,6 @@ _EXTERN_C_ int PMPI_File_open(MPI_Comm arg_0, char *arg_1, int arg_2, MPI_Info a
 _EXTERN_C_ int MPI_File_open(MPI_Comm arg_0, char *arg_1, int arg_2, MPI_Info arg_3, MPI_File *arg_4) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
-
    _wrap_py_return_val = PMPI_File_open(arg_0, arg_1, arg_2, arg_3, arg_4);
 }    return _wrap_py_return_val;
 }
@@ -642,8 +629,6 @@ _EXTERN_C_ int PMPI_Gatherv(void *arg_0, int arg_1, MPI_Datatype arg_2, void *ar
 _EXTERN_C_ int MPI_Gatherv(void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int *arg_4, int *arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_8);
-
    _wrap_py_return_val = PMPI_Gatherv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8);
 }    return _wrap_py_return_val;
 }
@@ -653,8 +638,6 @@ _EXTERN_C_ int PMPI_Attr_get(MPI_Comm arg_0, int arg_1, void *arg_2, int *arg_3)
 _EXTERN_C_ int MPI_Attr_get(MPI_Comm arg_0, int arg_1, void *arg_2, int *arg_3) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
-
    _wrap_py_return_val = PMPI_Attr_get(arg_0, arg_1, arg_2, arg_3);
 }    return _wrap_py_return_val;
 }
@@ -664,8 +647,6 @@ _EXTERN_C_ int PMPI_Comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2
 _EXTERN_C_ int MPI_Comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
-
    _wrap_py_return_val = PMPI_Comm_create(arg_0, arg_1, arg_2);
 }    return _wrap_py_return_val;
 }
@@ -685,8 +666,6 @@ _EXTERN_C_ int PMPI_Cart_shift(MPI_Comm arg_0, int arg_1, int arg_2, int *arg_3,
 _EXTERN_C_ int MPI_Cart_shift(MPI_Comm arg_0, int arg_1, int arg_2, int *arg_3, int *arg_4) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
-
    _wrap_py_return_val = PMPI_Cart_shift(arg_0, arg_1, arg_2, arg_3, arg_4);
 }    return _wrap_py_return_val;
 }
@@ -787,8 +766,6 @@ _EXTERN_C_ int PMPI_Reduce_scatter(void *arg_0, void *arg_1, int *arg_2, MPI_Dat
 _EXTERN_C_ int MPI_Reduce_scatter(void *arg_0, void *arg_1, int *arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_5);
-
    _wrap_py_return_val = PMPI_Reduce_scatter(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
 }    return _wrap_py_return_val;
 }
@@ -818,7 +795,6 @@ _EXTERN_C_ int PMPI_Irsend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3
 _EXTERN_C_ int MPI_Irsend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_5);
 
    _wrap_py_return_val = PMPI_Irsend(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
 }    return _wrap_py_return_val;
@@ -829,7 +805,6 @@ _EXTERN_C_ int PMPI_Scatterv(void *arg_0, int *arg_1, int *arg_2, MPI_Datatype a
 _EXTERN_C_ int MPI_Scatterv(void *arg_0, int *arg_1, int *arg_2, MPI_Datatype arg_3, void *arg_4, int arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_8);
 
    _wrap_py_return_val = PMPI_Scatterv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8);
 }    return _wrap_py_return_val;
@@ -870,8 +845,6 @@ _EXTERN_C_ int PMPI_Comm_compare(MPI_Comm arg_0, MPI_Comm arg_1, int *arg_2);
 _EXTERN_C_ int MPI_Comm_compare(MPI_Comm arg_0, MPI_Comm arg_1, int *arg_2) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
-//swap_world(arg_1);
 
    _wrap_py_return_val = PMPI_Comm_compare(arg_0, arg_1, arg_2);
 }    return _wrap_py_return_val;
@@ -912,7 +885,6 @@ _EXTERN_C_ int PMPI_Cart_create(MPI_Comm arg_0, int arg_1, int *arg_2, int *arg_
 _EXTERN_C_ int MPI_Cart_create(MPI_Comm arg_0, int arg_1, int *arg_2, int *arg_3, int arg_4, MPI_Comm *arg_5) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Cart_create(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
 }    return _wrap_py_return_val;
@@ -943,7 +915,6 @@ _EXTERN_C_ int PMPI_Graph_neighbors_count(MPI_Comm arg_0, int arg_1, int *arg_2)
 _EXTERN_C_ int MPI_Graph_neighbors_count(MPI_Comm arg_0, int arg_1, int *arg_2) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Graph_neighbors_count(arg_0, arg_1, arg_2);
 }    return _wrap_py_return_val;
@@ -964,7 +935,6 @@ _EXTERN_C_ int PMPI_Allgatherv(void *arg_0, int arg_1, MPI_Datatype arg_2, void 
 _EXTERN_C_ int MPI_Allgatherv(void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int *arg_4, int *arg_5, MPI_Datatype arg_6, MPI_Comm arg_7) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_7);
 
    _wrap_py_return_val = PMPI_Allgatherv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);
 }    return _wrap_py_return_val;
@@ -975,7 +945,6 @@ _EXTERN_C_ int PMPI_Sendrecv(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg
 _EXTERN_C_ int MPI_Sendrecv(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, void *arg_5, int arg_6, MPI_Datatype arg_7, int arg_8, int arg_9, MPI_Comm arg_10, MPI_Status *arg_11) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_10);
 
    _wrap_py_return_val = PMPI_Sendrecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9, arg_10, arg_11);
 }    return _wrap_py_return_val;
@@ -996,7 +965,6 @@ _EXTERN_C_ int PMPI_Graph_neighbors(MPI_Comm arg_0, int arg_1, int arg_2, int *a
 _EXTERN_C_ int MPI_Graph_neighbors(MPI_Comm arg_0, int arg_1, int arg_2, int *arg_3) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Graph_neighbors(arg_0, arg_1, arg_2, arg_3);
 }    return _wrap_py_return_val;
@@ -1027,7 +995,6 @@ _EXTERN_C_ int PMPI_Scatter(void *arg_0, int arg_1, MPI_Datatype arg_2, void *ar
 _EXTERN_C_ int MPI_Scatter(void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_7);
 
    _wrap_py_return_val = PMPI_Scatter(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);
 }    return _wrap_py_return_val;
@@ -1078,7 +1045,6 @@ _EXTERN_C_ int PMPI_Ssend_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int a
 _EXTERN_C_ int MPI_Ssend_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_5);
 
    _wrap_py_return_val = PMPI_Ssend_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
 }    return _wrap_py_return_val;
@@ -1089,7 +1055,6 @@ _EXTERN_C_ int PMPI_Rsend_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int a
 _EXTERN_C_ int MPI_Rsend_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_5);
 
    _wrap_py_return_val = PMPI_Rsend_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
 }    return _wrap_py_return_val;
@@ -1110,7 +1075,6 @@ _EXTERN_C_ int PMPI_Bcast(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3,
 _EXTERN_C_ int MPI_Bcast(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, MPI_Comm arg_4) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_4);
 
    _wrap_py_return_val = PMPI_Bcast(arg_0, arg_1, arg_2, arg_3, arg_4);
 }    return _wrap_py_return_val;
@@ -1121,7 +1085,6 @@ _EXTERN_C_ int PMPI_Comm_size(MPI_Comm arg_0, int *arg_1);
 _EXTERN_C_ int MPI_Comm_size(MPI_Comm arg_0, int *arg_1) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Comm_size(arg_0, arg_1);
 }    return _wrap_py_return_val;
@@ -1162,7 +1125,6 @@ _EXTERN_C_ int PMPI_Graph_create(MPI_Comm arg_0, int arg_1, int *arg_2, int *arg
 _EXTERN_C_ int MPI_Graph_create(MPI_Comm arg_0, int arg_1, int *arg_2, int *arg_3, int arg_4, MPI_Comm *arg_5) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Graph_create(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
 }    return _wrap_py_return_val;
@@ -1203,7 +1165,6 @@ _EXTERN_C_ int PMPI_Pack_size(int arg_0, MPI_Datatype arg_1, MPI_Comm arg_2, int
 _EXTERN_C_ int MPI_Pack_size(int arg_0, MPI_Datatype arg_1, MPI_Comm arg_2, int *arg_3) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_2);
 
    _wrap_py_return_val = PMPI_Pack_size(arg_0, arg_1, arg_2, arg_3);
 }    return _wrap_py_return_val;
@@ -1214,7 +1175,6 @@ _EXTERN_C_ int PMPI_Ibsend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3
 _EXTERN_C_ int MPI_Ibsend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_5);
 
    _wrap_py_return_val = PMPI_Ibsend(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
 }    return _wrap_py_return_val;
@@ -1225,7 +1185,6 @@ _EXTERN_C_ int PMPI_Comm_test_inter(MPI_Comm arg_0, int *arg_1);
 _EXTERN_C_ int MPI_Comm_test_inter(MPI_Comm arg_0, int *arg_1) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Comm_test_inter(arg_0, arg_1);
 }    return _wrap_py_return_val;
@@ -1236,7 +1195,6 @@ _EXTERN_C_ int PMPI_Intercomm_merge(MPI_Comm arg_0, int arg_1, MPI_Comm *arg_2);
 _EXTERN_C_ int MPI_Intercomm_merge(MPI_Comm arg_0, int arg_1, MPI_Comm *arg_2) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Intercomm_merge(arg_0, arg_1, arg_2);
 }    return _wrap_py_return_val;
@@ -1267,7 +1225,6 @@ _EXTERN_C_ int PMPI_Graph_map(MPI_Comm arg_0, int arg_1, int *arg_2, int *arg_3,
 _EXTERN_C_ int MPI_Graph_map(MPI_Comm arg_0, int arg_1, int *arg_2, int *arg_3, int *arg_4) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Graph_map(arg_0, arg_1, arg_2, arg_3, arg_4);
 }    return _wrap_py_return_val;
@@ -1328,7 +1285,6 @@ _EXTERN_C_ int PMPI_Alltoall(void *arg_0, int arg_1, MPI_Datatype arg_2, void *a
 _EXTERN_C_ int MPI_Alltoall(void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_6);
 
    _wrap_py_return_val = PMPI_Alltoall(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
 }    return _wrap_py_return_val;
@@ -1339,7 +1295,6 @@ _EXTERN_C_ int PMPI_Cart_sub(MPI_Comm arg_0, int *arg_1, MPI_Comm *arg_2);
 _EXTERN_C_ int MPI_Cart_sub(MPI_Comm arg_0, int *arg_1, MPI_Comm *arg_2) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Cart_sub(arg_0, arg_1, arg_2);
 }    return _wrap_py_return_val;
@@ -1380,7 +1335,6 @@ _EXTERN_C_ int PMPI_Unpack(void *arg_0, int arg_1, int *arg_2, void *arg_3, int 
 _EXTERN_C_ int MPI_Unpack(void *arg_0, int arg_1, int *arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_6);
 
    _wrap_py_return_val = PMPI_Unpack(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
 }    return _wrap_py_return_val;
@@ -1441,7 +1395,6 @@ _EXTERN_C_ int PMPI_Errhandler_set(MPI_Comm arg_0, MPI_Errhandler arg_1);
 _EXTERN_C_ int MPI_Errhandler_set(MPI_Comm arg_0, MPI_Errhandler arg_1) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Errhandler_set(arg_0, arg_1);
 }    return _wrap_py_return_val;
@@ -1471,7 +1424,6 @@ _EXTERN_C_ int MPI_Start(MPI_Request *arg_0) {
 _EXTERN_C_ int PMPI_Test(MPI_Request *arg_0, int *arg_1, MPI_Status *arg_2);
 _EXTERN_C_ int MPI_Test(MPI_Request *arg_0, int *arg_1, MPI_Status *arg_2)
 { 
-  //  return PMPI_Test(arg_0, arg_1, arg_2);
   return rempi_record_replay_test(arg_0, arg_1, arg_2);
 }
 
@@ -1539,7 +1491,6 @@ _EXTERN_C_ int PMPI_Send_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int ar
 _EXTERN_C_ int MPI_Send_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_5);
 
    _wrap_py_return_val = PMPI_Send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
 }    return _wrap_py_return_val;
@@ -1550,7 +1501,6 @@ _EXTERN_C_ int PMPI_Gather(void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg
 _EXTERN_C_ int MPI_Gather(void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_7);
 
    _wrap_py_return_val = PMPI_Gather(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);
 }    return _wrap_py_return_val;
@@ -1681,7 +1631,6 @@ _EXTERN_C_ int PMPI_Graph_get(MPI_Comm arg_0, int arg_1, int arg_2, int *arg_3, 
 _EXTERN_C_ int MPI_Graph_get(MPI_Comm arg_0, int arg_1, int arg_2, int *arg_3, int *arg_4) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Graph_get(arg_0, arg_1, arg_2, arg_3, arg_4);
 }    return _wrap_py_return_val;
@@ -1702,7 +1651,6 @@ _EXTERN_C_ int PMPI_Cart_rank(MPI_Comm arg_0, int *arg_1, int *arg_2);
 _EXTERN_C_ int MPI_Cart_rank(MPI_Comm arg_0, int *arg_1, int *arg_2) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Cart_rank(arg_0, arg_1, arg_2);
 }    return _wrap_py_return_val;
@@ -1712,9 +1660,10 @@ _EXTERN_C_ int MPI_Cart_rank(MPI_Comm arg_0, int *arg_1, int *arg_2) {
 _EXTERN_C_ int PMPI_Finalize();
 _EXTERN_C_ int MPI_Finalize()
 { 
-  
-  //return PMPI_Finalize();
-  return rempi_record_replay_finalize();
+  int _wrap_py_return_val = 0;
+  _wrap_py_return_val = PMPI_Finalize();
+  rempi_record_replay_finalize();
+  return _wrap_py_return_val;
 }
 
 /* ================== C Wrappers for MPI_Comm_set_name ================== */
@@ -1791,7 +1740,6 @@ _EXTERN_C_ int PMPI_Ssend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3,
 _EXTERN_C_ int MPI_Ssend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_5);
 
    _wrap_py_return_val = PMPI_Ssend(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
 }    return _wrap_py_return_val;
@@ -1802,7 +1750,6 @@ _EXTERN_C_ int PMPI_Probe(int arg_0, int arg_1, MPI_Comm arg_2, MPI_Status *arg_
 _EXTERN_C_ int MPI_Probe(int arg_0, int arg_1, MPI_Comm arg_2, MPI_Status *arg_3) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_2);
 
    _wrap_py_return_val = PMPI_Probe(arg_0, arg_1, arg_2, arg_3);
 }    return _wrap_py_return_val;
@@ -1813,7 +1760,6 @@ _EXTERN_C_ int PMPI_Comm_remote_group(MPI_Comm arg_0, MPI_Group *arg_1);
 _EXTERN_C_ int MPI_Comm_remote_group(MPI_Comm arg_0, MPI_Group *arg_1) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Comm_remote_group(arg_0, arg_1);
 }    return _wrap_py_return_val;
@@ -1834,7 +1780,6 @@ _EXTERN_C_ int PMPI_Cart_map(MPI_Comm arg_0, int arg_1, int *arg_2, int *arg_3, 
 _EXTERN_C_ int MPI_Cart_map(MPI_Comm arg_0, int arg_1, int *arg_2, int *arg_3, int *arg_4) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Cart_map(arg_0, arg_1, arg_2, arg_3, arg_4);
 }    return _wrap_py_return_val;
@@ -1895,7 +1840,6 @@ _EXTERN_C_ int PMPI_Comm_dup(MPI_Comm arg_0, MPI_Comm *arg_1);
 _EXTERN_C_ int MPI_Comm_dup(MPI_Comm arg_0, MPI_Comm *arg_1) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Comm_dup(arg_0, arg_1);
 }    return _wrap_py_return_val;
@@ -1916,7 +1860,6 @@ _EXTERN_C_ int PMPI_Topo_test(MPI_Comm arg_0, int *arg_1);
 _EXTERN_C_ int MPI_Topo_test(MPI_Comm arg_0, int *arg_1) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Topo_test(arg_0, arg_1);
 }    return _wrap_py_return_val;
@@ -1947,7 +1890,6 @@ _EXTERN_C_ int PMPI_Attr_put(MPI_Comm arg_0, int arg_1, void *arg_2);
 _EXTERN_C_ int MPI_Attr_put(MPI_Comm arg_0, int arg_1, void *arg_2) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Attr_put(arg_0, arg_1, arg_2);
 }    return _wrap_py_return_val;
@@ -1958,7 +1900,6 @@ _EXTERN_C_ int PMPI_Barrier(MPI_Comm arg_0);
 _EXTERN_C_ int MPI_Barrier(MPI_Comm arg_0) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Barrier(arg_0);
 }    return _wrap_py_return_val;
@@ -1969,7 +1910,6 @@ _EXTERN_C_ int PMPI_Alltoallv(void *arg_0, int *arg_1, int *arg_2, MPI_Datatype 
 _EXTERN_C_ int MPI_Alltoallv(void *arg_0, int *arg_1, int *arg_2, MPI_Datatype arg_3, void *arg_4, int *arg_5, int *arg_6, MPI_Datatype arg_7, MPI_Comm arg_8) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_8);
 
    _wrap_py_return_val = PMPI_Alltoallv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8);
 }    return _wrap_py_return_val;
@@ -1980,7 +1920,6 @@ _EXTERN_C_ int PMPI_Bsend_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int a
 _EXTERN_C_ int MPI_Bsend_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_5);
 
    _wrap_py_return_val = PMPI_Bsend_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
 }    return _wrap_py_return_val;
@@ -2011,8 +1950,7 @@ _EXTERN_C_ int PMPI_Isend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3,
 _EXTERN_C_ int MPI_Isend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_5);
-  //  random_delay();
+
    _wrap_py_return_val = PMPI_Isend(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
 }    return _wrap_py_return_val;
 }
@@ -2022,7 +1960,6 @@ _EXTERN_C_ int PMPI_Comm_get_name(MPI_Comm arg_0, char *arg_1, int *arg_2);
 _EXTERN_C_ int MPI_Comm_get_name(MPI_Comm arg_0, char *arg_1, int *arg_2) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Comm_get_name(arg_0, arg_1, arg_2);
 }    return _wrap_py_return_val;
@@ -2053,7 +1990,6 @@ _EXTERN_C_ int PMPI_Comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *a
 _EXTERN_C_ int MPI_Comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Comm_split(arg_0, arg_1, arg_2, arg_3);
 }    return _wrap_py_return_val;
@@ -2104,7 +2040,6 @@ _EXTERN_C_ int PMPI_Iprobe(int arg_0, int arg_1, MPI_Comm arg_2, int *flag, MPI_
 _EXTERN_C_ int MPI_Iprobe(int arg_0, int arg_1, MPI_Comm arg_2, int *flag, MPI_Status *arg_4) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_2);
 
    _wrap_py_return_val = PMPI_Iprobe(arg_0, arg_1, arg_2, flag, arg_4);
 }    return _wrap_py_return_val;
@@ -2115,7 +2050,6 @@ _EXTERN_C_ int PMPI_Comm_rank(MPI_Comm arg_0, int *arg_1);
 _EXTERN_C_ int MPI_Comm_rank(MPI_Comm arg_0, int *arg_1) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Comm_rank(arg_0, arg_1);
 }    return _wrap_py_return_val;
@@ -2146,7 +2080,6 @@ _EXTERN_C_ int PMPI_Graphdims_get(MPI_Comm arg_0, int *arg_1, int *arg_2);
 _EXTERN_C_ int MPI_Graphdims_get(MPI_Comm arg_0, int *arg_1, int *arg_2) { 
     int _wrap_py_return_val = 0;
 {
-   //swap_world(arg_0);
 
    _wrap_py_return_val = PMPI_Graphdims_get(arg_0, arg_1, arg_2);
 }    return _wrap_py_return_val;
@@ -2157,8 +2090,6 @@ _EXTERN_C_ int PMPI_Send(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, 
 _EXTERN_C_ int MPI_Send(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5) { 
     int _wrap_py_return_val = 0;
     {
-      //swap_world(arg_5);
-      //      random_delay();
       _wrap_py_return_val = PMPI_Send(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
     }    
     return _wrap_py_return_val;

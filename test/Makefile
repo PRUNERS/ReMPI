@@ -1,56 +1,45 @@
-include ./Makefile.config
+include ../Makefile.config
 
-rempi_OBJS = 	$(SRC_DIR)/rempi.o \
-                $(SRC_DIR)/rempi_record_replay.o \
-		$(SRC_DIR)/rempi_record.o \
-		$(SRC_DIR)/rempi_replay.o \
-		$(SRC_DIR)/rempi_event_list.o \
-		$(SRC_DIR)/rempi_thread.o \
-		$(SRC_DIR)/rempi_record_thread.o \
-		$(SRC_DIR)/rempi_mutex.o
+rempi_test_master_worker_OBJS = rempi_test_master_worker.o rempi_test_util.o
+rempi_test_master_worker_PROGRAM = rempi_test_master_worker
 
-rempi_test_OBJS = rempi_test.o $(rempi_OBJS)
-rempi_test_PROGRAM = rempi_test
+rempi_test_neighbor_OBJS = rempi_test_neighbor.o rempi_test_util.o
+rempi_test_neighbor_PROGRAM = rempi_test_neighbor
 
-rempi_test_native_OBJS = rempi_test.o
-rempi_test_native_PROGRAM = rempi_test_native
-
-PROGRAMS= $(rempi_test_PROGRAM)  $(rempi_test_native_PROGRAM)
-OBJS= $(rempi_test_OBJS)   $(rempi_test_native_OBJS)
+PROGRAMS= $(rempi_test_master_worker_PROGRAM)  $(rempi_test_neighbor_PROGRAM)
+OBJS= $(rempi_test_master_worker_OBJS)   $(rempi_test_neighbor_OBJS)
 
 #$@: target name
 #$<: first dependent file
 #$^: all indemendent files
 
-all: $(PROGRAMS) 
+all: src_make $(PROGRAMS) 
 
-library: $(rempi_OBJS)
-	ar cr librempi.a $(rempi_OBJS)
-	ranlib librempi.a
+src_make:
+	@$(MAKE) -C ../src
 
-lib.so: $(rempi_OBJS)
-	$(CC) -shared -o librempi.so $(rempi_OBJS)
-
-$(rempi_test_PROGRAM): $(rempi_test_OBJS)
+$(rempi_test_master_worker_PROGRAM): $(rempi_test_master_worker_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
-$(rempi_test_native_PROGRAM): $(rempi_test_native_OBJS)
+$(rempi_test_neighbor_PROGRAM): $(rempi_test_neighbor_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 .SUFFIXES: .c .o
 .c.o: 
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ -c $< 
 
-.SUFFIXES: .cpp .o
-.cpp.o: 
-	$(CC) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $< 
-
+#.SUFFIXES: .cpp .o
+#.cpp.o: 
+#	$(CC) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $< 
 
 
 .PHONY: clean
 clean:
-	-rm -rf $(PROGRAMS) $(OBJS)
+	-rm -f $(PROGRAMS) $(OBJS)
 
 clean_core:
-	-rm -rf *.core
+	-rm -f *.core
+
+clean_record:
+	-rm -f rank_*.rempi
 

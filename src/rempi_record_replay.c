@@ -13,7 +13,7 @@
 
 #define REMPI_COMM_ID_LENGTH (128) // TODO: 1 byte are enough, but 1 byte causes segmentation fault ...
 
-int mode = REMPI_RECORD_MODE;
+int mode = REMPI_REPLAY_MODE;
 
 char next_comm_id_to_assign = 0; //TODO: Mutex for Hybrid MPI
 
@@ -31,13 +31,10 @@ int rempi_record_replay_init(int *argc, char ***argv)
 
     comm_id[0] = next_comm_id_to_assign++; // Use only first 1 byte
     MPI_Comm_set_name(MPI_COMM_WORLD, comm_id);
-
-
   } else if (mode == REMPI_REPLAY_MODE) {
     // Check if inputs are same as values in recording run
     //rempi_record_init(argc, argv);
   }
-
 
 
   return return_val;
@@ -60,7 +57,7 @@ int rempi_record_replay_irecv(
     int comm_id_int;
     int resultlen;
 
-    return_val = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
+    //    return_val = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
     //TODO: Get Datatype
     MPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);
     rempi_record_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], (void*)request);
@@ -77,11 +74,12 @@ int rempi_record_replay_test(
     MPI_Status *status)
 {
   int return_val;
+  return_val = PMPI_Test(request, flag, status);
 
   if (mode == REMPI_RECORD_MODE) {
-    return_val = PMPI_Test(request, flag, status);
     rempi_record_test((void*)request, flag, status->MPI_SOURCE, status->MPI_TAG);
   } else {
+    //    fprintf(stderr, "test \n");
     // TODO: replay
     // rempi_replay_test(buf, count, (int)(&datatype), source, tag, 0, (void*)request);
   }
@@ -100,6 +98,7 @@ int rempi_record_replay_testsome(
     return_val = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
     rempi_record_testsome(incount, (void*)(array_of_requests), (int*)(outcount), array_of_indices, (void*)array_of_statuses);
   } else {
+
     // TODO: replay
     // rempi_replay_test(buf, count, (int)(&datatype), source, tag, 0, (void*)request);
   }
@@ -109,8 +108,11 @@ int rempi_record_replay_testsome(
 int rempi_record_replay_finalize(void)
 {
   int return_val;
-  rempi_record_finalize();
-  return_val = PMPI_Finalize();
+  if (mode == REMPI_RECORD_MODE) {
+    return_val = rempi_record_finalize();
+  } else {
+    
+  }
   return return_val;
 
 }

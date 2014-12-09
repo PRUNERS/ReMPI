@@ -37,9 +37,9 @@ int rempi_record_irecv(
 {
   //  event_list->add_event((int64_t)buf, count, datatype, source, tag, comm, (int64_t)request);
   //TODO: we need to record *request?
-  event_list->push(new rempi_irecv_event(1, count, source, tag, comm, -1));
+  //  event_list->push(new rempi_irecv_event(1, count, source, tag, comm, -1));
   // fprintf(stderr, "ReMPI: =>RECORD(IREC): buf:%p count:%d, datatype:%d, source:%d, tag:%d, comm:%d, request:%p\n", 
-  // 	  buf, count, datatype, source, tag, comm, request);
+  //  	  buf, count, datatype, source, tag, comm, request);
   //  event_list.get_event((int64_t)request, source, tag, comm);
   //  fprintf(stderr, "ReMPI: Record: buf:%p count:%d, datatype:%d, source:%d, tag:%d, comm:%d, request:%p Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   return 0;
@@ -56,15 +56,9 @@ int rempi_record_test(
   int is_testsome = 0;
   int request_val = -1;
 
-
-  //  event_list->add_event((int64_t)request, *flag, source, tag);
   //TODO: we need to record *request ?
   event_list->push(new rempi_test_event(event_count, is_testsome, request_val, *flag, source, tag));
-  //fprintf(stderr, "ReMPI: =>RECORD(TEST): request:%p, flag:%d, source:%d, tag:%d\n",  request, *flag, source, tag);
-  if (*flag) {
-    //    fprintf(stderr, "** Slave ID: %d **\n", source);
-    //fprintf(stderr, "ReMPI: =>RECORD(TEST): request:%p, flag:%d, source:%d, tag:%d\n",  request, *flag, source, tag);
-  }
+
   return 0;
 }
 
