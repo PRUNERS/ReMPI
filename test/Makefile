@@ -22,6 +22,7 @@ $(rempi_test_master_worker_PROGRAM): $(rempi_test_master_worker_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 $(rempi_test_neighbor_PROGRAM): $(rempi_test_neighbor_OBJS)
+
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 .SUFFIXES: .c .o

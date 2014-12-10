@@ -7,7 +7,7 @@ rempi_OBJS = 	$(SRC_DIR)/rempi.o \
 		$(SRC_DIR)/rempi_event_list.o \
 		$(SRC_DIR)/rempi_event.o \
 		$(SRC_DIR)/rempi_thread.o \
-		$(SRC_DIR)/rempi_record_thread.o \
+		$(SRC_DIR)/rempi_io_thread.o \
 		$(SRC_DIR)/rempi_mutex.o
 
 OBJS = $(rempi_OBJS)
