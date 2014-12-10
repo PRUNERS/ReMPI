@@ -6,14 +6,9 @@
 
 #include "rempi_record_replay.h"
 #include "rempi_record.h"
-
-#define REMPI_RECORD_MODE (0)
-#define REMPI_REPLAY_MODE (1)
+#include "rempi_config.h"
 
 #define REMPI_COMM_ID_LENGTH (128) // TODO: 1 byte are enough, but 1 byte causes segmentation fault ...
-
-int mode = REMPI_REPLAY_MODE;
-//int mode = REMPI_RECORD_MODE;
 
 char next_comm_id_to_assign = 0; //TODO: Mutex for Hybrid MPI
 
@@ -22,17 +17,18 @@ int rempi_record_replay_init(int *argc, char ***argv)
   int return_val;
   int rank;
   //  return_val = PMPI_Init(argc, argv);
+  PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  rempi_err_init(rank);
+  rempi_set_configuration();
 
-  if (mode == REMPI_RECORD_MODE) {
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     char comm_id[REMPI_COMM_ID_LENGTH];
 
-
-    PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
     rempi_record_init(argc, argv, rank);
 
     comm_id[0] = next_comm_id_to_assign++; // Use only first 1 byte
     MPI_Comm_set_name(MPI_COMM_WORLD, comm_id);
-  } else if (mode == REMPI_REPLAY_MODE) {
+  } else {
     //TODO: Check if inputs are same as values in recording run
     //TODO: Check if this is same run as the last recording run
     rempi_replay_init(argc, argv, rank);
@@ -53,7 +49,7 @@ int rempi_record_replay_irecv(
   int return_val;
   int rempi_datatype;
 
-  if (mode == REMPI_RECORD_MODE) {
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     char comm_id[REMPI_COMM_ID_LENGTH];
     int comm_id_int;
     int resultlen;
@@ -78,7 +74,7 @@ int rempi_record_replay_test(
   int return_val;
   return_val = PMPI_Test(request, flag, status);
 
-  if (mode == REMPI_RECORD_MODE) {
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     rempi_record_test((void*)request, flag, status->MPI_SOURCE, status->MPI_TAG);
   } else {
     int recorded_source, recorded_tag, recorded_flag;
@@ -98,7 +94,7 @@ int rempi_record_replay_testsome(
 	     MPI_Status array_of_statuses[])
 {
   int return_val;
-  if (mode == REMPI_RECORD_MODE) {
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     return_val = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
     rempi_record_testsome(incount, (void*)(array_of_requests), (int*)(outcount), array_of_indices, (void*)array_of_statuses);
   } else {
@@ -111,7 +107,7 @@ int rempi_record_replay_testsome(
 int rempi_record_replay_finalize(void)
 {
   int return_val;
-  if (mode == REMPI_RECORD_MODE) {
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     return_val = rempi_record_finalize();
   } else {
     return_val = rempi_replay_finalize();

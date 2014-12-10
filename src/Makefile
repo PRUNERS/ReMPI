@@ -1,6 +1,10 @@
 include ../Makefile.config
 
 rempi_OBJS = 	$(SRC_DIR)/rempi.o \
+		$(SRC_DIR)/rempi_err.o \
+		$(SRC_DIR)/rempi_mem.o \
+		$(SRC_DIR)/rempi_util.o \
+		$(SRC_DIR)/rempi_config.o \
                 $(SRC_DIR)/rempi_record_replay.o \
 		$(SRC_DIR)/rempi_record.o \
 		$(SRC_DIR)/rempi_event_list.o \

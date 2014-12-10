@@ -7,6 +7,8 @@
 #include "rempi_event.h"
 #include "rempi_event_list.h"
 #include "rempi_io_thread.h"
+#include "rempi_util.h"
+#include "rempi_err.h"
 
 rempi_event_list<rempi_event*> *event_list;
 rempi_io_thread *record_thread, *read_record_thread;
@@ -30,13 +32,13 @@ int rempi_replay_init(int *argc, char ***argv, int rank)
 {
   string id;
 
-  return 0;
-
   fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   id = std::to_string((long long int)rank);
   event_list = new rempi_event_list<rempi_event*>(100000, 100);
   read_record_thread = new rempi_io_thread(event_list, id, 1); //1: replay mode
   read_record_thread->start();
+
+  rempi_sleep(100);
   
   return 0;
 }

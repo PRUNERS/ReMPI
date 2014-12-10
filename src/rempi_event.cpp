@@ -39,7 +39,6 @@ rempi_irecv_event::rempi_irecv_event(int event_counts, int count, int source, in
     mpi_inputs.push_back(request);
 }
 
-
 rempi_test_event::rempi_test_event(int event_counts, int is_testsome, int request, int flag, int source, int tag) {
   //    mpi_inputs.push_back(event_counts);
     mpi_inputs.push_back(is_testsome);
