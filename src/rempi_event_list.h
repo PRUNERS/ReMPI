@@ -1,8 +1,6 @@
 #ifndef EVENT_LIST_H
 #define EVENT_LIST_H
 
-
-
 #include <list>
 #include <map>
 #include <unistd.h>

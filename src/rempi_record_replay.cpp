@@ -7,8 +7,10 @@
 #include "rempi_record_replay.h"
 #include "rempi_record.h"
 #include "rempi_config.h"
+#include "rempi_err.h"
 
 #define REMPI_COMM_ID_LENGTH (128) // TODO: 1 byte are enough, but 1 byte causes segmentation fault ...
+
 
 char next_comm_id_to_assign = 0; //TODO: Mutex for Hybrid MPI
 
@@ -19,7 +21,7 @@ int rempi_record_replay_init(int *argc, char ***argv)
   //  return_val = PMPI_Init(argc, argv);
   PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
   rempi_err_init(rank);
-  rempi_set_configuration();
+  rempi_set_configuration(argc, argv);
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     char comm_id[REMPI_COMM_ID_LENGTH];
@@ -96,7 +98,7 @@ int rempi_record_replay_testsome(
   int return_val;
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     return_val = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
-    rempi_record_testsome(incount, (void*)(array_of_requests), (int*)(outcount), array_of_indices, (void*)array_of_statuses);
+    rempi_record_testsome(incount, (void**)(array_of_requests), (int*)(outcount), array_of_indices, (void**)array_of_statuses);
   } else {
     // TODO: replay
     // rempi_replay_test(buf, count, (int)(&datatype), source, tag, 0, (void*)request);

@@ -11,6 +11,8 @@
 #include "rempi_err.h"
 #include "rempi_config.h"
 
+//extern int rempi_mode;
+
 rempi_event_list<rempi_event*> *event_list;
 rempi_io_thread *record_thread, *read_record_thread;
 //using namespace std;

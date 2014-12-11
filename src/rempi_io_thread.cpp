@@ -96,7 +96,6 @@ void rempi_io_thread::run()
   } else {
     fprintf(stderr, "unexpected mode in rempi_io_thread.cpp");
   }
-
 }
 
 

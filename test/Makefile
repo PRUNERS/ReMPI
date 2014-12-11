@@ -36,6 +36,7 @@ $(rempi_test_neighbor_PROGRAM): $(rempi_test_neighbor_OBJS)
 
 .PHONY: clean
 clean:
+	@$(MAKE) clean -C ../src
 	-rm -f $(PROGRAMS) $(OBJS)
 
 clean_core:
