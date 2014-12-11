@@ -1,4 +1,5 @@
 #include "rempi_io_thread.h"
+#include "rempi_config.h"
 #include <iostream>
 #include <fstream>
 
@@ -20,7 +21,8 @@ void Consumer::consume(size_t num_items)
 
 void rempi_io_thread::complete_flush()
 {
-	is_complete_flush = 1;
+   is_complete_flush = 1;
+   return;
 }
 
 void rempi_io_thread::write_record()
@@ -57,6 +59,32 @@ void rempi_io_thread::write_record()
 
 void rempi_io_thread::read_record()
 {
+  ofstream ofs;
+  string path;
+  int i;
+
+  path = "./rank_" + id + ".rempi";
+  
+  ofs.open(path);
+  
+  if (!events) return;
+  while(1) {
+    int *serialized_data, size;
+    rempi_event *item = events->pop();
+    
+    if (item != NULL) {
+      serialized_data = item->serialize(size);
+      ofs.write((const char*)serialized_data, sizeof(int) * size);
+    } else {
+      usleep(100);
+    }
+
+    if (is_complete_flush && events->size() == 0) {
+      break;
+    }
+  }
+  ofs.flush();
+  ofs.close();
 }
 
 void rempi_io_thread::run()
