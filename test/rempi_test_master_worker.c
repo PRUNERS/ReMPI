@@ -1,6 +1,10 @@
+
 #include <stdio.h>
 #include <mpi.h>
 #include <sys/time.h>
+
+
+#include "rempi_test_util.h"
 
 #define NUM_MEG_PER_RANK (1)
 #define MAX_HASH (1000000)
@@ -22,6 +26,7 @@ int main(int argc, char *argv[])
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
   init_rand(rank);
+
 
   if (rank != 0) { // Slaves
     int buf;
@@ -54,9 +59,10 @@ int main(int argc, char *argv[])
 
   end = MPI_Wtime();
   MPI_Finalize();
-  overall_end = MPI_Wtime();
+  //  overall_end = MPI_Wtime();
   if (rank == 0) {
-    fprintf(stdout, "Hash %d, Time (Main loop): %f, Time (Overall): %f\n", hash, end - start, overall_end - start);
+    //    fprintf(stdout, "Hash %d, Time (Main loop): %f, Time (Overall): %f\n", hash, end - start, overall_end - start);
+    fprintf(stdout, "Hash %d, Time (Main loop): %f\n", hash, end - start);
   }
   return 0;
 

@@ -9,6 +9,7 @@
 #define REMPI_SPSC_QUEUE_H_
 
 #include <unistd.h>
+#include "rempi_err.h"
 
 #if ( (__GNUC__ == 4) && (__GNUC_MINOR__ >= 1) || __GNUC__ > 4) && \
  (defined(__x86_64__) || defined(__i386__))
@@ -78,6 +79,7 @@ public:
       node* n = alloc_node();
       n->next_ = 0;
       n->value_ = v;
+      //      rempi_dbg("----- push: %p", v);
       store_release(&head_->next_, n);
       enqueue_count++;
       head_ = n;

@@ -1,47 +1,62 @@
 include ../Makefile.config
 
-rempi_OBJS = 	$(SRC_DIR)/rempi.o \
-		$(SRC_DIR)/rempi_err.o \
-		$(SRC_DIR)/rempi_mem.o \
-		$(SRC_DIR)/rempi_util.o \
-		$(SRC_DIR)/rempi_config.o \
-                $(SRC_DIR)/rempi_record_replay.o \
-		$(SRC_DIR)/rempi_record.o \
-		$(SRC_DIR)/rempi_event_list.o \
-	     	$(SRC_DIR)/rempi_event.o \
-		$(SRC_DIR)/rempi_encoder.o \
-		$(SRC_DIR)/rempi_thread.o \
-		$(SRC_DIR)/rempi_io_thread.o \
-		$(SRC_DIR)/rempi_mutex.o
+SRC_DIR=.
+
+rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
+		$(SRC_DIR)/rempi_err.cpp \
+		$(SRC_DIR)/rempi_mem.cpp \
+		$(SRC_DIR)/rempi_util.cpp \
+		$(SRC_DIR)/rempi_config.cpp \
+                $(SRC_DIR)/rempi_record_replay.cpp \
+		$(SRC_DIR)/rempi_record.cpp \
+		$(SRC_DIR)/rempi_event_list.cpp \
+	     	$(SRC_DIR)/rempi_event.cpp \
+		$(SRC_DIR)/rempi_encoder.cpp \
+		$(SRC_DIR)/rempi_thread.cpp \
+		$(SRC_DIR)/rempi_io_thread.cpp \
+		$(SRC_DIR)/rempi_mutex.cpp
+
+rempi_OBJS = 	$(rempi_SRCS:%.cpp=%.o) 
+rempi_DEPS = 	$(rempi_SRCS:%.cpp=%.d) 
+
+rempi_a_LIBS =	../lib/librempi.a 
+rempi_so_LIBS =	../lib/librempi.so	
 
 OBJS = $(rempi_OBJS)
+DEPS = $(rempi_DEPS)
+LIBS = $(rempi_a_LIBS) $(rempi_so_LIBS)
 
 #$@: target name
 #$<: first dependent file
 #$^: all indemendent files
 
-all: lib.a lib.so
 
-lib.a: $(rempi_OBJS)
+all: $(LIBS)
+
+-include $(DEPS)
+
+$(rempi_a_LIBS):  $(rempi_OBJS)
 	ar cr ../lib/librempi.a $(rempi_OBJS)
 	ranlib ../lib/librempi.a
 
-lib.so: $(rempi_OBJS)
+$(rempi_so_LIBS):  $(rempi_OBJS)
 	$(CC) -shared -o ../lib/librempi.so $(rempi_OBJS)
 
 .SUFFIXES: .c .o
 .c.o: 
+	$(CC) $(CFLAGS) $(LDFLAGS) -c -MMD -MP $< 
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ -c $< 
 
 .SUFFIXES: .cpp .o
-.cpp.o: 
+.cpp.o:
+	$(CC) $(CXXFLAGS) $(LDFLAGS) -c -MMD -MP $<
 	$(CC) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $< 
-
 
 .PHONY: clean
 clean:
-	-rm -rf $(OBJS) ../lib/librempi.a ../lib/librempi.so
+	-rm -rf $(OBJS) $(DEPS) $(LIBS)
 
+.PHONY: clean_core
 clean_core:
 	-rm -rf *.core
 

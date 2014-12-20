@@ -1,4 +1,3 @@
-
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1462,7 +1461,7 @@ _EXTERN_C_ int PMPI_Finalized(int *arg_0);
 _EXTERN_C_ int MPI_Finalized(int *arg_0) { 
     int _wrap_py_return_val = 0;
 {
-   _wrap_py_return_val = PMPI_Finalized(arg_0);
+  _wrap_py_return_val = PMPI_Finalized(arg_0);
 }    return _wrap_py_return_val;
 }
 
@@ -1661,8 +1660,8 @@ _EXTERN_C_ int PMPI_Finalize();
 _EXTERN_C_ int MPI_Finalize()
 { 
   int _wrap_py_return_val = 0;
-  _wrap_py_return_val = PMPI_Finalize();
   rempi_record_replay_finalize();
+  _wrap_py_return_val = PMPI_Finalize();
   return _wrap_py_return_val;
 }
 

@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-// ** DO NOT include mpi.h in this file **
+#include "mpi.h"
 
 //#include <iostream>
 #include "rempi_record.h"
@@ -35,14 +35,11 @@ int rempi_replay_init(int *argc, char ***argv, int rank)
 {
   string id;
 
-  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   id = std::to_string((long long int)rank);
   event_list = new rempi_event_list<rempi_event*>(100000, 100);
   read_record_thread = new rempi_io_thread(event_list, id, rempi_mode); //1: replay mode
   read_record_thread->start();
 
-  rempi_sleep(100);
-  
   return 0;
 }
 
@@ -94,14 +91,28 @@ int rempi_record_test(
   return 0;
 }
 
+
 int rempi_replay_test(
-    void *request,
-    int *flag,
-    int *source,
-    int *tag)
+    MPI_Request *request_in,
+    int flag_in,
+    int source_in,
+    int tag_in,
+    int *flag_out,
+    int *source_out,
+    int *tag_out)
 {
-  rempi_event *test_event;
-  test_event = event_list->pop();
+  rempi_event *replaying_test_event;
+  replaying_test_event = event_list->pop();
+  /*TODO:
+    1. Get request (recoeded in irecv) for this "replaying_test_event"
+    2. Wait until this recorded message really arrives
+       if (0 if next recoded maching is not mached in this run) {
+          TODO: Wait until maching, and get clock
+	  TODO: if matched, memorize that the matching for the next replay test
+       }
+    3. Set valiabiles (source, flag, tag)
+   */
+
   return 0;
 }
 

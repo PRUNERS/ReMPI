@@ -1,4 +1,3 @@
-
 #ifndef REMPI_TEST_UTIL_H
 #define REMPI_TEST_UTIL_H
 

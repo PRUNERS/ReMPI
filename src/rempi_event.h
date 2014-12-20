@@ -18,7 +18,7 @@ class rempi_event
     vector<int> mpi_inputs;
     virtual void operator ++(int);
     virtual bool operator ==(rempi_event event);
-    virtual int* serialize(int &size);
+    virtual char* serialize(size_t &size);
 };
 
 class rempi_irecv_event : public rempi_event

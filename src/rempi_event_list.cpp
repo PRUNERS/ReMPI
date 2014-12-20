@@ -5,6 +5,7 @@
 #include "rempi_spsc_queue.h"
 #include "rempi_event_list.h"
 #include "rempi_event.h"
+#include "rempi_err.h"
 
 using namespace std;
 
@@ -38,7 +39,7 @@ void rempi_event_list<T>::push(T event)
 	usleep(spin_time);
 	mtx.lock();
       }
-    events.enqueue(event);
+    events.enqueue(previous_event);
     mtx.unlock();
     previous_event = event;
   }

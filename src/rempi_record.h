@@ -50,10 +50,13 @@ int rempi_record_test(
     int tab     // of MPI_tatus
 );
 int rempi_replay_test(
-    void *request,
-    int *flag,
-    int *source, // of MPI_Status
-    int *tab     // of MPI_tatus
+    MPI_Request *request_in,
+    int flag_in,
+    int source_in,
+    int tag_in,
+    int *flag_out,
+    int *source_out,
+    int *tag_out
 );
 
 
@@ -71,6 +74,9 @@ int rempi_replay_testsome(
     int array_of_indices[],
     void *array_of_statuses[]
 );
+
+
+
 
 //TODO: Comm_dup Comm_split
 
