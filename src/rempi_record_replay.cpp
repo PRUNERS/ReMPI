@@ -49,32 +49,30 @@ int rempi_record_replay_irecv(
 	  MPI_Request *request)
 {
   int return_val;
-  int rempi_datatype;
-
+  char comm_id[REMPI_COMM_ID_LENGTH];
+  int comm_id_int;
+  int resultlen;
+  PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    char comm_id[REMPI_COMM_ID_LENGTH];
-    int comm_id_int;
-    int resultlen;
-
     //    return_val = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
-    //TODO: Get Datatype
-    PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);
+    //TODO: Get Datatype,
     rempi_record_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], (void*)request);
   } else {
-    //TODO:
-    //    rempi_record_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], (void*)request);
-    // rempi_replay_irecv(buf, count, (int)(&datatype), source, tag, 0, (void*)request);
+    /*TODO: Really need datatype ??*/
+    rempi_replay_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], request);
   }
   return return_val;
 }
 
 int rempi_record_replay_test(
-    MPI_Request *request,
+    MPI_Request *request, /*TODO: use MPI_Request request insted of *request*/
     int *flag,
     MPI_Status *status)
 {
   int return_val;
+  status->MPI_SOURCE = 0;
+  status->MPI_TAG    = 0;
   return_val = PMPI_Test(request, flag, status);
  
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
@@ -86,7 +84,6 @@ int rempi_record_replay_test(
 
     rempi_replay_test(request, *flag, status->MPI_SOURCE, status->MPI_TAG,
 		      &recorded_flag, &recorded_source, &recorded_tag);
-    rempi_sleep(100000);
     /*Set next recorded and matched source, and tag*/
     status->MPI_SOURCE = recorded_source;
     status->MPI_TAG    = recorded_tag;

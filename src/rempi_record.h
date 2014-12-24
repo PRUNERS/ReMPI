@@ -40,7 +40,7 @@ int rempi_replay_irecv(
    int source,
    int tag,
    int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-   void *request
+   MPI_Request *request
 );
 
 int rempi_record_test(

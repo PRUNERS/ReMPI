@@ -27,18 +27,24 @@ void rempi_event_list<T>::push(T event)
     previous_event = event;
     return;
   }
-  
+
+
   if ((*this->previous_event) == *event) {
+    /*If the event is exactry same as previsou one, ...*/
+    /*Just increment the counter of the event
+     in order to reduce the memory consumption.
+     Even if an application polls with MPI_Test, 
+     we only increment an counter of the previous MPI_Test event
+    */
     (*this->previous_event)++;
     delete event;
   } else {
     mtx.lock();
-    while (events.rough_size() >= max_size)
-      {
-	mtx.unlock();
-	usleep(spin_time);
-	mtx.lock();
-      }
+    while (events.rough_size() >= max_size) {
+      mtx.unlock();
+      usleep(spin_time);
+      mtx.lock();
+    }
     events.enqueue(previous_event);
     mtx.unlock();
     previous_event = event;

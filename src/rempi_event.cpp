@@ -4,7 +4,10 @@
 #include "rempi_event.h"
 #include "rempi_err.h"
 
+
 using namespace std;
+
+int rempi_event::max_size = sizeof(int) * REMPI_MPI_EVENT_INPUT_NUM;
 
 void rempi_event::operator ++(int) {
   mpi_inputs[0]++;
@@ -26,13 +29,27 @@ bool rempi_event::operator ==(rempi_event event)
 char* rempi_event::serialize(size_t &size)
 {
     int *serialized_data = new int[mpi_inputs.size()];
+    this->print();
+    fprintf(stderr, "\n");
     for (unsigned int i = 0; i < mpi_inputs.size(); i++) {
       serialized_data[i] = mpi_inputs[i];
     }
     size = mpi_inputs.size() * sizeof(int);
-    rempi_dbgi(0, "size: %lu, %lu", size, mpi_inputs.size());
     return (char*)serialized_data;
 }
+
+void rempi_event::print() 
+{
+  fprintf(stderr, "<Event: ");
+  for (int i = 0; i < mpi_inputs.size(); i++) {
+    fprintf(stderr, "%d \t", mpi_inputs[i]);
+  }
+  fprintf(stderr, ">");
+  return;
+}
+
+
+/*====== child class constructures ======*/
 
 rempi_irecv_event::rempi_irecv_event(int event_counts, int count, int source, int tag, int comm, int request) {
     mpi_inputs.push_back(event_counts);
@@ -44,10 +61,10 @@ rempi_irecv_event::rempi_irecv_event(int event_counts, int count, int source, in
 }
 
 rempi_test_event::rempi_test_event(int event_counts, int is_testsome, int request, int flag, int source, int tag) {
-    //mpi_inputs.push_back(event_counts);
+    mpi_inputs.push_back(event_counts);
     mpi_inputs.push_back(is_testsome);
-    //mpi_inputs.push_back(request);
-    //mpi_inputs.push_back(flag);
+    //    mpi_inputs.push_back(request);
+    mpi_inputs.push_back(flag);
     mpi_inputs.push_back(source);
     mpi_inputs.push_back(tag);
 }

@@ -10,15 +10,20 @@
 
 #include <iostream>
 #include <vector>
+
+#define REMPI_MPI_EVENT_INPUT_NUM (6)
+
 using namespace std;
 
 class rempi_event
 {
   public:
+    static int max_size;
     vector<int> mpi_inputs;
     virtual void operator ++(int);
     virtual bool operator ==(rempi_event event);
     virtual char* serialize(size_t &size);
+    void print();
 };
 
 class rempi_irecv_event : public rempi_event

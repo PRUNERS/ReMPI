@@ -15,9 +15,28 @@ double rempi_get_time(void)
   return t;
 }
 
-void rempi_sleep(int sec)
+void rempi_dbg_sleep_sec(int sec)
+{
+  rempi_dbg("Sleep: %d sec (%s:%s:%d)", sec, __FILE__, __func__, __LINE__);
+  sleep(sec);
+  return;
+}
+void rempi_sleep_sec(int sec)
 {
   sleep(sec);
+  return;
+}
+
+void rempi_dbg_sleep_usec(int usec)
+{
+  rempi_dbg("Sleep: %d usec (%s:%s:%d)\n", usec, __FILE__, __func__, __LINE__);
+  usleep(usec);
+  return;
+}
+
+void rempi_sleep_usec(int usec)
+{
+  usleep(usec);
   return;
 }
 

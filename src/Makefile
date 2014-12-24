@@ -9,6 +9,7 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 		$(SRC_DIR)/rempi_config.cpp \
                 $(SRC_DIR)/rempi_record_replay.cpp \
 		$(SRC_DIR)/rempi_record.cpp \
+		$(SRC_DIR)/rempi_message_manager.cpp \
 		$(SRC_DIR)/rempi_event_list.cpp \
 	     	$(SRC_DIR)/rempi_event.cpp \
 		$(SRC_DIR)/rempi_encoder.cpp \

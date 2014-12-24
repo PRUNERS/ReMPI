@@ -4,6 +4,7 @@
 
 //#include <iostream>
 #include "rempi_record.h"
+#include "rempi_message_manager.h"
 #include "rempi_event.h"
 #include "rempi_event_list.h"
 #include "rempi_io_thread.h"
@@ -13,7 +14,8 @@
 
 //extern int rempi_mode;
 
-rempi_event_list<rempi_event*> *event_list;
+rempi_message_manager msg_manager;
+rempi_event_list<rempi_event*> *recording_event_list, *replaying_event_list;
 rempi_io_thread *record_thread, *read_record_thread;
 //using namespace std;
 
@@ -24,8 +26,8 @@ int rempi_record_init(int *argc, char ***argv, int rank)
   //fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
 
   id = std::to_string((long long int)rank);
-  event_list = new rempi_event_list<rempi_event*>(100000, 100);
-  record_thread = new rempi_io_thread(event_list, id, rempi_mode); //0: recording mode
+  recording_event_list = new rempi_event_list<rempi_event*>(100000, 100);
+  record_thread = new rempi_io_thread(recording_event_list, id, rempi_mode); //0: recording mode
   record_thread->start();
   
   return 0;
@@ -36,8 +38,8 @@ int rempi_replay_init(int *argc, char ***argv, int rank)
   string id;
 
   id = std::to_string((long long int)rank);
-  event_list = new rempi_event_list<rempi_event*>(100000, 100);
-  read_record_thread = new rempi_io_thread(event_list, id, rempi_mode); //1: replay mode
+  replaying_event_list = new rempi_event_list<rempi_event*>(100000, 100);
+  read_record_thread = new rempi_io_thread(replaying_event_list, id, rempi_mode); //1: replay mode
   read_record_thread->start();
 
   return 0;
@@ -67,9 +69,11 @@ int rempi_replay_irecv(
    int datatype,
    int source,
    int tag,
-   int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-   void *request)
+   int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+   MPI_Request *request)
 {
+  msg_manager.add_pending_recv(request, source, tag, comm_id);
+  //  msg_manager.print_pending_recv();
   return 0;
 }
 
@@ -86,12 +90,13 @@ int rempi_record_test(
   int request_val = -1;
 
   //TODO: we need to record *request ?
-  event_list->push(new rempi_test_event(event_count, is_testsome, request_val, *flag, source, tag));
+  recording_event_list->push(new rempi_test_event(event_count, is_testsome, request_val, *flag, source, tag));
 
   return 0;
 }
 
 
+/*This function is called after MPI_Test*/
 int rempi_replay_test(
     MPI_Request *request_in,
     int flag_in,
@@ -102,16 +107,49 @@ int rempi_replay_test(
     int *tag_out)
 {
   rempi_event *replaying_test_event;
-  replaying_test_event = event_list->pop();
-  /*TODO:
-    1. Get request (recoeded in irecv) for this "replaying_test_event"
+
+  /**/
+  if (flag_in) {
+    msg_manager.add_matched_recv(request_in, source_in, tag_in);
+  }
+  /*1. Get request (recoeded in irecv) for this "replaying_test_event"*/
+  replaying_test_event = replaying_event_list->pop();
+  /*
+  if (non matched test) {
+      *flag_out =1 ;
+      return;
+      } 
+  */
+
+  /*
     2. Wait until this recorded message really arrives
-       if (0 if next recoded maching is not mached in this run) {
+       if (0 if next recorded maching is not mached in this run) {
           TODO: Wait until maching, and get clock
 	  TODO: if matched, memorize that the matching for the next replay test
        }
     3. Set valiabiles (source, flag, tag)
+  }
    */
+
+
+  *flag_out = flag_in;
+  *source_out = source_in;
+  *tag_out = tag_in;
+  // 
+  // while(1) {
+  // 
+  //   if (replaying_test_event != NULL) {
+  //     replaying_test_event->print();
+  //     fprintf(stderr, " || %p\n", replaying_test_event);
+  //   } else {
+  //     rempi_sleep_usec(100);
+  //   }
+  // }
+
+  //  Replaying_test_event->print();
+  // printf("\n");
+
+
 
   return 0;
 }
@@ -132,7 +170,7 @@ int rempi_record_testsome(
 
 
   if (*outcount == 0) {
-    event_list->push(new rempi_test_event(event_count, is_testsome, request, flag, source, tag));
+    recording_event_list->push(new rempi_test_event(event_count, is_testsome, request, flag, source, tag));
     return 0;
   }
 
@@ -142,7 +180,7 @@ int rempi_record_testsome(
     //TODO:  tag,
     tag    = 0;
     
-    event_list->push(new rempi_test_event(event_count, is_testsome, request, flag, source, tag));
+    recording_event_list->push(new rempi_test_event(event_count, is_testsome, request, flag, source, tag));
   }
 
   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
@@ -162,9 +200,16 @@ int rempi_replay_testsome(
 int rempi_record_finalize(void)
 {
 
-  event_list->push_all();
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    recording_event_list->push_all();
+  } else if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY){
+    /*TODO: if replay thread is still running, throw the error*/
+  } else {
+    REMPI_ERR("Unkonw rempi mode: %d", rempi_mode);
+  }
   record_thread->complete_flush();
   record_thread->join();
+
 
   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   return 0;

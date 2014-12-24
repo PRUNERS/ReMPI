@@ -3,8 +3,38 @@
 #include "rempi_err.h"
 #include "rempi_event.h"
 #include "rempi_encoder.h"
+#include "rempi_config.h"
 
-rempi_encoder::rempi_encoder() {}
+
+
+rempi_encoder::rempi_encoder(int mode): mode(mode) {}
+
+void rempi_encoder::open_record_file(string record_path)
+{
+  if (mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    record_fs.open(record_path.c_str(), ios::out);
+  } else if (mode == REMPI_ENV_REMPI_MODE_REPLAY) {
+    record_fs.open(record_path.c_str(), ios::in);
+  } else {
+    REMPI_ERR("Unknown record replay mode");
+  }
+
+  if(!record_fs.is_open()) {
+    REMPI_ERR("Record file open failed: %s", record_path.c_str());
+  }
+}
+
+void rempi_encoder::write_record_file(char* encoded_events, size_t size)
+{
+  record_fs.write(encoded_events, size);
+  //TODO: delete encoded_event
+}
+
+void rempi_encoder::close_record_file()
+{
+  record_fs.close();
+}
+
 void rempi_encoder::get_encoding_event_sequence(rempi_event_list<rempi_event*> &events, vector<rempi_event*> &encoding_event_sequence)
 {
   rempi_event *event;
@@ -32,12 +62,33 @@ char* rempi_encoder::encode(vector<rempi_event*> &encoding_event_sequence, size_
   delete encoding_event;  
   return serialized_data;
 }
-char* rempi_encoder::read_decoding_event_sequence(size_t *size)
-{return NULL;}
 
-vector<rempi_event*> rempi_encoder::decode(char *serialized, size_t *size)
+char* rempi_encoder::read_decoding_event_sequence(size_t *size)
+{
+  char* decoding_event_sequence;
+
+  decoding_event_sequence = new char[rempi_event::max_size];
+  record_fs.read(decoding_event_sequence, rempi_event::max_size);
+  /*Set size read*/
+  *size = record_fs.gcount();
+  return decoding_event_sequence;
+}
+
+
+
+vector<rempi_event*> rempi_encoder::decode(char *serialized_data, size_t *size)
 {
   vector<rempi_event*> vec;
+  int *mpi_inputs;
+  int i;
+
+  /*In rempi_envoder, the serialized sequence identicals to one Test event */
+  mpi_inputs = (int*)serialized_data;
+  vec.push_back(
+    new rempi_test_event(mpi_inputs[0], mpi_inputs[1], mpi_inputs[2], 
+			 mpi_inputs[3], mpi_inputs[4], mpi_inputs[5])
+  );
+  delete mpi_inputs;
   return vec;
 }
 

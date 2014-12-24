@@ -14,8 +14,8 @@ rempi_mutex rempi_io_thread::mtx;
 rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *events, string id, int mode)
   : events(events), id(id), mode(mode)
 {
-  encoder = new rempi_encoder();
   record_path = rempi_record_dir_path + "/rank_" + id + ".rempi";
+  encoder = new rempi_encoder(mode);
 };
 
 
@@ -25,11 +25,15 @@ void rempi_io_thread::complete_flush()
    return;
 }
 
+int rempi_io_thread::is_finished_read()
+{
+  return read_finished;
+}
+
 void rempi_io_thread::write_record()
 {
-  ofstream ofs;
 
-  ofs.open(record_path.c_str());
+  encoder->open_record_file(record_path);
   
   while(1) {
     vector<rempi_event*> nonencoded_events;
@@ -45,7 +49,7 @@ void rempi_io_thread::write_record()
       /*... , encode(compress) the seuence*/
       encoded_events = encoder->encode(nonencoded_events, size);
       /*Then, write to file.*/
-      ofs.write(encoded_events, size);
+      encoder->write_record_file(encoded_events, size);
       /*Once writing data to a file, we do not need the events on memory*/
       delete encoded_events;
     } else {
@@ -60,26 +64,38 @@ void rempi_io_thread::write_record()
       break;
     }
   }
-  ofs.flush();
-  ofs.close();
+  encoder->close_record_file();
 }
 
 void rempi_io_thread::read_record()
 {
-  ifstream ifs;
-
-  ifs.open(record_path.c_str());
-  REMPI_ERR("open failed");
-  if (!ifs.is_open()) {
-
-  }
-
+  encoder->open_record_file(record_path);
 
   while(1) {
-    //    ifs.read(encoded_events, size);
+    char *decoding_events;
+    size_t size;
+    vector<rempi_event*> decoded_events;
+    int i;
 
+    /*Get a sequence of events from the record file, ...  */
+    decoding_events = encoder->read_decoding_event_sequence(&size);
+
+    if (size > 0) {
+      /*If I can get the sequence from the file,... */
+      /*... , deencode(decompress) the seuence*/
+      decoded_events = encoder->decode(decoding_events, &size); /*TODO: size is really needed ?*/
+      /*Then, push the event to event list*/
+      for (i = 0; i < decoded_events.size(); i++) {
+	events->push(decoded_events[i]);
+      }
+    } else {
+      /*I read the all record file, so finish the decoding*/
+      break;
+    }
   }
-  ifs.close();
+  encoder->close_record_file();
+  read_finished = 1;
+  return;
 }
 
 // void rempi_io_thread::write_record()
