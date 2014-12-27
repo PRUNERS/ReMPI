@@ -30,8 +30,10 @@ class rempi_message_manager
 
   public:
     void add_pending_recv(MPI_Request *request, int source, int tag, int comm_id);
-    void add_matched_recv(MPI_Request *request, int source, int tag);
-    bool  is_matched_recv(int source, int tag, int comm_id);
+    int  query_pending_comm_id(MPI_Request *request);
+    int  add_matched_recv(MPI_Request *request, int source, int tag);
+    bool is_matched_recv(int source, int tag, int comm_id);
+    void refresh_matched_recv();
     void remove_matched_recv(int source, int tag, int comm_id);
     void print_pending_recv();
     void print_matched_recv();

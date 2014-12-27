@@ -6,7 +6,7 @@
 #include "mpi.h"
 #include "rempi_message_manager.h"
 #include "rempi_err.h"
-
+#include "rempi_mem.h"
 
 using namespace std;
 
@@ -41,9 +41,26 @@ void rempi_message_manager::add_pending_recv(MPI_Request *request, int source, i
   return;
 }
 
-void rempi_message_manager::add_matched_recv(MPI_Request *request, int source, int tag)
+int  rempi_message_manager::query_pending_comm_id(MPI_Request *request)
 {
   rempi_message_identifier *msg_id;
+
+  try {
+    /*Making sure that the Key exesits, so this ordered_map does not create new key*/
+    pending_recvs.at(request);
+  } catch(out_of_range&) {
+    REMPI_ERR(" Testing/Proving before MPI_Irecv: %p", request);
+  }
+
+  msg_id = pending_recvs[request];
+  return msg_id->comm_id;
+}
+
+
+int rempi_message_manager::add_matched_recv(MPI_Request *request, int source, int tag)
+{
+  rempi_message_identifier *msg_id;
+
   try {
     /*Make sure that the Key exesits, so this ordered_map does not create new key*/
     pending_recvs.at(request);
@@ -53,12 +70,16 @@ void rempi_message_manager::add_matched_recv(MPI_Request *request, int source, i
 
   msg_id = pending_recvs[request];
   /*Source: (This checking is not needed as long as MPI is working properly) This is just for debugging*/
-  if (!(msg_id->source == MPI_ANY_SOURCE || msg_id->source == source)) {
+  bool is_any_source     = msg_id->source == MPI_ANY_SOURCE;
+  bool is_source_matched = msg_id->source == source;
+  if (!(is_any_source || is_source_matched)) {
     REMPI_ERR(" Inconsistent receive: Recv(source: %d, tag: %d) by Request(source: %d, tag:%d)", 
 	      source, tag, msg_id->source, msg_id->tag)
   }
   /*TAG: (This checking is not needed as long as MPI is working properly) This is just for debugging*/
-  if (!(msg_id->tag == MPI_ANY_TAG || msg_id->tag == tag)) {
+  bool is_any_tag     = msg_id->tag == MPI_ANY_TAG;
+  bool is_tag_matched = msg_id->tag == tag;
+  if (!( is_any_tag || is_tag_matched)) {
     REMPI_ERR(" Inconsistent receive: Recv(source: %d, tag: %d) by Request(source: %d, tag:%d)", 
 	      source, tag, msg_id->source, msg_id->tag)
   }
@@ -67,10 +88,8 @@ void rempi_message_manager::add_matched_recv(MPI_Request *request, int source, i
   msg_id->source = source;
   msg_id->tag    = tag;
   matched_recvs.push_back(msg_id);
-  print_matched_recv();
-  REMPI_DBG("=================");
 
-  return;
+  return msg_id->comm_id;
 }
 
 bool  rempi_message_manager::is_matched_recv(int source, int tag, int comm_id)
@@ -81,6 +100,29 @@ bool  rempi_message_manager::is_matched_recv(int source, int tag, int comm_id)
   auto result = find(matched_recvs.begin(), matched_recvs.end(), msg_id);
   delete msg_id;
   return result != matched_recvs.end();
+}
+
+
+void rempi_message_manager::refresh_matched_recv()
+{
+  unordered_map<MPI_Request*, rempi_message_identifier*>::iterator pending_msg_it;
+  MPI_Request *request;
+  int i = 0;
+  int flag;
+  MPI_Status matched_request_status;
+
+
+  /*TODO: Use Testsome for more performance improvement (maybe)*/
+  for (pending_msg_it = pending_recvs.begin(); pending_msg_it != pending_recvs.end(); pending_msg_it++) {
+    request = pending_msg_it->first;
+    PMPI_Test(request, &flag, &matched_request_status);
+    if (flag) break;
+  }
+  add_matched_recv(
+	   request,
+	   matched_request_status.MPI_SOURCE,
+           matched_request_status.MPI_TAG);;
+  return;
 }
 
 void rempi_message_manager::remove_matched_recv(int source, int tag, int comm_id)

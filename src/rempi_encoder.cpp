@@ -59,6 +59,8 @@ char* rempi_encoder::encode(vector<rempi_event*> &encoding_event_sequence, size_
   serialized_data = encoding_event->serialize(size); 
   encoding_event_sequence.pop_back();
   //  rempi_dbgi(0, "--> encoding: %p, size: %d: count: %d", encoding_event, encoding_event_sequence.size(), count++);
+  encoding_event->print();
+  fprintf(stderr, "\n");
   delete encoding_event;  
   return serialized_data;
 }

@@ -14,7 +14,7 @@
 
 #define REMPI_COMM_ID_LENGTH (128) // TODO: 1 byte are enough, but 1 byte causes segmentation fault ...
 
-char next_comm_id_to_assign = 0; //TODO: Mutex for Hybrid MPI
+char next_comm_id_to_assign = 15; //TODO: Mutex for Hybrid MPI
 
 int rempi_record_replay_init(int *argc, char ***argv)
 {
@@ -57,7 +57,7 @@ int rempi_record_replay_irecv(
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     //    return_val = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
     //TODO: Get Datatype,
-    rempi_record_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], (void*)request);
+    rempi_record_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], request);
   } else {
     /*TODO: Really need datatype ??*/
     rempi_replay_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], request);
@@ -78,7 +78,7 @@ int rempi_record_replay_test(
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     /*If recoding mode, record the test function*/
     /*TODO: change froi void* to MPI_Request*/
-    rempi_record_test((void*)request, flag, status->MPI_SOURCE, status->MPI_TAG);
+    rempi_record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG);
   } else {
     int recorded_source, recorded_tag, recorded_flag;
 

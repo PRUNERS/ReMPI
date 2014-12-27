@@ -56,11 +56,13 @@ void rempi_io_thread::write_record()
       /*If not, wait for a while in order to reduce CPU usage.*/
       usleep(100);
     }
-    //    rempi_dbgi(0, "----> events: %p, size: %lu", encoded_events, size);
 
+    //    REMPI_DBGI(1, "----> events: %p, size: %lu", encoded_events, size);
+    //    REMPI_DBGI(1, " is_complete_flush: %d, size: %d", is_complete_flush, events->size());
     /*is_complete = 1 => event are not pushed to the event quene no longer*/
     /*if the events is empty, we can finish recoding*/
     if (is_complete_flush && events->size() == 0) {
+
       break;
     }
   }
@@ -86,7 +88,7 @@ void rempi_io_thread::read_record()
       decoded_events = encoder->decode(decoding_events, &size); /*TODO: size is really needed ?*/
       /*Then, push the event to event list*/
       for (i = 0; i < decoded_events.size(); i++) {
-	events->push(decoded_events[i]);
+	events->normal_push(decoded_events[i]);
       }
     } else {
       /*I read the all record file, so finish the decoding*/
@@ -94,6 +96,8 @@ void rempi_io_thread::read_record()
     }
   }
   encoder->close_record_file();
+  events->close_push();
+  /*TODO: We still need this read_finshed variable?*/
   read_finished = 1;
   return;
 }

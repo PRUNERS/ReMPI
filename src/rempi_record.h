@@ -31,7 +31,7 @@ int rempi_record_irecv(
    int source,
    int tag,
    int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-   void *request
+   MPI_Request *request
 );
 int rempi_replay_irecv(
    void *buf,
@@ -44,7 +44,7 @@ int rempi_replay_irecv(
 );
 
 int rempi_record_test(
-    void *request,
+    MPI_Request *request,
     int *flag,
     int source, // of MPI_Status
     int tab     // of MPI_tatus

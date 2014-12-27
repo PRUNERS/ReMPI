@@ -52,15 +52,10 @@ int rempi_record_irecv(
    int source,
    int tag,
    int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-   void *request)
+   MPI_Request *request)
 {
-  //  event_list->add_event((int64_t)buf, count, datatype, source, tag, comm, (int64_t)request);
-  //TODO: we need to record *request?
-  //  event_list->push(new rempi_irecv_event(1, count, source, tag, comm, -1));
-  // fprintf(stderr, "ReMPI: =>RECORD(IREC): buf:%p count:%d, datatype:%d, source:%d, tag:%d, comm:%d, request:%p\n", 
-  //  	  buf, count, datatype, source, tag, comm, request);
-  //  event_list.get_event((int64_t)request, source, tag, comm);
-  //  fprintf(stderr, "ReMPI: Record: buf:%p count:%d, datatype:%d, source:%d, tag:%d, comm:%d, request:%p Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
+  msg_manager.add_pending_recv(request, source, tag, comm);
+
   return 0;
 }
 int rempi_replay_irecv(
@@ -73,30 +68,37 @@ int rempi_replay_irecv(
    MPI_Request *request)
 {
   msg_manager.add_pending_recv(request, source, tag, comm_id);
-  //  msg_manager.print_pending_recv();
+  ///msg_manager.print_pending_recv();
   return 0;
 }
 
 
 int rempi_record_test(
-    void *request,
+    MPI_Request *request,
     int *flag,
     int source,
-    int tag
-)
+    int tag)
 {
   int event_count = 1;
   int is_testsome = 0;
   int request_val = -1;
+  int comm_id = 0;
 
+  /*Query befoer add_matched_recv, because pendding entry is removed when flag == 1*/
+  comm_id = msg_manager.query_pending_comm_id(request);
+
+  if (*flag) {
+    msg_manager.add_matched_recv(request, source, tag);
+  }  
   //TODO: we need to record *request ?
-  recording_event_list->push(new rempi_test_event(event_count, is_testsome, request_val, *flag, source, tag));
+  recording_event_list->push(new rempi_test_event(event_count, is_testsome, comm_id, *flag, source, tag));
 
   return 0;
 }
 
 
 /*This function is called after MPI_Test*/
+
 int rempi_replay_test(
     MPI_Request *request_in,
     int flag_in,
@@ -112,44 +114,44 @@ int rempi_replay_test(
   if (flag_in) {
     msg_manager.add_matched_recv(request_in, source_in, tag_in);
   }
-  /*1. Get request (recoeded in irecv) for this "replaying_test_event"*/
-  replaying_test_event = replaying_event_list->pop();
-  /*
-  if (non matched test) {
-      *flag_out =1 ;
-      return;
-      } 
-  */
 
+  /*1. Get request (recoeded in irecv) for this "replaying_test_event"*/
+  replaying_test_event = replaying_event_list->decode_pop();
+  if (replaying_test_event == NULL) {
+    REMPI_ERR("No more replay event");
+  } 
+
+  /*If the event is flag == 0, simply retunr flag == 0*/
+  if (!replaying_test_event->get_flag()) {
+    *flag_out = 0;
+    return 0;
+  }
+  /* So "replayint_test_event" event flag == 1*/
+  *flag_out = 1;
   /*
     2. Wait until this recorded message really arrives
        if (0 if next recorded maching is not mached in this run) {
           TODO: Wait until maching, and get clock
 	  TODO: if matched, memorize that the matching for the next replay test
        }
+  */
+  while (!msg_manager.is_matched_recv(
+	      replaying_test_event->get_source(), 
+	      replaying_test_event->get_tag(),
+	      replaying_test_event->get_comm_id())) {
+    msg_manager.refresh_matched_recv();
+  }
+  msg_manager.remove_matched_recv(
+	      replaying_test_event->get_source(), 
+	      replaying_test_event->get_tag(),
+	      replaying_test_event->get_comm_id());
+  /*
     3. Set valiabiles (source, flag, tag)
   }
    */
-
-
-  *flag_out = flag_in;
-  *source_out = source_in;
-  *tag_out = tag_in;
-  // 
-  // while(1) {
-  // 
-  //   if (replaying_test_event != NULL) {
-  //     replaying_test_event->print();
-  //     fprintf(stderr, " || %p\n", replaying_test_event);
-  //   } else {
-  //     rempi_sleep_usec(100);
-  //   }
-  // }
-
-  //  Replaying_test_event->print();
-  // printf("\n");
-
-
+  *flag_out = 1;
+  *source_out = replaying_test_event->get_source();
+  *tag_out = replaying_test_event->get_tag();
 
   return 0;
 }
@@ -202,14 +204,17 @@ int rempi_record_finalize(void)
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     recording_event_list->push_all();
+    /*TODO: set flag in event_list 
+      insteand of setting flag of thread (via complete_flush)
+      like in replay mode*/
   } else if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY){
     /*TODO: if replay thread is still running, throw the error*/
   } else {
     REMPI_ERR("Unkonw rempi mode: %d", rempi_mode);
   }
+
   record_thread->complete_flush();
   record_thread->join();
-
 
   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   return 0;

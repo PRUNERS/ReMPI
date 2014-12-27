@@ -5,7 +5,9 @@
 #include "rempi_spsc_queue.h"
 #include "rempi_event_list.h"
 #include "rempi_event.h"
+#include "rempi_util.h"
 #include "rempi_err.h"
+
 
 using namespace std;
 
@@ -21,22 +23,38 @@ size_t rempi_event_list<T>::size()
 }
 
 template <class T>
+void rempi_event_list<T>::normal_push(T event)
+{
+  mtx.lock();
+  while (events.rough_size() >= max_size) {
+    mtx.unlock();
+    usleep(spin_time);
+    mtx.lock();
+  }
+  events.enqueue(event);
+  mtx.unlock();
+}
+
+template <class T>
 void rempi_event_list<T>::push(T event)
 {
-  if (this->previous_event == NULL) {
-    previous_event = event;
+  if (is_push_closed) {
+    REMPI_ERR("event_list push was closed");
+  }
+
+  if (this->previous_recording_event == NULL) {
+    previous_recording_event = event;
     return;
   }
 
-
-  if ((*this->previous_event) == *event) {
+  if ((*this->previous_recording_event) == *event) {
     /*If the event is exactry same as previsou one, ...*/
     /*Just increment the counter of the event
      in order to reduce the memory consumption.
      Even if an application polls with MPI_Test, 
      we only increment an counter of the previous MPI_Test event
     */
-    (*this->previous_event)++;
+    (*this->previous_recording_event)++;
     delete event;
   } else {
     mtx.lock();
@@ -45,9 +63,9 @@ void rempi_event_list<T>::push(T event)
       usleep(spin_time);
       mtx.lock();
     }
-    events.enqueue(previous_event);
+    events.enqueue(previous_recording_event);
     mtx.unlock();
-    previous_event = event;
+    previous_recording_event = event;
   }
   return;
 }
@@ -55,15 +73,88 @@ void rempi_event_list<T>::push(T event)
 template <class T>
 void rempi_event_list<T>::push_all()
 {
-  if (previous_event == NULL) return;
+  if (is_push_closed) {
+    REMPI_ERR("event_list push was closed");
+  }
+
+  if (previous_recording_event == NULL) return;
   mtx.lock();
   while (events.rough_size() >= max_size) {
     mtx.unlock();
     usleep(spin_time);
     mtx.lock();
   }
-  events.enqueue(previous_event);
+  events.enqueue(previous_recording_event);
   mtx.unlock();
+}
+
+template <class T>
+void rempi_event_list<T>::close_push()
+{
+  is_push_closed = true;
+  return;
+}
+
+/*
+Pop an event until event_count becomes 0.
+If event_count == 0, then dequeue next event.
+If no events to be dequeued, this thread ends its work.
+
+If thread finished reading all events, and pushed to event_lists, and the events are all pupoed, 
+This function retunr NULL
+*/
+template <class T>
+T rempi_event_list<T>::decode_pop()
+{
+  rempi_event *event;
+
+  /*TODO: TODO(A) */
+  while (previous_replaying_event == NULL) {
+    mtx.lock();
+    previous_replaying_event = events.dequeue();
+    mtx.unlock();
+    //    REMPI_DBG("== %p\n", previous_replaying_event);
+    bool is_queue_empty = (previous_replaying_event == NULL);
+    if (is_queue_empty && is_push_closed) return NULL;
+  }
+
+  /*From here, previous_replaying_event has "event instance" at least*/
+  if (previous_replaying_event->size() <= 0) {
+    delete previous_replaying_event;
+    previous_replaying_event = NULL;
+
+    /*TODO: Implement a function to combine to TODO(A) above*/
+    while (previous_replaying_event == NULL) {
+      mtx.lock();
+      previous_replaying_event = events.dequeue();
+      mtx.unlock();
+      //      fprintf(stderr, "%p\n", previous_replaying_event, events.rough_size());
+      bool is_queue_empty = (previous_replaying_event == NULL);
+      if (is_queue_empty && is_push_closed) return NULL;
+    }
+  }
+  //  fprintf(stderr, "%p (size: %lu)\n", previous_replaying_event, events.rough_size());
+
+  /*From here, previous_replaying_event has an actual evnet at least*/
+
+  event = previous_replaying_event->pop();
+  
+  if (event == NULL) {
+    REMPI_ERR("previous replaying event pop failed");
+  }
+  //  event->print();
+  return event;
+
+  /*
+    while (events.rough_size() <= 0)
+    {
+    count << events.rough_size() << endl;
+    mtx.unlock();
+    usleep(spin_time);
+    mtx.lock();
+    }
+  */
+
 }
 
 template <class T>

@@ -54,5 +54,8 @@ clean_core:
 clean_record:
 	-rm -f rank_*.rempi
 
+.PHONY: clean_all
+clean_all: clean clean_core clean_record
+
 
 # DO NOT DELETE
