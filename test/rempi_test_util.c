@@ -2,7 +2,8 @@
 
 #include "rempi_test_util.h"
 
-int init_rand(int seed)
+
+int init_rand(int seed) 
 {
   srand(seed);
 }
