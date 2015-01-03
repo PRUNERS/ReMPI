@@ -11,13 +11,16 @@ using namespace std;
 
 class rempi_message_identifier
 {
-  public:
-    int source;
-    int tag;
-    int comm_id; 
-    rempi_message_identifier(int source, int tag, int comm_id): source(source), tag(tag), comm_id(comm_id){}
-    string to_string();
-    bool operator==(rempi_message_identifier msg_id);
+
+ public:
+  int source;
+  int tag;
+  int comm_id; 
+ rempi_message_identifier(int source, int tag, int comm_id): source(source), tag(tag), comm_id(comm_id){}
+  
+  size_t compress(size_t source_value, size_t source_bits, size_t tag_value, size_t tag_bits, size_t comm_id_value, size_t comm_id_bits);
+  string to_string();
+  bool operator==(rempi_message_identifier msg_id);
 };
 
 class rempi_message_manager

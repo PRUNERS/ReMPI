@@ -37,7 +37,7 @@ $(rempi_test_neighbor_PROGRAM): $(rempi_test_neighbor_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 $(rempi_test_compress_PROGRAM): $(rempi_test_compress_OBJS)
-	$(CC) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
+	$(CC) $(CXXFLAGS) $(LDFLAGS) -L/g/g90/sato5/repo/rempi/lib -lrempi -o $@ $^
 
 .SUFFIXES: .c .o
 .c.o: 

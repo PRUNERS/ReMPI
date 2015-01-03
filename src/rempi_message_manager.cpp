@@ -27,6 +27,48 @@ string rempi_message_identifier::to_string()
        ", comm_id: " + std::to_string((long long)this->comm_id) + ")";
 }
 
+// size_t rempi_message_identifier::compress_value(size_t val, size_t bits)
+// {
+//   size_t compressed_val = 0;
+//   for (int i = 0; i < bits; i++) {
+//     compressed_val |= val & 1;
+//     compressed_val << 1;
+//     val >> 1;
+//   }  
+//   return compressed_val;
+// }
+
+
+/*If compressed data requires over than sizeof(size_t) bytes, this function returns errors */
+size_t rempi_message_identifier::compress(size_t source_value, size_t source_bits, size_t tag_value, size_t tag_bits, size_t comm_id_value, size_t comm_id_bits)
+{
+  int one_byte_in_bits = 8;
+  int max_size_bits = sizeof(size_t) * one_byte_in_bits;
+  int compressed_size_in_bits = source_bits + tag_bits + comm_id_bits;
+  size_t compressed_msg_id = 0;
+
+  /*TODO: remove this limit*/
+  if (max_size_bits < compressed_size_in_bits)  {
+    REMPI_ERR("Compressed message identifier (source, tag, comm_id) size must be less than or eaqual to %d bits, but the size is %d bits", 
+	      max_size_bits, compressed_size_in_bits);
+  }
+
+#define compress_value(target) \
+  for (int i = 0; i < target ## _bits; i++) { \
+    compressed_msg_id |= target ## _value & 1; \
+    compressed_msg_id << 1; \
+    target ## _value >> 1; \
+  } 
+
+  compress_value(source);
+  compress_value(tag);
+  compress_value(comm_id);
+
+#undef compress_value
+
+  return compressed_msg_id;
+}
+
 void rempi_message_manager::add_pending_recv(MPI_Request *request, int source, int tag, int comm_id)
 {
   if (pending_recvs.find(request) == pending_recvs.end()) {
