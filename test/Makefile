@@ -59,12 +59,16 @@ clean:
 clean_core:
 	-rm -f *.core
 
+.PHONY: clean_btr
+clean_core:
+	-rm -f *.btr
+
 .PHONY: clean_record
 clean_record:
 	-rm -f rank_*.rempi
 
 .PHONY: clean_all
-clean_all: clean clean_core clean_record
+clean_all: clean clean_core clean_record clean_btr
 
 
 # DO NOT DELETE

@@ -10,7 +10,7 @@
 
 using namespace std;
 
-bool rempi_message_identifier::operator==(rempi_message_identifier msg_id) 
+bool rempi_message_identifier::operator==(rempi_message_identifier &msg_id) 
 {
   if (this->source  == msg_id.source  &&
       this->tag     == msg_id.tag     &&
@@ -18,6 +18,16 @@ bool rempi_message_identifier::operator==(rempi_message_identifier msg_id)
     return true;
   }
   return false;
+}
+
+bool rempi_message_identifier::operator<(rempi_message_identifier &msg_id) 
+{
+  return this->clock < msg_id.clock;
+}
+
+bool rempi_message_identifier::operator>(rempi_message_identifier &msg_id) 
+{
+  return this->clock > msg_id.clock;
 }
 
 string rempi_message_identifier::to_string()
