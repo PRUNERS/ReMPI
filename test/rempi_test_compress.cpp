@@ -51,6 +51,16 @@ void test_clock_delta() {
   //   REMPI_DBG("%d\n", msg_ids_observed[i]);
   // }
   compressed_data = rempi_clock_delta_compression::compress(msg_ids_clocked, msg_ids_observed, compressed_size);
+#if 1
+  {
+    REMPI_DBG("size:%d", compressed_size);
+    int i;
+    int *compressed_data_int = (int*)compressed_data;
+    for (i = 0; i < compressed_size/4; i++) {
+      REMPI_DBG("%d", compressed_data_int[i]);
+    }
+  }
+#endif
 }
 
 

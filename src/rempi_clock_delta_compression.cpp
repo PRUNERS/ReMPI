@@ -279,57 +279,89 @@ void rempi_clock_delta_compression::change_to_seq_order_id(
 
 char* rempi_clock_delta_compression::convert_to_diff_binary(
     list<pair<int, int>*> &diff,
-    size_t compressed_bytes)
+    size_t &compressed_bytes)
 {
-  list<pair<int, int>*>::iterator diff_it;
+  list<pair<int, int>*>::reverse_iterator reverse_diff_it;
   vector<int> clock_delta_data;
   unordered_map<int, pair<int, int>*> map_id_to_type_and_index;
   unordered_map<int, pair<int, int>*>::iterator  map_id_to_type_and_index_it;
   char* clock_delta_data_char;
 
-  int fixed_msg_count = 0;
-  for (diff_it = diff.begin(); diff_it != diff.end(); diff_it++) {
+  int num_msg_passed = 0;
+  for (reverse_diff_it = diff.rbegin(); reverse_diff_it != diff.rend(); reverse_diff_it++) {
     int id;
     int type;
     pair<int, int>* current_count_and_type;
 
-    type = (*diff_it)->second;
-    current_count_and_type = new pair<int, int>(fixed_msg_count, type);    
+    type = (*reverse_diff_it)->second;
+    current_count_and_type = new pair<int, int>(num_msg_passed, type);    
 
-    id   = (*diff_it)->first;
+    id   = (*reverse_diff_it)->first;
     if(!map_id_to_type_and_index.insert({id, current_count_and_type}).second) {
       /*If the id have already been in the map */
       int data;
       int delta;
 
       pair<int, int> *last_count_and_type;
-      int last_fixed_msg_count, last_type;
+      int last_num_msg_passed, last_type;
 
       /*TODO: Do not call insert twice for performance*/
       map_id_to_type_and_index_it = map_id_to_type_and_index.insert({id, current_count_and_type}).first;
       last_count_and_type = (*map_id_to_type_and_index_it).second;
-      last_fixed_msg_count = last_count_and_type->first;
+      last_num_msg_passed = last_count_and_type->first;
       last_type            = last_count_and_type->second;
 
-      REMPI_DBG("id:%d , type:%d, loop_count: %d", id, type, fixed_msg_count);
-      REMPI_DBG("  ==> id:%d , type:%d, loop_count: %d", id, last_type, last_fixed_msg_count);
+
+      data = id;
+      delta =  num_msg_passed - last_num_msg_passed - 1; /*Numof message "in-between" so -1*/
+#if 0
+      REMPI_DBG("delta:%d (= num %d - last %d - 1)", delta, num_msg_passed, last_num_msg_passed);
+#endif
+      {
+	/*Remove myself*/
+	if (map_id_to_type_and_index.erase(id) == 0) {
+	  REMPI_ERR("This should not happens");
+	}
+	for (map_id_to_type_and_index_it  = map_id_to_type_and_index.begin();
+	     map_id_to_type_and_index_it != map_id_to_type_and_index.end();
+	     map_id_to_type_and_index_it++) {
+	  int tmp_nmp;
+	  int tmp_type;
+	  tmp_nmp  = (*map_id_to_type_and_index_it).second->first;
+	  tmp_type = (*map_id_to_type_and_index_it).second->second;
+	  if (tmp_type == EDIT_ADD) delta--;
+	  if (type == EDIT_REMOVE) {
+	    (*map_id_to_type_and_index_it).second->first = (*map_id_to_type_and_index_it).second->first + 1;
+	  }
+	  //	  REMPI_DBG("rmp %d, type:%d", tmp_nmp, tmp_type);
+	}
+      }
+      delta = (type == EDIT_REMOVE)? -delta: delta;
       
-      
-      
+#if 0      
+      REMPI_DBG("id %d, delta:%d", data, delta);
+#endif
       clock_delta_data.push_back(data);
       clock_delta_data.push_back(delta);
 
       delete last_count_and_type;
       delete current_count_and_type;
-      if (map_id_to_type_and_index.erase(id) == 0) {
-	REMPI_ERR("This should not happens");
-      }
+
     }
-    fixed_msg_count++;
+    num_msg_passed++;
   }
   
 
   clock_delta_data_char = (char*)&clock_delta_data[0];
+  for (int j = 0; j < clock_delta_data.size(); j++) {
+    REMPI_DBG("  %d", clock_delta_data[j]);
+  }
+
+  int *aaaa = (int*)clock_delta_data_char;
+  for (int j = 0; j < clock_delta_data.size(); j++) {
+    REMPI_DBG("  %d", aaaa[j]);
+  }
+  compressed_bytes = clock_delta_data.size() * sizeof(int);
   return clock_delta_data_char;
 }
   

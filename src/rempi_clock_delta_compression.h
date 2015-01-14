@@ -80,7 +80,7 @@ class rempi_clock_delta_compression
 
   static char* convert_to_diff_binary(
    list<pair<int, int>*> &diff,
-   size_t compressed_bytes);
+   size_t &compressed_bytes);
 
 
  public:
