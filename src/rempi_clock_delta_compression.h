@@ -73,6 +73,16 @@ class rempi_clock_delta_compression
    vector<bool> matched_bits,
    map<int, rempi_message_identifier*>::const_iterator &msg_ids_clocked_start_it);
 
+  static void change_to_seq_order_id(
+   list<pair<int, int>*> &diff,
+   vector<rempi_message_identifier*> &msg_ids_observed,
+   map<int, int> &map_clock_to_order);
+
+  static char* convert_to_diff_binary(
+   list<pair<int, int>*> &diff,
+   size_t compressed_bytes);
+
+
  public:
   static char* compress(
 	     map<int, rempi_message_identifier*> &msg_ids_clocked,
