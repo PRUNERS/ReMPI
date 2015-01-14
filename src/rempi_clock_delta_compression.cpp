@@ -14,6 +14,7 @@
 #include "rempi_message_manager.h"
 #include "rempi_err.h"
 #include "rempi_mem.h"
+#include "rempi_util.h"
 
 #define EDIT_IGNORE (0)
 #define EDIT_ADD    (1)
@@ -62,6 +63,8 @@ Unmatched Test
 
 */
 
+#define  DEBUG_PERF
+
 class shortest_edit_distance_path_search
 {
   /*
@@ -91,6 +94,8 @@ class shortest_edit_distance_path_search
       clock_node(int row, int column, int row_distance, int column_distance, int shortest_distance, clock_node *parent):
 	row(row), column(column), row_distance(row_distance), column_distance(column_distance), shortest_distance(shortest_distance), parent(parent){}
     };
+    /*TODO: change leaf_list to candidate_leaf_list*/
+    /*List of leaf, which is candidate to connect to new node*/
     list<clock_node*> leaf_list;
     
 
@@ -106,9 +111,22 @@ class shortest_edit_distance_path_search
       }
       return -1;
     }
-  
 
+  void sweep_non_dandidate_leaf(int current_column_of_start_it) {
+    list<clock_node*>::iterator leaf_list_it;
+     for (leaf_list_it  = leaf_list.begin();
+	  leaf_list_it != leaf_list.end();
+	  ) {
+       clock_node *search_leaf_node = *leaf_list_it;
 
+       if (search_leaf_node->column < current_column_of_start_it) {
+	 leaf_list_it = leaf_list.erase(leaf_list_it);
+       } else {
+	 leaf_list_it++;
+       }
+     }
+     return;
+  }
 
 
   public:
@@ -140,7 +158,7 @@ class shortest_edit_distance_path_search
       return leaf_list.back()->shortest_distance - 1;
     }
   
-  void add_node(int row, int column) {
+  void add_node(int row, int column, int current_column_of_start_it) {
       clock_node *current_shortest_parent   = NULL;
       int         current_shortest_distance = row + column + 1;
       clock_node *new_node;
@@ -151,12 +169,18 @@ class shortest_edit_distance_path_search
       /*Default: Assuming the new_node conects to the root node*/
       new_node = new clock_node(row, column, row, column, row + column + 1, NULL);
 
+#if 0
+      REMPI_DBG("size: %d, row: %d, col:%d, row_bound: %d", leaf_list.size(), row, column, current_column_of_start_it);
+#endif
+
+      
       for (leaf_list_it  = leaf_list.begin();
 	   leaf_list_it != leaf_list.end();
 	   leaf_list_it++) {
 	clock_node *search_leaf_node = *leaf_list_it;
 	int         shortest_distance_from_search_node;
 	clock_node *shortest_node_from_search_node;
+	/*TODO: change func name: find_shortest_node => find_shortest_node_from_this_node_upto_parents*/
 	shortest_distance_from_search_node = find_shortest_node(new_node, search_leaf_node, &shortest_node_from_search_node);
 
 	if (shortest_distance_from_search_node < 0) continue; 	/*There is no node to connect*/
@@ -171,10 +195,10 @@ class shortest_edit_distance_path_search
 	  } else {
 	    need_erase = false;
 	  }
+
 	}
       }
       if (current_shortest_parent != NULL) {
-
 	new_node->row_distance   =  new_node->row    - (current_shortest_parent->row + 1);
 	new_node->column_distance = new_node->column - (current_shortest_parent->column + 1);
 
@@ -190,6 +214,7 @@ class shortest_edit_distance_path_search
 		  new_node->shortest_distance);
 #endif
 	new_node->parent            = current_shortest_parent;
+
 	if (need_erase) {
 	  /*If the current_shortest_parent was leaf, remove it from leaf_list*/
 	  leaf_list.erase(current_shortest_leaf_it);
@@ -199,7 +224,11 @@ class shortest_edit_distance_path_search
       REMPI_DBG("row: %d, column: %d, distance: %d", row, column, new_node->shortest_distance);
 #endif
       leaf_list.push_back(new_node);
+      if (column == current_column_of_start_it) {
+	sweep_non_dandidate_leaf(current_column_of_start_it);
+      }
     }
+
 };
 
 
@@ -248,7 +277,7 @@ int rempi_clock_delta_compression::find_matched_clock_column(
 int rempi_clock_delta_compression::update_start_it(
    int current_column_of_start_it,
    int matched_column,
-   vector<bool> matched_bits,
+   vector<bool> &matched_bits,
    map<int, rempi_message_identifier*>::const_iterator &msg_ids_clocked_start_it)
 {
   matched_bits[matched_column] = true;
@@ -286,8 +315,12 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
   unordered_map<int, pair<int, int>*> map_id_to_type_and_index;
   unordered_map<int, pair<int, int>*>::iterator  map_id_to_type_and_index_it;
   char* clock_delta_data_char;
+#ifdef DEBUG_PERF
+  double s_1, t_1;
+#endif
 
   int num_msg_passed = 0;
+  /*the "diff" list is already reversed, using reversed_iterator, we dage the sequence in order*/
   for (reverse_diff_it = diff.rbegin(); reverse_diff_it != diff.rend(); reverse_diff_it++) {
     int id;
     int type;
@@ -297,71 +330,96 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
     current_count_and_type = new pair<int, int>(num_msg_passed, type);    
 
     id   = (*reverse_diff_it)->first;
-    if(!map_id_to_type_and_index.insert({id, current_count_and_type}).second) {
-      /*If the id have already been in the map */
-      int data;
-      int delta;
 
-      pair<int, int> *last_count_and_type;
-      int last_num_msg_passed, last_type;
+    if (type != EDIT_IGNORE) {
+      if(!map_id_to_type_and_index.insert({id, current_count_and_type}).second) {
+	/*If the id have already been in the map, ...
+	  Note:
+	  In this case, this {id, current_count_and_type} does not overwrite on exisiting key
+	*/
+	int data;
+	int delta;
 
-      /*TODO: Do not call insert twice for performance*/
-      map_id_to_type_and_index_it = map_id_to_type_and_index.insert({id, current_count_and_type}).first;
-      last_count_and_type = (*map_id_to_type_and_index_it).second;
-      last_num_msg_passed = last_count_and_type->first;
-      last_type            = last_count_and_type->second;
+	pair<int, int> *last_count_and_type;
+	int last_id, last_num_msg_passed, last_type;
 
+	/*TODO: Do not call insert twice for performance*/
+	map_id_to_type_and_index_it = map_id_to_type_and_index.insert({id, current_count_and_type}).first;
+	last_id             = (*map_id_to_type_and_index_it).first;
+	last_count_and_type = (*map_id_to_type_and_index_it).second;
+	last_num_msg_passed = last_count_and_type->first;
+	last_type           = last_count_and_type->second;
 
-      data = id;
-      delta =  num_msg_passed - last_num_msg_passed - 1; /*Numof message "in-between" so -1*/
+	data = id;
+	delta =  num_msg_passed - last_num_msg_passed - 1; /*Num of message "in-between" so -1*/
 #if 0
-      REMPI_DBG("delta:%d (= num %d - last %d - 1)", delta, num_msg_passed, last_num_msg_passed);
+	REMPI_DBG("delta:%d (= num %d - last %d - 1)", delta, num_msg_passed, last_num_msg_passed);
 #endif
-      {
-	/*Remove myself*/
-	if (map_id_to_type_and_index.erase(id) == 0) {
-	  REMPI_ERR("This should not happens");
-	}
-	for (map_id_to_type_and_index_it  = map_id_to_type_and_index.begin();
-	     map_id_to_type_and_index_it != map_id_to_type_and_index.end();
-	     map_id_to_type_and_index_it++) {
-	  int tmp_nmp;
-	  int tmp_type;
-	  tmp_nmp  = (*map_id_to_type_and_index_it).second->first;
-	  tmp_type = (*map_id_to_type_and_index_it).second->second;
-	  if (tmp_type == EDIT_ADD) delta--;
-	  if (type == EDIT_REMOVE) {
-	    (*map_id_to_type_and_index_it).second->first = (*map_id_to_type_and_index_it).second->first + 1;
+
+#ifdef DEBUG_PERF
+	s_1 = rempi_get_time();
+#endif
+	{
+	  /*Remove exisitng id*/
+	  if (map_id_to_type_and_index.erase(id) == 0) {
+	    REMPI_ERR("This should not happens");
 	  }
-	  //	  REMPI_DBG("rmp %d, type:%d", tmp_nmp, tmp_type);
+	  for (map_id_to_type_and_index_it  = map_id_to_type_and_index.begin();
+	       map_id_to_type_and_index_it != map_id_to_type_and_index.end();
+	       map_id_to_type_and_index_it++) {
+	    int tmp_nmp;
+	    int tmp_type;
+	    tmp_nmp  = (*map_id_to_type_and_index_it).second->first;
+	    tmp_type = (*map_id_to_type_and_index_it).second->second;
+	    if (tmp_type == EDIT_ADD) delta--;
+	    if (type == EDIT_REMOVE) {
+	      (*map_id_to_type_and_index_it).second->first = (*map_id_to_type_and_index_it).second->first + 1;
+	    }
+	    //	  REMPI_DBG("rmp %d, type:%d", tmp_nmp, tmp_type);
+	  }
 	}
-      }
-      delta = (type == EDIT_REMOVE)? -delta: delta;
+
+#ifdef DEBUG_PERF
+	t_1 += rempi_get_time() - s_1;
+#endif
+
+	delta = (type == EDIT_REMOVE)? -delta: delta;
       
 #if 0      
-      REMPI_DBG("id %d, delta:%d", data, delta);
+	REMPI_DBG("id %d, delta:%d", data, delta);
 #endif
-      clock_delta_data.push_back(data);
-      clock_delta_data.push_back(delta);
+	clock_delta_data.push_back(data);
+	clock_delta_data.push_back(delta);
 
-      delete last_count_and_type;
-      delete current_count_and_type;
+	delete last_count_and_type;
+	delete current_count_and_type;
 
+      }
     }
     num_msg_passed++;
+
+  }
+
+#ifdef DEBUG_PERF
+  REMPI_DBG("COM (bin) %f", t_1);
+#endif
+  
+  {
+    compressed_bytes = clock_delta_data.size() * sizeof(int);  
+    clock_delta_data_char = (char*)rempi_malloc(compressed_bytes);
+    memcpy(clock_delta_data_char, (char*)&clock_delta_data[0], compressed_bytes);
+
+#if 0
+    REMPI_DBG("addr: %p", clock_delta_data_char);
+    int *clock_delta_data_int = (int*)clock_delta_data_char;
+    for (int j = 0; j < clock_delta_data.size(); j++) {
+      REMPI_DBG("  %d", clock_delta_data_int[j]);
+    }
+#endif
+    
+  
   }
   
-
-  clock_delta_data_char = (char*)&clock_delta_data[0];
-  for (int j = 0; j < clock_delta_data.size(); j++) {
-    REMPI_DBG("  %d", clock_delta_data[j]);
-  }
-
-  int *aaaa = (int*)clock_delta_data_char;
-  for (int j = 0; j < clock_delta_data.size(); j++) {
-    REMPI_DBG("  %d", aaaa[j]);
-  }
-  compressed_bytes = clock_delta_data.size() * sizeof(int);
   return clock_delta_data_char;
 }
   
@@ -388,18 +446,34 @@ char* rempi_clock_delta_compression::compress(
   shortest_edit_distance_path_search sed_path_seerch;
   char *compressed_data;
 
+#ifdef DEBUG_PERF
+  double s_adds, e_adds;
+  double s_find, t_find;
+  double s_part, e_part;
+#endif
+
   matched_bits.resize(msg_ids_clocked.size());
   matched_bits.reserve(msg_ids_clocked.size());
 
   msg_ids_clocked_start_it =  msg_ids_clocked.cbegin();
   msg_ids_clocked_search_it = msg_ids_clocked_start_it;
 
+#ifdef DEBUG_PERF
+  s_adds = rempi_get_time();
+
+#endif
+
+  
   for (int i = 0; i < msg_ids_observed.size(); i++) {
     int matched_column, matched_row;
     rempi_message_identifier *msg_id_up, *msg_id_left, *matched_msg_id_up;
     msg_id_up   = msg_ids_clocked_search_it->second;
     msg_id_left = msg_ids_observed[i];
 
+
+#ifdef DEBUG_PERF
+    s_find = rempi_get_time();
+#endif    
     /*set "msg_ids_clocked_search_it" to start index*/
     current_column_of_search_it =
       next_start_search_it(msg_id_up->clock, msg_id_left->clock,
@@ -408,19 +482,26 @@ char* rempi_clock_delta_compression::compress(
 			   current_column_of_search_it,
 			   current_column_of_start_it);
 
+
     /*find matched clock column*/
     current_column_of_search_it += 
       find_matched_clock_column(
 				msg_id_left->clock,
 				msg_ids_clocked_search_it,
 				msg_ids_clocked.cend());
-    
+
+#ifdef DEBUG_PERF
+    t_find += rempi_get_time() - s_find;
+#endif    
     matched_column = current_column_of_search_it;
     matched_row    = i;
-    sed_path_seerch.add_node(matched_row, matched_column);
+
+    sed_path_seerch.add_node(matched_row, matched_column, current_column_of_start_it);
     matched_msg_id_up = msg_ids_clocked_search_it->second;
+
     map_clock_to_order[matched_msg_id_up->clock] = matched_column;
-    
+
+
     /*If needed, it updates start_it*/
     current_column_of_start_it = 
       update_start_it(
@@ -429,15 +510,23 @@ char* rempi_clock_delta_compression::compress(
 			  matched_bits,
 			  msg_ids_clocked_start_it);
 
+
   }
   /*Finally, add morst bottom-right node, because path from this bottom-right node to root node
    becomes shortest path. And sed_path_seerch return results based on this bottom-right node*/
-  sed_path_seerch.add_node(msg_ids_clocked.size(), msg_ids_clocked.size());
+  sed_path_seerch.add_node(msg_ids_clocked.size(), msg_ids_clocked.size(), current_column_of_start_it);
   /*Distance from the bottom-right node*/
+
+#ifdef DEBUG_PERF
+  e_adds = rempi_get_time();
+  REMPI_DBG("COM (adds): %f, COM(adds(xxx)): %f", e_adds - s_adds, t_find);
+#endif
   
 #if 0
   REMPI_DBG("Distance: %d", sed_path_seerch.get_shortest_distance());
 #endif
+
+
 
 #if 0
   {
@@ -453,9 +542,12 @@ char* rempi_clock_delta_compression::compress(
 #endif
 
 
+
+
   {
     list<pair<int, int>*> diff;
     sed_path_seerch.convert_to_diff_reversed(diff);
+
 
 #if 0
     list<pair<int, int>*>::iterator diff_it;
@@ -467,7 +559,7 @@ char* rempi_clock_delta_compression::compress(
 
     change_to_seq_order_id(diff, msg_ids_observed, map_clock_to_order);
 
-#if 1
+#if 0
     list<pair<int, int>*>::iterator diff_it_1;
     REMPI_DBG(" ==== ");
     for (diff_it_1  = diff.begin(); 
@@ -475,9 +567,18 @@ char* rempi_clock_delta_compression::compress(
       REMPI_DBG("Map: %d -> %d", (*diff_it_1)->first, (*diff_it_1)->second);	
     }
 #endif
-    
-    compressed_data = convert_to_diff_binary(diff, compressed_bytes);
+#ifdef DEBUG_PERF
+  s_part = rempi_get_time();
+#endif
+
+  compressed_data = convert_to_diff_binary(diff, compressed_bytes);
+#ifdef DEBUG_PERF
+  e_part = rempi_get_time();
+  REMPI_DBG("COM (part): %f", e_part - s_part);
+#endif
+
  }
+
   
 
   return compressed_data;

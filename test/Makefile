@@ -60,7 +60,7 @@ clean_core:
 	-rm -f *.core
 
 .PHONY: clean_btr
-clean_core:
+clean_btr:
 	-rm -f *.btr
 
 .PHONY: clean_record

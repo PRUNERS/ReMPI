@@ -70,7 +70,7 @@ class rempi_clock_delta_compression
   static int update_start_it(
    int current_column_of_start_it,
    int current_column_of_search_it,
-   vector<bool> matched_bits,
+   vector<bool> &matched_bits,
    map<int, rempi_message_identifier*>::const_iterator &msg_ids_clocked_start_it);
 
   static void change_to_seq_order_id(
