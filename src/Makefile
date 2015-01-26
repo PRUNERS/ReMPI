@@ -23,11 +23,13 @@ rempi_OBJS = 	$(rempi_SRCS:%.cpp=%.o)
 rempi_DEPS = 	$(rempi_SRCS:%.cpp=%.d) 
 
 rempi_a_LIBS =	../lib/librempi.a 
+
 rempi_so_LIBS =	../lib/librempi.so	
+rcmpi_so_LIBS =	../lib/librcmpi.so	
 
 OBJS = $(rempi_OBJS)
 DEPS = $(rempi_DEPS)
-LIBS = $(rempi_a_LIBS) $(rempi_so_LIBS)
+LIBS = $(rempi_a_LIBS) $(rempi_so_LIBS) $(rcmpi_so_LIBS)
 
 #$@: target name
 #$<: first dependent file
@@ -44,6 +46,11 @@ $(rempi_a_LIBS):  $(rempi_OBJS)
 
 $(rempi_so_LIBS):  $(rempi_OBJS)
 	$(CC) -shared -o ../lib/librempi.so $(rempi_OBJS)
+
+$(rcmpi_so_LIBS):  $(SRC_DIR)/rempi_message_manager.o
+	$(CC) -shared -o $(rcmpi_so_LIBS)  $(SRC_DIR)/rempi_message_manager.o
+
+
 
 .SUFFIXES: .c .o
 .c.o: 
