@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <utility>
 
+#include <zlib.h>
+
 #include "../src/rempi_message_manager.h"
 #include "../src/rempi_clock_delta_compression.h"
 #include "../src/rempi_compress.h"
@@ -12,6 +14,8 @@
 #include "../src/rempi_util.h"
 
 using namespace std;
+
+string file;
 
 void test_simple() {
   vector<rempi_message_identifier*> msg_ids;
@@ -111,7 +115,7 @@ void test_clock_delta2() {
   char* compressed_data;
   size_t compressed_size;
   rempi_message_identifier *msg_id;
-  ifstream ifs("./record-1tick-ts.is-sync-40000-24");
+  ifstream ifs(file);
   string line;
   int id = 0;
   double s_add, e_add, s_comp, e_comp;
@@ -194,6 +198,11 @@ void test_clock_delta2() {
     compressed_data = rempi_clock_delta_compression::compress(msg_ids_clocked, msg_ids_observed, compressed_size);
     e_comp = rempi_get_time();
     //  REMPI_DBG("COM: %f", e_comp - s_comp);
+    {
+      ofstream fd(file + "." + to_string((long long)rank) + ".rempi-cdc", ofstream::binary);
+      fd.write(compressed_data, compressed_size);
+      fd.close();
+    }
 #if 1
     {
       REMPI_DBG("rank %d, size:%d (%d)", rank, compressed_size, msg_ids_observed.size() * 4);
@@ -215,8 +224,11 @@ void test_clock_delta2() {
 
 int main(int argc, char* argv[]) {
 
-  //  test_clock_delta();
-  test_clock_delta2();
+ if (argc != 2) {
+   REMPI_ERR("a.out <file>");
+ }
+ file = string(argv[1]);
+ test_clock_delta2();
   return 0;
 }
 
