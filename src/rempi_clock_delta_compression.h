@@ -92,8 +92,7 @@ class rempi_clock_delta_compression
       char* compressed_data,
       size_t &compressed_bytes,
       set<rempi_message_identifier*> &rempi_ids_clock,
-      vector<rempi_message_identifier*> &rempi_ids_real
-);	
+      vector<rempi_message_identifier*> &rempi_ids_real);	
 
 
 };

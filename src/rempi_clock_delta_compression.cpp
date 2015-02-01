@@ -63,7 +63,7 @@ Unmatched Test
 
 */
 
-#define  DEBUG_PERF
+//#define  DEBUG_PERF
 
 class shortest_edit_distance_path_search
 {
@@ -172,7 +172,6 @@ class shortest_edit_distance_path_search
 #if 0
       REMPI_DBG("size: %d, row: %d, col:%d, row_bound: %d", leaf_list.size(), row, column, current_column_of_start_it);
 #endif
-
       
       for (leaf_list_it  = leaf_list.begin();
 	   leaf_list_it != leaf_list.end();
@@ -261,12 +260,14 @@ int rempi_clock_delta_compression::find_matched_clock_column(
 {
   rempi_message_identifier *msg_id_up;
   int traversed_count = 0;
+
   while (msg_ids_clocked_search_it != msg_ids_clocked_search_it_end) {
     msg_id_up   = msg_ids_clocked_search_it->second;
-    //    REMPI_DBG("%d == %d", clock_left, msg_id_up->clock);
+    //    REMPI_DBG("before %d == %d", clock_left, msg_id_up->clock);
     if (clock_left == msg_id_up->clock) {
       return traversed_count;
     }
+    //    REMPI_DBG("after %d == %d", clock_left, msg_id_up->clock);
     msg_ids_clocked_search_it++;
     traversed_count++;
   }
@@ -281,10 +282,11 @@ int rempi_clock_delta_compression::update_start_it(
    map<int, rempi_message_identifier*>::const_iterator &msg_ids_clocked_start_it)
 {
   matched_bits[matched_column] = true;
+
   for (int i = current_column_of_start_it; matched_bits[i] == true; i++) {
     msg_ids_clocked_start_it++;
     current_column_of_start_it++;
-  }
+  }  
   return current_column_of_start_it;
 }
 
@@ -314,7 +316,7 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
   vector<int> clock_delta_data;
   unordered_map<int, pair<int, int>*> map_id_to_type_and_index;
   unordered_map<int, pair<int, int>*>::iterator  map_id_to_type_and_index_it;
-  char* clock_delta_data_char;
+  int* clock_delta_data_int;
 #ifdef DEBUG_PERF
   double s_1, t_1;
 #endif
@@ -406,12 +408,12 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
   
   {
     compressed_bytes = clock_delta_data.size() * sizeof(int);  
-    clock_delta_data_char = (char*)rempi_malloc(compressed_bytes);
-    memcpy(clock_delta_data_char, (char*)&clock_delta_data[0], compressed_bytes);
+    clock_delta_data_int = (int*)rempi_malloc(compressed_bytes);
+    memcpy(clock_delta_data_int, (int*)&clock_delta_data[0], compressed_bytes);
 
 #if 0
-    REMPI_DBG("addr: %p", clock_delta_data_char);
-    int *clock_delta_data_int = (int*)clock_delta_data_char;
+    REMPI_DBG("addr: %p", clock_delta_data_int);
+    int *clock_delta_data_int = (int*)clock_delta_data_int;
     for (int j = 0; j < clock_delta_data.size(); j++) {
       REMPI_DBG("  %d", clock_delta_data_int[j]);
     }
@@ -420,7 +422,7 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
   
   }
   
-  return clock_delta_data_char;
+  return (char*)clock_delta_data_int;
 }
   
 
@@ -462,14 +464,12 @@ char* rempi_clock_delta_compression::compress(
   s_adds = rempi_get_time();
 
 #endif
-
   
   for (int i = 0; i < msg_ids_observed.size(); i++) {
     int matched_column, matched_row;
     rempi_message_identifier *msg_id_up, *msg_id_left, *matched_msg_id_up;
     msg_id_up   = msg_ids_clocked_search_it->second;
     msg_id_left = msg_ids_observed[i];
-
 
 #ifdef DEBUG_PERF
     s_find = rempi_get_time();
@@ -481,8 +481,7 @@ char* rempi_clock_delta_compression::compress(
 			   msg_ids_clocked_start_it,
 			   current_column_of_search_it,
 			   current_column_of_start_it);
-
-
+    //    REMPI_DBG("--- matched_column: %d %d", current_column_of_start_it, msg_ids_clocked_search_it->second->clock);
     /*find matched clock column*/
     current_column_of_search_it += 
       find_matched_clock_column(
@@ -509,7 +508,6 @@ char* rempi_clock_delta_compression::compress(
 			  current_column_of_search_it,
 			  matched_bits,
 			  msg_ids_clocked_start_it);
-
 
   }
   /*Finally, add morst bottom-right node, because path from this bottom-right node to root node

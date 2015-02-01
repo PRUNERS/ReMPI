@@ -14,7 +14,35 @@
 
 #define REMPI_COMM_ID_LENGTH (128) // TODO: 1 byte are enough, but 1 byte causes segmentation fault ...
 
+/*Comm id begins from 15 for my reasons*/
 char next_comm_id_to_assign = 15; //TODO: Mutex for Hybrid MPI
+
+int rempi_record_replay::init(int *argc, char ***argv)
+{
+  return PMPI_Init(argc, argv);
+}
+
+
+int rempi_record_replay::irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request)
+{
+  return PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
+}
+
+int rempi_record_replay::test(MPI_Request *request, int *flag, MPI_Status *status)
+{
+  return PMPI_Test(request, flag, status);
+}
+
+
+int rempi_record_replay::testsome(int incount, MPI_Request array_of_requests[], int *outcount, int array_of_indices[], MPI_Status array_of_statuses[])
+{
+  return PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
+}
+
+int rempi_record_replay::finalize()
+{
+  return PMPI_Finalize();
+}
 
 int rempi_record_replay_init(int *argc, char ***argv)
 {
