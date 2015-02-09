@@ -1,0 +1,3 @@
+[submodule "src/external/clmpi"]
+	path = src/external/clmpi
+	url = git@bitbucket.org:sato5/clmpi.git

@@ -154,6 +154,7 @@ void test_clock_delta2() {
     int rank = m_it->first;
     vector<pair<int,int>> *vv = m_it->second;
     vector<pair<int,int>> vv_sort;
+    /*Copy vector*/
     for (int i = 0; i < vv->size(); i++) {
       vv_sort.push_back(vv->at(i));
     }

@@ -409,29 +409,41 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
   if (clock_delta_data_id.size() != clock_delta_data_delta.size()) {
     REMPI_ERR("lsdjfklsj");
   }
+
+  for (int i = 0; i < clock_delta_data_id.size(); i++) {
+    int cdd_id    = clock_delta_data_id[i];
+    int cdd_delta = clock_delta_data_delta[i];
+    REMPI_DBG("%d\t%d",  cdd_id, cdd_delta);
+  }
+
+  REMPI_DBG(" ======== ");
+
   if(clock_delta_data_id.size()>1){
     for (int i = 0; i < clock_delta_data_id.size() - 1; i++) {
       int cdd_id    = clock_delta_data_id[i] - clock_delta_data_id[i+1];
       clock_delta_data_id[i] = cdd_id;
       int cdd_delta = clock_delta_data_delta[i] - clock_delta_data_delta[i+1];
       clock_delta_data_delta[i] = cdd_delta;
-      //      REMPI_DBG("%d\t%d",  cdd_id, cdd_delta);
+      REMPI_DBG("%d\t%d",  cdd_id, cdd_delta);
     }
+    REMPI_DBG(" ======== final");
 
-    for (int i = 0; i < clock_delta_data_id.size() -1; i++) {
-      int cdd_id    = clock_delta_data_id[i] + clock_delta_data_id[i+1];
-      clock_delta_data_id[i] = cdd_id;
-      int cdd_delta = clock_delta_data_delta[i] + clock_delta_data_delta[i+1];
-      clock_delta_data_delta[i] = cdd_delta;
-      //      REMPI_DBG("%d\t%d",  cdd_id, cdd_delta);
-    }
 
-    for (int i = 0; i < clock_delta_data_id.size() - 1; i++) {
+    // for (int i = 0; i < clock_delta_data_id.size() - 2; i++) {
+    //   int cdd_id    = clock_delta_data_id[i] + clock_delta_data_id[i+1];
+    //   clock_delta_data_id[i] = cdd_id;
+    //   int cdd_delta = clock_delta_data_delta[i] + clock_delta_data_delta[i+1];
+    //   clock_delta_data_delta[i] = cdd_delta;
+    //   REMPI_DBG("%d\t%d",  cdd_id, cdd_delta);
+    // }
+    /// REMPI_DBG(" ======== ");
+
+    for (int i = 0; i < clock_delta_data_id.size() - 3; i++) {
       int cdd_id    = clock_delta_data_id[i] - clock_delta_data_id[i+1];
       clock_delta_data_id[i] = cdd_id;
       int cdd_delta = clock_delta_data_delta[i] - clock_delta_data_delta[i+1];
       clock_delta_data_delta[i] = cdd_delta;
-      //      REMPI_DBG("%d\t%d",  cdd_id, cdd_delta);
+      REMPI_DBG("%d\t%d",  cdd_id, cdd_delta);
       //      REMPI_DBG("|%d|",  cdd_id);
       //      REMPI_DBG("|%d|",  cdd_delta);
     }
