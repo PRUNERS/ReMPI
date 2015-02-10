@@ -77,13 +77,12 @@ int main(int argc, char *argv[])
 
     testsome_outcount = 0;    
     MPI_Testsome(NUM_KV_PER_RANK, request, 
-		 &testsome_outcount, testsome_array_of_indices, NULL);
+		 &testsome_outcount, testsome_array_of_indices, status);
 
     for(i = 0; i < testsome_outcount; i++) {
       struct key_val sendrecv_kv;
       int recv_index;
       int send_dest;
-
       recv_index = testsome_array_of_indices[i];
       memcpy(&sendrecv_kv, &recv_kv[recv_index], sizeof(struct key_val));
       recv_msg_count[recv_index]++;

@@ -8,6 +8,8 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 		$(SRC_DIR)/rempi_util.cpp \
 		$(SRC_DIR)/rempi_config.cpp \
                 $(SRC_DIR)/rempi_record_replay.cpp \
+                $(SRC_DIR)/rempi_re.cpp \
+	        $(SRC_DIR)/rempi_re_cdc.cpp \
 		$(SRC_DIR)/rempi_record.cpp \
 		$(SRC_DIR)/rempi_message_manager.cpp \
 		$(SRC_DIR)/rempi_event_list.cpp \
@@ -37,6 +39,8 @@ LIBS = $(rempi_a_LIBS) $(rempi_so_LIBS) $(rcmpi_so_LIBS)
 
 
 all: $(LIBS)
+	@$(MAKE) -C ./external all
+
 
 -include $(DEPS)
 
@@ -46,6 +50,7 @@ $(rempi_a_LIBS):  $(rempi_OBJS)
 
 $(rempi_so_LIBS):  $(rempi_OBJS)
 	$(CC) -shared -o ../lib/librempi.so $(rempi_OBJS)
+
 
 $(rcmpi_so_LIBS):  $(SRC_DIR)/rempi_message_manager.o
 	$(CC) -shared -o $(rcmpi_so_LIBS)  $(SRC_DIR)/rempi_message_manager.o
@@ -57,6 +62,11 @@ $(rcmpi_so_LIBS):  $(SRC_DIR)/rempi_message_manager.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -c -MMD -MP $< 
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ -c $< 
 
+install: all
+	@$(MAKE) -C ./external install
+	pnmpi-patch ../lib/librempi.so /g/g90/sato5/opt/lib/pnmpi-modules/librempi.so
+
+
 .SUFFIXES: .cpp .o
 .cpp.o:
 	$(CC) $(CXXFLAGS) $(LDFLAGS) -c -MMD -MP $<
@@ -65,6 +75,7 @@ $(rcmpi_so_LIBS):  $(SRC_DIR)/rempi_message_manager.o
 .PHONY: clean
 clean:
 	-rm -rf $(OBJS) $(DEPS) $(LIBS)
+	@$(MAKE) -C ./external clean
 
 .PHONY: clean_core
 clean_core:

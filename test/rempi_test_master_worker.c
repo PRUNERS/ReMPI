@@ -7,7 +7,7 @@
 #include "rempi_test_util.h"
 
 
-#define NUM_MEG_PER_RANK (1)
+#define NUM_MEG_PER_RANK (5)
 #define MAX_HASH (1000000)
 
 
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
       /*Emulate two wave of MPI_Send, so that rank=0 can poll MPI_Test to wait the MPI_Send waves*/
       usleep(100);
       MPI_Send(&rank, 1, MPI_INT, 0, i, MPI_COMM_WORLD); 
-      fprintf(stderr, "send\n");
+      //      fprintf(stderr, "send\n");
     }
   } else { // Master
     int sum = 0;
@@ -49,9 +49,9 @@ int main(int argc, char *argv[])
 	flag = 0;
       }
       MPI_Test(&request, &flag, &status);
-      fprintf(stderr, "flag 1: %d (%d %d)\n", flag, status.MPI_SOURCE, status.MPI_TAG);
-      MPI_Test(&request, &flag, &status);
-      fprintf(stderr, "flag 3: %d (%d %d)\n", flag, status.MPI_SOURCE, status.MPI_TAG);
+      //      fprintf(stderr, "flag 1: %d (%d %d)\n", flag, status.MPI_SOURCE, status.MPI_TAG);
+      //      MPI_Test(&request, &flag, &status);
+      //      fprintf(stderr, "flag 3: %d (%d %d)\n", flag, status.MPI_SOURCE, status.MPI_TAG);
       /* MPI_Wait(&request, &status); */
       /* fprintf(stderr, "wait       (%d %d)\n",  status.MPI_SOURCE, status.MPI_TAG); */
       /* MPI_Wait(&request, &status); */

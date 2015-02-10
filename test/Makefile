@@ -30,6 +30,9 @@ all: src_make $(PROGRAMS)
 src_make:
 	@$(MAKE) -C ../src
 
+install: all
+	@$(MAKE) -C ../src install
+
 $(rempi_test_master_worker_PROGRAM): $(rempi_test_master_worker_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
