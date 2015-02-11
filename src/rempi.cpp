@@ -57,26 +57,30 @@ int PNMPI_RegistrationPoint()
 
   return err;
 }
+
+void init_rempi() {
+  rempi_record_replay = new rempi_re_cdc();
+  return;
+}
 // MPI_Init does all the communicator setup
 //
 /* ================== C Wrappers for MPI_Init ================== */
 _EXTERN_C_ int PMPI_Init(int *arg_0, char ***arg_1);
 _EXTERN_C_ int MPI_Init(int *arg_0, char ***arg_1)
 { 
-  rempi_record_replay = new rempi_re_cdc();
-
   int _wrap_py_return_val = 0;
+  init_rempi();
   _wrap_py_return_val = rempi_record_replay->re_init(arg_0, arg_1);
   return _wrap_py_return_val;
 }
 
 /* ================== C Wrappers for MPI_Init_thread ================== */
 _EXTERN_C_ int PMPI_Init_thread(int *arg_0, char ***arg_1, int arg_2, int *arg_3);
-_EXTERN_C_ int MPI_Init_thread(int *arg_0, char ***arg_1, int arg_2, int *arg_3) { 
+_EXTERN_C_ int MPI_Init_thread(int *arg_0, char ***arg_1, int arg_2, int *arg_3)
+{ 
   int _wrap_py_return_val = 0;
-  {
-    _wrap_py_return_val = rempi_record_replay->re_init_thread(arg_0, arg_1, arg_2, arg_3);
-  }  
+  init_rempi();
+  _wrap_py_return_val = rempi_record_replay->re_init_thread(arg_0, arg_1, arg_2, arg_3);
   return _wrap_py_return_val;
 }
 
@@ -85,6 +89,8 @@ _EXTERN_C_ int PMPI_Irecv(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3,
 _EXTERN_C_ int MPI_Irecv(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6)
 { 
   int _wrap_py_return_val = 0;
+ 
+
   _wrap_py_return_val = rempi_record_replay->re_irecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
   return _wrap_py_return_val;
 }
@@ -103,6 +109,7 @@ _EXTERN_C_ int PMPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg
 _EXTERN_C_ int MPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_3, MPI_Status *arg_4)
 { 
   int _wrap_py_return_val = 0;
+
   _wrap_py_return_val = rempi_record_replay->re_testsome(arg_0, arg_1, arg_2, arg_3, arg_4);
   return _wrap_py_return_val;
 }

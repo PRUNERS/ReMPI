@@ -18,7 +18,7 @@ void rempi_set_configuration(int *argc, char ***argv)
   int env_int;
 
   if (NULL == (env = getenv(REMPI_ENV_NAME_MODE))) {
-    rempi_dbgi(0, "getenv failed: REMPI_ENV_NAME_MODE (%s:%s:%d)", __FILE__, __func__, __LINE__);
+    rempi_dbgi(0, "getenv failed: Please specify REMPI_MODE (%s:%s:%d)", __FILE__, __func__, __LINE__);
     exit(0);
   }
   env_int = atoi(env);
@@ -27,7 +27,7 @@ void rempi_set_configuration(int *argc, char ***argv)
   } else if (env_int == 1) {
     rempi_mode = 1;
   } else {
-    rempi_dbgi(0, "No such value for REMPI_ENV_NAME_MODE: %s (%s:%s:%d)", env, __FILE__, __func__, __LINE__);
+    rempi_dbgi(0, "Invalid value for REMPI_MODE: %s (%s:%s:%d)", env, __FILE__, __func__, __LINE__);
     exit(0);
   }
 

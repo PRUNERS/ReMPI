@@ -1,5 +1,5 @@
-#ifndef EVENT_LIST_H
-#define EVENT_LIST_H
+#ifndef __REMPI_EVENT_LIST_H__
+#define __REMPI_EVENT_LIST_H__
 
 #include <list>
 #include <map>
@@ -42,6 +42,7 @@ class rempi_event_list
 		void close_push();
 		T decode_pop();
 		T pop();
+		
 };
 
 #endif
