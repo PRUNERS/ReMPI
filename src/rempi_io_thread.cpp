@@ -16,7 +16,7 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *events, string 
 {
   record_path = rempi_record_dir_path + "/rank_" + id + ".rempi";
   encoder = new rempi_encoder(mode);
-};
+}
 
 
 void rempi_io_thread::complete_flush()

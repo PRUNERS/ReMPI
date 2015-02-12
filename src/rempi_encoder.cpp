@@ -35,6 +35,22 @@ void rempi_encoder::close_record_file()
   record_fs.close();
 }
 
+/*  ==== 3 Step compression ==== 
+1. rempi_encoder.get_encoding_event_sequence(...): [rempi_event_list => rempi_encoding_structure]
+     this function translate sequence of event(rempi_event_list) 
+     into a data format class(rempi_encoding_structure) whose format 
+     is sutable for compression(rempi_encoder.encode(...))
+   
+
+2. repmi_encoder.encode(...): [rempi_encoding_structure => char*]
+     encode, i.e., rempi_encoding_structure -> char*
+     
+3. write_record_file: [char* => "file"]
+     write the data(char*)
+ =============================== */
+
+
+
 void rempi_encoder::get_encoding_event_sequence(rempi_event_list<rempi_event*> &events, vector<rempi_event*> &encoding_event_sequence)
 {
   rempi_event *event;
@@ -59,8 +75,8 @@ char* rempi_encoder::encode(vector<rempi_event*> &encoding_event_sequence, size_
   serialized_data = encoding_event->serialize(size); 
   encoding_event_sequence.pop_back();
   //  rempi_dbgi(0, "--> encoding: %p, size: %d: count: %d", encoding_event, encoding_event_sequence.size(), count++);
-  encoding_event->print();
-  fprintf(stderr, "\n");
+  //  encoding_event->print();
+  //  fprintf(stderr, "\n");
   delete encoding_event;  
   return serialized_data;
 }
