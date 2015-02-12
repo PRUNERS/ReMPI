@@ -100,6 +100,11 @@ int rempi_event::get_tag()
   return mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_TAG];
 }
 
+int rempi_event::get_clock()
+{
+  return mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_CLOCK];
+}
+
 
 /*====== child class constructures ======*/
 
@@ -112,7 +117,8 @@ rempi_irecv_event::rempi_irecv_event(int event_counts, int count, int source, in
     mpi_inputs.push_back(request);
 }
 
-rempi_test_event::rempi_test_event(int event_counts, int is_testsome, int comm_id, int flag, int source, int tag) {
+rempi_test_event::rempi_test_event(int event_counts, int is_testsome, int comm_id, int flag, int source, int tag)
+{
   /*If you change this function, you also need to change: 
      1. #define REMPI_MPI_EVENT_INPUT_NUM (6)
      2. rempi_event::pop function
@@ -124,4 +130,22 @@ rempi_test_event::rempi_test_event(int event_counts, int is_testsome, int comm_i
   mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_FLAG        ] = flag;
   mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_SOURCE      ] = source;
   mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_TAG         ] = tag;
+  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_CLOCK       ] = 0;
 }
+
+rempi_test_event::rempi_test_event(int event_counts, int is_testsome, int comm_id, int flag, int source, int tag, int clock)
+{
+  /*If you change this function, you also need to change: 
+     1. #define REMPI_MPI_EVENT_INPUT_NUM (6)
+     2. rempi_event::pop function
+   */
+  mpi_inputs.resize(REMPI_MPI_EVENT_INPUT_NUM);
+  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_EVENT_COUNTS] = event_counts;
+  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_IS_TESTSOME ] = is_testsome;
+  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_COMM_ID     ] = comm_id;
+  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_FLAG        ] = flag;
+  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_SOURCE      ] = source;
+  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_TAG         ] = tag;
+  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_CLOCK       ] = clock;
+}
+

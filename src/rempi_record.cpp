@@ -12,14 +12,8 @@
 #include "rempi_err.h"
 #include "rempi_config.h"
 
-//extern int rempi_mode;
 
-rempi_message_manager msg_manager;
-rempi_event_list<rempi_event*> *recording_event_list, *replaying_event_list;
-rempi_io_thread *record_thread, *read_record_thread;
-//using namespace std;
-
-int rempi_record_init(int *argc, char ***argv, int rank) 
+int rempi_record::record_init(int *argc, char ***argv, int rank) 
 {
   string id;
 
@@ -33,7 +27,7 @@ int rempi_record_init(int *argc, char ***argv, int rank)
   return 0;
 }
 
-int rempi_replay_init(int *argc, char ***argv, int rank) 
+int rempi_record::replay_init(int *argc, char ***argv, int rank) 
 {
   string id;
 
@@ -45,7 +39,7 @@ int rempi_replay_init(int *argc, char ***argv, int rank)
   return 0;
 }
 
-int rempi_record_irecv(
+int rempi_record::record_irecv(
    void *buf,
    int count,
    int datatype,
@@ -58,7 +52,8 @@ int rempi_record_irecv(
 
   return 0;
 }
-int rempi_replay_irecv(
+
+int rempi_record::replay_irecv(
    void *buf,
    int count,
    int datatype,
@@ -73,11 +68,12 @@ int rempi_replay_irecv(
 }
 
 
-int rempi_record_test(
+int rempi_record::record_test(
     MPI_Request *request,
     int *flag,
     int source,
-    int tag)
+    int tag,
+    int clock)
 {
   int event_count = 1;
   int is_testsome = 0;
@@ -99,7 +95,7 @@ int rempi_record_test(
 
 /*This function is called after MPI_Test*/
 
-int rempi_replay_test(
+int rempi_record::replay_test(
     MPI_Request *request_in,
     int flag_in,
     int source_in,
@@ -156,7 +152,7 @@ int rempi_replay_test(
   return 0;
 }
 
-int rempi_record_testsome(
+int rempi_record::record_testsome(
     int incount,
     void *array_of_requests[],
     int *outcount,
@@ -189,7 +185,7 @@ int rempi_record_testsome(
   return 0;
 }
 
-int rempi_replay_testsome(
+int rempi_record::replay_testsome(
     int incount,
     void *array_of_requests[],
     int *outcount,
@@ -199,7 +195,7 @@ int rempi_replay_testsome(
   return 0;
  }
 
-int rempi_record_finalize(void)
+int rempi_record::record_finalize(void)
 {
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
@@ -220,7 +216,7 @@ int rempi_record_finalize(void)
   return 0;
 }
 
-int rempi_replay_finalize(void)
+int rempi_record::replay_finalize(void)
 {
   //TODO:
   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);

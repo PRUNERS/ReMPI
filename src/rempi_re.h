@@ -8,6 +8,7 @@
 
 #include "rempi_err.h"
 #include "rempi_mem.h"
+#include "rempi_recorder.h"
 #include "clmpi.h"
 
 #define REMPI_COMM_ID_LENGTH (128)
@@ -18,8 +19,8 @@ class rempi_re
 {
  private:
  protected:
+  int my_rank = -1;
   int init_after_pmpi_init(int *argc, char ***argv);
-
  public:
   rempi_re();
   virtual int re_init(int *argc, char ***argv);
@@ -57,8 +58,9 @@ class rempi_re_cdc : public rempi_re
   PNMPIMOD_register_recv_clocks_t clmpi_register_recv_clocks;
   //  PNMPIMOD_get_recv_clocks_t clmpi_get_recv_clocks;
   int init_clmpi();
-  
+  rempi_recorder *recorder;  
  public:
+  rempi_re_cdc();
   virtual int re_init(int *argc, char ***argv);
 
   virtual int re_init_thread(

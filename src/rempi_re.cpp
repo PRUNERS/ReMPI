@@ -7,6 +7,7 @@
 #include "rempi_err.h"
 #include "rempi_mem.h"
 #include "rempi_config.h"
+#include "rempi_recorder.h"
 
 using namespace std;
 
@@ -14,14 +15,14 @@ rempi_re::rempi_re(){}
 
 int rempi_re::init_after_pmpi_init(int *argc, char ***argv)
 {
-  int rank;
   char comm_id[REMPI_COMM_ID_LENGTH];
   comm_id[0] = 0;
-  PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  PMPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   PMPI_Comm_set_name(MPI_COMM_WORLD, comm_id);
 
-  rempi_err_init(rank);
+  rempi_err_init(my_rank);
   rempi_set_configuration(argc, argv);
+
   return 0;
 }
 
