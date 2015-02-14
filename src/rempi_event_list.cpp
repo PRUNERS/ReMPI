@@ -1,5 +1,6 @@
 
 #include <unistd.h>
+#include <limits>
 
 #include "rempi_mutex.h"
 #include "rempi_spsc_queue.h"
@@ -7,6 +8,7 @@
 #include "rempi_event.h"
 #include "rempi_util.h"
 #include "rempi_err.h"
+
 
 
 using namespace std;
@@ -77,15 +79,21 @@ void rempi_event_list<T>::push_all()
     REMPI_ERR("event_list push was closed");
   }
 
-  if (previous_recording_event == NULL) return;
-  mtx.lock();
-  while (events.rough_size() >= max_size) {
-    mtx.unlock();
-    usleep(spin_time);
+  if (previous_recording_event != NULL) {
+    /*If previous is not empty, push the event to the event_list*/
     mtx.lock();
+    while (events.rough_size() >= max_size) {
+      mtx.unlock();
+      usleep(spin_time);
+      mtx.lock();
+    }
+    events.enqueue(previous_recording_event);
+    mtx.unlock();
   }
-  events.enqueue(previous_recording_event);
-  mtx.unlock();
+
+  set_globally_minimal_clock(numeric_limits<size_t>::max());
+  close_push();
+
 }
 
 template <class T>
@@ -93,6 +101,12 @@ void rempi_event_list<T>::close_push()
 {
   is_push_closed = true;
   return;
+}
+
+template <class T>
+bool rempi_event_list<T>::is_push_closed_()
+{
+  return is_push_closed;
 }
 
 /*
@@ -173,6 +187,28 @@ T rempi_event_list<T>::pop()
   T item = events.dequeue();
   mtx.unlock();
   return item;
+}
+
+
+template <class T>
+T rempi_event_list<T>::front()
+{
+  mtx.lock();
+  T item = events.front();
+  mtx.unlock();
+  return item;
+}
+
+template <class T>
+size_t rempi_event_list<T>::get_globally_minimal_clock()
+{
+  return globally_minimal_clock;
+}
+
+template <class T>
+void rempi_event_list<T>::set_globally_minimal_clock(size_t gmc)
+{
+  globally_minimal_clock = gmc;
 }
 
 

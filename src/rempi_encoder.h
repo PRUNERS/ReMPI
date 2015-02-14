@@ -9,36 +9,67 @@
 
 using namespace std;
 
-class rempi_encoder
+class rempi_encoder_input_format
 {
  public:
+  vector<rempi_event*> events_vec;
+  size_t  length();
+  virtual void add(rempi_event *event);
+  virtual void format();
+  virtual void debug_print();
+};
+
+
+class rempi_encoder
+{
+ protected:
     int mode;
     string record_path;
     fstream record_fs;
+ public:
 
     rempi_event_list<rempi_event*> *events;
     rempi_encoder(int mode);
     /*Common for record & replay*/
-    virtual void open_record_file(string record_path);
-    virtual void close_record_file();
+    void open_record_file(string record_path);
+    void close_record_file();
+    void write_record_file(char* encoded_events, size_t size);
+    char* read_decoding_event_sequence(size_t *size);
+
     /*For only record*/
-    virtual void get_encoding_event_sequence(rempi_event_list<rempi_event*> &events, vector<rempi_event*> &encoding_event_sequence);
-    virtual char* encode(vector<rempi_event*> &encoding_event_sequence, size_t &size);
-    virtual void write_record_file(char* encoded_events, size_t size);
+    virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
+    virtual char* encode(rempi_encoder_input_format &input_format, size_t &size);
+
     /*For only replay*/
-    virtual char* read_decoding_event_sequence(size_t *size);
     virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };
 
-/* class rempi_encoder_no_encoding : public rempi_encoder */
-/* { */
-/*   public: */
-/*     rempi_event_list<rempi_event*> *events; */
-/*     rempi_encoder_no_encoding(rempi_event_list<rempi_event*> *events); */
-/*     virtual vector<rempi_event*> get_encoding_event_sequence(); */
-/*     virtual char* encode(vector<rempi_event*> events, size_t *size); */
-/*     virtual char* read_decoding_event_sequence(size_t *size); */
-/*     virtual vector<rempi_event*> decode(char *serialized, size_t *size); */
-/* }; */
+
+
+class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
+{
+ private:
+  //  bool compare(rempi_event *event1, rempi_event *event2);
+ public:
+  vector<size_t>               with_previous_vec;
+  vector<pair<size_t, size_t>> unmatched_events_vec;
+  map<int, rempi_event*>       matched_events_ordered_map;
+  virtual void add(rempi_event *event);
+  virtual void format();
+  virtual void debug_print();
+};
+
+
+class rempi_encoder_cdc : public rempi_encoder
+{
+ public:
+ 
+    rempi_encoder_cdc(int mode);
+    /*For only record*/
+    virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
+    virtual char* encode(rempi_encoder_input_format &input_format, size_t &size);
+    /*For only replay*/
+    virtual vector<rempi_event*> decode(char *serialized, size_t *size);
+};
 
 #endif /* __REMPI_ENCODER_H__ */

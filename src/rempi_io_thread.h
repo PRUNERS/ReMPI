@@ -16,7 +16,6 @@ class rempi_io_thread : public rempi_thread
 	private:
 		static rempi_mutex mtx;
 		/*1 if this MPI process finish pushing events*/
-		int is_complete_flush;
 		/*1 if this thread read reacord file to the end*/
 		int read_finished;
 		rempi_event_list<rempi_event*> *events;
@@ -31,7 +30,6 @@ class rempi_io_thread : public rempi_thread
 	public:
                 rempi_io_thread(rempi_event_list<rempi_event*> *events, string id, int mode);
 		void complete_flush();
-		int  is_finished_read();
 };
 
 #endif

@@ -6,6 +6,35 @@
 #include "rempi_config.h"
 
 
+/* ==================================== */
+/*  CLASS rempi_encoder_input_format    */
+/* ==================================== */
+
+size_t rempi_encoder_input_format::length()
+{
+  return events_vec.size();
+}
+
+void rempi_encoder_input_format::add(rempi_event *event)
+{
+  events_vec.push_back(event);
+  return;
+}
+
+void rempi_encoder_input_format::format()
+{
+  return;
+}
+
+void rempi_encoder_input_format::debug_print()
+{
+  return;
+}
+
+
+/* ==================================== */
+/*      CLASS rempi_encoder             */
+/* ==================================== */
 
 rempi_encoder::rempi_encoder(int mode): mode(mode) {}
 
@@ -50,34 +79,33 @@ void rempi_encoder::close_record_file()
  =============================== */
 
 
-
-void rempi_encoder::get_encoding_event_sequence(rempi_event_list<rempi_event*> &events, vector<rempi_event*> &encoding_event_sequence)
+bool rempi_encoder::extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format)
 {
   rempi_event *event;
   event = events.pop();
+  bool is_extracted = false;
   /*encoding_event_sequence get only one event*/
   if (event != NULL) {
-    //    rempi_dbgi(0, "pusu event: %p", event);
-    encoding_event_sequence.push_back(event);
+    //    rempi_dbgi(0, "pusu event: %p", event);                                                                                                               input_format.events_vec.push_back(event);
+    is_extracted = true;
   }
-  return;
+  return is_extracted;
 }
 
-int count;
 
-char* rempi_encoder::encode(vector<rempi_event*> &encoding_event_sequence, size_t &size)
+char* rempi_encoder::encode(rempi_encoder_input_format &input_format, size_t &size)
 {
   char* serialized_data;
   rempi_event *encoding_event;
   /*encoding_event_sequence has only one event*/
-  encoding_event = encoding_event_sequence[0];
-  //  rempi_dbgi(0, "-> encoding: %p, size: %d: count: %d", encoding_event, encoding_event_sequence.size(), count++);
-  serialized_data = encoding_event->serialize(size); 
-  encoding_event_sequence.pop_back();
-  //  rempi_dbgi(0, "--> encoding: %p, size: %d: count: %d", encoding_event, encoding_event_sequence.size(), count++);
-  //  encoding_event->print();
-  //  fprintf(stderr, "\n");
-  delete encoding_event;  
+  encoding_event = input_format.events_vec[0];
+  //  rempi_dbgi(0, "-> encoding: %p, size: %d: count: %d", encoding_event, encoding_event_sequence.size(), count++);                                      
+  serialized_data = encoding_event->serialize(size);
+  input_format.events_vec.pop_back();
+  //  rempi_dbgi(0, "--> encoding: %p, size: %d: count: %d", encoding_event, encoding_event_sequence.size(), count++);                                      
+  //  encoding_event->print();                                                                                                                              
+  //  fprintf(stderr, "\n");                                                                                                                                
+  delete encoding_event;
   return serialized_data;
 }
 

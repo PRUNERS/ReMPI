@@ -23,10 +23,11 @@ class rempi_event_list
 		rempi_mutex mtx;
 		size_t max_size;
 		size_t spin_time;
+		size_t globally_minimal_clock; /*which is used for CDC compression*/
 	public:
                 rempi_event_list(size_t max_size, size_t spin_time) :
 		  previous_recording_event(NULL), previous_replaying_event(NULL), is_push_closed(false),
-		  max_size(max_size), spin_time(spin_time) {}
+		    max_size(max_size), spin_time(spin_time), globally_minimal_clock(0) {}
 		~rempi_event_list() {
         		mtx.lock();
 			while (events.rough_size()) {
@@ -34,7 +35,7 @@ class rempi_event_list
 			}
 			mtx.unlock();
 		}
-
+		/*TODO: push -> enqueue, pop -> dequeue */
 		size_t size();
 		void normal_push(T event);
 		void push(T event);
@@ -42,7 +43,11 @@ class rempi_event_list
 		void close_push();
 		T decode_pop();
 		T pop();
+		T front();
 		
+		size_t get_globally_minimal_clock();
+		void   set_globally_minimal_clock(size_t gmc);
+		bool   is_push_closed_();
 };
 
 #endif

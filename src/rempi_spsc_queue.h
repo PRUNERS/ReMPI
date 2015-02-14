@@ -118,6 +118,17 @@ public:
       }
   }
 
+  T front()
+  {
+    T v;
+    if (load_consume(&tail_->next_)) {
+      v = tail_->next_->value_;
+      return v;
+    } else {
+      return (T)NULL;
+    }
+  }
+
 private:
   // internal node structure
   struct node

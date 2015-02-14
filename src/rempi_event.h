@@ -26,7 +26,11 @@ class rempi_event
 {
   public:
     static int max_size;
-    vector<int> mpi_inputs;
+    /*TODO: fix progrems below: 
+      clock is size_t, but the other values are int
+      for now, I use long to allocate 64bit
+     */
+    vector<long> mpi_inputs;
 
     virtual void operator ++(int);
     virtual bool operator ==(rempi_event event);

@@ -64,7 +64,7 @@ void rempi_event::print()
 {
   fprintf(stderr, "<Event: ");
   for (int i = 0; i < mpi_inputs.size(); i++) {
-    fprintf(stderr, "%d \t", mpi_inputs[i]);
+    fprintf(stderr, "%d \t", (int)mpi_inputs[i]);
   }
   fprintf(stderr, ">");
   return;
