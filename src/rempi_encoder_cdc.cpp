@@ -5,7 +5,7 @@
 #include "rempi_event.h"
 #include "rempi_encoder.h"
 #include "rempi_config.h"
-
+#include "rempi_clock_delta_compression.h"
 
 #define MAX_CDC_INPUT_FORMAT_LENGTH (1024 * 1024)
 
@@ -60,8 +60,13 @@ void rempi_encoder_cdc_input_format::add(rempi_event *event)
 
 void rempi_encoder_cdc_input_format::format()
 {
-  
-  sort(events_vec.begin(), events_vec.end(), compare);
+  vector<rempi_event*> sorted_events_vec(events_vec);
+  sort(sorted_events_vec.begin(), sorted_events_vec.end(), compare);
+  for (int i = 0; i < sorted_events_vec.size(); i++) {
+    sorted_events_vec[i]->order = i;
+    matched_events_ordered_map.insert(make_pair(i, sorted_events_vec[i]));
+  }
+  return;
 }
 
 void rempi_encoder_cdc_input_format::debug_print()
@@ -137,20 +142,18 @@ bool rempi_encoder_cdc::extract_encoder_input_format_chunk(rempi_event_list<remp
 }
 
 
-char* rempi_encoder_cdc::encode(rempi_encoder_input_format &input_format, size_t &size)
+char* rempi_encoder_cdc::encode(rempi_encoder_input_format &input_format, size_t &compressed_size)
 {
-  char* serialized_data;
-  rempi_event *encoding_event;
-  /*encoding_event_sequence has only one event*/
-  encoding_event = input_format.events_vec[0];
-  //  rempi_dbgi(0, "-> encoding: %p, size: %d: count: %d", encoding_event, encoding_event_sequence.size(), count++);
-  serialized_data = encoding_event->serialize(size); 
-  input_format.events_vec.pop_back();
-  //  rempi_dbgi(0, "--> encoding: %p, size: %d: count: %d", encoding_event, encoding_event_sequence.size(), count++);
-  //  encoding_event->print();
-  //  fprintf(stderr, "\n");
-  delete encoding_event;  
-  return serialized_data;
+  
+  /*TODO: Compress with_previous*/
+  /*TODO: Compress unmatched_events*/
+
+  /*Compress matched_events*/
+  input_format.compressed_matched_events = rempi_clock_delta_compression::compress(
+										   input_format.events_vec, 
+										   input_format.matched_events_ordered_map, 
+										   input_format.compressed_matched_events_size);
+  return NULL;
 }
 
 

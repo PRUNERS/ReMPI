@@ -12,7 +12,21 @@ using namespace std;
 class rempi_encoder_input_format
 {
  public:
+  /*Used for any compression*/
   vector<rempi_event*> events_vec;
+
+  /*Used for CDC*/
+  vector<size_t>               with_previous_vec;
+  size_t                       compressed_with_previous_size;
+  char*                        compressed_with_previous;
+  vector<pair<size_t, size_t>> unmatched_events_vec;
+  size_t                       compressed_unmatched_events_size;
+  char*                        compressed_unmatched_events;
+  map<int, rempi_event*>       matched_events_ordered_map;
+  size_t                       compressed_matched_events_size;
+  char*                        compressed_matched_events;
+
+
   size_t  length();
   virtual void add(rempi_event *event);
   virtual void format();
@@ -51,9 +65,8 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
  private:
   //  bool compare(rempi_event *event1, rempi_event *event2);
  public:
-  vector<size_t>               with_previous_vec;
-  vector<pair<size_t, size_t>> unmatched_events_vec;
-  map<int, rempi_event*>       matched_events_ordered_map;
+ 
+
   virtual void add(rempi_event *event);
   virtual void format();
   virtual void debug_print();
