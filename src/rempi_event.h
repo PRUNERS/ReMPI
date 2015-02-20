@@ -31,7 +31,7 @@ class rempi_event
       for now, I use long to allocate 64bit
      */
 
-    int order = - 1; /*Ordered by clock when CDC compression is used */
+    int clock_order = - 1; /*Ordered by clock when CDC compression is used */
     vector<long> mpi_inputs;
 
     virtual void operator ++(int);

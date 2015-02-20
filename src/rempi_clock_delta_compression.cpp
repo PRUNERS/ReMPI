@@ -12,6 +12,7 @@
 
 #include "rempi_clock_delta_compression.h"
 #include "rempi_message_manager.h"
+#include "rempi_event.h"
 #include "rempi_err.h"
 #include "rempi_mem.h"
 #include "rempi_util.h"
@@ -234,8 +235,8 @@ class shortest_edit_distance_path_search
 int rempi_clock_delta_compression::next_start_search_it(
  int msg_id_up_clock,
  int msg_id_left_clock,
- map<int, rempi_message_identifier*>::const_iterator &msg_ids_clocked_search_it,
- map<int, rempi_message_identifier*>::const_iterator &msg_ids_clocked_start_it,
+ map<int, rempi_event*>::const_iterator &msg_ids_clocked_search_it,
+ map<int, rempi_event*>::const_iterator &msg_ids_clocked_start_it,
  int current_column_of_search_it,
  int current_column_of_start_it) 
 {
@@ -254,20 +255,20 @@ int rempi_clock_delta_compression::next_start_search_it(
 }
 
 int rempi_clock_delta_compression::find_matched_clock_column(
- int clock_left,
- map<int, rempi_message_identifier*>::const_iterator &msg_ids_clocked_search_it,
- map<int, rempi_message_identifier*>::const_iterator const &msg_ids_clocked_search_it_end)
+ int clock_order_left,
+ map<int, rempi_event*>::const_iterator &msg_ids_clocked_search_it,
+ map<int, rempi_event*>::const_iterator const &msg_ids_clocked_search_it_end)
 {
-  rempi_message_identifier *msg_id_up;
+  rempi_event *msg_id_up;
   int traversed_count = 0;
 
   while (msg_ids_clocked_search_it != msg_ids_clocked_search_it_end) {
     msg_id_up   = msg_ids_clocked_search_it->second;
-    //    REMPI_DBG("before %d == %d", clock_left, msg_id_up->clock);
-    if (clock_left == msg_id_up->clock) {
+    //    REMPI_DBG("before %d == %d", clock_order_left, msg_id_up->clock);
+    if (clock_order_left == msg_id_up->clock_order) {
       return traversed_count;
     }
-    //    REMPI_DBG("after %d == %d", clock_left, msg_id_up->clock);
+    //    REMPI_DBG("after %d == %d", clock_order_left, msg_id_up->clock);
     msg_ids_clocked_search_it++;
     traversed_count++;
   }
@@ -279,7 +280,7 @@ int rempi_clock_delta_compression::update_start_it(
    int current_column_of_start_it,
    int matched_column,
    vector<bool> &matched_bits,
-   map<int, rempi_message_identifier*>::const_iterator &msg_ids_clocked_start_it)
+   map<int, rempi_event*>::const_iterator &msg_ids_clocked_start_it)
 {
   matched_bits[matched_column] = true;
 
@@ -292,7 +293,7 @@ int rempi_clock_delta_compression::update_start_it(
 
 void rempi_clock_delta_compression::change_to_seq_order_id(
     list<pair<int, int>*> &diff,
-    vector<rempi_message_identifier*> &msg_ids_observed,
+    vector<rempi_event*> &msg_ids_observed,
     map<int, int> &map_clock_to_order)
 {
   list<pair<int, int>*>::iterator diff_it;
@@ -300,8 +301,8 @@ void rempi_clock_delta_compression::change_to_seq_order_id(
     int diff_type = (*diff_it)->second;
     if (diff_type == EDIT_ADD) {
       int row = (*diff_it)->first;
-      int clock = msg_ids_observed[row]->clock;
-      int seq_order_id = map_clock_to_order[clock];
+      int clock_order = msg_ids_observed[row]->clock_order;
+      int seq_order_id = map_clock_to_order[clock_order];
       (*diff_it)->first = seq_order_id;
     }
   }
@@ -416,7 +417,7 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
     REMPI_DBG("%d\t%d",  cdd_id, cdd_delta);
   }
 
-  REMPI_DBG(" ======== ");
+  REMPI_ERR(" ======== ");
 
   if(clock_delta_data_id.size()>1){
     for (int i = 0; i < clock_delta_data_id.size() - 1; i++) {
@@ -600,12 +601,12 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
   
 
 char* rempi_clock_delta_compression::compress(
-       map<int, rempi_message_identifier*> &msg_ids_clocked,
-       vector<rempi_message_identifier*> &msg_ids_observed,
+       map<int, rempi_event*> &msg_ids_clocked,
+       vector<rempi_event*> &msg_ids_observed,
        size_t &compressed_bytes)
 {
-  map<int, rempi_message_identifier*>::const_iterator msg_ids_clocked_search_it;
-  map<int, rempi_message_identifier*>::const_iterator msg_ids_clocked_start_it;
+  map<int, rempi_event*>::const_iterator msg_ids_clocked_search_it;
+  map<int, rempi_event*>::const_iterator msg_ids_clocked_start_it;
   /*To memorize order of clock: 
     clock: 0 12 34 45 98
     map_clock_to_order[0] = 0
@@ -640,7 +641,7 @@ char* rempi_clock_delta_compression::compress(
   
   for (int i = 0; i < msg_ids_observed.size(); i++) {
     int matched_column, matched_row;
-    rempi_message_identifier *msg_id_up, *msg_id_left, *matched_msg_id_up;
+    rempi_event *msg_id_up, *msg_id_left, *matched_msg_id_up;
     msg_id_up   = msg_ids_clocked_search_it->second;
     msg_id_left = msg_ids_observed[i];
 
@@ -649,7 +650,7 @@ char* rempi_clock_delta_compression::compress(
 #endif    
     /*set "msg_ids_clocked_search_it" to start index*/
     current_column_of_search_it =
-      next_start_search_it(msg_id_up->clock, msg_id_left->clock,
+      next_start_search_it(msg_id_up->clock_order, msg_id_left->clock_order,
 			   msg_ids_clocked_search_it,
 			   msg_ids_clocked_start_it,
 			   current_column_of_search_it,
@@ -658,7 +659,7 @@ char* rempi_clock_delta_compression::compress(
     /*find matched clock column*/
     current_column_of_search_it += 
       find_matched_clock_column(
-				msg_id_left->clock,
+				msg_id_left->clock_order,
 				msg_ids_clocked_search_it,
 				msg_ids_clocked.cend());
 
@@ -671,7 +672,7 @@ char* rempi_clock_delta_compression::compress(
     sed_path_seerch.add_node(matched_row, matched_column, current_column_of_start_it);
     matched_msg_id_up = msg_ids_clocked_search_it->second;
 
-    map_clock_to_order[matched_msg_id_up->clock] = matched_column;
+    map_clock_to_order[matched_msg_id_up->clock_order] = matched_column;
 
 
     /*If needed, it updates start_it*/
@@ -759,8 +760,8 @@ char* rempi_clock_delta_compression::compress(
 void rempi_clock_delta_compression::decompress(
       char* compressed_data,
       size_t &compressed_bytes,
-      set<rempi_message_identifier*> &rempi_ids_clock,
-      vector<rempi_message_identifier*> &rempi_ids_real
+      set<rempi_event*> &rempi_ids_clock,
+      vector<rempi_event*> &rempi_ids_real
 )
 {
 

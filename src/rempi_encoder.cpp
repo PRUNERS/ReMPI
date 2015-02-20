@@ -53,9 +53,10 @@ void rempi_encoder::open_record_file(string record_path)
   }
 }
 
-void rempi_encoder::write_record_file(char* encoded_events, size_t size)
+void rempi_encoder::write_record_file(rempi_encoder_input_format &input_format)
 {
-  record_fs.write(encoded_events, size);
+  REMPI_ERR("This has not been implemented yet");
+    //  record_fs.write(encoded_events, size);
   //TODO: delete encoded_event
 }
 
@@ -93,9 +94,10 @@ bool rempi_encoder::extract_encoder_input_format_chunk(rempi_event_list<rempi_ev
 }
 
 
-char* rempi_encoder::encode(rempi_encoder_input_format &input_format, size_t &size)
+void rempi_encoder::encode(rempi_encoder_input_format &input_format)
 {
   char* serialized_data;
+  size_t size;
   rempi_event *encoding_event;
   /*encoding_event_sequence has only one event*/
   encoding_event = input_format.events_vec[0];
@@ -106,7 +108,7 @@ char* rempi_encoder::encode(rempi_encoder_input_format &input_format, size_t &si
   //  encoding_event->print();                                                                                                                              
   //  fprintf(stderr, "\n");                                                                                                                                
   delete encoding_event;
-  return serialized_data;
+  return;
 }
 
 char* rempi_encoder::read_decoding_event_sequence(size_t *size)

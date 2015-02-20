@@ -5,6 +5,7 @@
 #include <set>
 
 #include "rempi_message_manager.h"
+#include "rempi_event.h"
 
 
 using namespace std;
@@ -57,25 +58,25 @@ class rempi_clock_delta_compression
   static int next_start_search_it(
    int msg_id_up_clock,
    int msg_id_left_clock,
-   map<int, rempi_message_identifier*>::const_iterator &msg_ids_clocked_search_it,		 
-   map<int, rempi_message_identifier*>::const_iterator &msg_ids_clocked_start_it,
+   map<int, rempi_event*>::const_iterator &msg_ids_clocked_search_it,		 
+   map<int, rempi_event*>::const_iterator &msg_ids_clocked_start_it,
    int current_column_of_search_it,
    int current_column_of_start_it);
 
   static int find_matched_clock_column(
    int clock_observed,				    
-   map<int, rempi_message_identifier*>::const_iterator &msg_ids_clocked_search_it,
-   map<int, rempi_message_identifier*>::const_iterator const  &msg_ids_clocked_search_it_end);
+   map<int, rempi_event*>::const_iterator &msg_ids_clocked_search_it,
+   map<int, rempi_event*>::const_iterator const  &msg_ids_clocked_search_it_end);
 
   static int update_start_it(
    int current_column_of_start_it,
    int current_column_of_search_it,
    vector<bool> &matched_bits,
-   map<int, rempi_message_identifier*>::const_iterator &msg_ids_clocked_start_it);
+   map<int, rempi_event*>::const_iterator &msg_ids_clocked_start_it);
 
   static void change_to_seq_order_id(
    list<pair<int, int>*> &diff,
-   vector<rempi_message_identifier*> &msg_ids_observed,
+   vector<rempi_event*> &msg_ids_observed,
    map<int, int> &map_clock_to_order);
 
   static char* convert_to_diff_binary(
@@ -85,14 +86,14 @@ class rempi_clock_delta_compression
 
  public:
   static char* compress(
-	     map<int, rempi_message_identifier*> &msg_ids_clocked,
-	     vector<rempi_message_identifier*> &msg_ids_observed,
+	     map<int, rempi_event*> &msg_ids_clocked,
+	     vector<rempi_event*> &msg_ids_observed,
 	     size_t &compressed_bytes);
   static void decompress(
       char* compressed_data,
       size_t &compressed_bytes,
-      set<rempi_message_identifier*> &rempi_ids_clock,
-      vector<rempi_message_identifier*> &rempi_ids_real);	
+      set<rempi_event*> &rempi_ids_clock,
+      vector<rempi_event*> &rempi_ids_real);	
 
 
 };

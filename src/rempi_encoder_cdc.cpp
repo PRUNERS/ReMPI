@@ -63,9 +63,10 @@ void rempi_encoder_cdc_input_format::format()
   vector<rempi_event*> sorted_events_vec(events_vec);
   sort(sorted_events_vec.begin(), sorted_events_vec.end(), compare);
   for (int i = 0; i < sorted_events_vec.size(); i++) {
-    sorted_events_vec[i]->order = i;
+    sorted_events_vec[i]->clock_order = i;
     matched_events_ordered_map.insert(make_pair(i, sorted_events_vec[i]));
   }
+  debug_print();
   return;
 }
 
@@ -142,19 +143,26 @@ bool rempi_encoder_cdc::extract_encoder_input_format_chunk(rempi_event_list<remp
 }
 
 
-char* rempi_encoder_cdc::encode(rempi_encoder_input_format &input_format, size_t &compressed_size)
+void rempi_encoder_cdc::encode(rempi_encoder_input_format &input_format)
 {
-  
+  /*TODO: message length*/
   /*TODO: Compress with_previous*/
+  
   /*TODO: Compress unmatched_events*/
 
   /*Compress matched_events*/
   input_format.compressed_matched_events = rempi_clock_delta_compression::compress(
-										   input_format.events_vec, 
 										   input_format.matched_events_ordered_map, 
+										   input_format.events_vec, 
 										   input_format.compressed_matched_events_size);
-  return NULL;
+  return;
 }
+
+void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_format)
+{
+  REMPI_DBG("size: %lu", input_format.compressed_matched_events_size);
+  //  record_fs.write(encoded_events, size);                                                                                                            //TODO: delete encoded_event
+}   
 
 
 vector<rempi_event*> rempi_encoder_cdc::decode(char *serialized_data, size_t *size)

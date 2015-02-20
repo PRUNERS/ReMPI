@@ -23,6 +23,7 @@ void rempi_io_thread::write_record()
 
   encoder->open_record_file(record_path);
   while(1) {
+    /*use "new" to be able to select compression methods depending on specified input value*/
     rempi_encoder_cdc_input_format nonencoded_events;
     bool is_extracted;
     char *encoded_events;
@@ -35,11 +36,10 @@ void rempi_io_thread::write_record()
     if (is_extracted) {
       /*If I get the sequence,... */
       /*... , encode(compress) the seuence*/
-      encoded_events = encoder->encode(nonencoded_events, size);
+      encoder->encode(nonencoded_events);
       /*Then, write to file.*/
-      encoder->write_record_file(encoded_events, size);
-      /*Once writing data to a file, we do not need the events on memory*/
-      delete encoded_events;
+      encoder->write_record_file(nonencoded_events);
+      /*TODO: free rempi_encoded_cdc_input_format*/
     } else {
       /*If not, wait for a while in order to reduce CPU usage.*/
       usleep(100);
