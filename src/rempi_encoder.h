@@ -6,6 +6,7 @@
 
 #include "rempi_event.h"
 #include "rempi_event_list.h"
+#include "rempi_compression_util.h"
 
 using namespace std;
 
@@ -13,15 +14,20 @@ class rempi_encoder_input_format
 {
  public:
   /*Used for any compression*/
+  int count = 0;
   vector<rempi_event*> events_vec;
 
   /*Used for CDC*/
   vector<size_t>               with_previous_vec;
+  size_t                       compressed_with_previous_length;
   size_t                       compressed_with_previous_size;
   char*                        compressed_with_previous;
-  vector<pair<size_t, size_t>> unmatched_events_vec;
-  size_t                       compressed_unmatched_events_size;
-  char*                        compressed_unmatched_events;
+  vector<size_t>               unmatched_events_id_vec;
+  vector<size_t>               unmatched_events_count_vec;
+  size_t                       compressed_unmatched_events_id_size;
+  char*                        compressed_unmatched_events_id;
+  size_t                       compressed_unmatched_events_count_size;
+  char*                        compressed_unmatched_events_count;
   map<int, rempi_event*>       matched_events_ordered_map;
   size_t                       compressed_matched_events_size;
   char*                        compressed_matched_events;
@@ -74,6 +80,8 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
 
 class rempi_encoder_cdc : public rempi_encoder
 {
+ private:
+  rempi_compression_util<size_t> compression_util;
  public:
  
     rempi_encoder_cdc(int mode);

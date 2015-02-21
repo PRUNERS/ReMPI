@@ -6,6 +6,7 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 		$(SRC_DIR)/rempi_err.cpp \
 		$(SRC_DIR)/rempi_mem.cpp \
 		$(SRC_DIR)/rempi_util.cpp \
+		$(SRC_DIR)/rempi_compression_util.cpp \
 		$(SRC_DIR)/rempi_config.cpp \
                 $(SRC_DIR)/rempi_re.cpp \
 	        $(SRC_DIR)/rempi_re_cdc.cpp \
