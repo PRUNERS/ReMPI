@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
 
 
   for (i = 0; i < NUM_KV_PER_RANK; i++) { 
+    //    fprintf(stderr, ":%d: App: req:%p, s:%d, t:%d\n", my_rank, &recv_kv[i], (my_rank + size - i)        % size, MPI_ANY_TAG);
     MPI_Irecv(&recv_kv[i], 2, MPI_INT, (my_rank + size - i)        % size, MPI_ANY_TAG, MPI_COMM_WORLD, &request[i]);
   }
 
@@ -84,6 +85,9 @@ int main(int argc, char *argv[])
       int recv_index;
       int send_dest;
       recv_index = testsome_array_of_indices[i];
+#if 0
+      fprintf(stderr, "rank:%d: Receved source:%d tag:%d\n", my_rank, status[recv_index].MPI_SOURCE, status[recv_index].MPI_TAG);
+#endif
       memcpy(&sendrecv_kv, &recv_kv[recv_index], sizeof(struct key_val));
       recv_msg_count[recv_index]++;
       if (recv_msg_count[recv_index] < MAX_MESG_PASS) {

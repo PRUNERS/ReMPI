@@ -69,7 +69,7 @@ void rempi_encoder_cdc_input_format::format()
     sorted_events_vec[i]->clock_order = i;
     matched_events_ordered_map.insert(make_pair(i, sorted_events_vec[i]));
   }
-  debug_print();
+  //  debug_print();
   return;
 }
 
@@ -126,8 +126,8 @@ bool rempi_encoder_cdc::extract_encoder_input_format_chunk(rempi_event_list<remp
     if (is_clock_less_than_gmc || is_unmatched) {
       event_dequeued = events.pop();
       input_format.add(event_dequeued);
-      event_dequeued->print();
-      fprintf(stderr, "\n");
+      //      event_dequeued->print();
+      //      fprintf(stderr, "\n");
     } else {
       break;
     }
@@ -240,7 +240,7 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
 			    input_format.compressed_matched_events_size);
   compressed_size +=        input_format.compressed_matched_events_size;
   //TODO: delete encoded_event
-  REMPI_DBG("Original size: count:%d x 8 bytes x 2(matched/unmatched)= %d bytes,  Compressed size: %lu bytes", 
+  REMPI_DBG("Original size: count:%5d x 8 bytes x 2(matched/unmatched)= %10d bytes,  Compressed size: %10lu bytes", 
 	    input_format.count, input_format.count * 8 * 2, compressed_size);
 }   
 

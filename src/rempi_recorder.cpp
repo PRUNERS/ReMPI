@@ -49,8 +49,7 @@ int rempi_recorder::record_irecv(
    int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
    MPI_Request *request)
 {
-  msg_manager.add_pending_recv(request, source, tag, comm);
-
+  //kento  msg_manager.add_pending_recv(request, source, tag, comm);
   return 0;
 }
 
@@ -74,29 +73,30 @@ int rempi_recorder::record_test(
     int *flag,
     int source,
     int tag,
-    int clock)
+    int clock,
+    int with_previous)
 {
   int event_count = 1;
   int is_testsome = 0;
   int request_val = -1;
-  int comm_id = 0;
+  int record_comm_id = 0;
   int record_source = 0;
   int record_tag = 0;
   int record_clock = 0;
 
-  /*Query befoer add_matched_recv, because pendding entry is removed when flag == 1*/
-  comm_id = msg_manager.query_pending_comm_id(request);
 
   if (*flag) {
-    msg_manager.add_matched_recv(request, source, tag);
-    record_source = source;
-    record_tag = tag;
-    record_clock = clock;
+    /*Query befoer add_matched_recv, because pendding entry is removed when flag == 1*/
+    //kento    record_comm_id = msg_manager.query_pending_comm_id(request);
+    record_source  = source;
+    record_tag     = tag;
+    record_clock   = clock;
+    //kento msg_manager.add_matched_recv(request, source, tag);
     //    REMPI_DBG("%d %d %d %d %d %d %d", event_count, is_testsome, comm_id, *flag, source, tag, clock);
   }  
   //TODO: we need to record *request ?
 
-  recording_event_list->push(new rempi_test_event(event_count, is_testsome, comm_id, *flag, record_source, record_tag, record_clock));
+  recording_event_list->push(new rempi_test_event(event_count, is_testsome, record_comm_id, *flag, record_source, record_tag, record_clock));
 
   return 0;
 }

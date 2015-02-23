@@ -19,18 +19,18 @@ class rempi_encoder_input_format
 
   /*Used for CDC*/
   vector<size_t>               with_previous_vec;
-  size_t                       compressed_with_previous_length;
-  size_t                       compressed_with_previous_size;
-  char*                        compressed_with_previous;
+  size_t                       compressed_with_previous_length = 0;
+  size_t                       compressed_with_previous_size   = 0;
+  char*                        compressed_with_previous        = NULL;
   vector<size_t>               unmatched_events_id_vec;
   vector<size_t>               unmatched_events_count_vec;
-  size_t                       compressed_unmatched_events_id_size;
-  char*                        compressed_unmatched_events_id;
-  size_t                       compressed_unmatched_events_count_size;
-  char*                        compressed_unmatched_events_count;
+  size_t                       compressed_unmatched_events_id_size = 0;
+  char*                        compressed_unmatched_events_id      = NULL;
+  size_t                       compressed_unmatched_events_count_size = 0;
+  char*                        compressed_unmatched_events_count      = NULL;
   map<int, rempi_event*>       matched_events_ordered_map;
-  size_t                       compressed_matched_events_size;
-  char*                        compressed_matched_events;
+  size_t                       compressed_matched_events_size = 0;
+  char*                        compressed_matched_events      = NULL;
 
   size_t  length();
   virtual void add(rempi_event *event);

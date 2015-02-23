@@ -5,6 +5,7 @@
 #include "rempi_event_list.h"
 #include "rempi_io_thread.h"
 
+
 class rempi_recorder {
  private:
   rempi_message_manager msg_manager;
@@ -40,7 +41,8 @@ class rempi_recorder {
 			int *flag,
 			int source, // of MPI_Status
 			int tag,     // of MPI_tatus
-			int clock
+			int clock,
+			int with_previous
 			);
 
   int replay_test(

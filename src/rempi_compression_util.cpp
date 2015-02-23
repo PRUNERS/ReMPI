@@ -15,10 +15,7 @@
     int status;								\
     status = x;								\
     if (status < 0) {							\
-      fprintf (stderr,							\
-	       "%s:%d: %s returned a bad status of %d.\n",		\
-	       __FILE__, __LINE__, #x, status);				\
-      exit (EXIT_FAILURE);						\
+      REMPI_ERR(" %s returned a bad status of %d", #x, status);		\
     }									\
   }
 
@@ -32,7 +29,7 @@ char *rempi_compression_util<T>::compress_by_zero_one_binary(vector<T> &vec, siz
 {
   char *binary;
   size_t length = vec.size();
-  size_t required_size_in_bytes = (length / 8) + 1; // TODO: compute exact required size
+  size_t required_size_in_bytes = (length / 8) + (length % 8 == 0)? 0:1; // TODO: compute exact required size
   binary = (char*)malloc(required_size_in_bytes);
   memset(binary, 0, required_size_in_bytes);
   int bin_index = 0;
@@ -113,6 +110,11 @@ char* rempi_compression_util<T>::compress_by_zlib(char* input, size_t input_size
   char* output;
   z_stream strm;
 
+  if (input_size == 0) {
+    output_size = 0;
+    output=NULL;
+    return output;
+  }
   strm.zalloc = Z_NULL;
   strm.zfree  = Z_NULL;
   strm.opaque = Z_NULL;

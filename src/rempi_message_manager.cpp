@@ -81,6 +81,7 @@ size_t rempi_message_identifier::compress(size_t source_value, size_t source_bit
 
 void rempi_message_manager::add_pending_recv(MPI_Request *request, int source, int tag, int comm_id)
 {
+  REMPI_DBG("Request: %p source %d tag %d comm_id %d", request, source, tag, comm_id);
   if (pending_recvs.find(request) == pending_recvs.end()) {
     /*If pending_recvs does not have key:request*/
     pending_recvs[request] = new rempi_message_identifier(source, tag, comm_id);
@@ -112,7 +113,7 @@ int  rempi_message_manager::query_pending_comm_id(MPI_Request *request)
 int rempi_message_manager::add_matched_recv(MPI_Request *request, int source, int tag)
 {
   rempi_message_identifier *msg_id;
-
+  REMPI_DBG("Marched Request: %p source %d tag %d", request, source, tag);
   try {
     /*Make sure that the Key exesits, so this ordered_map does not create new key*/
     pending_recvs.at(request);
@@ -125,15 +126,14 @@ int rempi_message_manager::add_matched_recv(MPI_Request *request, int source, in
   bool is_any_source     = msg_id->source == MPI_ANY_SOURCE;
   bool is_source_matched = msg_id->source == source;
   if (!(is_any_source || is_source_matched)) {
-    REMPI_ERR(" Inconsistent receive: Recv(source: %d, tag: %d) by Request(source: %d, tag:%d)", 
-	      source, tag, msg_id->source, msg_id->tag)
+    REMPI_ERR(" Inconsistent receive: Request:%p Matched Msg(source: %d, tag: %d) by Request(source: %d, tag:%d)",  request, source, tag, msg_id->source, msg_id->tag);
   }
   /*TAG: (This checking is not needed as long as MPI is working properly) This is just for debugging*/
   bool is_any_tag     = msg_id->tag == MPI_ANY_TAG;
   bool is_tag_matched = msg_id->tag == tag;
   if (!( is_any_tag || is_tag_matched)) {
-    REMPI_ERR(" Inconsistent receive: Recv(source: %d, tag: %d) by Request(source: %d, tag:%d)", 
-	      source, tag, msg_id->source, msg_id->tag)
+    REMPI_ERR(" Inconsistent receive: Matched Msg (source: %d, tag: %d) by Request(source: %d, tag:%d)", 
+	      source, tag, msg_id->source, msg_id->tag);
   }
   /*The message matched, so move from pending_recvs to matched_recv*/
   pending_recvs.erase(request);

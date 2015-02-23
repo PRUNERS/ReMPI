@@ -27,7 +27,7 @@ char* rempi_gethostname() {
 void rempi_err(const char* fmt, ...)
 {
   va_list argp;
-  fprintf(stderr, "REMPI:ERROR:%s:%d: ", hostname, rank);
+  fprintf(stderr, "REMPI:ERROR:%s:%3d: ", hostname, rank);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);
@@ -40,7 +40,7 @@ void rempi_erri(int r, const char* fmt, ...)
 {
   if (rank != r) return;
   va_list argp;
-  fprintf(stderr, "REMPI:ERROR:%s:%d: ", hostname, rank);
+  fprintf(stderr, "REMPI:ERROR:%s:%3d: ", hostname, rank);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);
@@ -63,7 +63,7 @@ void rempi_alert(const char* fmt, ...)
 
 void rempi_dbg(const char* fmt, ...) {
   va_list argp;
-  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%d: ", hostname, rank);
+  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%3d: ", hostname, rank);
   va_start(argp, fmt);
   vfprintf(DEBUG_STDOUT, fmt, argp);
   va_end(argp);
@@ -84,7 +84,7 @@ void rempi_print(const char* fmt, ...) {
 void rempi_dbgi(int r, const char* fmt, ...) {
   if (rank != r) return;
   va_list argp;
-  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%d: ", hostname, rank);
+  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%3d: ", hostname, rank);
   va_start(argp, fmt);
   vfprintf(DEBUG_STDOUT, fmt, argp);
   va_end(argp);
