@@ -43,6 +43,20 @@ int rempi_re_cdc::init_clmpi()
   return err;
 }
 
+int rempi_re_cdc::get_test_id()
+{
+  string test_id_string;
+  test_id_string = rempi_btrace_string();
+  //TODO: get the binary name
+  //  size_t pos = test_id_string.find("MCBenchmark");
+  //  test_id_string = test_id_string.substr(pos);
+  if (test_ids_map.find(test_id_string) == test_ids_map.end()) {
+    test_ids_map[test_id_string] = next_test_id_to_assign;
+    next_test_id_to_assign++;
+  }
+  return test_ids_map[test_id_string];
+}
+
 int rempi_re_cdc::re_init(int *argc, char ***argv)
 {
   int ret;
@@ -136,7 +150,7 @@ int rempi_re_cdc::re_test(
     /*If recoding mode, record the test function*/
     /*TODO: change froi void* to MPI_Request*/
     if(clock != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
-      recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS);
+      recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, get_test_id());
     }
   } else {
     int recorded_source, recorded_tag, recorded_flag;
@@ -162,7 +176,8 @@ int rempi_re_cdc::re_testsome(
   int ret;
   size_t *clocks;
   int is_with_previous = REMPI_MPI_EVENT_NOT_WITH_PREVIOUS;
-
+  
+  
   if (array_of_statuses == NULL) {
     /*TODO: allocate array_of_statuses in ReMPI instead of the error below*/
     REMPI_ERR("ReMPI requires array_of_statues in MPI_Testsome");
@@ -176,15 +191,15 @@ int rempi_re_cdc::re_testsome(
     ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
     if (*outcount == 0) {
       int flag = 0;
-      recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS);
+      recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, get_test_id());
     }
 
     for (int i = 0; i < *outcount; i++) {
       int flag = 1;
       int index = array_of_indices[i];
       if(clocks[index] != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
-	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[index].MPI_SOURCE, array_of_statuses[index].MPI_TAG, clocks[index], is_with_previous);
-	is_with_previous = REMPI_MPI_EVENT_NOT_WITH_PREVIOUS;
+	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[index].MPI_SOURCE, array_of_statuses[index].MPI_TAG, clocks[index], is_with_previous, get_test_id());
+	is_with_previous = REMPI_MPI_EVENT_WITH_PREVIOUS;
       }
     }
   } else {
@@ -217,6 +232,7 @@ int rempi_re_cdc::re_finalize()
   int ret;
   ret = PMPI_Finalize();
 
+  
   int return_val;
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     return_val = recorder->record_finalize();

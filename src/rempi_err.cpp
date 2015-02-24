@@ -4,16 +4,21 @@
 #include <execinfo.h>
 #include <unistd.h>
 
+#include <string>
+
 #include "rempi_err.h"
 
 #define DEBUG_STDOUT stderr
 
-int rank;
+using namespace std;
+
+int my_rank;
 char hostname[256];
+
 
 void rempi_err_init(int r) 
 {
-  rank = r;
+  my_rank = r;
   if (gethostname(hostname, sizeof(hostname)) != 0) {
     rempi_err("gethostname fialed (%s:%s:%d)", __FILE__, __func__, __LINE__);
   }
@@ -27,7 +32,7 @@ char* rempi_gethostname() {
 void rempi_err(const char* fmt, ...)
 {
   va_list argp;
-  fprintf(stderr, "REMPI:ERROR:%s:%3d: ", hostname, rank);
+  fprintf(stderr, "REMPI:ERROR:%s:%3d: ", hostname, my_rank);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);
@@ -38,9 +43,9 @@ void rempi_err(const char* fmt, ...)
 
 void rempi_erri(int r, const char* fmt, ...)
 {
-  if (rank != r) return;
+  if (my_rank != r) return;
   va_list argp;
-  fprintf(stderr, "REMPI:ERROR:%s:%3d: ", hostname, rank);
+  fprintf(stderr, "REMPI:ERROR:%s:%3d: ", hostname, my_rank);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);
@@ -52,7 +57,7 @@ void rempi_erri(int r, const char* fmt, ...)
 void rempi_alert(const char* fmt, ...)
 {
   va_list argp;
-  fprintf(stderr, "GIO:ALERT:%s:%d: ", hostname, rank);
+  fprintf(stderr, "GIO:ALERT:%s:%d: ", hostname, my_rank);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);
@@ -63,7 +68,7 @@ void rempi_alert(const char* fmt, ...)
 
 void rempi_dbg(const char* fmt, ...) {
   va_list argp;
-  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%3d: ", hostname, rank);
+  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%3d: ", hostname, my_rank);
   va_start(argp, fmt);
   vfprintf(DEBUG_STDOUT, fmt, argp);
   va_end(argp);
@@ -73,7 +78,7 @@ void rempi_dbg(const char* fmt, ...) {
 
 void rempi_print(const char* fmt, ...) {
   va_list argp;
-  fprintf(stdout, "REMPI:%s:%d: ", hostname, rank);
+  fprintf(stdout, "REMPI:%s:%d: ", hostname, my_rank);
   va_start(argp, fmt);
   vfprintf(stdout, fmt, argp);
   va_end(argp);
@@ -82,9 +87,9 @@ void rempi_print(const char* fmt, ...) {
 }
 
 void rempi_dbgi(int r, const char* fmt, ...) {
-  if (rank != r) return;
+  if (my_rank != r) return;
   va_list argp;
-  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%3d: ", hostname, rank);
+  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%3d: ", hostname, my_rank);
   va_start(argp, fmt);
   vfprintf(DEBUG_STDOUT, fmt, argp);
   va_end(argp);
@@ -94,7 +99,7 @@ void rempi_dbgi(int r, const char* fmt, ...) {
 void rempi_debug(const char* fmt, ...)
 {
   va_list argp;
-  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%d: ", hostname, rank);
+  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%d: ", hostname, my_rank);
   va_start(argp, fmt);
   vfprintf(DEBUG_STDOUT, fmt, argp);
   va_end(argp);
@@ -103,7 +108,7 @@ void rempi_debug(const char* fmt, ...)
 
 
 void rempi_exit(int no) {
-  fprintf(stderr, "REMPI:DEBUG:%s:%d: == EXIT == sleep 1sec ...\n", hostname, rank);
+  fprintf(stderr, "REMPI:DEBUG:%s:%d: == EXIT == sleep 1sec ...\n", hostname, my_rank);
   sleep(1);
   exit(no);
   return;
@@ -116,6 +121,31 @@ void rempi_exit(int no) {
 /*   } */
 /* } */
 
+string rempi_btrace_string()
+{
+  int j, nptrs;
+  void *buffer[512];
+  char **strings;
+  string trace_string;
+
+  nptrs = backtrace(buffer, 512);
+
+  /* backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO)*/
+  strings = backtrace_symbols(buffer, nptrs);
+  if (strings == NULL) {
+    perror("backtrace_symbols");
+    exit(EXIT_FAILURE);
+  }   
+
+  /*
+    You can translate the address to function name by
+    addr2line -f -e ./a.out <address>
+  */
+  for (j = 0; j < nptrs; j++)
+    trace_string += strings[j] ;
+  free(strings);
+  return trace_string;
+}
 
 void rempi_btrace() 
 {
@@ -144,7 +174,7 @@ void rempi_btrace()
 
 void rempi_btracei(int r) 
 {
-  if (rank != r) return;
+  if (my_rank != r) return;
   rempi_btrace();
   return;
 }

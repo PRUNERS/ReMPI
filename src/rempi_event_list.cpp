@@ -30,6 +30,7 @@ void rempi_event_list<T>::normal_push(T event)
   mtx.lock();
   while (events.rough_size() >= max_size) {
     mtx.unlock();
+    REMPI_DBG("rempi_event_list exceeded max_size");
     usleep(spin_time);
     mtx.lock();
   }
@@ -62,6 +63,7 @@ void rempi_event_list<T>::push(T event)
     mtx.lock();
     while (events.rough_size() >= max_size) {
       mtx.unlock();
+      REMPI_DBG("rempi_event_list exceeded max_size");
       usleep(spin_time);
       mtx.lock();
     }
@@ -84,6 +86,7 @@ void rempi_event_list<T>::push_all()
     mtx.lock();
     while (events.rough_size() >= max_size) {
       mtx.unlock();
+      REMPI_DBG("rempi_event_list exceeded max_size");
       usleep(spin_time);
       mtx.lock();
     }

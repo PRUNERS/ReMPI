@@ -59,6 +59,9 @@ class rempi_re_cdc : public rempi_re
   //  PNMPIMOD_get_recv_clocks_t clmpi_get_recv_clocks;
   int init_clmpi();
   rempi_recorder *recorder;  
+  unordered_map<string, int> test_ids_map;
+  int next_test_id_to_assign = 0;
+  int get_test_id();
  public:
   rempi_re_cdc();
   virtual int re_init(int *argc, char ***argv);

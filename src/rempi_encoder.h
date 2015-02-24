@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <string>
+#include <map>
 
 #include "rempi_event.h"
 #include "rempi_event_list.h"
@@ -10,14 +11,13 @@
 
 using namespace std;
 
-class rempi_encoder_input_format
+class rempi_encoder_input_format_test_table
 {
  public:
   /*Used for any compression*/
-  int count = 0;
   vector<rempi_event*> events_vec;
-
   /*Used for CDC*/
+  int count = 0;
   vector<size_t>               with_previous_vec;
   size_t                       compressed_with_previous_length = 0;
   size_t                       compressed_with_previous_size   = 0;
@@ -31,6 +31,14 @@ class rempi_encoder_input_format
   map<int, rempi_event*>       matched_events_ordered_map;
   size_t                       compressed_matched_events_size = 0;
   char*                        compressed_matched_events      = NULL;
+};
+
+class rempi_encoder_input_format
+{
+ public:
+  size_t total_length = 0;
+  /*Used for CDC*/  
+  map<int, rempi_encoder_input_format_test_table*> test_tables_map;  
 
   size_t  length();
   virtual void add(rempi_event *event);
@@ -70,8 +78,6 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
  private:
   //  bool compare(rempi_event *event1, rempi_event *event2);
  public:
- 
-
   virtual void add(rempi_event *event);
   virtual void format();
   virtual void debug_print();

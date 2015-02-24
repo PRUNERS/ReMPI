@@ -21,7 +21,7 @@ int rempi_recorder::record_init(int *argc, char ***argv, int rank)
   //fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
 
   id = std::to_string((long long int)rank);
-  recording_event_list = new rempi_event_list<rempi_event*>(100000, 100);
+  recording_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
   record_thread = new rempi_io_thread(recording_event_list, id, rempi_mode); //0: recording mode
   record_thread->start();
   
@@ -33,7 +33,7 @@ int rempi_recorder::replay_init(int *argc, char ***argv, int rank)
   string id;
 
   id = std::to_string((long long int)rank);
-  replaying_event_list = new rempi_event_list<rempi_event*>(100000, 100);
+  replaying_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
   read_record_thread = new rempi_io_thread(replaying_event_list, id, rempi_mode); //1: replay mode
   read_record_thread->start();
 
@@ -76,14 +76,25 @@ int rempi_recorder::record_test(
     int clock,
     int with_previous)
 {
+  
+  return record_test(request, flag, source, tag, clock, with_previous, -1);
+}
+
+int rempi_recorder::record_test(
+    MPI_Request *request,
+    int *flag,
+    int source,
+    int tag,
+    int clock,
+    int with_previous,
+    int test_id)
+{
   int event_count = 1;
-  int is_testsome = 0;
   int request_val = -1;
   int record_comm_id = 0;
   int record_source = 0;
   int record_tag = 0;
   int record_clock = 0;
-
 
   if (*flag) {
     /*Query befoer add_matched_recv, because pendding entry is removed when flag == 1*/
@@ -93,10 +104,9 @@ int rempi_recorder::record_test(
     record_clock   = clock;
     //kento msg_manager.add_matched_recv(request, source, tag);
     //    REMPI_DBG("%d %d %d %d %d %d %d", event_count, is_testsome, comm_id, *flag, source, tag, clock);
-  }  
+  } 
   //TODO: we need to record *request ?
-
-  recording_event_list->push(new rempi_test_event(event_count, is_testsome, record_comm_id, *flag, record_source, record_tag, record_clock));
+  recording_event_list->push(new rempi_test_event(event_count, with_previous, record_comm_id, *flag, record_source, record_tag, record_clock, test_id));
 
   return 0;
 }
@@ -161,48 +171,48 @@ int rempi_recorder::replay_test(
   return 0;
 }
 
-int rempi_recorder::record_testsome(
-    int incount,
-    void *array_of_requests[],
-    int *outcount,
-    int array_of_indices[],
-    void *array_of_statuses[])
-{
-  int event_count = 1;
-  int is_testsome = 1;
-  int request     = 0;
-  int flag        = 0;
-  int source      = -1;
-  int tag         = -1;
+// int rempi_recorder::record_testsome(
+//     int incount,
+//     void *array_of_requests[],
+//     int *outcount,
+//     int array_of_indices[],
+//     void *array_of_statuses[])
+// {
+//   int event_count = 1;
+//   int is_testsome = 1;
+//   int request     = 0;
+//   int flag        = 0;
+//   int source      = -1;
+//   int tag         = -1;
 
 
-  if (*outcount == 0) {
-    recording_event_list->push(new rempi_test_event(event_count, is_testsome, request, flag, source, tag));
-    return 0;
-  }
+//   if (*outcount == 0) {
+//     recording_event_list->push(new rempi_test_event(event_count, is_testsome, request, flag, source, tag));
+//     return 0;
+//   }
 
-  flag = 1;
-  for (int i = 0; i < *outcount; i++) {
-    source = array_of_indices[i];
-    //TODO:  tag,
-    tag    = 0;
+//   flag = 1;
+//   for (int i = 0; i < *outcount; i++) {
+//     source = array_of_indices[i];
+//     //TODO:  tag,
+//     tag    = 0;
     
-    recording_event_list->push(new rempi_test_event(event_count, is_testsome, request, flag, source, tag));
-  }
+//     recording_event_list->push(new rempi_test_event(event_count, is_testsome, request, flag, source, tag));
+//   }
 
-  //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
-  return 0;
-}
+//   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
+//   return 0;
+// }
 
-int rempi_recorder::replay_testsome(
-    int incount,
-    void *array_of_requests[],
-    int *outcount,
-    int array_of_indices[],
-    void *array_of_statuses[])
-{
-  return 0;
- }
+// int rempi_recorder::replay_testsome(
+//     int incount,
+//     void *array_of_requests[],
+//     int *outcount,
+//     int array_of_indices[],
+//     void *array_of_statuses[])
+// {
+//   return 0;
+//  }
 
 int rempi_recorder::record_finalize(void)
 {

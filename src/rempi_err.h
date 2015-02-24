@@ -1,7 +1,7 @@
 #ifndef __REMPI_ERR_H__
 #define __REMPI_ERR_H__
 
-
+#include <string>
 
 /*if __VA_ARGS__ is empty, the previous comma can be removed by "##" statement*/
 #define REMPI_ERR(err_fmt, ...)  \
@@ -37,6 +37,7 @@ void rempi_dbg(const char* fmt, ...);
 void rempi_dbgi(int r, const char* fmt, ...);
 void rempi_print(const char* fmt, ...);
 void rempi_debug(const char* fmt, ...);
+std::string rempi_btrace_string();
 void rempi_btrace();
 
 

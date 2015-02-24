@@ -11,7 +11,7 @@
 #include <iostream>
 #include <vector>
 
-#define REMPI_MPI_EVENT_INPUT_NUM (7)
+#define REMPI_MPI_EVENT_INPUT_NUM (8)
 #define REMPI_MPI_EVENT_INPUT_INDEX_EVENT_COUNTS (0)
 #define REMPI_MPI_EVENT_INPUT_INDEX_IS_TESTSOME  (1) /*TODO: IS_TESTSOME => WITH_PREVIOUS*/
 #define REMPI_MPI_EVENT_INPUT_INDEX_COMM_ID      (2)
@@ -19,6 +19,7 @@
 #define REMPI_MPI_EVENT_INPUT_INDEX_SOURCE       (4)
 #define REMPI_MPI_EVENT_INPUT_INDEX_TAG          (5)
 #define REMPI_MPI_EVENT_INPUT_INDEX_CLOCK        (6)
+#define REMPI_MPI_EVENT_INPUT_INDEX_TEST_ID      (7)
 
 #define REMPI_MPI_EVENT_NOT_WITH_PREVIOUS (0)
 #define REMPI_MPI_EVENT_WITH_PREVIOUS     (1)
@@ -51,6 +52,7 @@ class rempi_event
     virtual int get_source();
     virtual int get_tag();
     virtual int get_clock();
+    virtual int get_test_id();
     void print();
 };
 
@@ -66,6 +68,7 @@ class rempi_test_event : public rempi_event
   public:
     rempi_test_event(int event_counts, int is_testsome, int request, int flag, int source, int tag);
     rempi_test_event(int event_counts, int is_testsome, int request, int flag, int source, int tag, int clock);
+    rempi_test_event(int event_counts, int is_testsome, int request, int flag, int source, int tag, int clock, int test_id);
 };
 
 #endif /* REMPI_EVENT_H_ */

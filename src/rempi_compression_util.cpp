@@ -29,7 +29,11 @@ char *rempi_compression_util<T>::compress_by_zero_one_binary(vector<T> &vec, siz
 {
   char *binary;
   size_t length = vec.size();
-  size_t required_size_in_bytes = (length / 8) + (length % 8 == 0)? 0:1; // TODO: compute exact required size
+  if (length == 0) {
+    output_size = 0;
+    return NULL;
+  }
+  size_t required_size_in_bytes = (length / 8) + ((length % 8 != 0)? 1:0); // TODO: compute exact required size
   binary = (char*)malloc(required_size_in_bytes);
   memset(binary, 0, required_size_in_bytes);
   int bin_index = 0;
@@ -100,7 +104,6 @@ void rempi_compression_util<T>::decompress_by_linear_prediction(vector<T> &vec)
 {
 
 }
-
 
 
 

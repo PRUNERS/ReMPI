@@ -45,6 +45,16 @@ class rempi_recorder {
 			int with_previous
 			);
 
+  int record_test(
+			MPI_Request *request,
+			int *flag,
+			int source, // of MPI_Status
+			int tag,     // of MPI_tatus
+			int clock,
+			int with_previous,
+			int test_id
+			);
+
   int replay_test(
 			MPI_Request *request_in,
 			int flag_in,
@@ -55,21 +65,20 @@ class rempi_recorder {
 			int *tag_out
 			);
 
-
-  int record_testsome(
-			    int incount,
-			    void *array_of_requests[],
-			    int *outcount,
-			    int array_of_indices[],
-			    void *array_of_statuses[]
-			    );
-  int replay_testsome(
-			    int incount,
-			    void *array_of_requests[],
-			    int *outcount,
-			    int array_of_indices[],
-			    void *array_of_statuses[]
-			    );
+  /* int record_testsome( */
+  /* 			    int incount, */
+  /* 			    void *array_of_requests[], */
+  /* 			    int *outcount, */
+  /* 			    int array_of_indices[], */
+  /* 			    void *array_of_statuses[] */
+  /* 			    ); */
+  /* int replay_testsome( */
+  /* 			    int incount, */
+  /* 			    void *array_of_requests[], */
+  /* 			    int *outcount, */
+  /* 			    int array_of_indices[], */
+  /* 			    void *array_of_statuses[] */
+  /* 			    ); */
 
   //TODO: Comm_dup Comm_split
 

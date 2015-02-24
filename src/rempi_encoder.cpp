@@ -12,12 +12,18 @@
 
 size_t rempi_encoder_input_format::length()
 {
-  return events_vec.size();
+  return total_length;
 }
 
 void rempi_encoder_input_format::add(rempi_event *event)
 {
-  events_vec.push_back(event);
+  rempi_encoder_input_format_test_table *test_table;
+  if (test_tables_map.find(0) == test_tables_map.end()) {
+    test_tables_map[0] = new rempi_encoder_input_format_test_table();
+  }
+  test_table = test_tables_map[0];
+  test_table->events_vec.push_back(event);
+  total_length++;
   return;
 }
 
@@ -99,11 +105,13 @@ void rempi_encoder::encode(rempi_encoder_input_format &input_format)
   char* serialized_data;
   size_t size;
   rempi_event *encoding_event;
+  rempi_encoder_input_format_test_table *test_table;
+  test_table = input_format.test_tables_map[0];
   /*encoding_event_sequence has only one event*/
-  encoding_event = input_format.events_vec[0];
+  encoding_event = test_table->events_vec[0];
   //  rempi_dbgi(0, "-> encoding: %p, size: %d: count: %d", encoding_event, encoding_event_sequence.size(), count++);                                      
   serialized_data = encoding_event->serialize(size);
-  input_format.events_vec.pop_back();
+  test_table->events_vec.pop_back();
   //  rempi_dbgi(0, "--> encoding: %p, size: %d: count: %d", encoding_event, encoding_event_sequence.size(), count++);                                      
   //  encoding_event->print();                                                                                                                              
   //  fprintf(stderr, "\n");                                                                                                                                

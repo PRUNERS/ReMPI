@@ -22,6 +22,7 @@ void rempi_io_thread::write_record()
 {
 
   encoder->open_record_file(record_path);
+
   while(1) {
     /*use "new" to be able to select compression methods depending on specified input value*/
     rempi_encoder_cdc_input_format nonencoded_events;
@@ -47,6 +48,7 @@ void rempi_io_thread::write_record()
 
     //    REMPI_DBGI(1, "----> events: %p, size: %lu", encoded_events, size);
     //    REMPI_DBGI(1, " is_complete_flush: %d, size: %d", is_complete_flush, events->size());
+    //    REMPI_DBG(" is_cclosed: %d, size: %d", events->is_push_closed_(), events->size());
     /*is_complete = 1 => event are not pushed to the event quene no longer*/
     /*if the events is empty, we can finish recoding*/
     if (events->is_push_closed_() && events->size() == 0) {
