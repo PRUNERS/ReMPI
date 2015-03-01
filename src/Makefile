@@ -1,6 +1,7 @@
 include ../Makefile.config
 
 SRC_DIR=.
+SUB_DIR_ENC=
 
 rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 		$(SRC_DIR)/rempi_err.cpp \
@@ -18,6 +19,9 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 	     	$(SRC_DIR)/rempi_clock_delta_compression.cpp \
 		$(SRC_DIR)/rempi_encoder.cpp \
 		$(SRC_DIR)/rempi_encoder_cdc.cpp \
+		$(SRC_DIR)/rempi_encoder_cdc_row_wise_diff.cpp \
+		$(SRC_DIR)/rempi_encoder_cdc_permutation_diff.cpp \
+		$(SRC_DIR)/rempi_encoder_zlib.cpp \
 		$(SRC_DIR)/rempi_thread.cpp \
 		$(SRC_DIR)/rempi_io_thread.cpp \
 		$(SRC_DIR)/rempi_mutex.cpp

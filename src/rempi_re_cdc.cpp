@@ -74,7 +74,6 @@ int rempi_re_cdc::re_init(int *argc, char ***argv)
     //TODO: Check if this is same run as the last recording run
     recorder->replay_init(argc, argv, my_rank);
   }
-
   return ret;
 }
 
@@ -99,7 +98,6 @@ int rempi_re_cdc::re_init_thread(
     //TODO: Check if this is same run as the last recording run
     recorder->replay_init(argc, argv, my_rank);
   }
-
   return ret;
 }
 
@@ -232,14 +230,11 @@ int rempi_re_cdc::re_finalize()
   int ret;
   ret = PMPI_Finalize();
 
-  
-  int return_val;
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    return_val = recorder->record_finalize();
+    ret = recorder->record_finalize();
   } else {
-    return_val = recorder->replay_finalize();
+    ret = recorder->replay_finalize();
   }
-  return return_val;
   return ret;
 }
 

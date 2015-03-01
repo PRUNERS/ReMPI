@@ -86,16 +86,48 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
 
 class rempi_encoder_cdc : public rempi_encoder
 {
- private:
+ protected:
   rempi_compression_util<size_t> compression_util;
+  virtual void compress_non_matched_events(rempi_encoder_input_format_test_table  *test_table);
+  virtual void compress_matched_events(rempi_encoder_input_format_test_table  *test_table);
  public:
- 
-    rempi_encoder_cdc(int mode);
-    /*For common*/
-    void write_record_file(rempi_encoder_input_format &input_format);
-    /*For only record*/
-    virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
-    virtual void encode(rempi_encoder_input_format &input_format);
+  rempi_encoder_cdc(int mode);
+  /*For common*/
+  void write_record_file(rempi_encoder_input_format &input_format);
+  /*For only record*/
+  virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
+  virtual void encode(rempi_encoder_input_format &input_format);
+  /*For only replay*/
+  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
+};
+
+class rempi_encoder_cdc_row_wise_diff : public rempi_encoder_cdc
+{
+ protected:
+  virtual void compress_matched_events(rempi_encoder_input_format_test_table  *test_table);
+ public:
+  rempi_encoder_cdc_row_wise_diff(int mode);
+  /*For only replay*/
+  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
+};
+
+
+class rempi_encoder_zlib : public rempi_encoder_cdc
+{
+ protected:
+  virtual void compress_matched_events(rempi_encoder_input_format_test_table  *test_table);
+ public:
+    rempi_encoder_zlib(int mode);
+    /*For only replay*/
+    virtual vector<rempi_event*> decode(char *serialized, size_t *size);
+};
+
+class rempi_encoder_cdc_permutation_diff : public rempi_encoder_cdc
+{
+ protected:
+  virtual void compress_matched_events(rempi_encoder_input_format_test_table  *test_table);
+ public:
+    rempi_encoder_cdc_permutation_diff(int mode);
     /*For only replay*/
     virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };

@@ -133,6 +133,61 @@ void rempi_encoder_cdc_input_format::debug_print()
 rempi_encoder_cdc::rempi_encoder_cdc(int mode): rempi_encoder(mode)
 {}
 
+void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format_test_table *test_table)
+{
+  char  *compressed_buff, *original_buff;
+  size_t compressed_size,  original_size;
+    /*=== message count ===*/
+    /*   Nothing to do     */
+    /*=====================*/
+
+    /*=== Compress with_previous ===*/
+    test_table->compressed_with_previous = compression_util.compress_by_zero_one_binary(test_table->with_previous_vec, compressed_size);
+    test_table->compressed_with_previous_size   = compressed_size;
+    test_table->compressed_with_previous_length = test_table->with_previous_vec.size();
+    REMPI_DBG("with_previous: %lu bytes (length: %lu)", 
+	      test_table->compressed_with_previous_size, 
+	      test_table->compressed_with_previous_length);
+    /*====================================*/
+
+    /*=== Compress unmatched_events ===*/
+    /* (1) id */
+    compression_util.compress_by_linear_prediction(test_table->unmatched_events_id_vec);
+    original_buff   = (char*)&test_table->unmatched_events_id_vec[0];
+    original_size   = test_table->unmatched_events_id_vec.size() * sizeof(test_table->unmatched_events_id_vec[0]);
+    compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
+    /* If compressed data is bigger than oroginal data, use original data*/    
+    test_table->compressed_unmatched_events_id           = (compressed_buff == NULL)? original_buff:compressed_buff;
+    test_table->compressed_unmatched_events_id_size      = (compressed_buff == NULL)? original_size:compressed_size;
+    REMPI_DBG("unmatched(id): %lu bytes (<-zlib- %lu)", test_table->compressed_unmatched_events_id_size, original_size);
+    /* (2) count */
+    /*   count will be totally random number, so this function does not do zlib*/
+    original_buff   = (char*)&test_table->unmatched_events_count_vec[0];
+    original_size   = test_table->unmatched_events_count_vec.size() * sizeof(test_table->unmatched_events_count_vec[0]);
+    compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
+    /* If compressed data is bigger than oroginal data, use original data*/    
+    test_table->compressed_unmatched_events_count      = (compressed_buff == NULL)? original_buff:compressed_buff;
+    test_table->compressed_unmatched_events_count_size = (compressed_buff == NULL)? original_size:compressed_size;
+    REMPI_DBG("unmatched(ct): %lu bytes (<-zlib- %lu)", test_table->compressed_unmatched_events_count_size, original_size);
+    /*=======================================*/
+    return;
+}
+
+void rempi_encoder_cdc::compress_matched_events(rempi_encoder_input_format_test_table *test_table)
+{
+  char  *compressed_buff, *original_buff;
+  size_t compressed_size,  original_size;
+  original_buff = rempi_clock_delta_compression::compress(
+							  test_table->matched_events_ordered_map, 
+							  test_table->events_vec, 
+							  original_size);
+  compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
+  test_table->compressed_matched_events           = (compressed_buff == NULL)? original_buff:compressed_buff;
+  test_table->compressed_matched_events_size      = (compressed_buff == NULL)? original_size:compressed_size;
+  REMPI_DBG("  matched(id): %lu bytes (<-zlib- %lu)", test_table->compressed_matched_events_size, original_size);
+  return;
+}
+
 
 /*  ==== 3 Step compression ==== 
 1. rempi_encoder_cdc.get_encoding_event_sequence(...): [rempi_event_list => rempi_encoding_structure]
@@ -201,53 +256,14 @@ void rempi_encoder_cdc::encode(rempi_encoder_input_format &input_format)
     /*     Encoding Section                            */
     /*#################################################*/
 
-    /*=== message count ===*/
-    /*   Nothing to do     */
-    /*=====================*/
-
-    /*=== Compress with_previous ===*/
-    test_table->compressed_with_previous = compression_util.compress_by_zero_one_binary(test_table->with_previous_vec, compressed_size);
-    test_table->compressed_with_previous_size   = compressed_size;
-    test_table->compressed_with_previous_length = test_table->with_previous_vec.size();
-    REMPI_DBG("with_previous: %lu bytes (length: %lu)", 
-	      test_table->compressed_with_previous_size, 
-	      test_table->compressed_with_previous_length);
-    /*====================================*/
-
-    /*=== Compress unmatched_events ===*/
-    /* (1) id */
-    compression_util.compress_by_linear_prediction(test_table->unmatched_events_id_vec);
-    original_buff   = (char*)&test_table->unmatched_events_id_vec[0];
-    original_size   = test_table->unmatched_events_id_vec.size() * sizeof(test_table->unmatched_events_id_vec[0]);
-    compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
-    /* If compressed data is bigger than oroginal data, use original data*/    
-    test_table->compressed_unmatched_events_id           = (compressed_buff == NULL)? original_buff:compressed_buff;
-    test_table->compressed_unmatched_events_id_size      = (compressed_buff == NULL)? original_size:compressed_size;
-    REMPI_DBG("unmatched(id): %lu bytes (<-zlib- %lu)", test_table->compressed_unmatched_events_id_size, original_size);
-    /* (2) count */
-    /*   count will be totally random number, so this function does not do zlib*/
-    original_buff   = (char*)&test_table->unmatched_events_count_vec[0];
-    original_size   = test_table->unmatched_events_count_vec.size() * sizeof(test_table->unmatched_events_count_vec[0]);
-    compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
-    /* If compressed data is bigger than oroginal data, use original data*/    
-    test_table->compressed_unmatched_events_count      = (compressed_buff == NULL)? original_buff:compressed_buff;
-    test_table->compressed_unmatched_events_count_size = (compressed_buff == NULL)? original_size:compressed_size;
-    REMPI_DBG("unmatched(ct): %lu bytes (<-zlib- %lu)", test_table->compressed_unmatched_events_count_size, original_size);
+    /*=== message count ===*/    /*=== Compress with_previous ===*/     /*=== Compress unmatched_events ===*/
+    compress_non_matched_events(test_table);
     /*=======================================*/
 
-
     /*=== Compress matched_events ===*/
-    original_buff = rempi_clock_delta_compression::compress(
-							    test_table->matched_events_ordered_map, 
-							    test_table->events_vec, 
-							    original_size);
-    compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
-    test_table->compressed_matched_events           = (compressed_buff == NULL)? original_buff:compressed_buff;
-    test_table->compressed_matched_events_size      = (compressed_buff == NULL)? original_size:compressed_size;
-    REMPI_DBG("  matched(id): %lu bytes (<-zlib- %lu)", test_table->compressed_matched_events_size, original_size);
+    compress_matched_events(test_table);
+    /*=======================================*/
   }
-
-  /*================================*/
   return;
 }
 
@@ -306,8 +322,9 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
     total_compressed_size += compressed_size;
   
   }
-  REMPI_DBG("xOriginal size: count:%5d(matched/unmatched entry) x 8 bytes= %d bytes,  Compressed size: %lu bytes", 
-	    input_format.total_length, input_format.total_length * 8 , total_compressed_size);
+  REMPI_DBG("xOriginal size: count:%5d(matched/unmatched entry) x 8 bytes= %d bytes,  Compressed size: %lu bytes , %d %lu", 
+	    input_format.total_length, input_format.total_length * 8 , total_compressed_size, 
+	    input_format.total_length*8, total_compressed_size);
   //  REMPI_DBG("TOTAL Original: %d ", total_countb);
 
 

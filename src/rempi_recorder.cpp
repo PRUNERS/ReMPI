@@ -80,6 +80,7 @@ int rempi_recorder::record_test(
   return record_test(request, flag, source, tag, clock, with_previous, -1);
 }
 
+int bcount = 0;
 int rempi_recorder::record_test(
     MPI_Request *request,
     int *flag,

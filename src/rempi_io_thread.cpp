@@ -15,7 +15,10 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *events, string 
   : events(events), id(id), mode(mode)
 {
   record_path = rempi_record_dir_path + "/rank_" + id + ".rempi";
-  encoder = new rempi_encoder_cdc(mode);
+  //  encoder = new rempi_encoder_cdc(mode);
+  encoder = new rempi_encoder_cdc_row_wise_diff(mode);
+  //  encoder = new rempi_encoder_cdc_permutation_diff(mode);
+  //  encoder = new rempi_encoder_zlib(mode);
 }
 
 void rempi_io_thread::write_record()
