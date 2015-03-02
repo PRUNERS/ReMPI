@@ -18,7 +18,7 @@ bool rempi_event::operator ==(rempi_event event)
     if (this->mpi_inputs.size() != event.mpi_inputs.size()) {
       cerr << "something wrong !" << endl;
     }
-    for (unsigned int i = 1; i < mpi_inputs.size(); i++) {
+    for (unsigned int i = 1; i < mpi_inputs.size() - 1; i++) {
       if (this->mpi_inputs[i] != event.mpi_inputs[i]) {
 	return false;
       }

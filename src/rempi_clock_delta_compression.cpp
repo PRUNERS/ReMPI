@@ -150,8 +150,10 @@ class shortest_edit_distance_path_search
 	node = node->parent;
       }
       /*We do not need the most bottom-righ node*/
-      delete diff.front();
-      diff.pop_front();
+      if (diff.size() > 0) {
+	delete diff.front(); // TODO: delete
+	diff.pop_front();
+      }
       return;
     }
 
@@ -256,7 +258,7 @@ int rempi_clock_delta_compression::next_start_search_it(
 }
 
 int rempi_clock_delta_compression::find_matched_clock_column(
- int clock_order_left,
+ rempi_event *event_left,
  map<int, rempi_event*>::const_iterator &msg_ids_clocked_search_it,
  map<int, rempi_event*>::const_iterator const &msg_ids_clocked_search_it_end)
 {
@@ -266,7 +268,7 @@ int rempi_clock_delta_compression::find_matched_clock_column(
   while (msg_ids_clocked_search_it != msg_ids_clocked_search_it_end) {
     msg_id_up   = msg_ids_clocked_search_it->second;
     //    REMPI_DBG("before %d == %d", clock_order_left, msg_id_up->clock);
-    if (clock_order_left == msg_id_up->clock_order) {
+    if (is_matching(event_left, msg_id_up)) {
       return traversed_count;
     }
     //    REMPI_DBG("after %d == %d", clock_order_left, msg_id_up->clock);
@@ -747,7 +749,10 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
 }
 #endif
 
-
+bool is_matching(rempi_event *left, rempi_event *up)
+{
+  return (left->get_source() == up->get_source());  
+}
   
 
 char* rempi_clock_delta_compression::compress(
@@ -809,7 +814,7 @@ char* rempi_clock_delta_compression::compress(
     /*find matched clock column*/
     current_column_of_search_it += 
       find_matched_clock_column(
-				msg_id_left->clock_order,
+				msg_id_left,
 				msg_ids_clocked_search_it,
 				msg_ids_clocked.cend());
 
@@ -901,20 +906,16 @@ char* rempi_clock_delta_compression::compress(
 
  }
 
-  
-
   return compressed_data;
 }
 
 
 void rempi_clock_delta_compression::decompress(
-      char* compressed_data,
-      size_t &compressed_bytes,
-      set<rempi_event*> &rempi_ids_clock,
-      vector<rempi_event*> &rempi_ids_real
-)
+					       char* compressed_data,
+					       size_t &compressed_bytes,
+					       set<rempi_event*> &rempi_ids_clock,
+					       vector<rempi_event*> &rempi_ids_real)
 {
-
   return;
 }
 

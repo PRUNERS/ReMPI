@@ -27,7 +27,10 @@ void rempi_encoder_zlib::compress_matched_events(rempi_encoder_input_format_test
   vector<size_t> events_id_vec;
 
   for (int i = 0; i < test_table->events_vec.size(); i++) {
-    events_id_vec.push_back(test_table->events_vec[i]->get_source());
+    size_t source;
+    source = test_table->events_vec[i]->get_source();
+    events_id_vec.push_back(source);
+    REMPI_DBGI(0, "vall: %lu", source);
   }
   original_buff   = (char*)&events_id_vec[0];
   original_size   = events_id_vec.size() * sizeof(events_id_vec[0]);

@@ -8,6 +8,7 @@
 #include "rempi_event.h"
 #include "rempi_event_list.h"
 #include "rempi_compression_util.h"
+#include "rempi_clock_delta_compression.h"
 
 using namespace std;
 
@@ -58,6 +59,7 @@ class rempi_encoder
     rempi_event_list<rempi_event*> *events;
     rempi_encoder(int mode);
     /*Common for record & replay*/
+    virtual rempi_encoder_input_format* create_encoder_input_format();
     void open_record_file(string record_path);
     void close_record_file();
     virtual void write_record_file(rempi_encoder_input_format &input_format);
@@ -84,15 +86,19 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
 };
 
 
+
+
 class rempi_encoder_cdc : public rempi_encoder
 {
  protected:
   rempi_compression_util<size_t> compression_util;
+  rempi_clock_delta_compression *cdc;
   virtual void compress_non_matched_events(rempi_encoder_input_format_test_table  *test_table);
   virtual void compress_matched_events(rempi_encoder_input_format_test_table  *test_table);
  public:
   rempi_encoder_cdc(int mode);
   /*For common*/
+  virtual rempi_encoder_input_format* create_encoder_input_format();
   void write_record_file(rempi_encoder_input_format &input_format);
   /*For only record*/
   virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
@@ -120,6 +126,13 @@ class rempi_encoder_zlib : public rempi_encoder_cdc
     rempi_encoder_zlib(int mode);
     /*For only replay*/
     virtual vector<rempi_event*> decode(char *serialized, size_t *size);
+};
+
+class rempi_encoder_simple_zlib : public rempi_encoder_zlib
+{
+ public:
+  rempi_encoder_simple_zlib(int mode);
+  virtual rempi_encoder_input_format* create_encoder_input_format();
 };
 
 class rempi_encoder_cdc_permutation_diff : public rempi_encoder_cdc

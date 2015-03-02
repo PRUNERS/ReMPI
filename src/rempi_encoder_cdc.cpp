@@ -131,7 +131,14 @@ void rempi_encoder_cdc_input_format::debug_print()
 
 
 rempi_encoder_cdc::rempi_encoder_cdc(int mode): rempi_encoder(mode)
-{}
+{
+  cdc = new rempi_clock_delta_compression(1);
+}
+
+rempi_encoder_input_format* rempi_encoder_cdc::create_encoder_input_format()
+{
+  return new rempi_encoder_cdc_input_format();
+}
 
 void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format_test_table *test_table)
 {
@@ -177,7 +184,7 @@ void rempi_encoder_cdc::compress_matched_events(rempi_encoder_input_format_test_
 {
   char  *compressed_buff, *original_buff;
   size_t compressed_size,  original_size;
-  original_buff = rempi_clock_delta_compression::compress(
+  original_buff = cdc->compress(
 							  test_table->matched_events_ordered_map, 
 							  test_table->events_vec, 
 							  original_size);
@@ -320,7 +327,7 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
     // REMPI_DBG("Original size: count:%5d x 8 bytes x 2(matched/unmatched)= %d bytes,  Compressed size: %lu bytes", 
     // 	      test_table->count, test_table->count * 8 * 2, compressed_size);
     total_compressed_size += compressed_size;
-  
+    REMPI_DBG("compressed_size: %lu", compressed_size);
   }
   REMPI_DBG("xOriginal size: count:%5d(matched/unmatched entry) x 8 bytes= %d bytes,  Compressed size: %lu bytes , %d %lu", 
 	    input_format.total_length, input_format.total_length * 8 , total_compressed_size, 

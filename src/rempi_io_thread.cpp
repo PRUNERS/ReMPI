@@ -15,34 +15,39 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *events, string 
   : events(events), id(id), mode(mode)
 {
   record_path = rempi_record_dir_path + "/rank_" + id + ".rempi";
-  //  encoder = new rempi_encoder_cdc(mode);
-  encoder = new rempi_encoder_cdc_row_wise_diff(mode);
-  //  encoder = new rempi_encoder_cdc_permutation_diff(mode);
+  //encoder = new rempi_encoder_cdc(mode);
+  // encoder = new rempi_encoder_cdc_row_wise_diff(mode);
+  encoder = new rempi_encoder_cdc_permutation_diff(mode);
   //  encoder = new rempi_encoder_zlib(mode);
+  //encoder = new rempi_encoder_simple_zlib(mode);
 }
 
 void rempi_io_thread::write_record()
 {
 
   encoder->open_record_file(record_path);
+  rempi_encoder_input_format *nonencoded_events;
+  nonencoded_events = encoder->create_encoder_input_format();
 
   while(1) {
     /*use "new" to be able to select compression methods depending on specified input value*/
-    rempi_encoder_cdc_input_format nonencoded_events;
+
     bool is_extracted;
     char *encoded_events;
     size_t size;
     //    rempi_dbgi(0, "events: %p, size: %lu", encoded_events, size);
 
     /*Get a sequence of events, ...  */
-    is_extracted = encoder->extract_encoder_input_format_chunk(*events, nonencoded_events);
+    is_extracted = encoder->extract_encoder_input_format_chunk(*events, *nonencoded_events);
 
     if (is_extracted) {
       /*If I get the sequence,... */
       /*... , encode(compress) the seuence*/
-      encoder->encode(nonencoded_events);
+      encoder->encode(*nonencoded_events);
       /*Then, write to file.*/
-      encoder->write_record_file(nonencoded_events);
+      encoder->write_record_file(*nonencoded_events);
+      delete nonencoded_events; //TODO: also delete iternal data in this variable
+      nonencoded_events = encoder->create_encoder_input_format();
       /*TODO: free rempi_encoded_cdc_input_format*/
     } else {
       /*If not, wait for a while in order to reduce CPU usage.*/

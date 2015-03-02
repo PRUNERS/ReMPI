@@ -54,8 +54,9 @@ Unmatched Test
 
 class rempi_clock_delta_compression
 {
- private:
-  static int next_start_search_it(
+ protected:
+  int linear_prediction = 1; // 0 means, it does not apply linear prediction
+  int next_start_search_it(
    int msg_id_up_clock,
    int msg_id_left_clock,
    map<int, rempi_event*>::const_iterator &msg_ids_clocked_search_it,		 
@@ -63,39 +64,51 @@ class rempi_clock_delta_compression
    int current_column_of_search_it,
    int current_column_of_start_it);
 
-  static int find_matched_clock_column(
-   int clock_observed,				    
+  int find_matched_clock_column(
+   rempi_event *event_left,				    
    map<int, rempi_event*>::const_iterator &msg_ids_clocked_search_it,
    map<int, rempi_event*>::const_iterator const  &msg_ids_clocked_search_it_end);
 
-  static int update_start_it(
+  int update_start_it(
    int current_column_of_start_it,
    int current_column_of_search_it,
    vector<bool> &matched_bits,
    map<int, rempi_event*>::const_iterator &msg_ids_clocked_start_it);
 
-  static void change_to_seq_order_id(
+  void change_to_seq_order_id(
    list<pair<int, int>*> &diff,
    vector<rempi_event*> &msg_ids_observed,
    map<int, int> &map_clock_to_order);
 
-  static char* convert_to_diff_binary(
+  char* convert_to_diff_binary(
    list<pair<int, int>*> &diff,
    size_t &compressed_bytes);
 
 
+  bool is_matching(rempi_event *left, rempi_event *up);
+
  public:
-  static char* compress(
+  rempi_clock_delta_compression(int linear_prediction):
+  linear_prediction(linear_prediction){};
+  virtual char* compress(
 	     map<int, rempi_event*> &msg_ids_clocked,
 	     vector<rempi_event*> &msg_ids_observed,
 	     size_t &compressed_bytes);
-  static void decompress(
+  virtual void decompress(
       char* compressed_data,
       size_t &compressed_bytes,
       set<rempi_event*> &rempi_ids_clock,
       vector<rempi_event*> &rempi_ids_real);	
 
+};
 
+class rempi_clock_delta_compression_2 : public rempi_clock_delta_compression
+{
+ public:
+  virtual char* compress(
+	     map<int, rempi_event*> &msg_ids_clocked,
+	     vector<rempi_event*> &msg_ids_observed,
+	     size_t &compressed_bytes);
 };
 
 

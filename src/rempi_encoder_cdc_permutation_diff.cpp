@@ -19,7 +19,9 @@
 
 
 rempi_encoder_cdc_permutation_diff::rempi_encoder_cdc_permutation_diff(int mode): rempi_encoder_cdc(mode)
-{}
+{
+  cdc = new rempi_clock_delta_compression(0);
+}
 
 void rempi_encoder_cdc_permutation_diff::compress_matched_events(rempi_encoder_input_format_test_table *test_table)
 {
@@ -27,10 +29,10 @@ void rempi_encoder_cdc_permutation_diff::compress_matched_events(rempi_encoder_i
   size_t compressed_size,  original_size;
   int *cdc_buff;
 
-  cdc_buff  = (int*)rempi_clock_delta_compression::compress(
-							    test_table->matched_events_ordered_map,
-							    test_table->events_vec,
-							    original_size);
+  cdc_buff  = (int*)cdc->compress(
+				 test_table->matched_events_ordered_map,
+				 test_table->events_vec,
+				 original_size);
   size_t original_buff_int_size = sizeof(unsigned int) * test_table->events_vec.size();
   int *original_buff_int = (int*)malloc(original_buff_int_size);
   memset(original_buff_int, 0, original_buff_int_size);
@@ -43,7 +45,7 @@ void rempi_encoder_cdc_permutation_diff::compress_matched_events(rempi_encoder_i
     original_buff_int[index] = val;
     REMPI_DBGI(0, "index: %d, val: %d", index, val);
   }
-  free(cdc_buff);
+  free((char*)cdc_buff); //TODO: free
       
   original_buff = (char*)original_buff_int;
   original_size = original_buff_int_size;

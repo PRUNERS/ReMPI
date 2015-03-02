@@ -85,6 +85,11 @@ void rempi_encoder::close_record_file()
      write the data(char*)
  =============================== */
 
+rempi_encoder_input_format* rempi_encoder::create_encoder_input_format()
+{ 
+  return new rempi_encoder_input_format();
+}
+
 
 bool rempi_encoder::extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format)
 {
