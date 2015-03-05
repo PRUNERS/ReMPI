@@ -166,7 +166,6 @@ bool rempi_encoder::read_record_file(rempi_encoder_input_format &input_format)
     return is_no_more_record;
   }
   decoding_event_sequence_int = (int*)decoding_event_sequence;
-
   
   // for (int i = 0; i < 8; i++) {
   //   fprintf(stderr, "int: %d   ==== ", decoding_event_sequence_int[i]);
