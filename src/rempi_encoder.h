@@ -43,6 +43,7 @@ class rempi_encoder_input_format
 
   size_t  length();
   virtual void add(rempi_event *event);
+  virtual void add(rempi_event *event, int test_id);
   virtual void format();
   virtual void debug_print();
 };
@@ -60,17 +61,21 @@ class rempi_encoder
     rempi_encoder(int mode);
     /*Common for record & replay*/
     virtual rempi_encoder_input_format* create_encoder_input_format();
+
     void open_record_file(string record_path);
     void close_record_file();
-    virtual void write_record_file(rempi_encoder_input_format &input_format);
-    virtual char* read_decoding_event_sequence(size_t *size);
 
     /*For only record*/
     virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
     virtual void encode(rempi_encoder_input_format &input_format);
-
+    virtual void write_record_file(rempi_encoder_input_format &input_format);
     /*For only replay*/
-    virtual vector<rempi_event*> decode(char *serialized, size_t *size);
+    virtual bool read_record_file(rempi_encoder_input_format &input_format);
+    virtual void decode(rempi_encoder_input_format &input_format);
+    virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
+    /*Old functions for replay*/
+    //    virtual char* read_decoding_event_sequence(size_t *size);
+    //    virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };
 
 
@@ -104,7 +109,11 @@ class rempi_encoder_cdc : public rempi_encoder
   virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
   virtual void encode(rempi_encoder_input_format &input_format);
   /*For only replay*/
-  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
+  virtual bool read_record_file(rempi_encoder_input_format &input_format);
+  virtual void decode(rempi_encoder_input_format &input_format);
+  virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
+
+  //  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };
 
 class rempi_encoder_cdc_row_wise_diff : public rempi_encoder_cdc

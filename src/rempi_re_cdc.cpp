@@ -85,12 +85,10 @@ int rempi_re_cdc::re_init_thread(
   /*Init CLMPI*/
   init_clmpi();
 
-
   ret = PMPI_Init_thread(argc, argv, required, provided);
 
   /*Init from configuration and for valiables for errors*/
   init_after_pmpi_init(argc, argv);
-
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     recorder->record_init(argc, argv, my_rank);
   } else {
@@ -123,7 +121,7 @@ int rempi_re_cdc::re_irecv(
     recorder->record_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], request);
   } else {
     /*TODO: Really need datatype ??*/
-    recorder->replay_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], request);
+    recorder->replay_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], &comm, request);
   }
   return ret;
 }
@@ -136,15 +134,15 @@ int rempi_re_cdc::re_test(
   int ret;
   size_t clock;
 
-
   if (status == NULL) {
     /*TODO: allocate array_of_statuses in ReMPI instead of the error below*/
     REMPI_ERR("ReMPI requires status in MPI_Test");
   }
-  clmpi_register_recv_clocks(&clock, 1);
-  ret = PMPI_Test(request, flag, status);
+
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    clmpi_register_recv_clocks(&clock, 1);
+    ret = PMPI_Test(request, flag, status);
     /*If recoding mode, record the test function*/
     /*TODO: change froi void* to MPI_Request*/
     if(clock != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
@@ -152,15 +150,16 @@ int rempi_re_cdc::re_test(
     }
   } else {
     int recorded_source, recorded_tag, recorded_flag;
-
-    recorder->replay_test(request, *flag, status->MPI_SOURCE, status->MPI_TAG,
-		      &recorded_flag, &recorded_source, &recorded_tag);
-    /*Set next recorded and matched source, and tag*/
-    status->MPI_SOURCE = recorded_source;
-    status->MPI_TAG    = recorded_tag;
-    *flag              = recorded_flag;
-
+    if(clock != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
+      recorder->replay_test(request, *flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, get_test_id(),
+			    &recorded_flag, &recorded_source, &recorded_tag);
+      /*Set next recorded and matched source, and tag*/
+      status->MPI_SOURCE = recorded_source;
+      status->MPI_TAG    = recorded_tag;
+      *flag              = recorded_flag;
+    }
   }
+
   return ret;
 }
   

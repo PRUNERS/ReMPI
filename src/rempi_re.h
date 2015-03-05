@@ -21,6 +21,7 @@ class rempi_re
  protected:
   int my_rank = -1;
   int init_after_pmpi_init(int *argc, char ***argv);
+  virtual int get_test_id();
  public:
   rempi_re();
   virtual int re_init(int *argc, char ***argv);
@@ -61,7 +62,8 @@ class rempi_re_cdc : public rempi_re
   rempi_recorder *recorder;  
   unordered_map<string, int> test_ids_map;
   int next_test_id_to_assign = 0;
-  int get_test_id();
+ protected:
+  virtual int get_test_id();
  public:
   rempi_re_cdc();
   virtual int re_init(int *argc, char ***argv);

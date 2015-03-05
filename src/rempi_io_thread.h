@@ -18,7 +18,8 @@ class rempi_io_thread : public rempi_thread
 		/*1 if this MPI process finish pushing events*/
 		/*1 if this thread read reacord file to the end*/
 		int read_finished;
-		rempi_event_list<rempi_event*> *events;
+		rempi_event_list<rempi_event*> *recording_events;
+		rempi_event_list<rempi_event*> *replaying_events;
 		string id;
 		string record_path;
 		int mode;
@@ -28,7 +29,9 @@ class rempi_io_thread : public rempi_thread
 		void write_record();
 		void read_record();
 	public:
-                rempi_io_thread(rempi_event_list<rempi_event*> *events, string id, int mode);
+                rempi_io_thread(rempi_event_list<rempi_event*> *recording_events, 
+				rempi_event_list<rempi_event*> *replaying_events, 
+				string id, int mode);
 		void complete_flush();
 };
 

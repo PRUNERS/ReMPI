@@ -14,7 +14,9 @@ bool rempi_message_identifier::operator==(rempi_message_identifier &msg_id)
 {
   if (this->source  == msg_id.source  &&
       this->tag     == msg_id.tag     &&
-      this->comm_id == msg_id.comm_id) {
+      this->comm_id == msg_id.comm_id &&
+      this->test_id == msg_id.test_id
+      ) {
     return true;
   }
   return false;
@@ -22,12 +24,16 @@ bool rempi_message_identifier::operator==(rempi_message_identifier &msg_id)
 
 bool rempi_message_identifier::operator<(rempi_message_identifier &msg_id) 
 {
-  return this->clock < msg_id.clock;
+  REMPI_ERR("Not implemented");
+  return false;
+  //  return this->clock < msg_id.clock;
 }
 
 bool rempi_message_identifier::operator>(rempi_message_identifier &msg_id) 
 {
-  return this->clock > msg_id.clock;
+  REMPI_ERR("Not implemented");
+  return false;
+  //  return this->clock > msg_id.clock;
 }
 
 string rempi_message_identifier::to_string()
@@ -81,10 +87,10 @@ size_t rempi_message_identifier::compress(size_t source_value, size_t source_bit
 
 void rempi_message_manager::add_pending_recv(MPI_Request *request, int source, int tag, int comm_id)
 {
-  REMPI_DBG("Request: %p source %d tag %d comm_id %d", request, source, tag, comm_id);
+  REMPI_DBG("Add Pending Request: %p source %d tag %d comm_id %d", request, source, tag, comm_id);
   if (pending_recvs.find(request) == pending_recvs.end()) {
     /*If pending_recvs does not have key:request*/
-    pending_recvs[request] = new rempi_message_identifier(source, tag, comm_id);
+    pending_recvs[request] = new rempi_message_identifier(source, tag, comm_id, -1);
   } else {
     /*else, the user is calling next MPI_recieve with the same request 
       as privious before the prefious reveive matches*/
@@ -110,10 +116,10 @@ int  rempi_message_manager::query_pending_comm_id(MPI_Request *request)
 }
 
 
-int rempi_message_manager::add_matched_recv(MPI_Request *request, int source, int tag)
+int rempi_message_manager::add_matched_recv(MPI_Request *request, int source, int tag, int test_id)
 {
   rempi_message_identifier *msg_id;
-  REMPI_DBG("Marched Request: %p source %d tag %d", request, source, tag);
+  REMPI_DBG("Add Matched Request: %p source %d tag %d", request, source, tag);
   try {
     /*Make sure that the Key exesits, so this ordered_map does not create new key*/
     pending_recvs.at(request);
@@ -139,50 +145,82 @@ int rempi_message_manager::add_matched_recv(MPI_Request *request, int source, in
   pending_recvs.erase(request);
   msg_id->source = source;
   msg_id->tag    = tag;
+  msg_id->test_id    = test_id;
   matched_recvs.push_back(msg_id);
 
   return msg_id->comm_id;
 }
 
-bool  rempi_message_manager::is_matched_recv(int source, int tag, int comm_id)
+bool  rempi_message_manager::is_matched_recv(int source, int tag, int comm_id, int test_id)
 {
   rempi_message_identifier *msg_id;
 
-  msg_id = new rempi_message_identifier(source, tag, comm_id);
+  msg_id = new rempi_message_identifier(source, tag, comm_id, test_id);
   auto result = find(matched_recvs.begin(), matched_recvs.end(), msg_id);
   delete msg_id;
   return result != matched_recvs.end();
 }
 
 
-void rempi_message_manager::refresh_matched_recv()
+void rempi_message_manager::refresh_matched_recv(int test_id)
 {
   unordered_map<MPI_Request*, rempi_message_identifier*>::iterator pending_msg_it;
   MPI_Request *request;
   int i = 0;
-  int flag;
+  int flag = 0;
   MPI_Status matched_request_status;
-
 
   /*TODO: Use Testsome for more performance improvement (maybe)*/
   for (pending_msg_it = pending_recvs.begin(); pending_msg_it != pending_recvs.end(); pending_msg_it++) {
     request = pending_msg_it->first;
     PMPI_Test(request, &flag, &matched_request_status);
-    if (flag) break;
+    if (flag) {
+      REMPI_DBG("Internal match: flag:%d source:%d", flag, matched_request_status.MPI_SOURCE);
+      add_matched_recv(
+		       request,
+		       matched_request_status.MPI_SOURCE,
+		       matched_request_status.MPI_TAG,
+		       test_id);
+    }
   }
-  add_matched_recv(
-	   request,
-	   matched_request_status.MPI_SOURCE,
-           matched_request_status.MPI_TAG);;
+
   return;
 }
 
-void rempi_message_manager::remove_matched_recv(int source, int tag, int comm_id)
+
+// void rempi_message_manager::refresh_matched_recv(int test_id)
+// {
+//   unordered_map<MPI_Request*, rempi_message_identifier*>::iterator pending_msg_it;
+//   MPI_Request *request;
+//   int i = 0;
+//   int flag = 0;
+//   MPI_Status matched_request_status;
+
+
+//   /*TODO: Use Testsome for more performance improvement (maybe)*/
+//   for (pending_msg_it = pending_recvs.begin(); pending_msg_it != pending_recvs.end(); pending_msg_it++) {
+//     request = pending_msg_it->first;
+//     PMPI_Test(request, &flag, &matched_request_status);
+//     if (flag) {
+//       REMPI_DBG("Internal match: flag:%d source:%d", flag, matched_request_status.MPI_SOURCE);
+//       add_matched_recv(
+// 		       request,
+// 		       matched_request_status.MPI_SOURCE,
+// 		       matched_request_status.MPI_TAG,
+// 		       test_id);
+//     }
+//   }
+
+//   return;
+// }
+
+void rempi_message_manager::remove_matched_recv(int source, int tag, int comm_id, int test_id)
 {
   rempi_message_identifier *msg_id;
   list<rempi_message_identifier*>::iterator msg_id_it;
+  REMPI_DBG("Removed Matched Request, recv(source: %d, tag:%d, comm_id:%d, test_id:%d) does not exist", source, tag, comm_id, test_id);
 
-  msg_id = new rempi_message_identifier(source, tag, comm_id);
+  msg_id = new rempi_message_identifier(source, tag, comm_id, test_id);
 
   for (msg_id_it = matched_recvs.begin(); msg_id_it != matched_recvs.end(); msg_id_it++) {
     if(*msg_id_it == msg_id) {
@@ -192,7 +230,7 @@ void rempi_message_manager::remove_matched_recv(int source, int tag, int comm_id
       return;
     }
   }
-  REMPI_ERR("Matched recv(source: %d, tag:%d, comm_id:%d) does not exist", source, tag, comm_id);
+  REMPI_ERR("Matched recv(source: %d, tag:%d, comm_id:%d test_id:%d) does not exist", source, tag, comm_id, test_id);
   return;
 }
 

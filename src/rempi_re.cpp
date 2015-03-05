@@ -26,6 +26,12 @@ int rempi_re::init_after_pmpi_init(int *argc, char ***argv)
   return 0;
 }
 
+int rempi_re::get_test_id()
+{
+  return 0; /*rempi_re does not distingish different test/testsome from different call stacks */
+}
+
+
 int rempi_re::re_init(int *argc, char ***argv)
 {
   int ret;

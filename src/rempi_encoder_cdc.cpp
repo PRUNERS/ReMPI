@@ -337,22 +337,40 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
 
 }   
 
-
-vector<rempi_event*> rempi_encoder_cdc::decode(char *serialized_data, size_t *size)
+bool rempi_encoder_cdc::read_record_file(rempi_encoder_input_format &input_format)
 {
-  vector<rempi_event*> vec;
-  int *mpi_inputs;
-  int i;
-
-  /*In rempi_envoder, the serialized sequence identicals to one Test event */
-  mpi_inputs = (int*)serialized_data;
-  vec.push_back(
-    new rempi_test_event(mpi_inputs[0], mpi_inputs[1], mpi_inputs[2], 
-			 mpi_inputs[3], mpi_inputs[4], mpi_inputs[5])
-  );
-  delete mpi_inputs;
-  return vec;
+  REMPI_ERR("This function has not been implemented yet");
+  return false;
 }
+
+void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
+{
+  REMPI_ERR("This function has not been implemented yet");
+  return;
+}
+
+void rempi_encoder_cdc::insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format)
+{
+  REMPI_ERR("This function has not been implemented yet");
+  return;
+}
+
+
+// vector<rempi_event*> rempi_encoder_cdc::decode(char *serialized_data, size_t *size)
+// {
+//   vector<rempi_event*> vec;
+//   int *mpi_inputs;
+//   int i;
+
+//   /*In rempi_envoder, the serialized sequence identicals to one Test event */
+//   mpi_inputs = (int*)serialized_data;
+//   vec.push_back(
+//     new rempi_test_event(mpi_inputs[0], mpi_inputs[1], mpi_inputs[2], 
+// 			 mpi_inputs[3], mpi_inputs[4], mpi_inputs[5])
+//   );
+//   delete mpi_inputs;
+//   return vec;
+// }
 
 
 

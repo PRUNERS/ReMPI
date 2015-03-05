@@ -21,14 +21,14 @@ void test_simple() {
   vector<rempi_message_identifier*> msg_ids;
   char* compressed_data;
   size_t compressed_size;
-  msg_ids.push_back(new rempi_message_identifier(2, 1, 1));
-  msg_ids.push_back(new rempi_message_identifier(1, 1, 1));
-  msg_ids.push_back(new rempi_message_identifier(3, 1, 1));
-  msg_ids.push_back(new rempi_message_identifier(1, 1, 1));
-  msg_ids.push_back(new rempi_message_identifier(2, 1, 1));
-  msg_ids.push_back(new rempi_message_identifier(3, 1, 1));
-  msg_ids.push_back(new rempi_message_identifier(1, 1, 1));
-  msg_ids.push_back(new rempi_message_identifier(3, 1, 1));
+  // msg_ids.push_back(new rempi_message_identifier(2, 1, 1));
+  // msg_ids.push_back(new rempi_message_identifier(1, 1, 1));
+  // msg_ids.push_back(new rempi_message_identifier(3, 1, 1));
+  // msg_ids.push_back(new rempi_message_identifier(1, 1, 1));
+  // msg_ids.push_back(new rempi_message_identifier(2, 1, 1));
+  // msg_ids.push_back(new rempi_message_identifier(3, 1, 1));
+  // msg_ids.push_back(new rempi_message_identifier(1, 1, 1));
+  // msg_ids.push_back(new rempi_message_identifier(3, 1, 1));
   //  compressed_data = rempi_compress::binary_compress(msg_ids, compressed_size);
 }
 

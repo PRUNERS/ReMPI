@@ -41,7 +41,14 @@ rempi_event* rempi_event::pop()
   if (mpi_inputs[0] < 0) {
     REMPI_ERR("Event count < 0 error");
   }
-  event = new rempi_test_event(1, mpi_inputs[1], mpi_inputs[2], mpi_inputs[3], mpi_inputs[4], mpi_inputs[5]);
+  event = new rempi_test_event(1, 
+			       mpi_inputs[1], 
+			       mpi_inputs[2], 
+			       mpi_inputs[3], 
+			       mpi_inputs[4], 
+			       mpi_inputs[5],
+			       mpi_inputs[6],
+			       mpi_inputs[7]);
   return event;
 }
 

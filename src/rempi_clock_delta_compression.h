@@ -85,7 +85,7 @@ class rempi_clock_delta_compression
    size_t &compressed_bytes);
 
 
-  bool is_matching(rempi_event *left, rempi_event *up);
+  virtual bool is_matching(rempi_event *left, rempi_event *up);
 
  public:
   rempi_clock_delta_compression(int linear_prediction):
@@ -104,7 +104,10 @@ class rempi_clock_delta_compression
 
 class rempi_clock_delta_compression_2 : public rempi_clock_delta_compression
 {
+ protected:
+  virtual bool is_matching(rempi_event *left, rempi_event *up);
  public:
+ rempi_clock_delta_compression_2(int linear_prediction): rempi_clock_delta_compression(0){};
   virtual char* compress(
 	     map<int, rempi_event*> &msg_ids_clocked,
 	     vector<rempi_event*> &msg_ids_observed,

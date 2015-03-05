@@ -121,40 +121,68 @@ If thread finished reading all events, and pushed to event_lists, and the events
 This function retunr NULL
 */
 template <class T>
-T rempi_event_list<T>::decode_pop()
+T rempi_event_list<T>::dequeue_replay(int test_id)
 {
   rempi_event *event;
+  rempi_spsc_queue<rempi_event*> *spsc_queue;
+  
+  if (previous_replaying_event_umap.find(test_id) == previous_replaying_event_umap.end()) {
+    previous_replaying_event_umap[test_id] = NULL;
+  }
+  
+  //  previous_event = previous_replaying_event[test_id];
+  while(replay_events.find(test_id) == replay_events.end()) {
+    usleep(spin_time);
+  }
+  spsc_queue = replay_events[test_id];
 
   /*TODO: TODO(A) */
-  while (previous_replaying_event == NULL) {
-    mtx.lock();
-    previous_replaying_event = events.dequeue();
-    mtx.unlock();
-    //    REMPI_DBG("== %p\n", previous_replaying_event);
-    bool is_queue_empty = (previous_replaying_event == NULL);
-    if (is_queue_empty && is_push_closed) return NULL;
+  while (previous_replaying_event_umap[test_id] == NULL) {
+    if (is_push_closed) {
+      previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+      bool is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
+      if (is_queue_empty) {
+	REMPI_DBG("push closed %p", previous_replaying_event_umap[test_id]);
+	return NULL;
+      }
+    } else {
+      previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+    }
+    // previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+    // bool is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
+    // if (is_queue_empty && is_push_closed) {
+    //   REMPI_DBG("push closed %p", previous_replaying_event_umap[test_id]);
+    //   return NULL;
+    // }
   }
 
   /*From here, previous_replaying_event has "event instance" at least*/
-  if (previous_replaying_event->size() <= 0) {
-    delete previous_replaying_event;
-    previous_replaying_event = NULL;
+  if (previous_replaying_event_umap[test_id]->size() <= 0) {
+    delete previous_replaying_event_umap[test_id];
+    previous_replaying_event_umap[test_id] = NULL;
 
     /*TODO: Implement a function to combine to TODO(A) above*/
-    while (previous_replaying_event == NULL) {
-      mtx.lock();
-      previous_replaying_event = events.dequeue();
-      mtx.unlock();
-      //      fprintf(stderr, "%p\n", previous_replaying_event, events.rough_size());
-      bool is_queue_empty = (previous_replaying_event == NULL);
-      if (is_queue_empty && is_push_closed) return NULL;
+    while (previous_replaying_event_umap[test_id] == NULL) {
+      if (is_push_closed) {
+	previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+	bool is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
+	if (is_queue_empty) {
+	  REMPI_DBG("push closed %p", previous_replaying_event_umap[test_id]);
+	  return NULL;
+	}
+      } else {
+	previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+      }
+      // previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+      // bool is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
+      // if (is_queue_empty && is_push_closed) {
+      // 	REMPI_DBG("push closed2 %p", previous_replaying_event_umap[test_id]);
+      // 	return NULL;
+      // }
     }
   }
-  //  fprintf(stderr, "%p (size: %lu)\n", previous_replaying_event, events.rough_size());
 
-  /*From here, previous_replaying_event has an actual evnet at least*/
-
-  event = previous_replaying_event->pop();
+  event = previous_replaying_event_umap[test_id]->pop();
   
   if (event == NULL) {
     REMPI_ERR("previous replaying event pop failed");
@@ -162,16 +190,78 @@ T rempi_event_list<T>::decode_pop()
   //  event->print();
   return event;
 
-  /*
-    while (events.rough_size() <= 0)
-    {
-    count << events.rough_size() << endl;
-    mtx.unlock();
-    usleep(spin_time);
-    mtx.lock();
-    }
-  */
+}
 
+
+
+// template <class T>
+// T rempi_event_list<T>::dequeue_replay(int test_id)
+// {
+//   rempi_event *event;
+//   rempi_spsc_queue<rempi_event*> *spsc_queue;
+  
+//   if (previous_replaying_event_umap.find(test_id) == previous_replaying_event_umap.end()) {
+//     previous_replaying_event_umap[test_id] = NULL;
+//   }
+  
+//   //  previous_event = previous_replaying_event[test_id];
+//   while(replay_events.find(test_id) == replay_events.end()) {
+//     usleep(spin_time);
+//   }
+//   spsc_queue = replay_events[test_id];
+
+//   /*TODO: TODO(A) */
+//   while (previous_replaying_event_umap[test_id] == NULL) {
+//     previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+//     bool is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
+//     if (is_queue_empty && is_push_closed) {
+//       REMPI_DBG("push closed %p", previous_replaying_event_umap[test_id]);
+//       return NULL;
+//     }
+//   }
+
+//   /*From here, previous_replaying_event has "event instance" at least*/
+//   if (previous_replaying_event_umap[test_id]->size() <= 0) {
+//     delete previous_replaying_event_umap[test_id];
+//     previous_replaying_event_umap[test_id] = NULL;
+
+//     /*TODO: Implement a function to combine to TODO(A) above*/
+//     while (previous_replaying_event_umap[test_id] == NULL) {
+//       previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+//       bool is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
+//       if (is_queue_empty && is_push_closed) {
+// 	REMPI_DBG("push closed2 %p", previous_replaying_event_umap[test_id]);
+// 	return NULL;
+//       }
+//     }
+//   }
+
+//   event = previous_replaying_event_umap[test_id]->pop();
+  
+//   if (event == NULL) {
+//     REMPI_ERR("previous replaying event pop failed");
+//   }
+//   //  event->print();
+//   return event;
+
+// }
+
+
+template <class T>
+void rempi_event_list<T>::enqueue_replay(T event, int test_id)
+{
+  rempi_spsc_queue<rempi_event*> *spsc_queue;
+  if (replay_events.find(test_id) == replay_events.end()) {
+    replay_events[test_id] = new rempi_spsc_queue<rempi_event*>();
+  }
+
+  spsc_queue = replay_events[test_id];
+
+  while (spsc_queue->rough_size() >= max_size) {
+    REMPI_DBG("rempi_event_list exceeded max_size");
+    usleep(spin_time);
+  }
+  spsc_queue->enqueue(event);
 }
 
 template <class T>

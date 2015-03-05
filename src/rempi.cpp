@@ -70,6 +70,7 @@ _EXTERN_C_ int MPI_Init(int *arg_0, char ***arg_1)
 { 
   int _wrap_py_return_val = 0;
   init_rempi();
+
   _wrap_py_return_val = rempi_record_replay->re_init(arg_0, arg_1);
   return _wrap_py_return_val;
 }
@@ -80,6 +81,8 @@ _EXTERN_C_ int MPI_Init_thread(int *arg_0, char ***arg_1, int arg_2, int *arg_3)
 { 
   int _wrap_py_return_val = 0;
   init_rempi();
+  fprintf(stderr, "kasjdf");
+  exit(1);
   _wrap_py_return_val = rempi_record_replay->re_init_thread(arg_0, arg_1, arg_2, arg_3);
   return _wrap_py_return_val;
 }

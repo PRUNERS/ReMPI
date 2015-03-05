@@ -15,7 +15,6 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 		$(SRC_DIR)/rempi_message_manager.cpp \
 		$(SRC_DIR)/rempi_event_list.cpp \
 	     	$(SRC_DIR)/rempi_event.cpp \
-	     	$(SRC_DIR)/rempi_compress.cpp \
 	     	$(SRC_DIR)/rempi_clock_delta_compression.cpp \
 		$(SRC_DIR)/rempi_encoder.cpp \
 		$(SRC_DIR)/rempi_encoder_cdc.cpp \

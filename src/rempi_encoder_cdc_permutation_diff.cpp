@@ -20,7 +20,7 @@
 
 rempi_encoder_cdc_permutation_diff::rempi_encoder_cdc_permutation_diff(int mode): rempi_encoder_cdc(mode)
 {
-  cdc = new rempi_clock_delta_compression(0);
+  cdc = new rempi_clock_delta_compression_2(0);
 }
 
 void rempi_encoder_cdc_permutation_diff::compress_matched_events(rempi_encoder_input_format_test_table *test_table)
@@ -43,7 +43,7 @@ void rempi_encoder_cdc_permutation_diff::compress_matched_events(rempi_encoder_i
     int index = cdc_buff[i];
     int val   = cdc_buff[i + cdc_buff_id_length];
     original_buff_int[index] = val;
-    REMPI_DBGI(0, "index: %d, val: %d", index, val);
+    //    REMPI_DBGI(0, "index: %d, val: %d", index, val);
   }
   free((char*)cdc_buff); //TODO: free
       

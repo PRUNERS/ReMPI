@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#include <unordered_map>
+
 #include "mpi.h"
 
 //#include <iostream>
@@ -14,15 +16,16 @@
 #include "rempi_config.h"
 
 
+
 int rempi_recorder::record_init(int *argc, char ***argv, int rank) 
 {
   string id;
 
   //fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
-
   id = std::to_string((long long int)rank);
+  replaying_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
   recording_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
-  record_thread = new rempi_io_thread(recording_event_list, id, rempi_mode); //0: recording mode
+  record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode); //0: recording mode
   record_thread->start();
   
   return 0;
@@ -31,10 +34,11 @@ int rempi_recorder::record_init(int *argc, char ***argv, int rank)
 int rempi_recorder::replay_init(int *argc, char ***argv, int rank) 
 {
   string id;
-
   id = std::to_string((long long int)rank);
+  /*recording_event_list is needed for CDC, and when switching from repla mode to recording mode */
+  recording_event_list = new rempi_event_list<rempi_event*>(10000000, 100); 
   replaying_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
-  read_record_thread = new rempi_io_thread(replaying_event_list, id, rempi_mode); //1: replay mode
+  read_record_thread = new rempi_io_thread(replaying_event_list, replaying_event_list, id, rempi_mode); //1: replay mode
   read_record_thread->start();
 
   return 0;
@@ -60,9 +64,17 @@ int rempi_recorder::replay_irecv(
    int source,
    int tag,
    int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+   MPI_Comm *comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
    MPI_Request *request)
 {
-  msg_manager.add_pending_recv(request, source, tag, comm_id);
+
+  if (request_to_irecv_inputs_umap.find(*request) 
+   != request_to_irecv_inputs_umap.end()) {
+    REMPI_ERR("This MPI_Request is not diactivated. This mainly caused by irecv call "
+	      "with MPI_Request which is not diactivated by MPI_{Wait|Test}{|some|any|all}");
+  }
+  request_to_irecv_inputs_umap[*request] = new irecv_inputs(buf, count, datatype, source, tag, *comm, *request);
+  //  msg_manager.add_pending_recv(request, source, tag, comm_id);
   ///msg_manager.print_pending_recv();
   return 0;
 }
@@ -76,7 +88,6 @@ int rempi_recorder::record_test(
     int clock,
     int with_previous)
 {
-  
   return record_test(request, flag, source, tag, clock, with_previous, -1);
 }
 
@@ -96,7 +107,7 @@ int rempi_recorder::record_test(
   int record_source = 0;
   int record_tag = 0;
   int record_clock = 0;
-
+  REMPI_DBG("flag: %d , source: %d", *flag, source);
   if (*flag) {
     /*Query befoer add_matched_recv, because pendding entry is removed when flag == 1*/
     //kento    record_comm_id = msg_manager.query_pending_comm_id(request);
@@ -114,36 +125,71 @@ int rempi_recorder::record_test(
 
 
 /*This function is called after MPI_Test*/
-
 int rempi_recorder::replay_test(
     MPI_Request *request_in,
     int flag_in,
     int source_in,
     int tag_in,
+    int clock_in,
+    int with_previous_in,
+    int test_id_in,
     int *flag_out,
     int *source_out,
     int *tag_out)
 {
+  MPI_Status status;
   rempi_event *replaying_test_event;
 
-  /**/
-  if (flag_in) {
-    msg_manager.add_matched_recv(request_in, source_in, tag_in);
-  }
 
-  /*1. Get request (recoeded in irecv) for this "replaying_test_event"*/
-  replaying_test_event = replaying_event_list->decode_pop();
+  /*1. Get replaying event */
+  replaying_test_event = replaying_event_list->dequeue_replay(test_id_in);
   if (replaying_test_event == NULL) {
-    REMPI_ERR("No more replay event");
+    REMPI_ERR("No more replay event. Will switch to recording mode, but not implemented yet");
   } 
+  REMPI_DBG("Replaying: (flag: %d, source: %d)", replaying_test_event->get_flag(), replaying_test_event->get_source());
 
   /*If the event is flag == 0, simply retunr flag == 0*/
   if (!replaying_test_event->get_flag()) {
     *flag_out = 0;
+    *source_out = -1;
+    *tag_out = -1;
     return 0;
   }
-  /* So "replayint_test_event" event flag == 1*/
   *flag_out = 1;
+  *source_out = replaying_test_event->get_source();
+  *tag_out = replaying_test_event->get_tag();
+  /*
+    2. Wait until this replaying message really arrives
+  */
+  {
+    irecv_inputs *inputs = request_to_irecv_inputs_umap[*request_in];
+    //    REMPI_DBG("Probing");
+    PMPI_Probe(*source_out, *tag_out, inputs->comm, &status);
+    if (*source_out != status.MPI_SOURCE ||
+	*tag_out    != status.MPI_TAG) {
+      REMPI_ERR("An unexpected message is proved");
+    }
+    PMPI_Irecv(
+	       inputs->buf, 
+	       inputs->count,
+	       inputs->datatype,
+	       *source_out,
+	       *tag_out,
+	       inputs->comm,
+	       &(inputs->request));
+    PMPI_Wait(&(inputs->request), &status);
+    if (*source_out != status.MPI_SOURCE ||
+	*tag_out    != status.MPI_TAG) {
+      REMPI_ERR("An unexpected message is waited");
+    }
+    delete request_to_irecv_inputs_umap[*request_in];
+    request_to_irecv_inputs_umap.erase(*request_in);
+  }
+
+  return 0;
+  /*====================*/
+
+  /* So "replayint_test_event" event flag == 1*/
   /*
     2. Wait until this recorded message really arrives
        if (0 if next recorded maching is not mached in this run) {
@@ -151,26 +197,120 @@ int rempi_recorder::replay_test(
 	  TODO: if matched, memorize that the matching for the next replay test
        }
   */
-  while (!msg_manager.is_matched_recv(
-	      replaying_test_event->get_source(), 
-	      replaying_test_event->get_tag(),
-	      replaying_test_event->get_comm_id())) {
-    msg_manager.refresh_matched_recv();
-  }
-  msg_manager.remove_matched_recv(
-	      replaying_test_event->get_source(), 
-	      replaying_test_event->get_tag(),
-	      replaying_test_event->get_comm_id());
-  /*
-    3. Set valiabiles (source, flag, tag)
-  }
-   */
-  *flag_out = 1;
-  *source_out = replaying_test_event->get_source();
-  *tag_out = replaying_test_event->get_tag();
 
-  return 0;
+  // while (!msg_manager.is_matched_recv(
+  // 	      replaying_test_event->get_source(), 
+  // 	      replaying_test_event->get_tag(),
+  // 	      replaying_test_event->get_comm_id(),
+  // 	      replaying_test_event->get_test_id())) { //replaying_test_event->get_test_id() == test_id_in
+  //   msg_manager.refresh_matched_recv(test_id_in);
+  // }
+
+  // msg_manager.remove_matched_recv(
+  // 	      replaying_test_event->get_source(), 
+  // 	      replaying_test_event->get_tag(),
+  // 	      replaying_test_event->get_comm_id(), 
+  // 	      replaying_test_event->get_test_id());
+  // /*
+  //   3. Set valiabiles (source, flag, tag)
+  // }
+  //  */
+  // *flag_out = 1;
+  // *source_out = replaying_test_event->get_source();
+  // *tag_out = replaying_test_event->get_tag();
+
+  //  return 0;
+  
+  /*==========================*/
+  /**/
+  // if (flag_in) {
+  //   int event_count = 1;
+  //   int with_previous = 0; //
+  //   int comm_id = 0;
+  //   msg_manager.add_matched_recv(request_in, source_in, tag_in);
+  //   recording_event_list->push(new rempi_test_event(event_count, with_previous, comm_id, flag_in, source_in, tag_in, clock_in, test_id_in));
+  // }
+
+
+
+  // REMPI_DBG("flag: %d , source: %d", replaying_test_event->get_flag(), replaying_test_event->get_source());
+
+
+
+
 }
+
+
+// /*This function is called after MPI_Test*/
+// int rempi_recorder::replay_test(
+//     MPI_Request *request_in,
+//     int flag_in,
+//     int source_in,
+//     int tag_in,
+//     int clock_in,
+//     int with_previous_in,
+//     int test_id_in,
+//     int *flag_out,
+//     int *source_out,
+//     int *tag_out)
+// {
+//   rempi_event *replaying_test_event;
+
+//   /**/
+//   if (flag_in) {
+//     int event_count = 1;
+//     int with_previous = 0; //
+//     int comm_id = 0;
+//     msg_manager.add_matched_recv(request_in, source_in, tag_in);
+//     recording_event_list->push(new rempi_test_event(event_count, with_previous, comm_id, flag_in, source_in, tag_in, clock_in, test_id_in));
+//   }
+
+//   /*1. Get request (recoeded in irecv) for this "replaying_test_event"*/
+//   replaying_test_event = replaying_event_list->dequeue_replay(test_id_in);
+//   if (replaying_test_event == NULL) {
+//     REMPI_DBG("No more replay event. Will switch to recording mode, but not implemented yet");
+//   } 
+
+//   REMPI_DBG("flag: %d , source: %d", replaying_test_event->get_flag(), replaying_test_event->get_source());
+
+//   /*If the event is flag == 0, simply retunr flag == 0*/
+//   if (!replaying_test_event->get_flag()) {
+//     *flag_out = 0;
+//     *source_out = -1;
+//     *tag_out = -1;
+//     return 0;
+//   }
+//   /* So "replayint_test_event" event flag == 1*/
+//   *flag_out = 1;
+//   /*
+//     2. Wait until this recorded message really arrives
+//        if (0 if next recorded maching is not mached in this run) {
+//           TODO: Wait until maching, and get clock
+// 	  TODO: if matched, memorize that the matching for the next replay test
+//        }
+//   */
+
+//   while (!msg_manager.is_matched_recv(
+// 	      replaying_test_event->get_source(), 
+// 	      replaying_test_event->get_tag(),
+// 	      replaying_test_event->get_comm_id())) {
+//     msg_manager.refresh_matched_recv();
+//   }
+
+//   msg_manager.remove_matched_recv(
+// 	      replaying_test_event->get_source(), 
+// 	      replaying_test_event->get_tag(),
+// 	      replaying_test_event->get_comm_id());
+//   /*
+//     3. Set valiabiles (source, flag, tag)
+//   }
+//    */
+//   *flag_out = 1;
+//   *source_out = replaying_test_event->get_source();
+//   *tag_out = replaying_test_event->get_tag();
+
+//   return 0;
+// }
 
 // int rempi_recorder::record_testsome(
 //     int incount,
