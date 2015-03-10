@@ -45,6 +45,7 @@ int rempi_re_cdc::init_clmpi()
 
 int rempi_re_cdc::get_test_id()
 {
+  return 0;
   string test_id_string;
   test_id_string = rempi_btrace_string();
   //TODO: get the binary name
