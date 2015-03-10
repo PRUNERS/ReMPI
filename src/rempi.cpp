@@ -81,8 +81,6 @@ _EXTERN_C_ int MPI_Init_thread(int *arg_0, char ***arg_1, int arg_2, int *arg_3)
 { 
   int _wrap_py_return_val = 0;
   init_rempi();
-  fprintf(stderr, "kasjdf");
-  exit(1);
   _wrap_py_return_val = rempi_record_replay->re_init_thread(arg_0, arg_1, arg_2, arg_3);
   return _wrap_py_return_val;
 }
@@ -116,6 +114,47 @@ _EXTERN_C_ int MPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_
   _wrap_py_return_val = rempi_record_replay->re_testsome(arg_0, arg_1, arg_2, arg_3, arg_4);
   return _wrap_py_return_val;
 }
+
+/* ================== C Wrappers for MPI_Cancel ================== */
+_EXTERN_C_ int PMPI_Cancel(MPI_Request *arg_0);
+_EXTERN_C_ int MPI_Cancel(MPI_Request *arg_0) {
+  int _wrap_py_return_val = 0;
+  {
+   
+    _wrap_py_return_val = PMPI_Cancel(arg_0);
+  }    return _wrap_py_return_val;
+}
+
+/* ================== C Wrappers for MPI_Type_commit ================== */
+_EXTERN_C_ int PMPI_Type_commit(MPI_Datatype *arg_0);
+_EXTERN_C_ int MPI_Type_commit(MPI_Datatype *arg_0) {
+  int _wrap_py_return_val = 0;
+  {
+   
+    _wrap_py_return_val = PMPI_Type_commit(arg_0);
+  }    return _wrap_py_return_val;
+}
+
+/* ================== C Wrappers for MPI_Type_contiguous ================== */
+_EXTERN_C_ int PMPI_Type_contiguous(int arg_0, MPI_Datatype arg_1, MPI_Datatype *arg_2);
+_EXTERN_C_ int MPI_Type_contiguous(int arg_0, MPI_Datatype arg_1, MPI_Datatype *arg_2) {
+  int _wrap_py_return_val = 0;
+  {  
+   
+    _wrap_py_return_val = PMPI_Type_contiguous(arg_0, arg_1, arg_2);
+  }    return _wrap_py_return_val;
+}
+
+/* ================== C Wrappers for MPI_Type_struct ================== */
+_EXTERN_C_ int PMPI_Type_struct(int arg_0, int *arg_1, MPI_Aint *arg_2, MPI_Datatype *arg_3, MPI_Datatype *arg_4);
+_EXTERN_C_ int MPI_Type_struct(int arg_0, int *arg_1, MPI_Aint *arg_2, MPI_Datatype *arg_3, MPI_Datatype *arg_4) {
+  int _wrap_py_return_val = 0;
+  {  
+   
+    _wrap_py_return_val = PMPI_Type_struct(arg_0, arg_1, arg_2, arg_3, arg_4);
+  }    return _wrap_py_return_val;
+}
+
 
 /* ================== C Wrappers for MPI_Finalize ================== */
 _EXTERN_C_ int PMPI_Finalize();

@@ -16,7 +16,7 @@
 using namespace std;
 
 rempi_re_cdc::rempi_re_cdc() {
-  recorder = new rempi_recorder();
+  recorder = new rempi_recorder_cdc();
 }
 
 int rempi_re_cdc::init_clmpi()
@@ -139,7 +139,6 @@ int rempi_re_cdc::re_test(
     REMPI_ERR("ReMPI requires status in MPI_Test");
   }
 
-
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     clmpi_register_recv_clocks(&clock, 1);
     ret = PMPI_Test(request, flag, status);
@@ -150,8 +149,13 @@ int rempi_re_cdc::re_test(
     }
   } else {
     int recorded_source, recorded_tag, recorded_flag;
+    MPI_Request *request_in;
+    request_in = request; /* If PMPI_Test matches, the request become NULL. So keep the value in the request_in */
+    clmpi_register_recv_clocks(&clock, 1);
+    ret = PMPI_Test(request, flag, status);
+
     if(clock != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
-      recorder->replay_test(request, *flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, get_test_id(),
+      recorder->replay_test(request_in, *flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, get_test_id(),
 			    &recorded_flag, &recorded_source, &recorded_tag);
       /*Set next recorded and matched source, and tag*/
       status->MPI_SOURCE = recorded_source;

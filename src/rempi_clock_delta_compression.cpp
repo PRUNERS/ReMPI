@@ -753,7 +753,8 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
 
 bool rempi_clock_delta_compression::is_matching(rempi_event *left, rempi_event *up)
 {
-  return (left->get_source() == up->get_source());  
+  return (left->clock_order == up->clock_order);  
+  //  return (left->get_source() == up->get_source()); // we cannot replay by only recoding rank, we need id (e.g. clock) for it
 }
   
 
@@ -925,8 +926,10 @@ void rempi_clock_delta_compression::decompress(
 
 bool rempi_clock_delta_compression_2::is_matching(rempi_event *left, rempi_event *up)
 {
-  return (left->get_source() == up->get_source());  
+  return (left->clock_order == up->clock_order);  
+  //  return (left->get_source() == up->get_source());  
 }
+
 
 char* rempi_clock_delta_compression_2::compress(
        map<int, rempi_event*> &msg_ids_clocked,
@@ -956,7 +959,11 @@ char* rempi_clock_delta_compression_2::compress(
   double s_part, e_part;
 #endif
 
+  matched_bits.resize(msg_ids_clocked.size());
+  matched_bits.reserve(msg_ids_clocked.size());
 
+  msg_ids_clocked_start_it =  msg_ids_clocked.cbegin();
+  msg_ids_clocked_search_it = msg_ids_clocked_start_it;
 
 #ifdef DEBUG_PERF
   s_adds = rempi_get_time();
@@ -964,31 +971,49 @@ char* rempi_clock_delta_compression_2::compress(
 #endif
   
   for (int i = 0; i < msg_ids_observed.size(); i++) {
-    rempi_event *msg_id_up, *msg_id_left;
-    int matched_column = 0;
-    int window = 10;
-
+    int matched_column, matched_row;
+    rempi_event *msg_id_up, *msg_id_left, *matched_msg_id_up;
+    msg_id_up   = msg_ids_clocked_search_it->second;
     msg_id_left = msg_ids_observed[i];
-    for (int j = i; j > 0 && window > 0; j--, window--) {
-      msg_id_up = msg_ids_clocked[j];
-      if (is_matching(msg_id_left, msg_id_up)) {
-	int matched_row = i;
-	matched_column  = j;
-	sed_path_seerch.add_node(matched_row, matched_column, -1);
-	//	REMPI_DBG("(%d, %d)", matched_row, matched_column);
-      }
-    }
 
-    window = 10;
-    for (int j = i; j < msg_ids_clocked.size() && window > 0; j++, window--) {
-      msg_id_up = msg_ids_clocked[j];
-      if (is_matching(msg_id_left, msg_id_up)) {
-	int matched_row = i;
-	matched_column  = j;
-	sed_path_seerch.add_node(matched_row, matched_column, -1);
-	//	REMPI_DBG("(%d, %d)", matched_row, matched_column);
-      }
-    }
+#ifdef DEBUG_PERF
+    s_find = rempi_get_time();
+#endif    
+    /*set "msg_ids_clocked_search_it" to start index*/
+    current_column_of_search_it =
+      next_start_search_it(msg_id_up->clock_order, msg_id_left->clock_order,
+			   msg_ids_clocked_search_it,
+			   msg_ids_clocked_start_it,
+			   current_column_of_search_it,
+			   current_column_of_start_it);
+    //    REMPI_DBG("--- matched_column: %d %d", current_column_of_start_it, msg_ids_clocked_search_it->second->clock);
+    /*find matched clock column*/
+    current_column_of_search_it += 
+      find_matched_clock_column(
+				msg_id_left,
+				msg_ids_clocked_search_it,
+				msg_ids_clocked.cend());
+
+#ifdef DEBUG_PERF
+    t_find += rempi_get_time() - s_find;
+#endif    
+    matched_column = current_column_of_search_it;
+    matched_row    = i;
+
+    sed_path_seerch.add_node(matched_row, matched_column, current_column_of_start_it);
+    matched_msg_id_up = msg_ids_clocked_search_it->second;
+
+    map_clock_to_order[matched_msg_id_up->clock_order] = matched_column;
+
+
+    /*If needed, it updates start_it*/
+    current_column_of_start_it = 
+      update_start_it(
+			  current_column_of_start_it,
+			  current_column_of_search_it,
+			  matched_bits,
+			  msg_ids_clocked_start_it);
+
   }
   /*Finally, add morst bottom-right node, because path from this bottom-right node to root node
    becomes shortest path. And sed_path_seerch return results based on this bottom-right node*/
@@ -1019,9 +1044,13 @@ char* rempi_clock_delta_compression_2::compress(
 #endif
 
 
+
+
   {
     list<pair<int, int>*> diff;
     sed_path_seerch.convert_to_diff_reversed(diff);
+
+
 
 #if 0
     list<pair<int, int>*>::iterator diff_it;
@@ -1055,6 +1084,134 @@ char* rempi_clock_delta_compression_2::compress(
 
   return compressed_data;
 }
+
+// char* rempi_clock_delta_compression_2::compress(
+//        map<int, rempi_event*> &msg_ids_clocked,
+//        vector<rempi_event*> &msg_ids_observed,
+//        size_t &compressed_bytes)
+// {
+//   map<int, rempi_event*>::const_iterator msg_ids_clocked_search_it;
+//   map<int, rempi_event*>::const_iterator msg_ids_clocked_start_it;
+//   /*To memorize order of clock: 
+//     clock: 0 12 34 45 98
+//     map_clock_to_order[0] = 0
+//     map_clock_to_order[12] = 1
+//     map_clock_to_order[34] = 2
+//     map_clock_to_order[45] = 3
+//     map_clock_to_order[98] = 4
+//    */
+//   map<int, int> map_clock_to_order; 
+//   int current_column_of_search_it = -1;
+//   int current_column_of_start_it  =  0;
+//   vector<bool> matched_bits; /*Memorize which column of msg was matched*/
+//   shortest_edit_distance_path_search sed_path_seerch;
+//   char *compressed_data;
+
+// #ifdef DEBUG_PERF
+//   double s_adds, e_adds;
+//   double s_find, t_find;
+//   double s_part, e_part;
+// #endif
+
+
+
+// #ifdef DEBUG_PERF
+//   s_adds = rempi_get_time();
+
+// #endif
+  
+//   for (int i = 0; i < msg_ids_observed.size(); i++) {
+//     rempi_event *msg_id_up, *msg_id_left;
+//     int matched_column = 0;
+//     int window = 10;
+
+//     msg_id_left = msg_ids_observed[i];
+//     for (int j = i; j > 0 && window > 0; j--, window--) {
+//       msg_id_up = msg_ids_clocked[j];
+//       if (is_matching(msg_id_left, msg_id_up)) {
+// 	int matched_row = i;
+// 	matched_column  = j;
+// 	sed_path_seerch.add_node(matched_row, matched_column, -1);
+// 	//	REMPI_DBG("(%d, %d)", matched_row, matched_column);
+//       }
+//     }
+
+//     window = 10;
+//     for (int j = i; j < msg_ids_clocked.size() && window > 0; j++, window--) {
+//       msg_id_up = msg_ids_clocked[j];
+//       if (is_matching(msg_id_left, msg_id_up)) {
+// 	int matched_row = i;
+// 	matched_column  = j;
+// 	sed_path_seerch.add_node(matched_row, matched_column, -1);
+// 	//	REMPI_DBG("(%d, %d)", matched_row, matched_column);
+//       }
+//     }
+//   }
+//   /*Finally, add morst bottom-right node, because path from this bottom-right node to root node
+//    becomes shortest path. And sed_path_seerch return results based on this bottom-right node*/
+//   sed_path_seerch.add_node(msg_ids_clocked.size(), msg_ids_clocked.size(), current_column_of_start_it);
+//   /*Distance from the bottom-right node*/
+
+// #ifdef DEBUG_PERF
+//   e_adds = rempi_get_time();
+//   REMPI_DBG("COM (adds): %f, COM(adds(xxx)): %f", e_adds - s_adds, t_find);
+// #endif
+  
+// #if 0
+//   REMPI_DBG("Distance: %d", sed_path_seerch.get_shortest_distance());
+// #endif
+
+
+// #if 0
+//   {
+//     map<int, int>::iterator map_it;
+//     // for_each(map_clock_to_order.begin(), map_clock_to_order.end(), [](pair<int, int> n){ 
+//     // 	REMPI_DBG("Map: %d -> %d", n.first, n.second);	
+//     //   });
+//     for (map_it  = map_clock_to_order.begin(); 
+// 	 map_it != map_clock_to_order.end(); map_it++) {
+// 	REMPI_DBG("Map: %d -> %d", map_it->first, map_it->second);	
+//     }
+//   }
+// #endif
+
+
+//   {
+//     list<pair<int, int>*> diff;
+//     sed_path_seerch.convert_to_diff_reversed(diff);
+
+// #if 0
+//     list<pair<int, int>*>::iterator diff_it;
+//     for (diff_it  = diff.begin(); 
+// 	 diff_it != diff.end(); diff_it++) {
+//       REMPI_DBG("Map: %d -> %d", (*diff_it)->first, (*diff_it)->second);	
+//     }
+// #endif
+
+//     //    change_to_seq_order_id(diff, msg_ids_observed, map_clock_to_order);
+
+// #if 0
+//     list<pair<int, int>*>::iterator diff_it_1;
+//     REMPI_DBG(" ==== ");
+//     for (diff_it_1  = diff.begin(); 
+// 	 diff_it_1 != diff.end(); diff_it_1++) {
+//       REMPI_DBG("Map: %d -> %d", (*diff_it_1)->first, (*diff_it_1)->second);	
+//     }
+// #endif
+// #ifdef DEBUG_PERF
+//   s_part = rempi_get_time();
+// #endif
+
+//   compressed_data = convert_to_diff_binary(diff, compressed_bytes);
+// #ifdef DEBUG_PERF
+//   e_part = rempi_get_time();
+//   REMPI_DBG("COM (part): %f", e_part - s_part);
+// #endif
+
+//  }
+
+//   return compressed_data;
+// }
 
 
 

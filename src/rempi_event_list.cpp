@@ -121,76 +121,132 @@ If thread finished reading all events, and pushed to event_lists, and the events
 This function retunr NULL
 */
 template <class T>
-T rempi_event_list<T>::dequeue_replay(int test_id)
+T rempi_event_list<T>::dequeue_replay(int test_id, int &status)
 {
   rempi_event *event;
   rempi_spsc_queue<rempi_event*> *spsc_queue;
+  bool is_queue_empty;
   
   if (previous_replaying_event_umap.find(test_id) == previous_replaying_event_umap.end()) {
     previous_replaying_event_umap[test_id] = NULL;
   }
   
-  //  previous_event = previous_replaying_event[test_id];
-  while(replay_events.find(test_id) == replay_events.end()) {
-    usleep(spin_time);
+  /*Did io thread create the replay_events(test_id) spsc_queue instance for decoding ?*/
+  if (replay_events.find(test_id) == replay_events.end()) {
+    status = REMPI_EVENT_LIST_EMPTY;
+    return NULL;
   }
   spsc_queue = replay_events[test_id];
 
-  /*TODO: TODO(A) */
-  while (previous_replaying_event_umap[test_id] == NULL) {
-    if (is_push_closed) {
-      previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
-      bool is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
-      if (is_queue_empty) {
-	REMPI_DBG("push closed %p", previous_replaying_event_umap[test_id]);
-	return NULL;
-      }
-    } else {
-      previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+  if (is_push_closed) {
+    /* Note: 
+         is_push_closed is need to be tested before calling spsc_queue->dequeu()
+         because io thread calls spsc_queue->enqueue() first, then set 
+	 is_push_closed to 1;	 
+    */
+    previous_replaying_event_umap[test_id] = spsc_queue->dequeue(); // 
+    is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
+    if (is_queue_empty) {
+      REMPI_ERR("No more replay event. Will switch to recording mode, but not implemented yet");
+      status = REMPI_EVENT_LIST_FINISH;
+      return NULL;
     }
-    // previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
-    // bool is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
-    // if (is_queue_empty && is_push_closed) {
-    //   REMPI_DBG("push closed %p", previous_replaying_event_umap[test_id]);
-    //   return NULL;
-    // }
+  } else {
+    previous_replaying_event_umap[test_id] = spsc_queue->dequeue(); // 
+    is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
+    if (is_queue_empty) {
+      // REMPI_DBG("push closed %p", previous_replaying_event_umap[test_id]);
+      status = REMPI_EVENT_LIST_EMPTY;
+      return NULL;
+    }
   }
 
   /*From here, previous_replaying_event has "event instance" at least*/
   if (previous_replaying_event_umap[test_id]->size() <= 0) {
     delete previous_replaying_event_umap[test_id];
     previous_replaying_event_umap[test_id] = NULL;
-
-    /*TODO: Implement a function to combine to TODO(A) above*/
-    while (previous_replaying_event_umap[test_id] == NULL) {
-      if (is_push_closed) {
-	previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
-	bool is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
-	if (is_queue_empty) {
-	  REMPI_DBG("push closed %p", previous_replaying_event_umap[test_id]);
-	  return NULL;
-	}
-      } else {
-	previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
-      }
-      // previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
-      // bool is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
-      // if (is_queue_empty && is_push_closed) {
-      // 	REMPI_DBG("push closed2 %p", previous_replaying_event_umap[test_id]);
-      // 	return NULL;
-      // }
-    }
+    status = REMPI_EVENT_LIST_EMPTY;
+    return NULL;
   }
-
   event = previous_replaying_event_umap[test_id]->pop();
-  
   if (event == NULL) {
-    REMPI_ERR("previous replaying event pop failed");
+    REMPI_ERR("Poped replaying event is null: this should not be occured");
   }
-  //  event->print();
+  status = REMPI_EVENT_LIST_DEQUEUED;
   return event;
-
 }
+
+// template <class T>
+// T rempi_event_list<T>::dequeue_replay(int test_id)
+// {
+//   rempi_event *event;
+//   rempi_spsc_queue<rempi_event*> *spsc_queue;
+  
+//   if (previous_replaying_event_umap.find(test_id) == previous_replaying_event_umap.end()) {
+//     previous_replaying_event_umap[test_id] = NULL;
+//   }
+  
+//   //  previous_event = previous_replaying_event[test_id];
+//   while(replay_events.find(test_id) == replay_events.end()) {
+//     usleep(spin_time);
+//   }
+//   spsc_queue = replay_events[test_id];
+
+//   /*TODO: TODO(A) */
+//   while (previous_replaying_event_umap[test_id] == NULL) {
+//     if (is_push_closed) {
+//       previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+//       bool is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
+//       if (is_queue_empty) {
+// 	REMPI_DBG("push closed %p", previous_replaying_event_umap[test_id]);
+// 	return NULL;
+//       }
+//     } else {
+//       previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+//     }
+//     // previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+//     // bool is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
+//     // if (is_queue_empty && is_push_closed) {
+//     //   REMPI_DBG("push closed %p", previous_replaying_event_umap[test_id]);
+//     //   return NULL;
+//     // }
+//   }
+
+//   /*From here, previous_replaying_event has "event instance" at least*/
+//   if (previous_replaying_event_umap[test_id]->size() <= 0) {
+//     delete previous_replaying_event_umap[test_id];
+//     previous_replaying_event_umap[test_id] = NULL;
+
+//     /*TODO: Implement a function to combine to TODO(A) above*/
+//     while (previous_replaying_event_umap[test_id] == NULL) {
+//       if (is_push_closed) {
+// 	previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+// 	bool is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
+// 	if (is_queue_empty) {
+// 	  REMPI_DBG("push closed %p", previous_replaying_event_umap[test_id]);
+// 	  return NULL;
+// 	}
+//       } else {
+// 	previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+//       }
+//       // previous_replaying_event_umap[test_id] = spsc_queue->dequeue();
+//       // bool is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
+//       // if (is_queue_empty && is_push_closed) {
+//       // 	REMPI_DBG("push closed2 %p", previous_replaying_event_umap[test_id]);
+//       // 	return NULL;
+//       // }
+//     }
+//   }
+
+//   event = previous_replaying_event_umap[test_id]->pop();
+  
+//   if (event == NULL) {
+//     REMPI_ERR("previous replaying event pop failed");
+//   }
+//   //  event->print();
+//   return event;
+
+// }
 
 
 

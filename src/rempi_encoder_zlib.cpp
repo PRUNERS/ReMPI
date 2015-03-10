@@ -27,10 +27,12 @@ void rempi_encoder_zlib::compress_matched_events(rempi_encoder_input_format_test
   vector<size_t> events_id_vec;
 
   for (int i = 0; i < test_table->events_vec.size(); i++) {
-    size_t source;
+    size_t source, clock;
     source = test_table->events_vec[i]->get_source();
+    clock  = test_table->events_vec[i]->get_clock();
     events_id_vec.push_back(source);
-    REMPI_DBGI(0, "vall: %lu", source);
+    events_id_vec.push_back(clock);
+    //    REMPI_DBGI(0, "vall: %lu", source);
   }
   original_buff   = (char*)&events_id_vec[0];
   original_size   = events_id_vec.size() * sizeof(events_id_vec[0]);
@@ -38,7 +40,6 @@ void rempi_encoder_zlib::compress_matched_events(rempi_encoder_input_format_test
   test_table->compressed_matched_events           = (compressed_buff == NULL)? original_buff:compressed_buff;
   test_table->compressed_matched_events_size      = (compressed_buff == NULL)? original_size:compressed_size;
   REMPI_DBG("  matched(id): %lu bytes (<-zlib- %lu)", test_table->compressed_matched_events_size, original_size);
-
   return;
 }
 

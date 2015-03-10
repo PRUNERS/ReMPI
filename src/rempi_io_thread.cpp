@@ -14,15 +14,15 @@ rempi_mutex rempi_io_thread::mtx;
 rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_events, 
 				 rempi_event_list<rempi_event*> *replaying_events, 
 				 string id, int mode)
-  : recording_events(recording_events), replaying_events(replaying_events), id(id), mode(mode)
+:recording_events(recording_events), replaying_events(replaying_events), id(id), mode(mode)
 {
   record_path = rempi_record_dir_path + "/rank_" + id + ".rempi";
-  encoder = new rempi_encoder(mode);
-  //  encoder = new rempi_encoder_cdc(mode);
-  //encoder = new rempi_encoder_cdc_row_wise_diff(mode);
-  //encoder = new rempi_encoder_cdc_permutation_diff(mode);
-  // encoder = new rempi_encoder_zlib(mode);
-  //encoder = new rempi_encoder_simple_zlib(mode);
+  //  encoder = new rempi_encoder(mode);                          //  (1): Simple record (count, flag, rank with_next and clock)
+  //  encoder = new rempi_encoder_simple_zlib(mode);           //  (2): (1) + format change
+  // encoder = new rempi_encoder_zlib(mode);                  //  (3): (2) + distingusishing different test/testsome
+  //encoder = new rempi_encoder_cdc_row_wise_diff(mode);     //  (4): (3) + row_wise diff
+  //encoder = new rempi_encoder_cdc(mode);                   //  (5): (3) + edit distance (two values for an only permutated message)
+  encoder = new rempi_encoder_cdc_permutation_diff(mode); //  (6): (3) + edit distance (one value for each message)
 }
 
 void rempi_io_thread::write_record()

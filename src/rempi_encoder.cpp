@@ -4,7 +4,9 @@
 #include "rempi_event.h"
 #include "rempi_encoder.h"
 #include "rempi_config.h"
+#include "rempi_compression_util.h"
 
+#define MAX_INPUT_FORMAT_LENGTH (2000000000)
 
 /* ==================================== */
 /*  CLASS rempi_encoder_input_format    */
@@ -91,36 +93,78 @@ rempi_encoder_input_format* rempi_encoder::create_encoder_input_format()
     write the data(char*)
     =============================== */
 
-
+// bool rempi_encoder::extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format)
+// {
+//   rempi_event *event;
+//   rempi_encoder_input_format_test_table *test_table;
+//   bool is_extracted = false;
+//   event = events.pop();
+//   /*encoding_event_sequence get only one event*/
+//   if (event != NULL) {
+//     //    rempi_dbgi(0, "pusu event: %p", event);                                                              
+//     input_format.add(event, 0);
+//     is_extracted = true;
+//   }
+//   return is_extracted;
+// }
 
 bool rempi_encoder::extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format)
 {
-  rempi_event *event;
-  rempi_encoder_input_format_test_table *test_table;
-  bool is_extracted = false;
-  event = events.pop();
-  /*encoding_event_sequence get only one event*/
-  if (event != NULL) {
-    //    rempi_dbgi(0, "pusu event: %p", event);                                                              
-    input_format.add(event, 0);
-    is_extracted = true;
+  rempi_event *event_dequeued;
+  bool is_ready_for_encoding = false;
+
+  while (1) {
+    /*Append events to current check as many as possible*/
+    if (events.front() == NULL) break;
+    event_dequeued = events.pop();
+    input_format.add(event_dequeued);
   }
-  return is_extracted;
+
+  //  REMPI_DBG("input_format.length() %d", input_format.length());
+  if (input_format.length() == 0) {
+    return is_ready_for_encoding; /*false*/
+  }
+
+  if (input_format.length() > MAX_INPUT_FORMAT_LENGTH || events.is_push_closed_()) {
+    /*If got enough chunck size, OR the end of run*/
+    input_format.format();
+    is_ready_for_encoding = true;
+  }
+  return is_ready_for_encoding; /*true*/
 }
+
+
 
 
 void rempi_encoder::encode(rempi_encoder_input_format &input_format)
 {
-  size_t size;
+  size_t original_size, compressed_size;
   rempi_event *encoding_event;
   rempi_encoder_input_format_test_table *test_table;
- 
+  int *original_buff;
+  int recoding_inputs_num = 5; // count, flag, rank, with_next and clock
+
   test_table = input_format.test_tables_map[0];
-  /*encoding_event_sequence has only one event*/
-  encoding_event = test_table->events_vec[0];
+
+  original_size = sizeof(int) * recoding_inputs_num * test_table->events_vec.size();
+  original_buff = (int*)malloc(original_size);
+  for (int i = 0, j = 0; i < test_table->events_vec.size(); i++, j += recoding_inputs_num) {
+    int encodign_buff_head_index = i * recoding_inputs_num;
+    encoding_event = test_table->events_vec[i];    
+    original_buff[encodign_buff_head_index + 0] = encoding_event->get_event_counts();
+    original_buff[encodign_buff_head_index + 1] = encoding_event->get_flag();
+    original_buff[encodign_buff_head_index + 2] = encoding_event->get_source();
+    original_buff[encodign_buff_head_index + 3] = encoding_event->get_is_testsome();
+    original_buff[encodign_buff_head_index + 4] = encoding_event->get_clock();
+  }
+    
   //  rempi_dbgi(0, "-> encoding: %p, size: %d: count: %d", encoding_event, encoding_event_sequence.size(), count++);                                      
-  test_table->compressed_matched_events      = encoding_event->serialize(size);
-  test_table->compressed_matched_events_size = size;
+  test_table->compressed_matched_events      = compression_util.compress_by_zlib((char*)original_buff, original_size, compressed_size);
+  test_table->compressed_matched_events_size = compressed_size;
+  
+  REMPI_DBG("xOriginal size: count:%5d(matched/unmatched entry) x 4 bytes x 5 = %d bytes,  Compressed size: %lu bytes , %d %lu", 
+	    input_format.total_length, original_size , compressed_size, 
+	    original_size, compressed_size)
 
   return;
 }

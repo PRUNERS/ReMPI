@@ -4,9 +4,9 @@
 
 #include "rempi_test_util.h"
 
-#define NUM_KV_PER_RANK (3)
+#define NUM_KV_PER_RANK (2)
 #define MAX_VAL (10)
-#define MAX_MESG_PASS (100)
+#define MAX_MESG_PASS (2)
 
 
 double start, end, overall_end;

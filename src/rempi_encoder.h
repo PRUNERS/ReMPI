@@ -55,6 +55,7 @@ class rempi_encoder
     int mode;
     string record_path;
     fstream record_fs;
+    rempi_compression_util<size_t> compression_util;
  public:
 
     rempi_event_list<rempi_event*> *events;
@@ -96,7 +97,7 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
 class rempi_encoder_cdc : public rempi_encoder
 {
  protected:
-  rempi_compression_util<size_t> compression_util;
+
   rempi_clock_delta_compression *cdc;
   virtual void compress_non_matched_events(rempi_encoder_input_format_test_table  *test_table);
   virtual void compress_matched_events(rempi_encoder_input_format_test_table  *test_table);

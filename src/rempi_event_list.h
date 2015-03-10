@@ -10,6 +10,9 @@
 #include "rempi_mutex.h"
 #include "rempi_event.h"
 
+#define REMPI_EVENT_LIST_EMPTY     (0)
+#define REMPI_EVENT_LIST_FINISH    (1)
+#define REMPI_EVENT_LIST_DEQUEUED  (2)
 
 template <class T>
 class rempi_event_list
@@ -46,7 +49,7 @@ class rempi_event_list
   T pop();
   T front();
 
-  T    dequeue_replay(int test_id);
+  T    dequeue_replay(int test_id, int &status);
   void enqueue_replay(T event, int test_id);
 		
   size_t get_globally_minimal_clock();

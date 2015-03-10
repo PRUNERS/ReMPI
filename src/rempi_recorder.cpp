@@ -68,12 +68,12 @@ int rempi_recorder::replay_irecv(
    MPI_Request *request)
 {
 
-  if (request_to_irecv_inputs_umap.find(*request) 
-   != request_to_irecv_inputs_umap.end()) {
-    REMPI_ERR("This MPI_Request is not diactivated. This mainly caused by irecv call "
-	      "with MPI_Request which is not diactivated by MPI_{Wait|Test}{|some|any|all}");
-  }
-  request_to_irecv_inputs_umap[*request] = new irecv_inputs(buf, count, datatype, source, tag, *comm, *request);
+  // if (request_to_irecv_inputs_umap.find(*request) 
+  //  != request_to_irecv_inputs_umap.end()) {
+  //   REMPI_ERR("This MPI_Request is not diactivated. This mainly caused by irecv call "
+  // 	      "with MPI_Request which is not diactivated by MPI_{Wait|Test}{|some|any|all}");
+  // }
+  // request_to_irecv_inputs_umap[*request] = new irecv_inputs(buf, count, datatype, source, tag, *comm, *request, proxy_buf, proxy_request);
   //  msg_manager.add_pending_recv(request, source, tag, comm_id);
   ///msg_manager.print_pending_recv();
   return 0;
@@ -91,7 +91,6 @@ int rempi_recorder::record_test(
   return record_test(request, flag, source, tag, clock, with_previous, -1);
 }
 
-int bcount = 0;
 int rempi_recorder::record_test(
     MPI_Request *request,
     int *flag,
@@ -142,7 +141,7 @@ int rempi_recorder::replay_test(
 
 
   /*1. Get replaying event */
-  replaying_test_event = replaying_event_list->dequeue_replay(test_id_in);
+  //  replaying_test_event = replaying_event_list->dequeue_replay(test_id_in, -1);
   if (replaying_test_event == NULL) {
     REMPI_ERR("No more replay event. Will switch to recording mode, but not implemented yet");
   } 

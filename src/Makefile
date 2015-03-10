@@ -10,7 +10,9 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 		$(SRC_DIR)/rempi_compression_util.cpp \
 		$(SRC_DIR)/rempi_config.cpp \
                 $(SRC_DIR)/rempi_re.cpp \
+	        $(SRC_DIR)/rempi_re_no_comp.cpp \
 	        $(SRC_DIR)/rempi_re_cdc.cpp \
+		$(SRC_DIR)/rempi_recorder_cdc.cpp \
 		$(SRC_DIR)/rempi_recorder.cpp \
 		$(SRC_DIR)/rempi_message_manager.cpp \
 		$(SRC_DIR)/rempi_event_list.cpp \
