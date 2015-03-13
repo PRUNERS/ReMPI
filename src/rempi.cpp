@@ -110,7 +110,6 @@ _EXTERN_C_ int PMPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg
 _EXTERN_C_ int MPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_3, MPI_Status *arg_4)
 { 
   int _wrap_py_return_val = 0;
-
   _wrap_py_return_val = rempi_record_replay->re_testsome(arg_0, arg_1, arg_2, arg_3, arg_4);
   return _wrap_py_return_val;
 }
@@ -152,6 +151,26 @@ _EXTERN_C_ int MPI_Type_struct(int arg_0, int *arg_1, MPI_Aint *arg_2, MPI_Datat
   {  
    
     _wrap_py_return_val = PMPI_Type_struct(arg_0, arg_1, arg_2, arg_3, arg_4);
+  }    return _wrap_py_return_val;
+}
+
+/* ================== C Wrappers for MPI_Comm_split ================== */
+_EXTERN_C_ int PMPI_Comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3);
+_EXTERN_C_ int MPI_Comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3) {
+  int _wrap_py_return_val = 0;
+  {
+
+    _wrap_py_return_val = PMPI_Comm_split(arg_0, arg_1, arg_2, arg_3);
+  }    return _wrap_py_return_val;
+}
+
+
+/* ================== C Wrappers for MPI_Comm_create ================== */
+_EXTERN_C_ int PMPI_Comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2);
+_EXTERN_C_ int MPI_Comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2) {
+  int _wrap_py_return_val = 0;
+  {
+    _wrap_py_return_val = PMPI_Comm_create(arg_0, arg_1, arg_2);
   }    return _wrap_py_return_val;
 }
 

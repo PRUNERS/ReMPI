@@ -86,9 +86,11 @@ int main(int argc, char *argv[])
       int send_dest;
       recv_index = testsome_array_of_indices[i];
 #if 0
-      fprintf(stderr, "rank:%d: Receved source:%d tag:%d\n", my_rank, status[recv_index].MPI_SOURCE, status[recv_index].MPI_TAG);
+      fprintf(stderr, "rank:%d: Receved source:%d tag:%d outcount:%d\n", 
+	      my_rank, status[recv_index].MPI_SOURCE, status[recv_index].MPI_TAG, testsome_outcount);
 #endif
       memcpy(&sendrecv_kv, &recv_kv[recv_index], sizeof(struct key_val));
+      //memset(&sendrecv_kv, 0, sizeof(struct key_val));
       recv_msg_count[recv_index]++;
       if (recv_msg_count[recv_index] < MAX_MESG_PASS) {
 	MPI_Irecv(&recv_kv[recv_index], 2, MPI_INT, (my_rank + size - recv_index) % size, MPI_ANY_TAG, MPI_COMM_WORLD, &request[recv_index]);

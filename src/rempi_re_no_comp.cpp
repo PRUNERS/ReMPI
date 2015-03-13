@@ -15,11 +15,11 @@
 
 using namespace std;
 
-rempi_re_cdc::rempi_re_cdc() {
-  recorder = new rempi_recorder_cdc();
+rempi_re_no_comp::rempi_re_no_comp() {
+  recorder = new rempi_recorder();
 }
 
-int rempi_re_cdc::init_clmpi()
+int rempi_re_no_comp::init_clmpi()
 {
   int err;
   PNMPI_modHandle_t handle_rempi, handle_clmpi;
@@ -43,7 +43,7 @@ int rempi_re_cdc::init_clmpi()
   return err;
 }
 
-int rempi_re_cdc::get_test_id()
+int rempi_re_no_comp::get_test_id()
 {
   string test_id_string;
   test_id_string = rempi_btrace_string();
@@ -57,7 +57,7 @@ int rempi_re_cdc::get_test_id()
   return test_ids_map[test_id_string];
 }
 
-int rempi_re_cdc::re_init(int *argc, char ***argv)
+int rempi_re_no_comp::re_init(int *argc, char ***argv)
 {
   int ret;
   /*Init CLMPI*/
@@ -77,7 +77,7 @@ int rempi_re_cdc::re_init(int *argc, char ***argv)
   return ret;
 }
 
-int rempi_re_cdc::re_init_thread(
+int rempi_re_no_comp::re_init_thread(
 			     int *argc, char ***argv,
 			     int required, int *provided)
 {
@@ -100,7 +100,7 @@ int rempi_re_cdc::re_init_thread(
 }
 
 
-int rempi_re_cdc::re_irecv(
+int rempi_re_no_comp::re_irecv(
 		 void *buf,
 		 int count,
 		 MPI_Datatype datatype,
@@ -126,7 +126,7 @@ int rempi_re_cdc::re_irecv(
   return ret;
 }
   
-int rempi_re_cdc::re_test(
+int rempi_re_no_comp::re_test(
 		    MPI_Request *request, 
 		    int *flag, 
 		    MPI_Status *status)
@@ -139,35 +139,34 @@ int rempi_re_cdc::re_test(
     REMPI_ERR("ReMPI requires status in MPI_Test");
   }
 
+
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     clmpi_register_recv_clocks(&clock, 1);
     ret = PMPI_Test(request, flag, status);
     /*If recoding mode, record the test function*/
     /*TODO: change froi void* to MPI_Request*/
     if(clock != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
-      recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, get_test_id());
+      //      recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, get_test_id());
+      recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, -1);
     }
   } else {
     int recorded_source, recorded_tag, recorded_flag;
-    MPI_Request *request_in;
-    request_in = request; /* If PMPI_Test matches, the request become NULL. So keep the value in the request_in */
-    // clmpi_register_recv_clocks(&clock, 1);
-    //  ret = PMPI_Test(request, flag, status);
-
-    // if(clock != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
-    recorder->replay_test(request_in, *flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, get_test_id(),
-			  &recorded_flag, &recorded_source, &recorded_tag);
-    /*Set next recorded and matched source, and tag*/
-    status->MPI_SOURCE = recorded_source;
-    status->MPI_TAG    = recorded_tag;
-    *flag              = recorded_flag;
-    //    }
+    if(clock != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
+      // recorder->replay_test(request, *flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, get_test_id(),
+      // 			    &recorded_flag, &recorded_source, &recorded_tag);
+      recorder->replay_test(request, *flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, -1,
+      			    &recorded_flag, &recorded_source, &recorded_tag);
+      /*Set next recorded and matched source, and tag*/
+      status->MPI_SOURCE = recorded_source;
+      status->MPI_TAG    = recorded_tag;
+      *flag              = recorded_flag;
+    }
   }
 
   return ret;
 }
   
-int rempi_re_cdc::re_testsome(
+int rempi_re_no_comp::re_testsome(
 			  int incount, 
 			  MPI_Request array_of_requests[],
 			  int *outcount, 
@@ -178,32 +177,37 @@ int rempi_re_cdc::re_testsome(
   size_t *clocks;
   int is_with_previous = REMPI_MPI_EVENT_NOT_WITH_PREVIOUS;
   
+  
   if (array_of_statuses == NULL) {
     /*TODO: allocate array_of_statuses in ReMPI instead of the error below*/
     REMPI_ERR("ReMPI requires array_of_statues in MPI_Testsome");
   }
+  clocks = (size_t*)malloc(sizeof(size_t) * incount);
+  clmpi_register_recv_clocks(clocks, incount);
+
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    clocks = (size_t*)malloc(sizeof(size_t) * incount);
-    clmpi_register_recv_clocks(clocks, incount);
+
     ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
     if (*outcount == 0) {
       int flag = 0;
-      recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, get_test_id());
+      //      recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, get_test_id());
+      recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, -1);
     }
 
     for (int i = 0; i < *outcount; i++) {
       int flag = 1;
       int index = array_of_indices[i];
       if(clocks[index] != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
-	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[index].MPI_SOURCE, array_of_statuses[index].MPI_TAG, clocks[index], is_with_previous, get_test_id());
+	//	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[index].MPI_SOURCE, array_of_statuses[index].MPI_TAG, clocks[index], is_with_previous, get_test_id());
+	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[index].MPI_SOURCE, array_of_statuses[index].MPI_TAG, clocks[index], is_with_previous, -1);
 	is_with_previous = REMPI_MPI_EVENT_WITH_PREVIOUS;
       }
     }
-    free(clocks);
   } else {
-    //    ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
-    recorder->replay_testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
+    REMPI_DBG("Not implemented yet");
+    // TODO: replay
+    // rempi_replay_test(buf, count, (int)(&datatype), source, tag, 0, (void*)request);
   }
 
 #if 0
@@ -220,12 +224,12 @@ int rempi_re_cdc::re_testsome(
 
 
   //  REMPI_DBG(" ----------- ");
-
+  free(clocks);
   return ret;
 }
 
 
-int rempi_re_cdc::re_finalize()
+int rempi_re_no_comp::re_finalize()
 {
   int ret;
   ret = PMPI_Finalize();

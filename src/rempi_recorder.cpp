@@ -161,7 +161,7 @@ int rempi_recorder::replay_test(
     2. Wait until this replaying message really arrives
   */
   {
-    irecv_inputs *inputs = request_to_irecv_inputs_umap[*request_in];
+    rempi_irecv_inputs *inputs = request_to_irecv_inputs_umap[*request_in];
     //    REMPI_DBG("Probing");
     PMPI_Probe(*source_out, *tag_out, inputs->comm, &status);
     if (*source_out != status.MPI_SOURCE ||
@@ -311,6 +311,9 @@ int rempi_recorder::replay_test(
 //   return 0;
 // }
 
+
+
+
 // int rempi_recorder::record_testsome(
 //     int incount,
 //     void *array_of_requests[],
@@ -343,6 +346,16 @@ int rempi_recorder::replay_test(
 //   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
 //   return 0;
 // }
+
+int rempi_recorder::replay_testsome(
+                                        int incount,
+                                        MPI_Request array_of_requests[],
+                                        int *outcount,
+                                        int array_of_indices[],
+                                        MPI_Status array_of_statuses[])
+{
+  return PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
+}
 
 // int rempi_recorder::replay_testsome(
 //     int incount,
