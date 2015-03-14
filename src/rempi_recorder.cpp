@@ -348,11 +348,12 @@ int rempi_recorder::replay_test(
 // }
 
 int rempi_recorder::replay_testsome(
-                                        int incount,
-                                        MPI_Request array_of_requests[],
-                                        int *outcount,
-                                        int array_of_indices[],
-                                        MPI_Status array_of_statuses[])
+				    int incount,
+				    MPI_Request array_of_requests[],
+				    int *outcount,
+				    int array_of_indices[],
+				    MPI_Status array_of_statuses[],
+				    int test_id)
 {
   return PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
 }

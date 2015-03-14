@@ -145,7 +145,8 @@ class rempi_recorder {
 		      MPI_Request array_of_requests[], 
 		      int *outcount, 
 		      int array_of_indices[], 
-		      MPI_Status array_of_statuses[]);
+		      MPI_Status array_of_statuses[],
+		      int test_id);
 
   //TODO: Comm_dup Comm_split
 
@@ -225,7 +226,8 @@ class rempi_recorder_cdc : public rempi_recorder
 		      MPI_Request array_of_requests[], 
 		      int *outcount, 
 		      int array_of_indices[], 
-		      MPI_Status array_of_statuses[]);
+		      MPI_Status array_of_statuses[],
+		      int test_id);
 
   //TODO: Comm_dup Comm_split
 

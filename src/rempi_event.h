@@ -34,6 +34,8 @@ class rempi_event
       clock is size_t, but the other values are int
       for now, I use long to allocate 64bit
      */
+    static int record_num;
+    static int record_element_size;
 
     int clock_order = - 1; /*Ordered by clock when CDC compression is used */
     vector<long> mpi_inputs;

@@ -349,7 +349,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
   return;
 }
 
-void rempi_encoder_cdc::insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format)
+void rempi_encoder_cdc::insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format)
 {
   REMPI_ERR("This function has not been implemented yet");
   return;

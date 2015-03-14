@@ -387,7 +387,8 @@ int rempi_recorder_cdc::replay_testsome(
 					MPI_Request array_of_requests[],
 					int *outcount,
 					int array_of_indices[],
-					MPI_Status array_of_statuses[])
+					MPI_Status array_of_statuses[],
+					int test_id)
 {
   int ret;
   int with_next = 1;
@@ -400,16 +401,17 @@ int rempi_recorder_cdc::replay_testsome(
       if (request_to_irecv_inputs_umap.find(array_of_requests[i]) != request_to_irecv_inputs_umap.end()) {
 	int flag = 0;
 	rempi_proxy_request *proxy_request;
+	MPI_Status status;
 	/*If this request is for irecv (not isend)*/
 	irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[i]];
 	proxy_request = irecv_inputs->request_proxy_list.front();
 	//	REMPI_DBG("   Test: request:%p(%p) source:%d tag:%d size:%d req:%p", &proxy_request->request, proxy_request, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, irecv_inputs->request_proxy_list.size(), array_of_requests[i]);
 	clmpi_register_recv_clocks(&clock, 1);
-	PMPI_Test(&proxy_request->request, &flag, &array_of_statuses[i]);
+	PMPI_Test(&proxy_request->request, &flag, &status);
 	if (flag) {
 	  rempi_proxy_request *next_proxy_request;
 	  /* enqueue */
-	  //	  recording_event_list->push(new rempi_test_event(1, -1, -1, 1, array_of_statuses[i]record_source, record_tag, record_clock, test_id));
+	  recording_event_list->push(new rempi_test_event(1, -1, -1, 1, status.MPI_SOURCE, status.MPI_TAG, clock, test_id));
 
 	  irecv_inputs->request_proxy_list.pop_front();
 	  array_of_indices[*outcount] = i;
@@ -422,7 +424,6 @@ int rempi_recorder_cdc::replay_testsome(
 	  PMPI_Irecv(next_proxy_request->buf, 
 		     irecv_inputs->count, irecv_inputs->datatype, irecv_inputs->source, irecv_inputs->tag, irecv_inputs->comm, 
 		     &next_proxy_request->request);
-
 	  //	  REMPI_DBG("Matched: request:%p source:%d tag:%d", &proxy_request->request, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG);
 	} else {
 	  //	  REMPI_DBG("Uatched: request:%p source:%d tag:%d", &proxy_request->request, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG);

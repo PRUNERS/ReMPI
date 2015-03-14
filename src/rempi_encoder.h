@@ -56,6 +56,9 @@ class rempi_encoder
     string record_path;
     fstream record_fs;
     rempi_compression_util<size_t> compression_util;
+    list<rempi_event*> matched_event_pool;
+    bool is_event_pooled(rempi_event* replaying_event);
+    rempi_event* pop_event_pool(rempi_event* replaying_event);
  public:
 
     rempi_event_list<rempi_event*> *events;
@@ -73,7 +76,8 @@ class rempi_encoder
     /*For only replay*/
     virtual bool read_record_file(rempi_encoder_input_format &input_format);
     virtual void decode(rempi_encoder_input_format &input_format);
-    virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
+    virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
+    
     /*Old functions for replay*/
     //    virtual char* read_decoding_event_sequence(size_t *size);
     //    virtual vector<rempi_event*> decode(char *serialized, size_t *size);
@@ -112,7 +116,7 @@ class rempi_encoder_cdc : public rempi_encoder
   /*For only replay*/
   virtual bool read_record_file(rempi_encoder_input_format &input_format);
   virtual void decode(rempi_encoder_input_format &input_format);
-  virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
+  virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
   //  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };

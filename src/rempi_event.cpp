@@ -7,7 +7,9 @@
 
 using namespace std;
 
-int rempi_event::max_size = sizeof(int) * REMPI_MPI_EVENT_INPUT_NUM;
+int rempi_event::max_size   = sizeof(int) * REMPI_MPI_EVENT_INPUT_NUM;
+int rempi_event::record_num = 5;
+int rempi_event::record_element_size = sizeof(size_t);
 
 void rempi_event::operator ++(int) {
   mpi_inputs[0]++;

@@ -203,7 +203,7 @@ int rempi_re_cdc::re_testsome(
     free(clocks);
   } else {
     //    ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
-    recorder->replay_testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
+    recorder->replay_testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, get_test_id());
   }
 
 #if 0

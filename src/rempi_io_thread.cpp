@@ -85,7 +85,7 @@ void rempi_io_thread::read_record()
       break;
     } else {
       encoder->decode(*input_format);
-      encoder->insert_encoder_input_format_chunk(*replaying_events, *input_format);
+      encoder->insert_encoder_input_format_chunk(*recording_events, *replaying_events, *input_format);
       delete input_format;
       input_format = encoder->create_encoder_input_format();
     }
