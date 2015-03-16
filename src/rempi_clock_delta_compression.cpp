@@ -25,43 +25,43 @@
 using namespace std;
 
 /*
-Original Test (ID is just for this example);
-| ID | event_count | flag | is_testsome | source | tag | comm_id |
-|  0 |          92 |    0 |           0 |      0 |   0 |       0 |
-|  1 |           1 |    1 |           1 |      2 |   1 |       1 |
-|  2 |          34 |    0 |           0 |      0 |   0 |       0 |
-|  3 |           1 |    1 |           1 |      1 |   1 |       1 |
-|  4 |           1 |    1 |           1 |      3 |   1 |       1 |
-|  5 |          12 |    0 |           0 |      0 |   0 |       0 |
-|  6 |           1 |    1 |           1 |      1 |   1 |       1 |
-|  7 |           1 |    1 |           1 |      2 |   1 |       1 |
-|  8 |           1 |    1 |           1 |      3 |   1 |       1 |
-|  9 |          27 |    0 |           0 |      0 |   0 |       0 |
-| 10 |           1 |    1 |           1 |      1 |   1 |       1 |
-| 11 |           1 |    1 |           1 |      3 |   1 |       1 |
-| 12 |           5 |    0 |           0 |      0 |   0 |       0 |
+  Original Test (ID is just for this example);
+  | ID | event_count | flag | is_testsome | source | tag | comm_id |
+  |  0 |          92 |    0 |           0 |      0 |   0 |       0 |
+  |  1 |           1 |    1 |           1 |      2 |   1 |       1 |
+  |  2 |          34 |    0 |           0 |      0 |   0 |       0 |
+  |  3 |           1 |    1 |           1 |      1 |   1 |       1 |
+  |  4 |           1 |    1 |           1 |      3 |   1 |       1 |
+  |  5 |          12 |    0 |           0 |      0 |   0 |       0 |
+  |  6 |           1 |    1 |           1 |      1 |   1 |       1 |
+  |  7 |           1 |    1 |           1 |      2 |   1 |       1 |
+  |  8 |           1 |    1 |           1 |      3 |   1 |       1 |
+  |  9 |          27 |    0 |           0 |      0 |   0 |       0 |
+  | 10 |           1 |    1 |           1 |      1 |   1 |       1 |
+  | 11 |           1 |    1 |           1 |      3 |   1 |       1 |
+  | 12 |           5 |    0 |           0 |      0 |   0 |       0 |
 
-| Original Test | ==> | Matched Test | Unmatched Test |
+  | Original Test | ==> | Matched Test | Unmatched Test |
 
-Matched Test:
-| ID | source | tag | comm_id |
-|  1 |      2 |   1 |       1 |
-|  3 |      1 |   1 |       1 |
-|  4 |      3 |   1 |       1 |
-|  6 |      1 |   1 |       1 |
-|  7 |      2 |   1 |       1 |
-|  8 |      3 |   1 |       1 |
-| 10 |      1 |   1 |       1 |
-| 11 |      3 |   1 |       1 |
+  Matched Test:
+  | ID | source | tag | comm_id |
+  |  1 |      2 |   1 |       1 |
+  |  3 |      1 |   1 |       1 |
+  |  4 |      3 |   1 |       1 |
+  |  6 |      1 |   1 |       1 |
+  |  7 |      2 |   1 |       1 |
+  |  8 |      3 |   1 |       1 |
+  | 10 |      1 |   1 |       1 |
+  | 11 |      3 |   1 |       1 |
 
 
-Unmatched Test
-| ID | event_count | offset |
-|  0 |          92 |      0 |
-|  2 |          34 |      0 |
-|  5 |          12 |      1 |
-|  9 |          27 |      2 |
-| 12 |           5 |      1 |
+  Unmatched Test
+  | ID | event_count | offset |
+  |  0 |          92 |      0 |
+  |  2 |          34 |      0 |
+  |  5 |          12 |      1 |
+  |  9 |          27 |      2 |
+  | 12 |           5 |      1 |
 
 */
 
@@ -70,178 +70,178 @@ Unmatched Test
 class shortest_edit_distance_path_search
 {
   /*
-     -----------
+    -----------
     |   |   |   |
     |   |   |   |
-     ---X--------
+    ---X--------
     |   |\  |   |
     |   |  \|   |
-     -----------
+    -----------
     |   |   |   |
     |   |   |   |
-     -----------
+    -----------
 
-     (row, column) == X
+    (row, column) == X
    
   */
-  private:
-    class clock_node {
-    public:
-      int row;
-      int column;
-      int row_distance;
-      int column_distance;
-      int shortest_distance;
-      clock_node *parent;
-      clock_node(int row, int column, int row_distance, int column_distance, int shortest_distance, clock_node *parent):
-	row(row), column(column), row_distance(row_distance), column_distance(column_distance), shortest_distance(shortest_distance), parent(parent){}
-    };
-    /*TODO: change leaf_list to candidate_leaf_list*/
-    /*List of leaf, which is candidate to connect to new node*/
-    list<clock_node*> leaf_list;
+private:
+  class clock_node {
+  public:
+    int row;
+    int column;
+    int row_distance;
+    int column_distance;
+    int shortest_distance;
+    clock_node *parent;
+    clock_node(int row, int column, int row_distance, int column_distance, int shortest_distance, clock_node *parent):
+      row(row), column(column), row_distance(row_distance), column_distance(column_distance), shortest_distance(shortest_distance), parent(parent){}
+  };
+  /*TODO: change leaf_list to candidate_leaf_list*/
+  /*List of leaf, which is candidate to connect to new node*/
+  list<clock_node*> leaf_list;
     
 
-    int  find_shortest_node(clock_node* new_node, clock_node* search_node, clock_node **parent) {
-      while (search_node != NULL) {
-	int    row_distance   = new_node->row    - (search_node->row + 1);
-	int column_distance   = new_node->column - (search_node->column + 1);
-	if (row_distance >= 0 && column_distance >= 0) {
-	  *parent = search_node;
-	  return search_node->shortest_distance + row_distance + column_distance;
-	}
-	search_node = search_node->parent;
+  int  find_shortest_node(clock_node* new_node, clock_node* search_node, clock_node **parent) {
+    while (search_node != NULL) {
+      int    row_distance   = new_node->row    - (search_node->row + 1);
+      int column_distance   = new_node->column - (search_node->column + 1);
+      if (row_distance >= 0 && column_distance >= 0) {
+	*parent = search_node;
+	return search_node->shortest_distance + row_distance + column_distance;
       }
-      return -1;
+      search_node = search_node->parent;
     }
+    return -1;
+  }
 
   void sweep_non_dandidate_leaf(int current_column_of_start_it) {
     list<clock_node*>::iterator leaf_list_it;
-     for (leaf_list_it  = leaf_list.begin();
-	  leaf_list_it != leaf_list.end();
-	  ) {
-       clock_node *search_leaf_node = *leaf_list_it;
+    for (leaf_list_it  = leaf_list.begin();
+	 leaf_list_it != leaf_list.end();
+	 ) {
+      clock_node *search_leaf_node = *leaf_list_it;
 
-       if (search_leaf_node->column < current_column_of_start_it) {
-	 leaf_list_it = leaf_list.erase(leaf_list_it);
-       } else {
-	 leaf_list_it++;
-       }
-     }
-     return;
+      if (search_leaf_node->column < current_column_of_start_it) {
+	leaf_list_it = leaf_list.erase(leaf_list_it);
+      } else {
+	leaf_list_it++;
+      }
+    }
+    return;
   }
 
 
-  public:
+public:
 
   /*pare = (first: {left|up} index,   second: " " => 0, ">" => 1, "<" => -1  )*/
   void convert_to_diff_reversed(list<pair<int, int>*> &diff) {
-      clock_node* node;
-      node = leaf_list.back();
-      while (node != NULL) {
-	diff.push_back(new pair<int, int>(node->column, EDIT_IGNORE));
-	for (int column = 0; column < node->column_distance; column++) {
-	  int up_index = (node->column - 1) - column;
-	  diff.push_back(new pair<int, int>(up_index, EDIT_REMOVE));
-	}	
-	for (int row = 0;       row < node->row_distance; row++) {
-	  int left_index = (node->row - 1) - row;
-	  diff.push_back(new pair<int, int>(left_index, EDIT_ADD));
-	}
-	node = node->parent;
+    clock_node* node;
+    node = leaf_list.back();
+    while (node != NULL) {
+      diff.push_back(new pair<int, int>(node->column, EDIT_IGNORE));
+      for (int column = 0; column < node->column_distance; column++) {
+	int up_index = (node->column - 1) - column;
+	diff.push_back(new pair<int, int>(up_index, EDIT_REMOVE));
+      }	
+      for (int row = 0;       row < node->row_distance; row++) {
+	int left_index = (node->row - 1) - row;
+	diff.push_back(new pair<int, int>(left_index, EDIT_ADD));
       }
-      /*We do not need the most bottom-righ node*/
-      if (diff.size() > 0) {
-	delete diff.front(); // TODO: delete
-	diff.pop_front();
-      }
-      return;
+      node = node->parent;
     }
+    /*We do not need the most bottom-righ node*/
+    if (diff.size() > 0) {
+      delete diff.front(); // TODO: delete
+      diff.pop_front();
+    }
+    return;
+  }
 
-    int get_shortest_distance() {
-      /*We do not include the distance of the last leaf itself, so -1*/
-      return leaf_list.back()->shortest_distance - 1;
-    }
+  int get_shortest_distance() {
+    /*We do not include the distance of the last leaf itself, so -1*/
+    return leaf_list.back()->shortest_distance - 1;
+  }
   
   void add_node(int row, int column, int current_column_of_start_it) {
-      clock_node *current_shortest_parent   = NULL;
-      int         current_shortest_distance = row + column + 1;
-      clock_node *new_node;
-      list<clock_node*>::iterator leaf_list_it;
-      list<clock_node*>::iterator current_shortest_leaf_it;
-      bool need_erase = false;
+    clock_node *current_shortest_parent   = NULL;
+    int         current_shortest_distance = row + column + 1;
+    clock_node *new_node;
+    list<clock_node*>::iterator leaf_list_it;
+    list<clock_node*>::iterator current_shortest_leaf_it;
+    bool need_erase = false;
 
-      /*Default: Assuming the new_node conects to the root node*/
-      new_node = new clock_node(row, column, row, column, row + column + 1, NULL);
+    /*Default: Assuming the new_node conects to the root node*/
+    new_node = new clock_node(row, column, row, column, row + column + 1, NULL);
 
 #if 0
-      REMPI_DBG("size: %d, row: %d, col:%d, row_bound: %d", leaf_list.size(), row, column, current_column_of_start_it);
+    REMPI_DBG("size: %d, row: %d, col:%d, row_bound: %d", leaf_list.size(), row, column, current_column_of_start_it);
 #endif
       
-      for (leaf_list_it  = leaf_list.begin();
-	   leaf_list_it != leaf_list.end();
-	   leaf_list_it++) {
-	clock_node *search_leaf_node = *leaf_list_it;
-	int         shortest_distance_from_search_node;
-	clock_node *shortest_node_from_search_node;
-	/*TODO: change func name: find_shortest_node => find_shortest_node_from_this_node_upto_parents*/
-	shortest_distance_from_search_node = find_shortest_node(new_node, search_leaf_node, &shortest_node_from_search_node);
+    for (leaf_list_it  = leaf_list.begin();
+	 leaf_list_it != leaf_list.end();
+	 leaf_list_it++) {
+      clock_node *search_leaf_node = *leaf_list_it;
+      int         shortest_distance_from_search_node;
+      clock_node *shortest_node_from_search_node;
+      /*TODO: change func name: find_shortest_node => find_shortest_node_from_this_node_upto_parents*/
+      shortest_distance_from_search_node = find_shortest_node(new_node, search_leaf_node, &shortest_node_from_search_node);
 
-	if (shortest_distance_from_search_node < 0) continue; 	/*There is no node to connect*/
-	if (shortest_distance_from_search_node < current_shortest_distance) {
-	  /*Update, if is shorter then the current shortest distance*/
-	  current_shortest_distance = shortest_distance_from_search_node;
-	  current_shortest_parent   = shortest_node_from_search_node;
-	  if (search_leaf_node == shortest_node_from_search_node) {
-	    /*If the shortest_node_from_search_node is leaf, memorize to remove this from leaf_list later*/
-	    current_shortest_leaf_it = leaf_list_it;
-	    need_erase = true;
-	  } else {
-	    need_erase = false;
-	  }
-
+      if (shortest_distance_from_search_node < 0) continue; 	/*There is no node to connect*/
+      if (shortest_distance_from_search_node < current_shortest_distance) {
+	/*Update, if is shorter then the current shortest distance*/
+	current_shortest_distance = shortest_distance_from_search_node;
+	current_shortest_parent   = shortest_node_from_search_node;
+	if (search_leaf_node == shortest_node_from_search_node) {
+	  /*If the shortest_node_from_search_node is leaf, memorize to remove this from leaf_list later*/
+	  current_shortest_leaf_it = leaf_list_it;
+	  need_erase = true;
+	} else {
+	  need_erase = false;
 	}
-      }
-      if (current_shortest_parent != NULL) {
-	new_node->row_distance   =  new_node->row    - (current_shortest_parent->row + 1);
-	new_node->column_distance = new_node->column - (current_shortest_parent->column + 1);
 
-	new_node->shortest_distance = current_shortest_distance + 1;
-
-#if 0
-	REMPI_DBG("   P: r: %d, c: %d /r: %d  c: %d, current: %d, dist: %d, sum dist: %d", 
-		  current_shortest_parent->row,
-		  current_shortest_parent->column,
-		  row, column, 
-		  current_shortest_distance,
-		  dist,
-		  new_node->shortest_distance);
-#endif
-	new_node->parent            = current_shortest_parent;
-
-	if (need_erase) {
-	  /*If the current_shortest_parent was leaf, remove it from leaf_list*/
-	  leaf_list.erase(current_shortest_leaf_it);
-	}
-      }
-#if 0
-      REMPI_DBG("row: %d, column: %d, distance: %d", row, column, new_node->shortest_distance);
-#endif
-      leaf_list.push_back(new_node);
-      if (column == current_column_of_start_it) {
-	sweep_non_dandidate_leaf(current_column_of_start_it);
       }
     }
+    if (current_shortest_parent != NULL) {
+      new_node->row_distance   =  new_node->row    - (current_shortest_parent->row + 1);
+      new_node->column_distance = new_node->column - (current_shortest_parent->column + 1);
+
+      new_node->shortest_distance = current_shortest_distance + 1;
+
+#if 0
+      REMPI_DBG("   P: r: %d, c: %d /r: %d  c: %d, current: %d, dist: %d, sum dist: %d", 
+		current_shortest_parent->row,
+		current_shortest_parent->column,
+		row, column, 
+		current_shortest_distance,
+		dist,
+		new_node->shortest_distance);
+#endif
+      new_node->parent            = current_shortest_parent;
+
+      if (need_erase) {
+	/*If the current_shortest_parent was leaf, remove it from leaf_list*/
+	leaf_list.erase(current_shortest_leaf_it);
+      }
+    }
+#if 0
+    REMPI_DBG("row: %d, column: %d, distance: %d", row, column, new_node->shortest_distance);
+#endif
+    leaf_list.push_back(new_node);
+    if (column == current_column_of_start_it) {
+      sweep_non_dandidate_leaf(current_column_of_start_it);
+    }
+  }
 
 };
 
 
 int rempi_clock_delta_compression::next_start_search_it(
- int msg_id_up_clock,
- int msg_id_left_clock,
- map<int, rempi_event*>::const_iterator &msg_ids_clocked_search_it,
- map<int, rempi_event*>::const_iterator &msg_ids_clocked_start_it,
- int current_column_of_search_it,
- int current_column_of_start_it) 
+							int msg_id_up_clock,
+							int msg_id_left_clock,
+							map<int, rempi_event*>::const_iterator &msg_ids_clocked_search_it,
+							map<int, rempi_event*>::const_iterator &msg_ids_clocked_start_it,
+							int current_column_of_search_it,
+							int current_column_of_start_it) 
 {
   /*Find start msg_id_up for msg_id_left*/
   if (msg_id_up_clock > msg_id_left_clock || current_column_of_search_it == -1) {
@@ -258,9 +258,9 @@ int rempi_clock_delta_compression::next_start_search_it(
 }
 
 int rempi_clock_delta_compression::find_matched_clock_column(
- rempi_event *event_left,
- map<int, rempi_event*>::const_iterator &msg_ids_clocked_search_it,
- map<int, rempi_event*>::const_iterator const &msg_ids_clocked_search_it_end)
+							     rempi_event *event_left,
+							     map<int, rempi_event*>::const_iterator &msg_ids_clocked_search_it,
+							     map<int, rempi_event*>::const_iterator const &msg_ids_clocked_search_it_end)
 {
   rempi_event *msg_id_up;
   int traversed_count = 0;
@@ -280,10 +280,10 @@ int rempi_clock_delta_compression::find_matched_clock_column(
 }
 
 int rempi_clock_delta_compression::update_start_it(
-   int current_column_of_start_it,
-   int matched_column,
-   vector<bool> &matched_bits,
-   map<int, rempi_event*>::const_iterator &msg_ids_clocked_start_it)
+						   int current_column_of_start_it,
+						   int matched_column,
+						   vector<bool> &matched_bits,
+						   map<int, rempi_event*>::const_iterator &msg_ids_clocked_start_it)
 {
   matched_bits[matched_column] = true;
 
@@ -295,9 +295,9 @@ int rempi_clock_delta_compression::update_start_it(
 }
 
 void rempi_clock_delta_compression::change_to_seq_order_id(
-    list<pair<int, int>*> &diff,
-    vector<rempi_event*> &msg_ids_observed,
-    map<int, int> &map_clock_to_order)
+							   list<pair<int, int>*> &diff,
+							   vector<rempi_event*> &msg_ids_observed,
+							   map<int, int> &map_clock_to_order)
 {
   list<pair<int, int>*>::iterator diff_it;
   for (diff_it = diff.begin(); diff_it != diff.end(); diff_it++) {
@@ -313,8 +313,8 @@ void rempi_clock_delta_compression::change_to_seq_order_id(
 }
 
 char* rempi_clock_delta_compression::convert_to_diff_binary(
-    list<pair<int, int>*> &diff,
-    size_t &compressed_bytes)
+							    list<pair<int, int>*> &diff,
+							    size_t &compressed_bytes)
 {
   list<pair<int, int>*>::reverse_iterator reverse_diff_it;
   vector<int> clock_delta_data_id, clock_delta_data_delta;
@@ -459,8 +459,8 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
 
 #if 0
 char* rempi_clock_delta_compression::convert_to_diff_binary(
-    list<pair<int, int>*> &diff,
-    size_t &compressed_bytes)
+							    list<pair<int, int>*> &diff,
+							    size_t &compressed_bytes)
 {
   list<pair<int, int>*>::reverse_iterator reverse_diff_it;
   vector<int> clock_delta_data_id, clock_delta_data_delta;
@@ -634,8 +634,8 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
 
 #if 0
 char* rempi_clock_delta_compression::convert_to_diff_binary(
-    list<pair<int, int>*> &diff,
-    size_t &compressed_bytes)
+							    list<pair<int, int>*> &diff,
+							    size_t &compressed_bytes)
 {
   list<pair<int, int>*>::reverse_iterator reverse_diff_it;
   vector<int> clock_delta_data;
@@ -759,9 +759,9 @@ bool rempi_clock_delta_compression::is_matching(rempi_event *left, rempi_event *
   
 
 char* rempi_clock_delta_compression::compress(
-       map<int, rempi_event*> &msg_ids_clocked,
-       vector<rempi_event*> &msg_ids_observed,
-       size_t &compressed_bytes)
+					      map<int, rempi_event*> &msg_ids_clocked,
+					      vector<rempi_event*> &msg_ids_observed,
+					      size_t &compressed_bytes)
 {
   map<int, rempi_event*>::const_iterator msg_ids_clocked_search_it;
   map<int, rempi_event*>::const_iterator msg_ids_clocked_start_it;
@@ -772,7 +772,7 @@ char* rempi_clock_delta_compression::compress(
     map_clock_to_order[34] = 2
     map_clock_to_order[45] = 3
     map_clock_to_order[98] = 4
-   */
+  */
   map<int, int> map_clock_to_order; 
   int current_column_of_search_it = -1;
   int current_column_of_start_it  =  0;
@@ -836,14 +836,14 @@ char* rempi_clock_delta_compression::compress(
     /*If needed, it updates start_it*/
     current_column_of_start_it = 
       update_start_it(
-			  current_column_of_start_it,
-			  current_column_of_search_it,
-			  matched_bits,
-			  msg_ids_clocked_start_it);
+		      current_column_of_start_it,
+		      current_column_of_search_it,
+		      matched_bits,
+		      msg_ids_clocked_start_it);
 
   }
   /*Finally, add morst bottom-right node, because path from this bottom-right node to root node
-   becomes shortest path. And sed_path_seerch return results based on this bottom-right node*/
+    becomes shortest path. And sed_path_seerch return results based on this bottom-right node*/
   sed_path_seerch.add_node(msg_ids_clocked.size(), msg_ids_clocked.size(), current_column_of_start_it);
   /*Distance from the bottom-right node*/
 
@@ -866,7 +866,7 @@ char* rempi_clock_delta_compression::compress(
     //   });
     for (map_it  = map_clock_to_order.begin(); 
 	 map_it != map_clock_to_order.end(); map_it++) {
-	REMPI_DBG("Map: %d -> %d", map_it->first, map_it->second);	
+      REMPI_DBG("Map: %d -> %d", map_it->first, map_it->second);	
     }
   }
 #endif
@@ -899,16 +899,16 @@ char* rempi_clock_delta_compression::compress(
     }
 #endif
 #ifdef DEBUG_PERF
-  s_part = rempi_get_time();
+    s_part = rempi_get_time();
 #endif
 
-  compressed_data = convert_to_diff_binary(diff, compressed_bytes);
+    compressed_data = convert_to_diff_binary(diff, compressed_bytes);
 #ifdef DEBUG_PERF
-  e_part = rempi_get_time();
-  REMPI_DBG("COM (part): %f", e_part - s_part);
+    e_part = rempi_get_time();
+    REMPI_DBG("COM (part): %f", e_part - s_part);
 #endif
 
- }
+  }
 
   return compressed_data;
 }
@@ -932,9 +932,9 @@ bool rempi_clock_delta_compression_2::is_matching(rempi_event *left, rempi_event
 
 
 char* rempi_clock_delta_compression_2::compress(
-       map<int, rempi_event*> &msg_ids_clocked,
-       vector<rempi_event*> &msg_ids_observed,
-       size_t &compressed_bytes)
+						map<int, rempi_event*> &msg_ids_clocked,
+						vector<rempi_event*> &msg_ids_observed,
+						size_t &compressed_bytes)
 {
   map<int, rempi_event*>::const_iterator msg_ids_clocked_search_it;
   map<int, rempi_event*>::const_iterator msg_ids_clocked_start_it;
@@ -945,7 +945,7 @@ char* rempi_clock_delta_compression_2::compress(
     map_clock_to_order[34] = 2
     map_clock_to_order[45] = 3
     map_clock_to_order[98] = 4
-   */
+  */
   map<int, int> map_clock_to_order; 
   int current_column_of_search_it = -1;
   int current_column_of_start_it  =  0;
@@ -1009,14 +1009,14 @@ char* rempi_clock_delta_compression_2::compress(
     /*If needed, it updates start_it*/
     current_column_of_start_it = 
       update_start_it(
-			  current_column_of_start_it,
-			  current_column_of_search_it,
-			  matched_bits,
-			  msg_ids_clocked_start_it);
+		      current_column_of_start_it,
+		      current_column_of_search_it,
+		      matched_bits,
+		      msg_ids_clocked_start_it);
 
   }
   /*Finally, add morst bottom-right node, because path from this bottom-right node to root node
-   becomes shortest path. And sed_path_seerch return results based on this bottom-right node*/
+    becomes shortest path. And sed_path_seerch return results based on this bottom-right node*/
   sed_path_seerch.add_node(msg_ids_clocked.size(), msg_ids_clocked.size(), current_column_of_start_it);
   /*Distance from the bottom-right node*/
 
@@ -1038,7 +1038,7 @@ char* rempi_clock_delta_compression_2::compress(
     //   });
     for (map_it  = map_clock_to_order.begin(); 
 	 map_it != map_clock_to_order.end(); map_it++) {
-	REMPI_DBG("Map: %d -> %d", map_it->first, map_it->second);	
+      REMPI_DBG("Map: %d -> %d", map_it->first, map_it->second);	
     }
   }
 #endif
@@ -1071,16 +1071,16 @@ char* rempi_clock_delta_compression_2::compress(
     }
 #endif
 #ifdef DEBUG_PERF
-  s_part = rempi_get_time();
+    s_part = rempi_get_time();
 #endif
 
-  compressed_data = convert_to_diff_binary(diff, compressed_bytes);
+    compressed_data = convert_to_diff_binary(diff, compressed_bytes);
 #ifdef DEBUG_PERF
-  e_part = rempi_get_time();
-  REMPI_DBG("COM (part): %f", e_part - s_part);
+    e_part = rempi_get_time();
+    REMPI_DBG("COM (part): %f", e_part - s_part);
 #endif
 
- }
+  }
 
   return compressed_data;
 }
