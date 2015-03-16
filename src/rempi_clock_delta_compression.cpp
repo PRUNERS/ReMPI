@@ -350,7 +350,7 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
 	int last_id, last_num_msg_passed, last_type;
 
 	/*TODO: Do not call insert twice for performance*/
-	map_id_to_type_and_index_it = map_id_to_type_and_index.insert({id, current_count_and_type}).first;
+	map_id_to_type_and_index_it = map_id_to_type_and_index.insert({id, current_count_and_type}).first; // this is to memorize 
 	last_id             = (*map_id_to_type_and_index_it).first;
 	last_count_and_type = (*map_id_to_type_and_index_it).second;
 	last_num_msg_passed = last_count_and_type->first;
