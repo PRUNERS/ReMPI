@@ -147,7 +147,6 @@ T rempi_event_list<T>::dequeue_replay(int test_id, int &status)
     previous_replaying_event_umap[test_id] = spsc_queue->dequeue(); // 
     is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
     if (is_queue_empty) {
-      REMPI_ERR("No more replay event. Will switch to recording mode, but not implemented yet");
       status = REMPI_EVENT_LIST_FINISH;
       return NULL;
     }
@@ -302,6 +301,15 @@ T rempi_event_list<T>::dequeue_replay(int test_id, int &status)
 
 // }
 
+template <class T>
+T rempi_event_list<T>::front_replay(int test_id)
+{
+  rempi_spsc_queue<rempi_event*> *spsc_queue;
+  if (replay_events.find(test_id) == replay_events.end()) {
+    return NULL;
+  }
+  return replay_events[test_id]->front();
+}
 
 template <class T>
 void rempi_event_list<T>::enqueue_replay(T event, int test_id)

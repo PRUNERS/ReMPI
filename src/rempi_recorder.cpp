@@ -123,121 +123,81 @@ int rempi_recorder::record_test(
 }
 
 
-/*This function is called after MPI_Test*/
 int rempi_recorder::replay_test(
-    MPI_Request *request_in,
-    int flag_in,
-    int source_in,
-    int tag_in,
-    int clock_in,
-    int with_previous_in,
-    int test_id_in,
-    int *flag_out,
-    int *source_out,
-    int *tag_out)
+				MPI_Request *request,
+				int *flag,
+				MPI_Status *status,
+				int test_id)
 {
-  MPI_Status status;
-  rempi_event *replaying_test_event;
-
-
-  /*1. Get replaying event */
-  //  replaying_test_event = replaying_event_list->dequeue_replay(test_id_in, -1);
-  if (replaying_test_event == NULL) {
-    REMPI_ERR("No more replay event. Will switch to recording mode, but not implemented yet");
-  } 
-  REMPI_DBG("Replaying: (flag: %d, source: %d)", replaying_test_event->get_flag(), replaying_test_event->get_source());
-
-  /*If the event is flag == 0, simply retunr flag == 0*/
-  if (!replaying_test_event->get_flag()) {
-    *flag_out = 0;
-    *source_out = -1;
-    *tag_out = -1;
-    return 0;
-  }
-  *flag_out = 1;
-  *source_out = replaying_test_event->get_source();
-  *tag_out = replaying_test_event->get_tag();
-  /*
-    2. Wait until this replaying message really arrives
-  */
-  {
-    rempi_irecv_inputs *inputs = request_to_irecv_inputs_umap[*request_in];
-    //    REMPI_DBG("Probing");
-    PMPI_Probe(*source_out, *tag_out, inputs->comm, &status);
-    if (*source_out != status.MPI_SOURCE ||
-	*tag_out    != status.MPI_TAG) {
-      REMPI_ERR("An unexpected message is proved");
-    }
-    PMPI_Irecv(
-	       inputs->buf, 
-	       inputs->count,
-	       inputs->datatype,
-	       *source_out,
-	       *tag_out,
-	       inputs->comm,
-	       &(inputs->request));
-    PMPI_Wait(&(inputs->request), &status);
-    if (*source_out != status.MPI_SOURCE ||
-	*tag_out    != status.MPI_TAG) {
-      REMPI_ERR("An unexpected message is waited");
-    }
-    delete request_to_irecv_inputs_umap[*request_in];
-    request_to_irecv_inputs_umap.erase(*request_in);
-  }
-
-  return 0;
-  /*====================*/
-
-  /* So "replayint_test_event" event flag == 1*/
-  /*
-    2. Wait until this recorded message really arrives
-       if (0 if next recorded maching is not mached in this run) {
-          TODO: Wait until maching, and get clock
-	  TODO: if matched, memorize that the matching for the next replay test
-       }
-  */
-
-  // while (!msg_manager.is_matched_recv(
-  // 	      replaying_test_event->get_source(), 
-  // 	      replaying_test_event->get_tag(),
-  // 	      replaying_test_event->get_comm_id(),
-  // 	      replaying_test_event->get_test_id())) { //replaying_test_event->get_test_id() == test_id_in
-  //   msg_manager.refresh_matched_recv(test_id_in);
-  // }
-
-  // msg_manager.remove_matched_recv(
-  // 	      replaying_test_event->get_source(), 
-  // 	      replaying_test_event->get_tag(),
-  // 	      replaying_test_event->get_comm_id(), 
-  // 	      replaying_test_event->get_test_id());
-  // /*
-  //   3. Set valiabiles (source, flag, tag)
-  // }
-  //  */
-  // *flag_out = 1;
-  // *source_out = replaying_test_event->get_source();
-  // *tag_out = replaying_test_event->get_tag();
-
-  //  return 0;
-  
-  /*==========================*/
-  /**/
-  // if (flag_in) {
-  //   int event_count = 1;
-  //   int with_previous = 0; //
-  //   int comm_id = 0;
-  //   msg_manager.add_matched_recv(request_in, source_in, tag_in);
-  //   recording_event_list->push(new rempi_test_event(event_count, with_previous, comm_id, flag_in, source_in, tag_in, clock_in, test_id_in));
-  // }
-
-
-
-  // REMPI_DBG("flag: %d , source: %d", replaying_test_event->get_flag(), replaying_test_event->get_source());
-
-
-
-
+  REMPI_ERR("this function is not implementd yet, or I do not implement it");
+  return -1;
 }
+
+// /*This function is called after MPI_Test*/
+// int rempi_recorder::replay_test(
+//     MPI_Request *request_in,
+//     int flag_in,
+//     int source_in,
+//     int tag_in,
+//     int clock_in,
+//     int with_previous_in,
+//     int test_id_in,
+//     int *flag_out,
+//     int *source_out,
+//     int *tag_out)
+// {
+//   MPI_Status status;
+//   rempi_event *replaying_test_event;
+
+
+//   /*1. Get replaying event */
+//   //  replaying_test_event = replaying_event_list->dequeue_replay(test_id_in, -1);
+//   if (replaying_test_event == NULL) {
+//     REMPI_ERR("No more replay event. Will switch to recording mode, but not implemented yet");
+//   } 
+//   REMPI_DBG("Replaying: (flag: %d, source: %d)", replaying_test_event->get_flag(), replaying_test_event->get_source());
+
+//   /*If the event is flag == 0, simply retunr flag == 0*/
+//   if (!replaying_test_event->get_flag()) {
+//     *flag_out = 0;
+//     *source_out = -1;
+//     *tag_out = -1;
+//     return 0;
+//   }
+//   *flag_out = 1;
+//   *source_out = replaying_test_event->get_source();
+//   *tag_out = replaying_test_event->get_tag();
+//   /*
+//     2. Wait until this replaying message really arrives
+//   */
+//   {
+//     rempi_irecv_inputs *inputs = request_to_irecv_inputs_umap[*request_in];
+//     //    REMPI_DBG("Probing");
+//     PMPI_Probe(*source_out, *tag_out, inputs->comm, &status);
+//     if (*source_out != status.MPI_SOURCE ||
+// 	*tag_out    != status.MPI_TAG) {
+//       REMPI_ERR("An unexpected message is proved");
+//     }
+//     PMPI_Irecv(
+// 	       inputs->buf, 
+// 	       inputs->count,
+// 	       inputs->datatype,
+// 	       *source_out,
+// 	       *tag_out,
+// 	       inputs->comm,
+// 	       &(inputs->request));
+//     PMPI_Wait(&(inputs->request), &status);
+//     if (*source_out != status.MPI_SOURCE ||
+// 	*tag_out    != status.MPI_TAG) {
+//       REMPI_ERR("An unexpected message is waited");
+//     }
+//     delete request_to_irecv_inputs_umap[*request_in];
+//     request_to_irecv_inputs_umap.erase(*request_in);
+//   }
+
+//   return 0;
+
+// }
 
 
 // /*This function is called after MPI_Test*/

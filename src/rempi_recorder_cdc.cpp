@@ -45,6 +45,15 @@ void* rempi_recorder_cdc::allocate_proxy_buf(int count, MPI_Datatype datatype)
   return malloc(datatype_size * count);
 }
 
+void rempi_recorder_cdc::copy_proxy_buf(void* from, void* to, int count, MPI_Datatype datatype)
+{
+  // TODO: if datatype is self-defined one, simple memcpy does not work
+  int datatype_size;
+  MPI_Type_size(datatype, &datatype_size);
+  memcpy(to, from, datatype_size * count);
+  return ;
+}
+
 /*get_test_id must be called under MPI_Irecv*/
 // int rempi_recorder_cdc::get_test_id()
 // {
@@ -72,6 +81,24 @@ int rempi_recorder_cdc::init_clmpi()
   if (err!=PNMPI_SUCCESS)
     return err;
   clmpi_register_recv_clocks=(PNMPIMOD_register_recv_clocks_t) ((void*)serv.fct);
+
+  /*Get clock-mpi service*/
+  err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_clock_control","i",&serv);
+  if (err!=PNMPI_SUCCESS)
+    return err;
+  clmpi_clock_control=(PNMPIMOD_clock_control_t) ((void*)serv.fct);
+
+  /*Get clock-mpi service*/
+  err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_local_clock","p",&serv);
+  if (err!=PNMPI_SUCCESS)
+    return err;
+  clmpi_get_local_clock=(PNMPIMOD_get_local_clock_t) ((void*)serv.fct);
+
+  /*Get clock-mpi service*/
+  err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_sync_clock","i",&serv);
+  if (err!=PNMPI_SUCCESS)
+    return err;
+  clmpi_sync_clock=(PNMPIMOD_sync_clock_t) ((void*)serv.fct);
 
   /*Load own moduel*/
   err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_REMPI, &handle_rempi);
@@ -151,7 +178,9 @@ int rempi_recorder_cdc::replay_irecv(
     bool same_tag    = (irecv_inputs->tag    == tag);
     bool same_comm   = (irecv_inputs->comm   == *comm);
     if (!same_source || !same_tag || !same_comm) {
-      REMPI_ERR("Different request in (source, tag, comm)");
+      REMPI_ERR("Different request in (source, tag, comm): (%d, %d, %p) != (%d, %d, %p)",
+		irecv_inputs->source, irecv_inputs->tag, irecv_inputs->comm,
+		source, tag, *comm);
       // REMPI_ERR("This MPI_Request is not diactivated. This mainly caused by irecv call "
       // 		"with MPI_Request which is not diactivated by MPI_{Wait|Test}{|some|any|all}");
     }
@@ -220,166 +249,177 @@ int rempi_recorder_cdc::record_test(
   //   REMPI_ERR("No test_id for this MPI_Request");
   // }
   // test_id = request_to_test_id_umap[request];
+#if 0
+  REMPI_DBG("Record  : (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)",                                                            
+	    event_count, with_previous, *flag,                                      
+	     record_source, record_clock);
+#endif
   recording_event_list->push(new rempi_test_event(event_count, with_previous, record_comm_id, *flag, record_source, record_tag, record_clock, test_id));
 
   return 0;
 }
 
+int rempi_recorder_cdc::replay_test(
+                                MPI_Request *request,
+                                int *flag,
+                                MPI_Status *status,
+				int test_id)
+{
+  int index;
+  return replay_testsome(1, request, flag, &index, status, test_id);
+}
 
 /*This function is called after MPI_Test*/
-int rempi_recorder_cdc::replay_test(
-    MPI_Request *request_in,
-    /*Not used*/    int flag_in, 
-    /*Not used*/    int source_in,
-    /*Not used*/    int tag_in,
-    /*Not used*/    int clock_in,
-    /*Not used*/    int with_previous_in,
-    int test_id_in,
-    int *flag_out,
-    int *source_out,
-    int *tag_out)
-{
-  MPI_Status status;
-  rempi_event *replaying_test_event = NULL;
-  int event_list_status;
-  int flag;
-  int ret;
-  unordered_map<MPI_Request, rempi_irecv_inputs*>::iterator request_to_irecv_inputs_umap_it;
+// int rempi_recorder_cdc::replay_test(
+//     MPI_Request *request_in,
+//     /*Not used*/    int flag_in, 
+//     /*Not used*/    int source_in,
+//     /*Not used*/    int tag_in,
+//     /*Not used*/    int clock_in,
+//     /*Not used*/    int with_previous_in,
+//     int test_id_in,
+//     int *flag_out,
+//     int *source_out,
+//     int *tag_out)
+// {
+//   MPI_Status status;
+//   rempi_event *replaying_test_event = NULL;
+//   int event_list_status;
+//   int flag;
+//   int ret;
+//   unordered_map<MPI_Request, rempi_irecv_inputs*>::iterator request_to_irecv_inputs_umap_it;
   
-  return PMPI_Test(request_in, flag_out, &status);
+//   return PMPI_Test(request_in, flag_out, &status);
 
-#if 0  
-  if (request_to_irecv_inputs_umap.find(*request_in) == request_to_irecv_inputs_umap.end()) {
-    /*This request is for Isend, so simply call PMPI_Test and return*/
-    ret = PMPI_Test(reqeust_in, flag_out, status);
-    sourct_out = status.MPI_SOURCE;
-    tag_out    = status.MPI_TAG;
-    return ret;
-  }
+// #if 0  
+//   if (request_to_irecv_inputs_umap.find(*request_in) == request_to_irecv_inputs_umap.end()) {
+//     /*This request is for Isend, so simply call PMPI_Test and return*/
+//     ret = PMPI_Test(reqeust_in, flag_out, status);
+//     sourct_out = status.MPI_SOURCE;
+//     tag_out    = status.MPI_TAG;
+//     return ret;
+//   }
   
-  /*1. Get replaying event until REMPI_EVENT_LIST_FINISH */
-  while ((replaying_test_event = replaying_event_list->dequeue_replay(test_id_in, event_list_status)) == NULL) {
-    if (event_list_status == REMPI_EVENT_LIST_FINISH) {
-      REMPI_ERR("No more replay event. Will switch to recording mode, but not implemented yet: event: %p", replaying_test_event);
-      return 0;
-    } else if (event_list_status == REMPI_EVENT_LIST_EMPTY) {
+//   /*1. Get replaying event until REMPI_EVENT_LIST_FINISH */
+//   while ((replaying_test_event = replaying_event_list->dequeue_replay(test_id_in, event_list_status)) == NULL) {
+//     if (event_list_status == REMPI_EVENT_LIST_FINISH) {
+//       replaying_test_event = replaying_event_list->dequeue_replay(test_id_in, event_list_status)
+//       REMPI_ERR("No more replay event. Will switch to recording mode, but not implemented yet: event: %p", replaying_test_event);
+//       return 0;
+//     } else if (event_list_status == REMPI_EVENT_LIST_EMPTY) {
       
-    } else {
-      REMPI_ERR("No known event_list_status");
-    } 
-    for (int i = 0; i < proxy_request_pool_list.size(); i++) {
-      MPI_Request *proxy_reqeust;
-      MPI_Status  proxy_status;
-      int flag;
-      proxy_request_pool_list[i].request;
-      PMPI_Test(&proxy_request, &flag, &status);
-    }
-    request_to_irecv_inputs_umap[*request_in];
-    // for (request_to_irecv_inputs_umap_it  = request_to_irecv_inputs_umap.begin();
-    // 	 request_to_irecv_inputs_umap_it != request_to_irecv_inputs_umap.end();
-    // 	 request_to_irecv_inputs_umap_it++) {
-    //   MPI_Request *request;
-    //   rempi_irecv_inputs *inputs = request_to_irecv_inputs_umap_it->second;
-    // }
+//     } else {
+//       REMPI_ERR("No known event_list_status");
+//     } 
+//     for (int i = 0; i < proxy_request_pool_list.size(); i++) {
+//       MPI_Request *proxy_reqeust;
+//       MPI_Status  proxy_status;
+//       int flag;
+//       proxy_request_pool_list[i].request;
+//       PMPI_Test(&proxy_request, &flag, &status);
+//     }
+//     request_to_irecv_inputs_umap[*request_in];
+//     // for (request_to_irecv_inputs_umap_it  = request_to_irecv_inputs_umap.begin();
+//     // 	 request_to_irecv_inputs_umap_it != request_to_irecv_inputs_umap.end();
+//     // 	 request_to_irecv_inputs_umap_it++) {
+//     //   MPI_Request *request;
+//     //   rempi_irecv_inputs *inputs = request_to_irecv_inputs_umap_it->second;
+//     // }
 
-  }
+//   }
 
-  REMPI_DBG("Replaying: (flag: %d, source: %d)", replaying_test_event->get_flag(), replaying_test_event->get_source());
+//   REMPI_DBG("Replaying: (flag: %d, source: %d)", replaying_test_event->get_flag(), replaying_test_event->get_source());
 
-  /*If the event is flag == 0, simply retunr flag == 0*/
-  if (!replaying_test_event->get_flag()) {
-    *flag_out = 0;
-    *source_out = -1;
-    *tag_out = -1;
-    return 0;
-  }
-  *flag_out = 1;
-  *source_out = replaying_test_event->get_source();
-  *tag_out = replaying_test_event->get_tag();
-  /*
-    2. Wait until this replaying message really arrives
-  */
-  {
-    rempi_irecv_inputs *inputs = request_to_irecv_inputs_umap[*request_in];
-    //    REMPI_DBG("Probing");
-    PMPI_Probe(*source_out, *tag_out, inputs->comm, &status);
-    if (*source_out != status.MPI_SOURCE ||
-	*tag_out    != status.MPI_TAG) {
-      REMPI_ERR("An unexpected message is proved: tag_out checking may not be needed, "
-		"because some compression approach do not record tag, and do not replay tag");
-    }
-    PMPI_Irecv(
-	       inputs->buf, 
-	       inputs->count,
-	       inputs->datatype,
-	       *source_out,
-	       *tag_out,
-	       inputs->comm,
-	       &(inputs->request));
-    PMPI_Wait(&(inputs->request), &status);
-    if (*source_out != status.MPI_SOURCE ||
-	*tag_out    != status.MPI_TAG) {
-      REMPI_ERR("An unexpected message is waited: tag_out checking may not be needed, "
-		"because some compression approach do not record tag, and do not replay tag");
-    }
-    delete request_to_irecv_inputs_umap[*request_in];
-    request_to_irecv_inputs_umap.erase(*request_in);
-  }
+//   /*If the event is flag == 0, simply retunr flag == 0*/
+//   if (!replaying_test_event->get_flag()) {
+//     *flag_out = 0;
+//     *source_out = -1;
+//     *tag_out = -1;
+//     return 0;
+//   }
+//   *flag_out = 1;
+//   *source_out = replaying_test_event->get_source();
+//   *tag_out = replaying_test_event->get_tag();
+//   /*
+//     2. Wait until this replaying message really arrives
+//   */
+//   {
+//     rempi_irecv_inputs *inputs = request_to_irecv_inputs_umap[*request_in];
+//     //    REMPI_DBG("Probing");
+//     PMPI_Probe(*source_out, *tag_out, inputs->comm, &status);
+//     if (*source_out != status.MPI_SOURCE ||
+// 	*tag_out    != status.MPI_TAG) {
+//       REMPI_ERR("An unexpected message is proved: tag_out checking may not be needed, "
+// 		"because some compression approach do not record tag, and do not replay tag");
+//     }
+//     PMPI_Irecv(
+// 	       inputs->buf, 
+// 	       inputs->count,
+// 	       inputs->datatype,
+// 	       *source_out,
+// 	       *tag_out,
+// 	       inputs->comm,
+// 	       &(inputs->request));
+//     PMPI_Wait(&(inputs->request), &status);
+//     if (*source_out != status.MPI_SOURCE ||
+// 	*tag_out    != status.MPI_TAG) {
+//       REMPI_ERR("An unexpected message is waited: tag_out checking may not be needed, "
+// 		"because some compression approach do not record tag, and do not replay tag");
+//     }
+//     delete request_to_irecv_inputs_umap[*request_in];
+//     request_to_irecv_inputs_umap.erase(*request_in);
+//   }
 
-  return 0;
-#endif
-  /*====================*/
+//   return 0;
+// #endif
+//   /*====================*/
 
-  /* So "replayint_test_event" event flag == 1*/
-  /*
-    2. Wait until this recorded message really arrives
-       if (0 if next recorded maching is not mached in this run) {
-          TODO: Wait until maching, and get clock
-	  TODO: if matched, memorize that the matching for the next replay test
-       }
-  */
+//   /* So "replayint_test_event" event flag == 1*/
+//   /*
+//     2. Wait until this recorded message really arrives
+//        if (0 if next recorded maching is not mached in this run) {
+//           TODO: Wait until maching, and get clock
+// 	  TODO: if matched, memorize that the matching for the next replay test
+//        }
+//   */
 
-  // while (!msg_manager.is_matched_recv(
-  // 	      replaying_test_event->get_source(), 
-  // 	      replaying_test_event->get_tag(),
-  // 	      replaying_test_event->get_comm_id(),
-  // 	      replaying_test_event->get_test_id())) { //replaying_test_event->get_test_id() == test_id_in
-  //   msg_manager.refresh_matched_recv(test_id_in);
-  // }
+//   // while (!msg_manager.is_matched_recv(
+//   // 	      replaying_test_event->get_source(), 
+//   // 	      replaying_test_event->get_tag(),
+//   // 	      replaying_test_event->get_comm_id(),
+//   // 	      replaying_test_event->get_test_id())) { //replaying_test_event->get_test_id() == test_id_in
+//   //   msg_manager.refresh_matched_recv(test_id_in);
+//   // }
 
-  // msg_manager.remove_matched_recv(
-  // 	      replaying_test_event->get_source(), 
-  // 	      replaying_test_event->get_tag(),
-  // 	      replaying_test_event->get_comm_id(), 
-  // 	      replaying_test_event->get_test_id());
-  // /*
-  //   3. Set valiabiles (source, flag, tag)
-  // }
-  //  */
-  // *flag_out = 1;
-  // *source_out = replaying_test_event->get_source();
-  // *tag_out = replaying_test_event->get_tag();
+//   // msg_manager.remove_matched_recv(
+//   // 	      replaying_test_event->get_source(), 
+//   // 	      replaying_test_event->get_tag(),
+//   // 	      replaying_test_event->get_comm_id(), 
+//   // 	      replaying_test_event->get_test_id());
+//   // /*
+//   //   3. Set valiabiles (source, flag, tag)
+//   // }
+//   //  */
+//   // *flag_out = 1;
+//   // *source_out = replaying_test_event->get_source();
+//   // *tag_out = replaying_test_event->get_tag();
 
-  //  return 0;
+//   //  return 0;
   
-  /*==========================*/
-  /**/
-  // if (flag_in) {
-  //   int event_count = 1;
-  //   int with_previous = 0; //
-  //   int comm_id = 0;
-  //   msg_manager.add_matched_recv(request_in, source_in, tag_in);
-  //   recording_event_list->push(new rempi_test_event(event_count, with_previous, comm_id, flag_in, source_in, tag_in, clock_in, test_id_in));
-  // }
+//   /*==========================*/
+//   /**/
+//   // if (flag_in) {
+//   //   int event_count = 1;
+//   //   int with_previous = 0; //
+//   //   int comm_id = 0;
+//   //   msg_manager.add_matched_recv(request_in, source_in, tag_in);
+//   //   recording_event_list->push(new rempi_test_event(event_count, with_previous, comm_id, flag_in, source_in, tag_in, clock_in, test_id_in));
+//   // }
 
 
 
-  // REMPI_DBG("flag: %d , source: %d", replaying_test_event->get_flag(), replaying_test_event->get_source());
-
-
-
-
-}
+//   // REMPI_DBG("flag: %d , source: %d", replaying_test_event->get_flag(), replaying_test_event->get_source());
+// }
 
 
 int rempi_recorder_cdc::replay_testsome(
@@ -391,12 +431,14 @@ int rempi_recorder_cdc::replay_testsome(
 					int test_id)
 {
   int ret;
-  int with_next = 1;
+  int with_next = REMPI_MPI_EVENT_WITH_NEXT;
   rempi_irecv_inputs *irecv_inputs;
   size_t clock;
+  rempi_event *replaying_event;
+  vector<rempi_event*> replaying_event_vec;
+  
 
-  *outcount = 0;
-  while (with_next) {
+  while (with_next == REMPI_MPI_EVENT_WITH_NEXT) {
     for (int i = 0; i < incount; i++) {
       if (request_to_irecv_inputs_umap.find(array_of_requests[i]) != request_to_irecv_inputs_umap.end()) {
 	int flag = 0;
@@ -405,17 +447,31 @@ int rempi_recorder_cdc::replay_testsome(
 	/*If this request is for irecv (not isend)*/
 	irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[i]];
 	proxy_request = irecv_inputs->request_proxy_list.front();
+
 	//	REMPI_DBG("   Test: request:%p(%p) source:%d tag:%d size:%d req:%p", &proxy_request->request, proxy_request, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, irecv_inputs->request_proxy_list.size(), array_of_requests[i]);
 	clmpi_register_recv_clocks(&clock, 1);
+	clmpi_clock_control(0);
 	PMPI_Test(&proxy_request->request, &flag, &status);
+	clmpi_clock_control(1);
 	if (flag) {
 	  rempi_proxy_request *next_proxy_request;
+	  rempi_event *event_pooled;
 	  /* enqueue */
-	  recording_event_list->push(new rempi_test_event(1, -1, -1, 1, status.MPI_SOURCE, status.MPI_TAG, clock, test_id));
+	  event_pooled =  new rempi_test_event(1, -1, -1, 1, status.MPI_SOURCE, status.MPI_TAG, clock, test_id);
+#ifdef REMPI_DBG_REPLAY	  
+	  REMPI_DBGI(REMPI_DBG_REPLAY, "A->RCQ  : (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)",
+		    event_pooled->get_event_counts(), event_pooled->get_is_testsome(), event_pooled->get_flag(),
+		    event_pooled->get_source(), event_pooled->get_clock());
+#endif
+	  recording_event_list->enqueue_replay(event_pooled, test_id);
 
+	  /*Move from pending request list to matched request list*/
+	  irecv_inputs->matched_request_proxy_list.push_back(proxy_request);
+#if 0
+	  REMPI_DBGI(0, "matched_proxy_request(%d) is added: irecv(%p)->%p size:%d", i, irecv_inputs, proxy_request,
+		      irecv_inputs->matched_request_proxy_list.size());
+#endif
 	  irecv_inputs->request_proxy_list.pop_front();
-	  array_of_indices[*outcount] = i;
-	  *outcount = *outcount + 1;
 
 	  /* push_back  new proxy */
 	  next_proxy_request = new rempi_proxy_request(irecv_inputs->count, irecv_inputs->datatype);
@@ -429,14 +485,93 @@ int rempi_recorder_cdc::replay_testsome(
 	  //	  REMPI_DBG("Uatched: request:%p source:%d tag:%d", &proxy_request->request, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG);
 	}
       }
-      //event = dequeu
-      //vec.push_back(event)
-      //with_next = event.with_next
+      int event_list_status;
+      while ((replaying_event = replaying_event_list->dequeue_replay(test_id, event_list_status)) != NULL) {
+#ifdef REMPI_DBG_REPLAY
+	REMPI_DBGI(REMPI_DBG_REPLAY, "RPQ->A  : (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)",
+		   replaying_event->get_event_counts(), replaying_event->get_is_testsome(), replaying_event->get_flag(),
+		   replaying_event->get_source(), replaying_event->get_clock());
+#endif
+
+	replaying_event_vec.push_back(replaying_event);
+	with_next = replaying_event->get_is_testsome();
+	if (with_next ==  REMPI_MPI_EVENT_NOT_WITH_NEXT) {
+	  break;
+	}
+      }
+      if (with_next ==  REMPI_MPI_EVENT_NOT_WITH_NEXT) {
+	break;
+      }
+      if (event_list_status == REMPI_EVENT_LIST_FINISH) {
+	if (i == incount) {
+	  REMPI_ERR("No thing to replay");
+	}
+      }
     }
-    with_next = 0;
+  }
+  if (replaying_event_vec.size() == 1) {
+    if (replaying_event_vec.front()->get_flag() == 0) {
+      *outcount = 0;
+      delete replaying_event_vec.front();
+      //      REMPI_DBG(" ===== Replayed: (flag: 0)");
+      return ret;
+    }
   }
 
-  // copy eventvec =-> actual_buff
+  /*Copy from proxy to actuall buff, then set array_of_indices/statuses, outcount*/
+  size_t next_clock = 0;
+  *outcount = 0;
+  for (int i = 0; i < incount; i++) {
+    rempi_proxy_request *proxy_request;
+    if (request_to_irecv_inputs_umap.find(array_of_requests[i]) != request_to_irecv_inputs_umap.end()) {
+      irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[i]];
+
+      for (int j = 0; j < replaying_event_vec.size(); j++) {
+	bool is_source = (irecv_inputs->source == replaying_event_vec[j]->get_source());
+	bool is_tag    = (irecv_inputs->tag    == replaying_event_vec[j]->get_tag());
+	if (is_source && is_tag) {
+
+	  array_of_indices[*outcount] = i;
+	  array_of_statuses[i].MPI_SOURCE = replaying_event_vec[j]->get_source();
+	  array_of_statuses[i].MPI_TAG    = replaying_event_vec[j]->get_tag();
+	  {
+	    clmpi_sync_clock(next_clock);
+	  }
+	  *outcount = *outcount + 1;
+	  /* copy eventvec =-> actual_buff*/
+	  proxy_request = irecv_inputs->matched_request_proxy_list.front();
+	  if (proxy_request == NULL) {
+	    REMPI_ERR("matched_proxy_request(%d) is NULL: irecv(%p)->%p size:%d", i, irecv_inputs, proxy_request,
+		      irecv_inputs->matched_request_proxy_list.size());
+	  }
+	  copy_proxy_buf(proxy_request->buf, irecv_inputs->buf, irecv_inputs->count, irecv_inputs->datatype);
+	  irecv_inputs->matched_request_proxy_list.pop_front();
+#if 0
+	  REMPI_DBGI(0, "matched_proxy_request(%d) is pop: irecv(%p)->%p size:%d", i, irecv_inputs, proxy_request,
+		      irecv_inputs->matched_request_proxy_list.size());
+#endif
+	  delete proxy_request;
+	  break;
+	}
+      }
+    } else {
+      REMPI_ERR("request does no exist in request_to_irecv_inputs_umap");
+    }
+  }
+
+
+  for (int j = 0; j < replaying_event_vec.size(); j++) {
+    //#ifdef REMPI_DBG_REPLAY	  
+#if 0
+    REMPI_DBG(" ===== Replayed: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): clock: %d ===== ",
+	       replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
+	       replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), next_clock);
+#endif
+    delete replaying_event_vec[j];
+  }
+
+
+
   return ret;
 }
 
@@ -469,13 +604,14 @@ int rempi_recorder_cdc::record_finalize(void)
 
   record_thread->join();
 
-
   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   return 0;
 }
 
 int rempi_recorder_cdc::replay_finalize(void)
 {
+  read_record_thread->join();
+
   //TODO:
   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   return 0;

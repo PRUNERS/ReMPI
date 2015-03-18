@@ -4,11 +4,15 @@
 #include <execinfo.h>
 #include <unistd.h>
 
+#include <pthread.h>
+
 #include <string>
 
 #include "rempi_err.h"
 
 #define DEBUG_STDOUT stderr
+
+pthread_mutex_t print_mutex;
 
 using namespace std;
 
@@ -88,12 +92,14 @@ void rempi_print(const char* fmt, ...) {
 
 void rempi_dbgi(int r, const char* fmt, ...) {
   if (my_rank != r) return;
+  pthread_mutex_lock (&print_mutex);
   va_list argp;
   fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%3d: ", hostname, my_rank);
   va_start(argp, fmt);
   vfprintf(DEBUG_STDOUT, fmt, argp);
   va_end(argp);
   fprintf(DEBUG_STDOUT, "\n");
+  pthread_mutex_unlock (&print_mutex);
 }
 
 void rempi_debug(const char* fmt, ...)

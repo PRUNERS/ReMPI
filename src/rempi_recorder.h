@@ -34,7 +34,7 @@ class rempi_proxy_request
   MPI_Request request;
   void* buf;
   //  MPI_Status status;
- rempi_proxy_request(int count, MPI_Datatype datatype) {
+  rempi_proxy_request(int count, MPI_Datatype datatype) {
     int datatype_size;
     MPI_Type_size(datatype, &datatype_size);
     buf = malloc(datatype_size * count);
@@ -54,15 +54,16 @@ class rempi_irecv_inputs
   MPI_Request request;
   int test_id;
   list<rempi_proxy_request*> request_proxy_list;
-  rempi_irecv_inputs(
-               void* buf,
-               int count,
-               MPI_Datatype datatype,
-               int source,
-               int tag,
-               MPI_Comm comm,
-               MPI_Request request,
-	       int test_id):
+  list<rempi_proxy_request*> matched_request_proxy_list;
+ rempi_irecv_inputs(
+		    void* buf,
+		    int count,
+		    MPI_Datatype datatype,
+		    int source,
+		    int tag,
+		    MPI_Comm comm,
+		    MPI_Request request,
+		    int test_id):
   buf(buf), count(count), datatype(datatype), source(source),
     tag(tag), comm(comm), request(request),
     test_id(test_id) {};
@@ -89,64 +90,57 @@ class rempi_recorder {
   virtual int record_init(int *argc, char ***argv, int rank);
   virtual int replay_init(int *argc, char ***argv, int rank);
   virtual int record_irecv(
-			 void *buf,
-			 int count,
-			 int datatype, // The value is assigned in ReMPI_convertor
-			 int source,
-			 int tag,
-			 int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-			 MPI_Request *request
-			 );
+			   void *buf,
+			   int count,
+			   int datatype, // The value is assigned in ReMPI_convertor
+			   int source,
+			   int tag,
+			   int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+			   MPI_Request *request
+			   );
   virtual int replay_irecv(
-			 void *buf,
-			 int count,
-			 int datatype, // The value is assigned in ReMPI_convertor
-			 int source,
-			 int tag,
-			 int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-			 MPI_Comm *comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-			 MPI_Request *request
-			 );
+			   void *buf,
+			   int count,
+			   int datatype, // The value is assigned in ReMPI_convertor
+			   int source,
+			   int tag,
+			   int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+			   MPI_Comm *comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+			   MPI_Request *request
+			   );
 
   virtual int record_test(
-			MPI_Request *request,
-			int *flag,
-			int source, // of MPI_Status
-			int tag,     // of MPI_tatus
-			int clock,
-			int with_previous
-			);
+			  MPI_Request *request,
+			  int *flag,
+			  int source, // of MPI_Status
+			  int tag,     // of MPI_tatus
+			  int clock,
+			  int with_previous
+			  );
 
   virtual int record_test(
-			MPI_Request *request,
-			int *flag,
-			int source, // of MPI_Status
-			int tag,     // of MPI_tatus
-			int clock,
-			int with_previous,
-			int test_id
-			);
+			  MPI_Request *request,
+			  int *flag,
+			  int source, // of MPI_Status
+			  int tag,     // of MPI_tatus
+			  int clock,
+			  int with_previous,
+			  int test_id
+			  );
   
   virtual int replay_test(
-			MPI_Request *request_in,
-			int flag_in,
-			int source_in,
-			int tag_in,
-			int clock_in,
-			int with_previous_in,
-			int test_id_in,
-			int *flag_out,
-			int *source_out,
-			int *tag_out
-			);
+			  MPI_Request *request,
+			  int *flag,
+			  MPI_Status *status,
+			  int test_id);
 
   virtual int replay_testsome(
-		      int incount, 
-		      MPI_Request array_of_requests[], 
-		      int *outcount, 
-		      int array_of_indices[], 
-		      MPI_Status array_of_statuses[],
-		      int test_id);
+			      int incount, 
+			      MPI_Request array_of_requests[], 
+			      int *outcount, 
+			      int array_of_indices[], 
+			      MPI_Status array_of_statuses[],
+			      int test_id);
 
   //TODO: Comm_dup Comm_split
 
@@ -161,65 +155,64 @@ class rempi_recorder_cdc : public rempi_recorder
 {
  private:
   void* allocate_proxy_buf(int count, MPI_Datatype datatype);
+  void copy_proxy_buf(void* fromt, void* to, int count, MPI_Datatype datatype);
   int get_test_id();
   int init_clmpi();
   PNMPIMOD_register_recv_clocks_t clmpi_register_recv_clocks;
+  PNMPIMOD_clock_control_t clmpi_clock_control;
+  PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
+  PNMPIMOD_sync_clock_t      clmpi_sync_clock;
+
  public:
   int record_init(int *argc, char ***argv, int rank);
   int replay_init(int *argc, char ***argv, int rank);
   int record_irecv(
-			 void *buf,
-			 int count,
-			 int datatype, // The value is assigned in ReMPI_convertor
-			 int source,
-			 int tag,
-			 int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-			 MPI_Request *request
-			 );
+		   void *buf,
+		   int count,
+		   int datatype, // The value is assigned in ReMPI_convertor
+		   int source,
+		   int tag,
+		   int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+		   MPI_Request *request
+		   );
   int replay_irecv(
-			 void *buf,
-			 int count,
-			 int datatype, // The value is assigned in ReMPI_convertor
-			 int source,
-			 int tag,
-			 int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-			 MPI_Comm *comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-			 MPI_Request *request
-			 );
+		   void *buf,
+		   int count,
+		   int datatype, // The value is assigned in ReMPI_convertor
+		   int source,
+		   int tag,
+		   int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+		   MPI_Comm *comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+		   MPI_Request *request
+		   );
 
 
 
   int record_test(
-			MPI_Request *request,
-			int *flag,
-			int source, // of MPI_Status
-			int tag,     // of MPI_tatus
-			int clock,
-			int with_previous
-			);
+		  MPI_Request *request,
+		  int *flag,
+		  int source, // of MPI_Status
+		  int tag,     // of MPI_tatus
+		  int clock,
+		  int with_previous
+		  );
 
   int record_test(
-			MPI_Request *request,
-			int *flag,
-			int source, // of MPI_Status
-			int tag,     // of MPI_tatus
-			int clock,
-			int with_previous,
-			int test_id
-			);
-  
+		  MPI_Request *request,
+		  int *flag,
+		  int source, // of MPI_Status
+		  int tag,     // of MPI_tatus
+		  int clock,
+		  int with_previous,
+		  int test_id
+		  );
+
   int replay_test(
-			MPI_Request *request_in,
-			int flag_in,
-			int source_in,
-			int tag_in,
-			int clock_in,
-			int with_previous_in,
-			int test_id_in,
-			int *flag_out,
-			int *source_out,
-			int *tag_out
-			);
+		  MPI_Request *request,
+		  int *flag,
+		  MPI_Status *status,
+		  int test_id);
+
 
   int replay_testsome(
 		      int incount, 

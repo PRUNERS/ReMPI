@@ -147,15 +147,12 @@ int rempi_re_no_comp::re_test(
     /*TODO: change froi void* to MPI_Request*/
     if(clock != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
       //      recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, get_test_id());
-      recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, -1);
+      recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_NEXT, -1);
     }
   } else {
     int recorded_source, recorded_tag, recorded_flag;
     if(clock != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
-      // recorder->replay_test(request, *flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, get_test_id(),
-      // 			    &recorded_flag, &recorded_source, &recorded_tag);
-      recorder->replay_test(request, *flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, -1,
-      			    &recorded_flag, &recorded_source, &recorded_tag);
+      recorder->replay_test(request, flag, status, -1);
       /*Set next recorded and matched source, and tag*/
       status->MPI_SOURCE = recorded_source;
       status->MPI_TAG    = recorded_tag;
@@ -175,7 +172,7 @@ int rempi_re_no_comp::re_testsome(
 {
   int ret;
   size_t *clocks;
-  int is_with_previous = REMPI_MPI_EVENT_NOT_WITH_PREVIOUS;
+  int is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
   
   
   if (array_of_statuses == NULL) {
@@ -192,16 +189,19 @@ int rempi_re_no_comp::re_testsome(
     if (*outcount == 0) {
       int flag = 0;
       //      recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, get_test_id());
-      recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_PREVIOUS, -1);
+      recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, -1);
     }
 
+    is_with_next = REMPI_MPI_EVENT_WITH_NEXT;
     for (int i = 0; i < *outcount; i++) {
       int flag = 1;
       int index = array_of_indices[i];
       if(clocks[index] != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
-	//	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[index].MPI_SOURCE, array_of_statuses[index].MPI_TAG, clocks[index], is_with_previous, get_test_id());
-	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[index].MPI_SOURCE, array_of_statuses[index].MPI_TAG, clocks[index], is_with_previous, -1);
-	is_with_previous = REMPI_MPI_EVENT_WITH_PREVIOUS;
+	//	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[index].MPI_SOURCE, array_of_statuses[index].MPI_TAG, clocks[index], is_with_next, get_test_id());
+	if (i == *outcount - 1) {
+	  is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
+	}
+	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[index].MPI_SOURCE, array_of_statuses[index].MPI_TAG, clocks[index], is_with_next, -1);
       }
     }
   } else {

@@ -49,6 +49,7 @@ class rempi_event_list
   T pop();
   T front();
 
+  T     front_replay(int test_id);
   T    dequeue_replay(int test_id, int &status);
   void enqueue_replay(T event, int test_id);
 		

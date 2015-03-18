@@ -32,6 +32,7 @@ class rempi_encoder_input_format_test_table
   map<int, rempi_event*>       matched_events_ordered_map;
   size_t                       compressed_matched_events_size = 0;
   char*                        compressed_matched_events      = NULL;
+  void clear();
 };
 
 class rempi_encoder_input_format
@@ -46,6 +47,7 @@ class rempi_encoder_input_format
   virtual void add(rempi_event *event, int test_id);
   virtual void format();
   virtual void debug_print();
+  void clear();
 };
 
 
