@@ -35,6 +35,12 @@ int rempi_re_cdc::init_clmpi()
     return err;
   clmpi_register_recv_clocks=(PNMPIMOD_register_recv_clocks_t) ((void*)serv.fct);
 
+  /*Get clock-mpi service*/
+  err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_local_clock","p",&serv);
+  if (err!=PNMPI_SUCCESS)
+    return err;
+  clmpi_get_local_clock=(PNMPIMOD_get_local_clock_t) ((void*)serv.fct);
+
   /*Load own moduel*/
   err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_REMPI, &handle_rempi);
   if (err!=PNMPI_SUCCESS)
@@ -45,6 +51,7 @@ int rempi_re_cdc::init_clmpi()
 
 int rempi_re_cdc::get_test_id()
 {
+  return 0;
   string test_id_string;
   test_id_string = rempi_btrace_string();
   //TODO: get the binary name
@@ -99,6 +106,26 @@ int rempi_re_cdc::re_init_thread(
   return ret;
 }
 
+int rempi_re_cdc::re_isend(
+		       void *buf,
+		       int count,
+		       MPI_Datatype datatype,
+		       int dest,
+		       int tag,
+		       MPI_Comm comm,
+		       MPI_Request *request)
+{
+  int ret;
+  size_t clock;
+  clmpi_get_local_clock(&clock);
+  ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
+#ifdef REMPI_DBG_REPLAY
+  REMPI_DBGI(REMPI_DBG_REPLAY, "  Send: request: %p dest: %d, tag: %d, clock: %d, count: %d", *request, dest, tag, clock, count);
+#endif
+
+  return ret;
+}
+
 
 int rempi_re_cdc::re_irecv(
 		 void *buf,
@@ -115,6 +142,8 @@ int rempi_re_cdc::re_irecv(
   int resultlen;
   PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);
 
+
+
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
     //TODO: Get Datatype,
@@ -123,6 +152,9 @@ int rempi_re_cdc::re_irecv(
     /*TODO: Really need datatype ??*/
     recorder->replay_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], &comm, request);
   }
+#if 0
+  REMPI_DBGI(1, "source: %d, tag: %d, count: %d, request: %p", source, tag, count, *request);
+#endif
   return ret;
 }
   
@@ -133,6 +165,11 @@ int rempi_re_cdc::re_test(
 {
   int ret;
   size_t clock;
+
+#if 0
+  REMPI_DBGI(1, "request: %p", *request);
+#endif
+
 
   if (status == NULL) {
     /*TODO: allocate array_of_statuses in ReMPI instead of the error below*/
@@ -145,6 +182,9 @@ int rempi_re_cdc::re_test(
     /*If recoding mode, record the test function*/
     /*TODO: change froi void* to MPI_Request*/
     if(clock != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
+      // REMPI_DBGI(1, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
+      // 		 1, 0, *flag,
+      // 		 status->MPI_SOURCE, status->MPI_TAG, clock);
       recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_NEXT, get_test_id());
     }
   } else {
@@ -153,6 +193,18 @@ int rempi_re_cdc::re_test(
 
   return ret;
 }
+
+int rempi_re_cdc::re_cancel(MPI_Request *request)
+{
+  int ret;
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    ret = PMPI_Cancel(request);
+  } else {
+    ret = recorder->replay_cancel(request);
+  }
+  return ret;
+}
+
   
 int rempi_re_cdc::re_testsome(
 			  int incount, 
@@ -163,7 +215,7 @@ int rempi_re_cdc::re_testsome(
 {
   int ret;
   size_t *clocks;
-  int is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
+  int is_with_next = REMPI_MPI_EVENT_WITH_NEXT;
   
   if (array_of_statuses == NULL) {
     /*TODO: allocate array_of_statuses in ReMPI instead of the error below*/
@@ -173,27 +225,54 @@ int rempi_re_cdc::re_testsome(
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     clocks = (size_t*)malloc(sizeof(size_t) * incount);
     clmpi_register_recv_clocks(clocks, incount);
+#if 0
+    for (int i = 0; i < incount; i++) {
+      REMPI_DBGI(1, "request: %p (%d/%d)", array_of_requests[i], i, incount);
+    }
+#endif
     ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
     if (*outcount == 0) {
       int flag = 0;
-      recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, get_test_id());
-    }
+      if(clocks[0] != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
+	recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, get_test_id());
+      } else {
+#if 0	
+	REMPI_DBGI(1, "skipp flag = 0, clock: %d (incount: %d)", clocks[0], incount);
+#endif
+      }
+    } else {
+      for (int i = 0; i < *outcount; i++) {
+	int flag = 1;
+	int index = array_of_indices[i];
+	if(clocks[index] != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
+	  if (i == *outcount - 1) {
+	    is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
+	  }
 
-    is_with_next = REMPI_MPI_EVENT_WITH_NEXT;
-    for (int i = 0; i < *outcount; i++) {
-      int flag = 1;
-      int index = array_of_indices[i];
-      if(clocks[index] != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
-	if (i == *outcount - 1) {
-	  is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
+	  // REMPI_DBGI(1, "Record  : index: %d (incount: %d, outcount: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
+	  // 	     index, incount, *outcount, is_with_next, flag,
+	  // 	     array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, clocks[index]);
+	  /*array_of_statuses only contain statuese for completed messages (i.e. length of array_of_indices == *outcount)
+	    so I use [i] insted of [index]
+	   */
+	  recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, clocks[index], is_with_next, get_test_id());
+	}  else {
+#if 0	
+	  REMPI_DBGI(1, "skipp flag = 1, clock: %d (%d/%d)", clocks[i], i, *outcount);
+#endif
 	}
-	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[index].MPI_SOURCE, array_of_statuses[index].MPI_TAG, clocks[index], is_with_next, get_test_id());
       }
     }
     free(clocks);
   } else {
     //    ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
+// #ifdef REMPI_DBG_REPLAY
+//     REMPI_DBGI(REMPI_DBG_REPLAY, "testsome call");
+// #endif
     recorder->replay_testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, get_test_id());
+// #ifdef REMPI_DBG_REPLAY
+//     REMPI_DBGI(REMPI_DBG_REPLAY, "testsome end");
+// #endif
   }
 
 #if 0

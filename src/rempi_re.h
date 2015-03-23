@@ -29,6 +29,16 @@ class rempi_re
   virtual int re_init_thread(
 				   int *argc, char ***argv,
 				   int required, int *provided);
+
+  virtual int re_isend(
+		 void *buf,
+		 int count,
+		 MPI_Datatype datatype,
+		 int dest,
+		 int tag,
+		 MPI_Comm comm,
+		 MPI_Request *request);
+
   virtual int re_irecv(
 		 void *buf,
 		 int count,
@@ -37,6 +47,8 @@ class rempi_re
 		 int tag,
 		 MPI_Comm comm,
 		 MPI_Request *request);
+
+  virtual int re_cancel(MPI_Request *request);
   
   virtual int re_test(
 		      MPI_Request *request, 
@@ -55,8 +67,9 @@ class rempi_re
 
 class rempi_re_no_comp : public rempi_re
 {
- private:
+ protected:
   PNMPIMOD_register_recv_clocks_t clmpi_register_recv_clocks;
+  PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
   //  PNMPIMOD_get_recv_clocks_t clmpi_get_recv_clocks;
   int init_clmpi();
   rempi_recorder *recorder;  
@@ -71,6 +84,16 @@ class rempi_re_no_comp : public rempi_re
   virtual int re_init_thread(
 			     int *argc, char ***argv,
 			     int required, int *provided);
+
+  virtual int re_isend(
+		       void *buf,
+		       int count,
+		       MPI_Datatype datatype,
+		       int dest,
+		       int tag,
+		       MPI_Comm comm,
+		       MPI_Request *request);
+
   virtual int re_irecv(
 		       void *buf,
 		       int count,
@@ -79,6 +102,8 @@ class rempi_re_no_comp : public rempi_re
 		       int tag,
 		       MPI_Comm comm,
 		       MPI_Request *request);
+
+  virtual int re_cancel(MPI_Request *request);
   
   virtual int re_test(
 		      MPI_Request *request, 
@@ -114,6 +139,15 @@ class rempi_re_cdc : public rempi_re_no_comp
   virtual int re_init_thread(
 			     int *argc, char ***argv,
 			     int required, int *provided);
+  virtual int re_isend(
+		       void *buf,
+		       int count,
+		       MPI_Datatype datatype,
+		       int dest,
+		       int tag,
+		       MPI_Comm comm,
+		       MPI_Request *request);
+
   virtual int re_irecv(
 		       void *buf,
 		       int count,
@@ -122,6 +156,8 @@ class rempi_re_cdc : public rempi_re_no_comp
 		       int tag,
 		       MPI_Comm comm,
 		       MPI_Request *request);
+
+  virtual int re_cancel(MPI_Request *request);
   
   virtual int re_test(
 		      MPI_Request *request, 

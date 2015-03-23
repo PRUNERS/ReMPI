@@ -40,6 +40,7 @@ class rempi_event
     static int record_element_size;
 
     int clock_order = - 1; /*Ordered by clock when CDC compression is used */
+    int msg_count = -1; /*Actual message count from sender. This is used in copy_proxy_buf*/
     vector<long> mpi_inputs;
 
     virtual void operator ++(int);

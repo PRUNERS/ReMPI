@@ -91,7 +91,7 @@ void rempi_print(const char* fmt, ...) {
 }
 
 void rempi_dbgi(int r, const char* fmt, ...) {
-  if (my_rank != r) return;
+  if (my_rank != r && -1 != r) return;
   pthread_mutex_lock (&print_mutex);
   va_list argp;
   fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%3d: ", hostname, my_rank);

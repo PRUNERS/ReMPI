@@ -8,7 +8,7 @@
 #include "rempi_event.h"
 #include "rempi_util.h"
 #include "rempi_err.h"
-
+#include "rempi_config.h"
 
 
 using namespace std;
@@ -127,8 +127,17 @@ T rempi_event_list<T>::dequeue_replay(int test_id, int &status)
   rempi_spsc_queue<rempi_event*> *spsc_queue;
   bool is_queue_empty;
   
+  //  REMPI_DBGI(0, "called dequeue_replay: %d", test_id);
+  
   if (previous_replaying_event_umap.find(test_id) == previous_replaying_event_umap.end()) {
     previous_replaying_event_umap[test_id] = NULL;
+  } else {
+    if (previous_replaying_event_umap[test_id] != NULL) {
+      if (previous_replaying_event_umap[test_id]->size() <= 0) {
+	delete previous_replaying_event_umap[test_id];
+	previous_replaying_event_umap[test_id] = NULL;
+      }
+    }
   }
   
   /*Did io thread create the replay_events(test_id) spsc_queue instance for decoding ?*/
@@ -138,36 +147,43 @@ T rempi_event_list<T>::dequeue_replay(int test_id, int &status)
   }
   spsc_queue = replay_events[test_id];
 
-  if (is_push_closed) {
-    /* Note: 
+
+  if (previous_replaying_event_umap[test_id] == NULL) {
+    if (is_push_closed) {
+      /* Note: 
          is_push_closed is need to be tested before calling spsc_queue->dequeu()
          because io thread calls spsc_queue->enqueue() first, then set 
 	 is_push_closed to 1;	 
-    */
-    previous_replaying_event_umap[test_id] = spsc_queue->dequeue(); // 
-    is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
-    if (is_queue_empty) {
-      status = REMPI_EVENT_LIST_FINISH;
-      return NULL;
-    }
-  } else {
-    previous_replaying_event_umap[test_id] = spsc_queue->dequeue(); // 
-    is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
-    if (is_queue_empty) {
-      // REMPI_DBG("push closed %p", previous_replaying_event_umap[test_id]);
-      status = REMPI_EVENT_LIST_EMPTY;
-      return NULL;
+      */
+      previous_replaying_event_umap[test_id] = spsc_queue->dequeue(); // 
+      is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
+      if (is_queue_empty) {
+	status = REMPI_EVENT_LIST_FINISH;
+	return NULL;
+      }
+    } else {
+      //      REMPI_DBGI(0, "c called dequeue_replay: %d", test_id);
+      previous_replaying_event_umap[test_id] = spsc_queue->dequeue(); // 
+      is_queue_empty = (previous_replaying_event_umap[test_id] == NULL);
+      if (is_queue_empty) {
+	// REMPI_DBG("push closed %p", previous_replaying_event_umap[test_id]);
+	status = REMPI_EVENT_LIST_EMPTY;
+	return NULL;
+      }
     }
   }
 
   /*From here, previous_replaying_event has "event instance" at least*/
-  if (previous_replaying_event_umap[test_id]->size() <= 0) {
-    delete previous_replaying_event_umap[test_id];
-    previous_replaying_event_umap[test_id] = NULL;
-    status = REMPI_EVENT_LIST_EMPTY;
-    return NULL;
-  }
+
   event = previous_replaying_event_umap[test_id]->pop();
+
+// #ifdef REMPI_DBG_REPLAY
+//   REMPI_DBGI(REMPI_DBG_REPLAY, "DQN : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d, msg_count: %d %p)",
+// 	     event->get_event_counts(), event->get_is_testsome(), event->get_flag(),
+// 	     event->get_source(), event->get_tag(), event->get_clock(), event->msg_count,  event);
+// #endif
+  
+
   if (event == NULL) {
     REMPI_ERR("Poped replaying event is null: this should not be occured");
   }
@@ -307,8 +323,12 @@ T rempi_event_list<T>::front_replay(int test_id)
   rempi_spsc_queue<rempi_event*> *spsc_queue;
   if (replay_events.find(test_id) == replay_events.end()) {
     return NULL;
-  }
-  return replay_events[test_id]->front();
+  } 
+  // else if (replay_events[test_id]->rough_size() == 0) {
+  //   return NULL;
+  // }
+  T e = replay_events[test_id]->front();
+  return e; 
 }
 
 template <class T>

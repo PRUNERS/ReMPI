@@ -51,6 +51,8 @@ rempi_event* rempi_event::pop()
 			       mpi_inputs[5],
 			       mpi_inputs[6],
 			       mpi_inputs[7]);
+  event->clock_order = clock_order;
+  event->msg_count = msg_count;
   return event;
 }
 

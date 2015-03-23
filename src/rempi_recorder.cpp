@@ -79,6 +79,13 @@ int rempi_recorder::replay_irecv(
   return 0;
 }
 
+int rempi_recorder::replay_cancel(MPI_Request *request)
+{
+  int ret;
+  ret = PMPI_Cancel(request);
+  return ret;
+}
+
 
 int rempi_recorder::record_test(
     MPI_Request *request,

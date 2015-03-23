@@ -90,9 +90,10 @@ _EXTERN_C_ int PMPI_Irecv(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3,
 _EXTERN_C_ int MPI_Irecv(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6)
 { 
   int _wrap_py_return_val = 0;
- 
-
   _wrap_py_return_val = rempi_record_replay->re_irecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+  // int rank;
+  // PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  // fprintf(stderr, "rank %d: irecv request: %p\n", rank, *arg_6);
   return _wrap_py_return_val;
 }
 
@@ -114,13 +115,14 @@ _EXTERN_C_ int MPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_
   return _wrap_py_return_val;
 }
 
+
 /* ================== C Wrappers for MPI_Cancel ================== */
 _EXTERN_C_ int PMPI_Cancel(MPI_Request *arg_0);
 _EXTERN_C_ int MPI_Cancel(MPI_Request *arg_0) {
   int _wrap_py_return_val = 0;
   {
-   
-    _wrap_py_return_val = PMPI_Cancel(arg_0);
+    /*Message pooling is needed, and arg_0 is not used internal. so ignore this cancel*/
+    _wrap_py_return_val = rempi_record_replay->re_cancel(arg_0);
   }    return _wrap_py_return_val;
 }
 
@@ -183,6 +185,43 @@ _EXTERN_C_ int MPI_Finalize()
   _wrap_py_return_val = rempi_record_replay->re_finalize();
   return _wrap_py_return_val;
 }
+
+
+
+/* ================== C Wrappers for MPI_Isend ================== */
+_EXTERN_C_ int PMPI_Isend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
+_EXTERN_C_ int MPI_Isend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) {
+  int _wrap_py_return_val = 0;
+  {
+    _wrap_py_return_val = rempi_record_replay->re_isend(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+    // int rank;
+    //  PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    //  if (rank == 1) {
+    //    fprintf(stderr, "rank %d: source: %d, tag: %d, isend request: %p\n", rank, arg_3, arg_4, *arg_6);
+    //  }
+  }    return _wrap_py_return_val;
+}
+
+/* ================== C Wrappers for MPI_Send ================== */
+_EXTERN_C_ int PMPI_Send(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5);
+_EXTERN_C_ int MPI_Send(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5) {
+  int _wrap_py_return_val = 0;
+  {
+    _wrap_py_return_val = PMPI_Send(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
+    // int rank;
+    //  PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    //  if (rank == 1) {
+    //    fprintf(stderr, "rank %d: source: %d, tag: %d\n", rank, arg_3, arg_4);
+    //  }
+  }
+  return _wrap_py_return_val;
+}
+
+
+
+
+
+
 
 
 

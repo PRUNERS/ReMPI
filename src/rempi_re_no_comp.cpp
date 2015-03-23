@@ -99,6 +99,19 @@ int rempi_re_no_comp::re_init_thread(
   return ret;
 }
 
+int rempi_re_no_comp::re_isend(
+		       void *buf,
+		       int count,
+		       MPI_Datatype datatype,
+		       int dest,
+		       int tag,
+		       MPI_Comm comm,
+		       MPI_Request *request)
+{
+  int ret;
+  ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
+  return ret;
+}
 
 int rempi_re_no_comp::re_irecv(
 		 void *buf,
@@ -125,6 +138,14 @@ int rempi_re_no_comp::re_irecv(
   }
   return ret;
 }
+
+int rempi_re_no_comp::re_cancel(MPI_Request *request)
+{
+  int ret;
+  ret = PMPI_Cancel(request);
+  return ret;
+}
+
   
 int rempi_re_no_comp::re_test(
 		    MPI_Request *request, 

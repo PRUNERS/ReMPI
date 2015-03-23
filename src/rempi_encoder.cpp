@@ -163,6 +163,7 @@ void rempi_encoder::open_record_file(string record_path)
   if(!record_fs.is_open()) {
     REMPI_ERR("Record file open failed: %s", record_path.c_str());
   }
+
 }
 
 rempi_encoder_input_format* rempi_encoder::create_encoder_input_format()
@@ -248,9 +249,14 @@ void rempi_encoder::encode(rempi_encoder_input_format &input_format)
     original_buff[encodign_buff_head_index + 2] = encoding_event->get_flag();
     original_buff[encodign_buff_head_index + 3] = encoding_event->get_source();
     original_buff[encodign_buff_head_index + 4] = encoding_event->get_clock();
-    // REMPI_DBG("Encoded  : (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)", 
-    // 	      encoding_event->get_event_counts(), encoding_event->get_is_testsome(), encoding_event->get_flag(), 
-    // 	      encoding_event->get_source(), encoding_event->get_clock());
+#ifdef REMPI_DBG_REPLAY
+    // REMPI_DBGI(REMPI_DBG_REPLAY, "Encoded  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)", 
+    // 	       encoding_event->get_event_counts(), encoding_event->get_is_testsome(), encoding_event->get_flag(), 
+    // 	       encoding_event->get_source(), encoding_event->get_tag(), encoding_event->get_clock());
+    REMPI_DBG("Encoded  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)", 
+	       encoding_event->get_event_counts(), encoding_event->get_is_testsome(), encoding_event->get_flag(), 
+	       encoding_event->get_source(), encoding_event->get_tag(), encoding_event->get_clock());
+#endif 
   }
   //  rempi_dbgi(0, "-> encoding: %p, size: %d: count: %d", encoding_event, encoding_event_sequence.size(), count++);                                     
 #if 0
@@ -355,10 +361,11 @@ void rempi_encoder::insert_encoder_input_format_chunk(rempi_event_list<rempi_eve
   decoded_event = test_table->events_vec[0];
   test_table->events_vec.pop_back();
 
-#ifdef REPMI_DBG_REPLAY
-  REMPI_DBGI(REMPI_DBG_REPLAY, "Decoded ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)",
+
+#ifdef REMPI_DBG_REPLAY
+  REMPI_DBGI(REMPI_DBG_REPLAY, "Decoded ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
 	     decoded_event->get_event_counts(), decoded_event->get_is_testsome(), decoded_event->get_flag(),
-	     decoded_event->get_source(), decoded_event->get_clock());
+	     decoded_event->get_source(), decoded_event->get_tag(), decoded_event->get_clock());
 #endif
 
   if (decoded_event->get_flag() == 0) {
@@ -366,7 +373,6 @@ void rempi_encoder::insert_encoder_input_format_chunk(rempi_event_list<rempi_eve
     replaying_events.enqueue_replay(decoded_event, 0);
     return;
   }
-
 
   
   rempi_event *matched_replaying_event;
@@ -382,19 +388,24 @@ void rempi_encoder::insert_encoder_input_format_chunk(rempi_event_list<rempi_eve
       matched_event = recording_events.dequeue_replay(0, event_list_status);
       matched_event_pool.push_back(matched_event);
 #ifdef REMPI_DBG_REPLAY
-      REMPI_DBGI(REMPI_DBG_REPLAY, "RCQ->PL ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)",
-	     matched_event->get_event_counts(), matched_event->get_is_testsome(), matched_event->get_flag(),
-	     matched_event->get_source(), matched_event->get_clock());
+      REMPI_DBGI(REMPI_DBG_REPLAY, "RCQ->PL ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d, msg_count: %d %p)",
+		 matched_event->get_event_counts(), matched_event->get_is_testsome(), matched_event->get_flag(),
+		 matched_event->get_source(), matched_event->get_tag(), matched_event->get_clock(), matched_event->msg_count, 
+		 matched_event);
 #endif
     }
   } 
 
   /* matched_replaying_event == decoded_event: this two event is same*/
+
+  decoded_event->msg_count = matched_replaying_event->msg_count;
 #ifdef REMPI_DBG_REPLAY
-  REMPI_DBGI(REMPI_DBG_REPLAY, "PL->RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)",
+  REMPI_DBGI(REMPI_DBG_REPLAY, "PL->RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d, msg_count: %d)",
 	     decoded_event->get_event_counts(), decoded_event->get_is_testsome(), decoded_event->get_flag(),
-	     decoded_event->get_source(), decoded_event->get_clock());
+	     decoded_event->get_source(), decoded_event->get_tag(), decoded_event->get_clock(), decoded_event->msg_count);
 #endif
+
+
   replaying_events.enqueue_replay(decoded_event, 0);
   delete matched_replaying_event;
   return;    
