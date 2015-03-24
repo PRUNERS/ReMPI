@@ -153,7 +153,7 @@ void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format &
     /*=====================*/
 
     /*=== Compress with_previous ===*/
-    test_table->compressed_with_previous = compression_util.compress_by_zero_one_binary(test_table->with_previous_vec, compressed_size);
+  test_table->compressed_with_previous = (char*)compression_util.compress_by_zero_one_binary(test_table->with_previous_vec, compressed_size);
     test_table->compressed_with_previous_size   = compressed_size;
     test_table->compressed_with_previous_length = test_table->with_previous_vec.size();
 
@@ -460,13 +460,13 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     test_table = new rempi_encoder_input_format_test_table();
 
     /*=== Decode with_next ===*/
-    test_table->compressed_with_previous_length = decompressed_record;
+    test_table->compressed_with_previous_length = (size_t)decompressed_record;
     decompressed_record += sizeof(test_table->compressed_with_previous_length);
-    test_table->compressed_with_previous_size = decompressed_record;
+    test_table->compressed_with_previous_size = (size_t)decompressed_record;
     decompressed_record += sizeof(test_table->compressed_with_previous_size);
     test_table->compressed_with_previous = decompressed_record;
     decompressed_record += test_table->compressed_with_previous_size;
-    compression_util.decompress_by_zero_one_binary(test_table->compressed_with_previous, test_table->compressed_with_previous_length,
+    compression_util.decompress_by_zero_one_binary((unsigned char*)test_table->compressed_with_previous, test_table->compressed_with_previous_length,
 						   test_table->with_previous_vec);
     /*==========================*/
 
@@ -474,7 +474,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     /*  (1) id */
     {
       size_t *array; size_t length;
-      test_table->compressed_unmatched_events_id_size = decompressed_record;
+      test_table->compressed_unmatched_events_id_size = (size_t)decompressed_record;
       decompressed_record += sizeof(test_table->compressed_unmatched_events_id_size);
       test_table->compressed_unmatched_events_id      = decompressed_record;
       decompressed_record += test_table->compressed_unmatched_events_id_size;
@@ -484,10 +484,10 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
       for (int i = 0; i < length; i++) {
 	test_table->unmatched_events_id_vec[i] = array[i];
       }
-      compression_util.decompress_by_linear_prediction(test_table->unmatched_events);
+      compression_util.decompress_by_linear_prediction(test_table->unmatched_events_id_vec);
       /*  (2) count */
 
-      test_table->compressed_unmatched_events_count_size = decompressed_record;
+      test_table->compressed_unmatched_events_count_size = (size_t)decompressed_record;
       decompressed_record += sizeof(test_table->compressed_unmatched_events_count_size);
       test_table->compressed_unmatched_events_count      = decompressed_record;
       decompressed_record += test_table->compressed_unmatched_events_count_size;
@@ -499,10 +499,6 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
       }
     }
       /*===============================*/
-
-    
-      
-
 
     input_format.test_tables_map[test_id++] = test_table;
   }

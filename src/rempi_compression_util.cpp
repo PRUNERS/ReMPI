@@ -27,36 +27,63 @@ template class rempi_compression_util<int>;
 template class rempi_compression_util<size_t>;
 
 template <class T>
-char *rempi_compression_util<T>::compress_by_zero_one_binary(vector<T> &vec, size_t &output_size)
+unsigned char *rempi_compression_util<T>::compress_by_zero_one_binary(vector<T> &vec, size_t &output_size)
 {
-  char *binary;
+  unsigned char *binary;
   size_t length = vec.size();
   if (length == 0) {
     output_size = 0;
     return NULL;
   }
   size_t required_size_in_bytes = (length / 8) + ((length % 8 != 0)? 1:0); // TODO: compute exact required size
-  binary = (char*)malloc(required_size_in_bytes);
+  binary = (unsigned char*)malloc(required_size_in_bytes);
   memset(binary, 0, required_size_in_bytes);
   int bin_index = 0;
-  for (int i = 0; i < length; i++) {
-    if (vec[i] == 1) {
-      binary[bin_index]  += 1;
-    }
+  int i;
+  for (i = 0; i < length; i++) {
     binary[bin_index] <<= 1;	
-
-    if (i % 8 == 0 && i != 0) {
+    if (vec[i] > 0) {
+      binary[bin_index]  |= 1;
+    }
+    if (i % 8 == 7 && i != 0) {
       bin_index++;
     }
   }
+  
   output_size = required_size_in_bytes;
   return binary;
 }
 
 template <class T>
-void rempi_compression_util<T>::decompress_by_zero_one_binary(char* bin,  size_t length, vector<T> &vec)
+void rempi_compression_util<T>::decompress_by_zero_one_binary(unsigned char* bin,  size_t length, vector<T> &vec)
 {
-  REMPI_ERR("Not implement it yet");
+  unsigned char b;
+  size_t count = length;
+  int index = 0;
+  if (vec.size() != 0) {
+    REMPI_ERR("vec has values");
+  }
+  unsigned char offset;
+  while (1) {
+    b = bin[index];
+    index++;
+    offset = 0x00000080;
+    if (count < 8) {
+      offset >>= 8 - count;
+    }
+    for (int j = 0; j < 8; j++) {
+      if ((b & offset) != 0) {
+	//	REMPI_DBG("1 desu-noo: %p %p %p %p", b, offset, b & offset, offset - b & offset);
+	vec.push_back(1);
+      } else {
+	//	REMPI_DBG("0 desu-noo: %p %p %p %p", b, offset, b & offset, offset - b & offset);
+	vec.push_back(0);
+      }
+      count--;
+      offset >>= 1;
+      if (count == 0) {return;}
+    }
+  }
   return;
 }
 
@@ -81,15 +108,13 @@ void rempi_compression_util<T>::compress_by_linear_prediction(vector<T> &vec)
   /*
     1 3 5 7  2 4 6 8
     vec1[i] =  vec [i] - vec [i-1]
-    1 2 2 2 -5 2 2 2
     vec2[i] =  vec1[i] + vec1[i-1]
             = (vec [i] - vec [i-1]) + (vec [i-1] - vec [i-2])
             =  vec [i] - vec [i-2]
-    1 3 4 4 -3 -3  4 4
     vec3[i] =  vec2[i] - vec2[i-1]
             = (vec [i] - vec [i-1]) - (vec [i-1] - vec [i-2])
             =  vec [i] - 2*vec [i-1] + vec [i-2]
-    1 2 1 0 -7 -7  7 7
+    1 1 0 0  -7  7 0 0
   */
   T t0 =0, t1 = 0, t2 = 0;
   for (int i = 0; i < vec.size(); i++) {
@@ -98,6 +123,7 @@ void rempi_compression_util<T>::compress_by_linear_prediction(vector<T> &vec)
     t2 = t1;
     t1 = t0;
   }
+
   return;
 }
 
@@ -105,7 +131,13 @@ void rempi_compression_util<T>::compress_by_linear_prediction(vector<T> &vec)
 template <class T>
 void rempi_compression_util<T>::decompress_by_linear_prediction(vector<T> &vec)
 {
-  REMPI_ERR("Not implemented yet");
+  T t0 =0, t1 = 0, t2 = 0;
+  for (int i = 0; i < vec.size(); i++) {
+    t0 = vec[i];
+    vec[i] =  t0 + 2 * t1 - t2;
+    t2 = t1;
+    t1 = vec[i];
+  }  
   return;
 }
 

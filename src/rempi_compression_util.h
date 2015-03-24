@@ -9,8 +9,8 @@ template <class T>
 class rempi_compression_util
 {
  public:
-  char*  compress_by_zero_one_binary(vector<T> &vec, size_t &output_size);
-  void decompress_by_zero_one_binary(char* bin,  size_t length, vector<T> &vec);
+  unsigned char*  compress_by_zero_one_binary(vector<T> &vec, size_t &output_size);
+  void decompress_by_zero_one_binary(unsigned char* bin,  size_t length, vector<T> &vec);
   void   compress_by_linear_prediction(vector<T> &vec);
   void decompress_by_linear_prediction(vector<T> &vec);
   size_t compress_by_zlib_vec(vector<char*>  &input_vec,  vector<size_t>  &input_size_vec,

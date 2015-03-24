@@ -276,12 +276,11 @@ bool test_clock_compare(const pair<int, int> &id1,
 
 // }
 
-void test_zlib()
+void test_zlib(size_t length)
 {
   vector<char*> input_vec, output_vec, output_vec2;
   vector<size_t>  input_size_vec, output_size_vec, output_size_vec2;
   size_t num_array = 8;
-  size_t length = 1024 * 1024;
   size_t total_size = 0;
 
   rempi_compression_util<int> *cutil = new rempi_compression_util<int>();
@@ -301,13 +300,13 @@ void test_zlib()
   for (int i = 0; i < input_size_vec.size(); i++) {
     sum += input_size_vec[i];
   }
-  fprintf(stderr, "Original size  : %10lu %d %lu\n", total_size, array[0], sum);
+  //  fprintf(stderr, "Original size  : %10lu %d %lu\n", total_size, array[0], sum);
   cutil->compress_by_zlib_vec(input_vec, input_size_vec, output_vec, output_size_vec, total_size);
   sum = 0;
   for (int i = 0; i < output_size_vec.size(); i++) {
     sum += output_size_vec[i];
   }
-  fprintf(stderr, "compressed size: %10lu length: %lu %lu\n", total_size, output_vec.size(), sum);
+  //  fprintf(stderr, "compressed size: %10lu length: %lu %lu\n", total_size, output_vec.size(), sum);
   // for (int i = 0; i < output_size_vec.size(); i++) {
   //   fprintf(stderr, "%lu\n", output_size_vec[i]);
   // }
@@ -321,7 +320,7 @@ void test_zlib()
   for (int i = 0; i < output_size_vec2.size(); i++) {
     sum += output_size_vec2[i];
   }
-  fprintf(stderr, "Original size  : %10lu %d %lu %d\n", total_size, array[0], sum, output_vec2.size());
+  //  fprintf(stderr, "Original size  : %10lu %d %lu %lu\n", total_size, array[0], sum, output_vec2.size());
   // char *final_char = (char*)malloc(total_size);
   // for (int i = 0; i < output_vec2.size(); i++) {
   //   memcpy(final_int, output_vec2[i], output_size_vec2[i]);
@@ -335,6 +334,52 @@ void test_zlib()
   return;
 }
 
+int test_lp(int length)
+{
+  vector<int> test_vec;
+  vector<int> test_vec2;
+  // test_vec.push_back(1);
+  // test_vec.push_back(3);
+  // test_vec.push_back(2);
+  // test_vec.push_back(5);
+  for (int i = 0; i < length; i++) {
+    test_vec.push_back(rand()/1000);
+  }
+  test_vec2 = test_vec;
+  rempi_compression_util<int> *cutil = new rempi_compression_util<int>();  
+  cutil->compress_by_linear_prediction(test_vec);
+  cutil->decompress_by_linear_prediction(test_vec);
+  for (int i = 0; i < test_vec.size(); i++) {
+    if(test_vec2[i] != test_vec[i]) {
+      fprintf(stderr, "Error in index: %d\n: should be %d but %d\n", i, test_vec2[i], test_vec[i]);
+    }
+  }
+  return 0;
+}
+
+int test_bin(int length)
+{
+  vector<int> test_vec;
+  vector<int> test_vec2;
+  unsigned char* bin;
+  size_t size;
+  rempi_compression_util<int> *cutil = new rempi_compression_util<int>();  
+
+   for (int i = 0; i < length; i++) {
+        test_vec.push_back(rand() % 2);
+   }
+   test_vec2 = test_vec;
+   bin = cutil->compress_by_zero_one_binary(test_vec, size);
+   test_vec.clear();
+   cutil->decompress_by_zero_one_binary(bin, test_vec2.size(), test_vec);
+
+  for (int i = 0; i < test_vec2.size(); i++) {
+    if(test_vec2[i] != test_vec[i]) {
+      fprintf(stderr, "Error in index: %d: should be %d but %d\n", i, test_vec2[i], test_vec[i]);
+    }
+  }
+  return 0;
+}
 
 
 int main(int argc, char* argv[]) {
@@ -346,8 +391,23 @@ int main(int argc, char* argv[]) {
  // test_clock_delta2();
  // test_clock_delta3();
 #endif
-
- test_zlib();
+ for (int i = 1; i < 1024 * 1024; i = i*4) {
+   for (int j = -3; j <= 3; j++) {
+     //     REMPI_DBG("i: %d", i);
+     int s = i + j;
+     if (s < 1) continue;
+     test_zlib(s);
+   }
+ }
+ REMPI_DBG("Zib OK");
+ for (int i = 1; i < 1000; i++) {
+   test_lp(i);
+ }
+ REMPI_DBG("LP OK");
+ for (int i = 1; i < 1000; i++) {
+   test_bin(i);
+ }
+ REMPI_DBG("BIN OK");
 
  return 0;
 }
