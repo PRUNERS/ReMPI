@@ -56,6 +56,7 @@ char *rempi_compression_util<T>::compress_by_zero_one_binary(vector<T> &vec, siz
 template <class T>
 void rempi_compression_util<T>::decompress_by_zero_one_binary(char* bin,  size_t length, vector<T> &vec)
 {
+  REMPI_ERR("Not implement it yet");
   return;
 }
 
@@ -104,7 +105,8 @@ void rempi_compression_util<T>::compress_by_linear_prediction(vector<T> &vec)
 template <class T>
 void rempi_compression_util<T>::decompress_by_linear_prediction(vector<T> &vec)
 {
-
+  REMPI_ERR("Not implemented yet");
+  return;
 }
 
 

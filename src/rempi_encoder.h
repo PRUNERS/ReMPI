@@ -40,11 +40,15 @@ class rempi_encoder_input_format
 {
  public:
   size_t total_length = 0;
+  
   /*Used for CDC*/  
   map<int, rempi_encoder_input_format_test_table*> test_tables_map;  
+
   /*vector to write to file*/
   vector<char*>  write_queue_vec;
   vector<size_t> write_size_queue_vec;
+  /**/
+  size_t decompressed_size;
 
   size_t  length();
   virtual void add(rempi_event *event);
