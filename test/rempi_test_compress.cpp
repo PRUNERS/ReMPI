@@ -10,6 +10,7 @@
 #include "../src/rempi_message_manager.h"
 #include "../src/rempi_clock_delta_compression.h"
 #include "../src/rempi_compress.h"
+#include "../src/rempi_compression_util.h"
 #include "../src/rempi_err.h"
 #include "../src/rempi_util.h"
 
@@ -275,6 +276,66 @@ bool test_clock_compare(const pair<int, int> &id1,
 
 // }
 
+void test_zlib()
+{
+  vector<char*> input_vec, output_vec, output_vec2;
+  vector<size_t>  input_size_vec, output_size_vec, output_size_vec2;
+  size_t num_array = 8;
+  size_t length = 1024 * 1024;
+  size_t total_size = 0;
+
+  rempi_compression_util<int> *cutil = new rempi_compression_util<int>();
+
+  for (int i = 0; i < num_array; i++) {
+    size_t size = sizeof(int) * length;
+    int *int_array =  (int*)malloc(sizeof(int) * length);
+    for (int j = 0; j < length; j++) {
+      int_array[j] = rand() / 1000;
+    }
+    input_vec.push_back((char*)int_array);
+    input_size_vec.push_back(size);
+    total_size += size;
+  }
+  int *array = (int*)input_vec[0];
+  size_t sum = 0;
+  for (int i = 0; i < input_size_vec.size(); i++) {
+    sum += input_size_vec[i];
+  }
+  fprintf(stderr, "Original size  : %10lu %d %lu\n", total_size, array[0], sum);
+  cutil->compress_by_zlib_vec(input_vec, input_size_vec, output_vec, output_size_vec, total_size);
+  sum = 0;
+  for (int i = 0; i < output_size_vec.size(); i++) {
+    sum += output_size_vec[i];
+  }
+  fprintf(stderr, "compressed size: %10lu length: %lu %lu\n", total_size, output_vec.size(), sum);
+  // for (int i = 0; i < output_size_vec.size(); i++) {
+  //   fprintf(stderr, "%lu\n", output_size_vec[i]);
+  // }
+  //  fprintf(stderr, "               : %p %lu\n", output_vec.front(). output_size_vec.front());
+  // char*  a = output_vec.front();
+  // size_t s = output_size_vec.front();
+  // fprintf(stderr, "               : %p %lu\n", a, s);
+  cutil->decompress_by_zlib_vec(output_vec, output_size_vec, output_vec2, output_size_vec2, total_size);
+  array = (int*)output_vec[0];
+  sum = 0;
+  for (int i = 0; i < output_size_vec2.size(); i++) {
+    sum += output_size_vec2[i];
+  }
+  fprintf(stderr, "Original size  : %10lu %d %lu %d\n", total_size, array[0], sum, output_vec2.size());
+  // char *final_char = (char*)malloc(total_size);
+  // for (int i = 0; i < output_vec2.size(); i++) {
+  //   memcpy(final_int, output_vec2[i], output_size_vec2[i]);
+  //   final_int += output_size_vec2[i];
+  // }
+
+  // vector<>
+  
+
+
+  return;
+}
+
+
 
 int main(int argc, char* argv[]) {
 #if 0
@@ -283,8 +344,11 @@ int main(int argc, char* argv[]) {
  }
  file = string(argv[1]);
  // test_clock_delta2();
-#endif
  // test_clock_delta3();
+#endif
+
+ test_zlib();
+
  return 0;
 }
 

@@ -20,7 +20,7 @@ rempi_encoder_cdc_row_wise_diff::rempi_encoder_cdc_row_wise_diff(int mode): remp
 {}
 
 
-void rempi_encoder_cdc_row_wise_diff::compress_matched_events(rempi_encoder_input_format_test_table *test_table)
+void rempi_encoder_cdc_row_wise_diff::compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table *test_table)
 {
   char  *compressed_buff, *original_buff;
   size_t compressed_size,  original_size;

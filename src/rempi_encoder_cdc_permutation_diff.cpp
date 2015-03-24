@@ -23,7 +23,7 @@ rempi_encoder_cdc_permutation_diff::rempi_encoder_cdc_permutation_diff(int mode)
   cdc = new rempi_clock_delta_compression_2(0);
 }
 
-void rempi_encoder_cdc_permutation_diff::compress_matched_events(rempi_encoder_input_format_test_table *test_table)
+void rempi_encoder_cdc_permutation_diff::compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table *test_table)
 {
   char  *compressed_buff, *original_buff;
   size_t compressed_size,  original_size;

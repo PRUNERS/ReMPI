@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <zlib.h>
+#include <assert.h>
 
 #include <vector>
 
@@ -10,6 +11,7 @@
 
 #define windowBits 15
 #define GZIP_ENCODING 16
+#define ZLIB_CHUNK (16 * 1014 * 1024)
 
 #define CALL_ZLIB(x) {                                                  \
     int status;								\
@@ -134,9 +136,10 @@ char* rempi_compression_util<T>::compress_by_zlib(char* input, size_t input_size
   strm.next_in   = (unsigned char*)input;
   strm.avail_in  = input_size;
 
-  output = (char*)malloc(input_size);
+  size_t output_buf_size = input_size * 2;
+  output = (char*)malloc(output_buf_size);
   strm.next_out  = (unsigned char*)output;
-  strm.avail_out = input_size;
+  strm.avail_out = output_buf_size;
 
   CALL_ZLIB (deflate (&strm, Z_FINISH));
 
@@ -158,7 +161,163 @@ char* rempi_compression_util<T>::compress_by_zlib(char* input, size_t input_size
   return output;
 }
 
+
+
 template <class T>
 void rempi_compression_util<T>::decompress_by_zlib(char* out, size_t size)
 {
 }
+
+
+
+template <class T>
+size_t rempi_compression_util<T>::compress_by_zlib_vec(vector<char*> &input_vec,  vector<size_t> &input_size_vec, 
+						       vector<char*> &output_vec, vector<size_t> &output_size_vec, size_t &total_size)
+{
+  int ret, flush;
+  unsigned have;
+  char* output;
+  z_stream strm;
+
+  total_size = 0;
+
+  /* allocate deflate state */
+  strm.zalloc = Z_NULL;
+  strm.zfree = Z_NULL;
+  strm.opaque = Z_NULL;
+  ret = deflateInit(&strm, Z_DEFAULT_COMPRESSION);
+  if (ret != Z_OK)
+    return ret;
+  // CALL_ZLIB (
+  // 	     deflateInit2(
+  // 			  &strm, 
+  // 			  Z_DEFAULT_COMPRESSION, 
+  // 			  Z_DEFLATED,
+  // 			  windowBits | GZIP_ENCODING, 
+  // 			  8,
+  // 			  Z_DEFAULT_STRATEGY)
+  // 	     );
+
+  for (int i = 0; i < input_size_vec.size(); i++) {
+    strm.next_in =  (unsigned char*)input_vec[i];
+    strm.avail_in = input_size_vec[i];
+    flush = (i == input_size_vec.size() - 1)? Z_FINISH:Z_NO_FLUSH;
+    /* run deflate() on input until output buffer not full, finish
+       compression if all of source has been read in */
+    do {
+      unsigned char* out;
+      strm.avail_out = ZLIB_CHUNK;
+      out =  (unsigned char*)malloc(ZLIB_CHUNK);
+      strm.next_out = out;
+      ret = deflate(&strm, flush);    /* no bad return value */
+      assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
+      have = ZLIB_CHUNK - strm.avail_out;
+      if (have > 0) {
+	output_vec.push_back((char*)out);
+	output_size_vec.push_back(have);
+	total_size += have;
+      }
+    } while (strm.avail_out == 0); /*Chunk is filled out the data (available buff == 0), and need to compress again*/
+    assert(strm.avail_in == 0);
+  }
+  /* clean up and return */
+  (void)deflateEnd(&strm);
+  if (ret != Z_STREAM_END) {
+    REMPI_ERR("Error in inflate");
+  }
+  return Z_OK;
+
+
+#if 0
+  do { 
+    strm.avail_in = fread(in, 1, CHUNK, source);
+    if (ferror(source)) {
+      (void)deflateEnd(&strm);
+      return Z_ERRNO;
+    }
+    flush = feof(source) ? Z_FINISH : Z_NO_FLUSH;
+    strm.next_in = in;
+    /* run deflate() on input until output buffer not full, finish
+       compression if all of source has been read in */
+    do {
+      strm.avail_out = CHUNK;
+      strm.next_out = out;
+      ret = deflate(&strm, flush);    /* no bad return value */
+      assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
+      have = CHUNK - strm.avail_out;
+      if (fwrite(out, 1, have, dest) != have || ferror(dest)) {
+	(void)deflateEnd(&strm);
+	return Z_ERRNO;
+      }
+    } while (strm.avail_out == 0);
+    assert(strm.avail_in == 0);     /* all input will be used */
+    /* done when last data in file processed */
+  } while (flush != Z_FINISH);
+  assert(ret == Z_STREAM_END);        /* stream will be complete */
+
+  /* clean up and return */
+  (void)deflateEnd(&strm);
+  return Z_OK;
+#endif
+}
+
+template <class T>
+size_t rempi_compression_util<T>::decompress_by_zlib_vec(vector<char*>  &input_vec, vector<size_t> &input_size_vec,
+							 vector<char*> &output_vec, vector<size_t> &output_size_vec, size_t &total_size)
+{
+  int ret;
+  unsigned have;
+  z_stream strm;
+  /* allocate inflate state */
+  strm.zalloc = Z_NULL;
+  strm.zfree = Z_NULL;
+  strm.opaque = Z_NULL;
+  strm.avail_in = 0;
+  strm.next_in = Z_NULL;
+  ret = inflateInit(&strm);
+  if (ret != Z_OK)
+    return ret;
+
+  total_size = 0;
+  /* decompress until deflate stream ends or end of file */
+
+  for (int i = 0; i < input_vec.size(); i++) {
+    strm.next_in  = (unsigned char*)input_vec[i];
+    strm.avail_in = input_size_vec[i];
+    /* run inflate() on input until output buffer not full */
+    do {
+      unsigned char* out;
+      out =  (unsigned char*)malloc(ZLIB_CHUNK);
+      strm.next_out = out;
+      strm.avail_out = ZLIB_CHUNK;
+      ret = inflate(&strm, Z_NO_FLUSH);
+      //      ret = inflate(&strm, Z_FINISH);
+      assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
+      switch (ret) {
+      case Z_NEED_DICT:
+	//	ret = Z_DATA_ERROR;     /* and fall through */
+      case Z_DATA_ERROR:
+      case Z_MEM_ERROR:
+	(void)inflateEnd(&strm);
+	REMPI_ERR("decompress zlib error: %d (Z_NEED_DICT:%d, Z_DATA_ERROR:%d, Z_MEM_ERROR:%d)", 
+		  ret, Z_NEED_DICT, Z_DATA_ERROR, Z_MEM_ERROR);
+	return ret;
+      }
+      have = ZLIB_CHUNK - strm.avail_out;
+      if (have > 0) {
+	output_vec.push_back((char*)out);
+	output_size_vec.push_back(have);
+	total_size += have;
+      }
+      //      REMPI_DBG("ret = %d, %d have: %lu", ret, Z_STREAM_END, have);
+    } while (strm.avail_out == 0);
+    /* done when inflate() says it's done */
+  }
+  /* clean up and return */
+  (void)inflateEnd(&strm);
+  if (ret != Z_STREAM_END) {
+    REMPI_ERR("Error in inflate");
+  }
+  return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
+}
+

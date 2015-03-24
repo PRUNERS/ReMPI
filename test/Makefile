@@ -10,7 +10,7 @@ rempi_test_neighbor_OBJS =  $(rempi_test_neighbor_SRCS:%.c=%.o)
 rempi_test_neighbor_DEPS =  $(rempi_test_neighbor_SRCS:%.c=%.d)
 rempi_test_neighbor_PROGRAM = rempi_test_neighbor
 
-rempi_test_compress_SRCS = rempi_test_compress.cpp rempi_test_util.c
+rempi_test_compress_SRCS = rempi_test_compress.cpp rempi_test_util.c ../src/rempi_compression_utilcpp
 rempi_test_compress_OBJS = rempi_test_compress.o rempi_test_util.o
 rempi_test_compress_DEPS = rempi_test_compress.d rempi_test_util.d
 rempi_test_compress_PROGRAM = rempi_test_compress

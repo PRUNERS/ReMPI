@@ -140,7 +140,8 @@ rempi_encoder_input_format* rempi_encoder_cdc::create_encoder_input_format()
   return new rempi_encoder_cdc_input_format();
 }
 
-void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format_test_table *test_table)
+
+void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table *test_table)
 {
   char  *compressed_buff, *original_buff;
   size_t compressed_size,  original_size;
@@ -152,46 +153,73 @@ void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format_t
     test_table->compressed_with_previous = compression_util.compress_by_zero_one_binary(test_table->with_previous_vec, compressed_size);
     test_table->compressed_with_previous_size   = compressed_size;
     test_table->compressed_with_previous_length = test_table->with_previous_vec.size();
-    REMPI_DBG("with_previous: %lu bytes (length: %lu)", 
-	      test_table->compressed_with_previous_size, 
-	      test_table->compressed_with_previous_length);
+
+    input_format.write_queue_vec.push_back((char*)&test_table->compressed_with_previous_length);
+    input_format.write_size_queue_vec.push_back(sizeof(test_table->compressed_with_previous_length));
+    input_format.write_queue_vec.push_back((char*)&test_table->compressed_with_previous_size);
+    input_format.write_size_queue_vec.push_back(sizeof(test_table->compressed_with_previous_size));
+    input_format.write_queue_vec.push_back((char*)test_table->compressed_with_previous);
+    input_format.write_size_queue_vec.push_back(test_table->compressed_with_previous_size);
+
+    // REMPI_DBG("with_previous: %lu bytes (length: %lu)", 
+    // 	      test_table->compressed_with_previous_size, 
+    // 	      test_table->compressed_with_previous_length);
     /*====================================*/
+
 
     /*=== Compress unmatched_events ===*/
     /* (1) id */
     compression_util.compress_by_linear_prediction(test_table->unmatched_events_id_vec);
-    original_buff   = (char*)&test_table->unmatched_events_id_vec[0];
-    original_size   = test_table->unmatched_events_id_vec.size() * sizeof(test_table->unmatched_events_id_vec[0]);
-    compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
-    /* If compressed data is bigger than oroginal data, use original data*/    
-    test_table->compressed_unmatched_events_id           = (compressed_buff == NULL)? original_buff:compressed_buff;
-    test_table->compressed_unmatched_events_id_size      = (compressed_buff == NULL)? original_size:compressed_size;
-    REMPI_DBG("unmatched(id): %lu bytes (<-zlib- %lu)", test_table->compressed_unmatched_events_id_size, original_size);
+    test_table->compressed_unmatched_events_id        = (char*)&test_table->unmatched_events_id_vec[0];
+    test_table->compressed_unmatched_events_id_size   = test_table->unmatched_events_id_vec.size() * sizeof(test_table->unmatched_events_id_vec[0]);
+    input_format.write_queue_vec.push_back((char*)&test_table->compressed_unmatched_events_id_size);
+    input_format.write_size_queue_vec.push_back(sizeof(test_table->compressed_unmatched_events_id_size));
+    input_format.write_queue_vec.push_back(test_table->compressed_unmatched_events_id);
+    input_format.write_size_queue_vec.push_back(test_table->compressed_unmatched_events_id_size);
+    
+    // compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
+    // /* If compressed data is bigger than oroginal data, use original data*/    
+    // test_table->compressed_unmatched_events_id           = (compressed_buff == NULL)? original_buff:compressed_buff;
+    // test_table->compressed_unmatched_events_id_size      = (compressed_buff == NULL)? original_size:compressed_size;
+    //REMPI_DBG("unmatched(id): %lu bytes (<-zlib- %lu)", test_table->compressed_unmatched_events_id_size, original_size);
+
     /* (2) count */
     /*   count will be totally random number, so this function does not do zlib*/
-    original_buff   = (char*)&test_table->unmatched_events_count_vec[0];
-    original_size   = test_table->unmatched_events_count_vec.size() * sizeof(test_table->unmatched_events_count_vec[0]);
-    compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
+    test_table->compressed_unmatched_events_count        = (char*)&test_table->unmatched_events_count_vec[0];
+    test_table->compressed_unmatched_events_count_size   = test_table->unmatched_events_count_vec.size() * sizeof(test_table->unmatched_events_count_vec[0]);
+    input_format.write_queue_vec.push_back((char*)&test_table->compressed_unmatched_events_count_size);
+    input_format.write_size_queue_vec.push_back(sizeof(test_table->compressed_unmatched_events_count));
+    input_format.write_queue_vec.push_back(test_table->compressed_unmatched_events_count);
+    input_format.write_size_queue_vec.push_back(test_table->compressed_unmatched_events_count_size);
+    
+    //    compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
     /* If compressed data is bigger than oroginal data, use original data*/    
-    test_table->compressed_unmatched_events_count      = (compressed_buff == NULL)? original_buff:compressed_buff;
-    test_table->compressed_unmatched_events_count_size = (compressed_buff == NULL)? original_size:compressed_size;
-    REMPI_DBG("unmatched(ct): %lu bytes (<-zlib- %lu)", test_table->compressed_unmatched_events_count_size, original_size);
+    //    test_table->compressed_unmatched_events_count      = (compressed_buff == NULL)? original_buff:compressed_buff;
+    //    test_table->compressed_unmatched_events_count_size = (compressed_buff == NULL)? original_size:compressed_size;
+    //    REMPI_DBG("unmatched(ct): %lu bytes (<-zlib- %lu)", test_table->compressed_unmatched_events_count_size, original_size);
     /*=======================================*/
     return;
 }
 
-void rempi_encoder_cdc::compress_matched_events(rempi_encoder_input_format_test_table *test_table)
+void rempi_encoder_cdc::compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table *test_table)
 {
   char  *compressed_buff, *original_buff;
   size_t compressed_size,  original_size;
-  original_buff = cdc->compress(
+  test_table->compressed_matched_events = cdc->compress(
 							  test_table->matched_events_ordered_map, 
 							  test_table->events_vec, 
 							  original_size);
-  compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
-  test_table->compressed_matched_events           = (compressed_buff == NULL)? original_buff:compressed_buff;
-  test_table->compressed_matched_events_size      = (compressed_buff == NULL)? original_size:compressed_size;
-  REMPI_DBG("  matched(id): %lu bytes (<-zlib- %lu)", test_table->compressed_matched_events_size, original_size);
+  test_table->compressed_matched_events_size           = original_size;
+
+  input_format.write_queue_vec.push_back((char*)&test_table->compressed_matched_events_size);
+  input_format.write_size_queue_vec.push_back(sizeof(test_table->compressed_matched_events_size));
+  input_format.write_queue_vec.push_back(test_table->compressed_matched_events);
+  input_format.write_size_queue_vec.push_back(test_table->compressed_matched_events_size);
+
+  // compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
+  // test_table->compressed_matched_events           = (compressed_buff == NULL)? original_buff:compressed_buff;
+  // test_table->compressed_matched_events_size      = (compressed_buff == NULL)? original_size:compressed_size;
+  // REMPI_DBG("  matched(id): %lu bytes (<-zlib- %lu)", test_table->compressed_matched_events_size, original_size);
   return;
 }
 
@@ -264,84 +292,151 @@ void rempi_encoder_cdc::encode(rempi_encoder_input_format &input_format)
     /*#################################################*/
 
     /*=== message count ===*/    /*=== Compress with_previous ===*/     /*=== Compress unmatched_events ===*/
-    compress_non_matched_events(test_table);
+    compress_non_matched_events(input_format, test_table);
     /*=======================================*/
 
     /*=== Compress matched_events ===*/
-    compress_matched_events(test_table);
+    compress_matched_events(input_format, test_table);
     /*=======================================*/
   }
   return;
 }
 
+// void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_format)
+// {
+//   size_t total_compressed_size = 0;
+//   size_t compressed_size = 0;
+//   map<int, rempi_encoder_input_format_test_table*>::iterator test_tables_map_it;
+//   for (test_tables_map_it  = input_format.test_tables_map.begin();
+//        test_tables_map_it != input_format.test_tables_map.end();
+//        test_tables_map_it++) {
+//     rempi_encoder_input_format_test_table *test_table;
+//     test_table = test_tables_map_it->second;
+
+//     compressed_size = 0;
+//     /* Count */
+//     record_fs.write((char*)&test_table->count, sizeof(test_table->count));
+//     compressed_size += sizeof(test_table->count);
+
+//     /* with_previous */
+//     record_fs.write(   (char*)&test_table->compressed_with_previous_size, 
+// 		        sizeof(test_table->compressed_with_previous_size));
+//     compressed_size +=  sizeof(test_table->compressed_with_previous_size);
+//     record_fs.write(           test_table->compressed_with_previous, 
+// 			       test_table->compressed_with_previous_size);
+//     compressed_size +=         test_table->compressed_with_previous_size;
+
+
+//     /* unmatched */
+//     record_fs.write(  (char*)&test_table->compressed_unmatched_events_id_size, 
+// 		       sizeof(test_table->compressed_unmatched_events_id_size));
+//     compressed_size += sizeof(test_table->compressed_unmatched_events_id_size);  
+//     record_fs.write(          test_table->compressed_unmatched_events_id,    
+// 			      test_table->compressed_unmatched_events_id_size);
+//     compressed_size +=        test_table->compressed_unmatched_events_id_size;
+
+//     record_fs.write(  (char*)&test_table->compressed_unmatched_events_count_size, 
+// 		       sizeof(test_table->compressed_unmatched_events_count_size));
+//     compressed_size += sizeof(test_table->compressed_unmatched_events_count_size);  
+//     record_fs.write(          test_table->compressed_unmatched_events_count, 
+// 			      test_table->compressed_unmatched_events_count_size);
+//     compressed_size +=        test_table->compressed_unmatched_events_count_size;
+
+
+//     /* matched */
+//     record_fs.write(  (char*)&test_table->compressed_matched_events_size, 
+// 		       sizeof(test_table->compressed_matched_events_size));
+//     compressed_size += sizeof(test_table->compressed_matched_events_size);  
+//     record_fs.write(          test_table->compressed_matched_events, 
+// 			      test_table->compressed_matched_events_size);
+//     compressed_size +=        test_table->compressed_matched_events_size;
+//     //TODO: delete encoded_event
+
+//     // REMPI_DBG("Original size: count:%5d x 8 bytes x 2(matched/unmatched)= %d bytes,  Compressed size: %lu bytes", 
+//     // 	      test_table->count, test_table->count * 8 * 2, compressed_size);
+//     total_compressed_size += compressed_size;
+//     REMPI_DBG("compressed_size: %lu", compressed_size);
+//   }
+//   REMPI_DBG("xOriginal size: count:%5d(matched/unmatched entry) x 8 bytes= %d bytes,  Compressed size: %lu bytes , %d %lu", 
+// 	    input_format.total_length, input_format.total_length * 8 , total_compressed_size, 
+// 	    input_format.total_length*8, total_compressed_size);
+//   //  REMPI_DBG("TOTAL Original: %d ", total_countb);
+
+
+// }   
+
 void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_format)
 {
+  
   size_t total_compressed_size = 0;
-  size_t compressed_size = 0;
-  map<int, rempi_encoder_input_format_test_table*>::iterator test_tables_map_it;
-  for (test_tables_map_it  = input_format.test_tables_map.begin();
-       test_tables_map_it != input_format.test_tables_map.end();
-       test_tables_map_it++) {
-    rempi_encoder_input_format_test_table *test_table;
-    test_table = test_tables_map_it->second;
+  size_t total_original_size   = 0;
+  vector<char*> compressed_write_queue_vec;
+  vector<size_t> compressed_write_size_queue_vec;
 
-    compressed_size = 0;
-    /* Count */
-    record_fs.write((char*)&test_table->count, sizeof(test_table->count));
-    compressed_size += sizeof(test_table->count);
-
-    /* with_previous */
-    record_fs.write(   (char*)&test_table->compressed_with_previous_size, 
-		        sizeof(test_table->compressed_with_previous_size));
-    compressed_size +=  sizeof(test_table->compressed_with_previous_size);
-    record_fs.write(           test_table->compressed_with_previous, 
-			       test_table->compressed_with_previous_size);
-    compressed_size +=         test_table->compressed_with_previous_size;
-
-
-    /* unmatched */
-    record_fs.write(  (char*)&test_table->compressed_unmatched_events_id_size, 
-		       sizeof(test_table->compressed_unmatched_events_id_size));
-    compressed_size += sizeof(test_table->compressed_unmatched_events_id_size);  
-    record_fs.write(          test_table->compressed_unmatched_events_id,    
-			      test_table->compressed_unmatched_events_id_size);
-    compressed_size +=        test_table->compressed_unmatched_events_id_size;
-
-    record_fs.write(  (char*)&test_table->compressed_unmatched_events_count_size, 
-		       sizeof(test_table->compressed_unmatched_events_count_size));
-    compressed_size += sizeof(test_table->compressed_unmatched_events_count_size);  
-    record_fs.write(          test_table->compressed_unmatched_events_count, 
-			      test_table->compressed_unmatched_events_count_size);
-    compressed_size +=        test_table->compressed_unmatched_events_count_size;
-
-
-    /* matched */
-    record_fs.write(  (char*)&test_table->compressed_matched_events_size, 
-		       sizeof(test_table->compressed_matched_events_size));
-    compressed_size += sizeof(test_table->compressed_matched_events_size);  
-    record_fs.write(          test_table->compressed_matched_events, 
-			      test_table->compressed_matched_events_size);
-    compressed_size +=        test_table->compressed_matched_events_size;
-    //TODO: delete encoded_event
-
-    // REMPI_DBG("Original size: count:%5d x 8 bytes x 2(matched/unmatched)= %d bytes,  Compressed size: %lu bytes", 
-    // 	      test_table->count, test_table->count * 8 * 2, compressed_size);
-    total_compressed_size += compressed_size;
-    REMPI_DBG("compressed_size: %lu", compressed_size);
+  if (input_format.write_queue_vec.size() != input_format.write_size_queue_vec.size()) {
+    REMPI_ERR("Size is different in write_queue_vec & write_size_queue_vec.");
   }
-  REMPI_DBG("xOriginal size: count:%5d(matched/unmatched entry) x 8 bytes= %d bytes,  Compressed size: %lu bytes , %d %lu", 
-	    input_format.total_length, input_format.total_length * 8 , total_compressed_size, 
-	    input_format.total_length*8, total_compressed_size);
-  //  REMPI_DBG("TOTAL Original: %d ", total_countb);
+
+  for (int i = 0; i < input_format.write_size_queue_vec.size(); i++) {
+    total_original_size += input_format.write_size_queue_vec[i];
+  }
+  
+  compression_util.compress_by_zlib_vec(input_format.write_queue_vec, input_format.write_size_queue_vec,
+					compressed_write_queue_vec, compressed_write_size_queue_vec, total_compressed_size);
 
 
+  record_fs.write((char*)&total_compressed_size, sizeof(total_compressed_size));
+  for (int i = 0; i < compressed_write_queue_vec.size(); i++) {
+    record_fs.write(compressed_write_queue_vec[i], compressed_write_size_queue_vec[i]);
+    free(compressed_write_queue_vec[i]);
+  }
+
+  REMPI_DBG("Event count: %d  ->  %lu %lu",
+	    input_format.total_length, total_original_size, total_compressed_size + sizeof(total_compressed_size));
+  return;
 }   
 
 bool rempi_encoder_cdc::read_record_file(rempi_encoder_input_format &input_format)
 {
-  REMPI_ERR("This function has not been implemented yet");
-  return false;
+  size_t chunk_size;
+  char* zlib_payload;
+  vector<char*>   compressed_payload_vec;
+  vector<size_t>  compressed_payload_size_vec;
+  vector<char*>   decompressed_payload_vec;
+  vector<size_t>  decompressed_payload_size_vec;
+  size_t decompressed_size;
+  bool is_no_more_record; 
+
+  record_fs.read((char*)&chunk_size, sizeof(chunk_size));
+  if (chunk_size == 0) {
+    is_no_more_record = true;
+    return is_no_more_record;
+  }
+
+  zlib_payload = (char*)malloc(chunk_size);
+  record_fs.read(zlib_payload, chunk_size);
+  compressed_payload_vec.push_back(zlib_payload);
+  compressed_payload_size_vec.push_back(chunk_size);
+
+  compression_util.decompress_by_zlib_vec(compressed_payload_vec, compressed_payload_size_vec,
+   					  input_format.write_queue_vec, input_format.write_size_queue_vec, decompressed_size);
+
+  
+  is_no_more_record = false;
+  return is_no_more_record;
 }
+
+
+void rempi_encoder_cdc::decompress_non_matched_events(rempi_encoder_input_format &input_format)
+{
+
+}
+
+void rempi_encoder_cdc::decompress_matched_events(rempi_encoder_input_format &input_format)
+{
+
+}
+
 
 void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
 {

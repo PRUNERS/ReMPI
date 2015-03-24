@@ -32,6 +32,7 @@ class rempi_encoder_input_format_test_table
   map<int, rempi_event*>       matched_events_ordered_map;
   size_t                       compressed_matched_events_size = 0;
   char*                        compressed_matched_events      = NULL;
+  
   void clear();
 };
 
@@ -41,6 +42,9 @@ class rempi_encoder_input_format
   size_t total_length = 0;
   /*Used for CDC*/  
   map<int, rempi_encoder_input_format_test_table*> test_tables_map;  
+  /*vector to write to file*/
+  vector<char*>  write_queue_vec;
+  vector<size_t> write_size_queue_vec;
 
   size_t  length();
   virtual void add(rempi_event *event);
@@ -105,8 +109,10 @@ class rempi_encoder_cdc : public rempi_encoder
  protected:
 
   rempi_clock_delta_compression *cdc;
-  virtual void compress_non_matched_events(rempi_encoder_input_format_test_table  *test_table);
-  virtual void compress_matched_events(rempi_encoder_input_format_test_table  *test_table);
+  virtual void compress_non_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
+  virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
+  virtual void decompress_non_matched_events(rempi_encoder_input_format &input_format);
+  virtual void decompress_matched_events(rempi_encoder_input_format &input_format);
  public:
   rempi_encoder_cdc(int mode);
   /*For common*/
@@ -126,7 +132,7 @@ class rempi_encoder_cdc : public rempi_encoder
 class rempi_encoder_cdc_row_wise_diff : public rempi_encoder_cdc
 {
  protected:
-  virtual void compress_matched_events(rempi_encoder_input_format_test_table  *test_table);
+  virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
  public:
   rempi_encoder_cdc_row_wise_diff(int mode);
   /*For only replay*/
@@ -137,7 +143,7 @@ class rempi_encoder_cdc_row_wise_diff : public rempi_encoder_cdc
 class rempi_encoder_zlib : public rempi_encoder_cdc
 {
  protected:
-  virtual void compress_matched_events(rempi_encoder_input_format_test_table  *test_table);
+  virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
  public:
     rempi_encoder_zlib(int mode);
     /*For only replay*/
@@ -154,7 +160,7 @@ class rempi_encoder_simple_zlib : public rempi_encoder_zlib
 class rempi_encoder_cdc_permutation_diff : public rempi_encoder_cdc
 {
  protected:
-  virtual void compress_matched_events(rempi_encoder_input_format_test_table  *test_table);
+  virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
  public:
     rempi_encoder_cdc_permutation_diff(int mode);
     /*For only replay*/

@@ -20,7 +20,7 @@ rempi_encoder_zlib::rempi_encoder_zlib(int mode): rempi_encoder_cdc(mode)
 {}
 
 
-void rempi_encoder_zlib::compress_matched_events(rempi_encoder_input_format_test_table *test_table)
+void rempi_encoder_zlib::compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table *test_table)
 {
   char  *compressed_buff, *original_buff;
   size_t compressed_size,  original_size;

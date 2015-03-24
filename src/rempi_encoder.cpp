@@ -51,6 +51,8 @@ void rempi_encoder_input_format_test_table::clear()
     free(compressed_matched_events);
     compressed_matched_events = NULL;
   }
+
+  return;
 }
 
 /* ==================================== */
@@ -102,7 +104,9 @@ void rempi_encoder_input_format::clear()
     test_table->clear();
     delete test_table;
   }
-
+  write_queue_vec.clear();
+  write_size_queue_vec.clear();
+  return;
 }
 
 void rempi_encoder_input_format::debug_print()
@@ -344,8 +348,10 @@ bool rempi_encoder::read_record_file(rempi_encoder_input_format &input_format)
   return is_no_more_record;
 }
 
+
 void rempi_encoder::decode(rempi_encoder_input_format &input_format)
 {
+  /*Do nothing*/
   return;
 }
 
