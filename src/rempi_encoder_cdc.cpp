@@ -440,7 +440,10 @@ void rempi_encoder_cdc::decompress_matched_events(rempi_encoder_input_format &in
 
 void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
 {
-  REMPI_ERR("This function has not been implemented yet");
+
+
+
+  REMPI_ERR("This function has not been implemented yet a");
   return;
 }
 
