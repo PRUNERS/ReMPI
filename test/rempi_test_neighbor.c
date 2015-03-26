@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
     MPI_Irecv(&recv_kv[i], 8, MPI_CHAR, (my_rank + size - i)        % size, MPI_ANY_TAG, MPI_COMM_WORLD, &request[i]);
   }
 
+
   for (i = 0; i < NUM_KV_PER_RANK; i++) { 
     //    MPI_Send(&my_kv[i], 2, MPI_INT, (my_rank + i)        % size, 0, MPI_COMM_WORLD);
     MPI_Send(&my_kv[i], 8, MPI_CHAR, (my_rank + i)        % size, 0, MPI_COMM_WORLD);
@@ -82,6 +83,7 @@ int main(int argc, char *argv[])
     memset(status, 0, sizeof(MPI_Status) * NUM_KV_PER_RANK);
     MPI_Testsome(NUM_KV_PER_RANK, request, 
 		 &testsome_outcount, testsome_array_of_indices, status);
+    
 
     for(i = 0; i < testsome_outcount; i++) {
       struct key_val sendrecv_kv;
@@ -104,11 +106,14 @@ int main(int argc, char *argv[])
       if (recv_msg_count[recv_index] < MAX_MESG_PASS) {
 	//	MPI_Irecv(&recv_kv[recv_index], 2, MPI_INT, (my_rank + size - recv_index) % size, MPI_ANY_TAG, MPI_COMM_WORLD, &request[recv_index]);
 	MPI_Irecv(&recv_kv[recv_index], 8, MPI_CHAR, (my_rank + size - recv_index) % size, MPI_ANY_TAG, MPI_COMM_WORLD, &request[recv_index]);
+      } else {
+	MPI_Irecv(&recv_kv[recv_index], 8, MPI_CHAR, (my_rank + size - recv_index) % size, MPI_ANY_TAG, MPI_COMM_WORLD, &request[recv_index]);
       }
 
       if (send_msg_count[recv_index] < MAX_MESG_PASS) {
 	sendrecv_kv.val = get_hash(sendrecv_kv.val, MAX_VAL);
 	//	MPI_Send(&sendrecv_kv, 2, MPI_INT, (my_rank + recv_index) % size, 0, MPI_COMM_WORLD);
+	usleep((rand() % 2) * 100000);
 	MPI_Send(&sendrecv_kv, 8, MPI_CHAR, (my_rank + recv_index) % size, 0, MPI_COMM_WORLD);
 	send_msg_count[recv_index]++;
       }

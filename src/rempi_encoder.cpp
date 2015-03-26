@@ -90,6 +90,7 @@ void rempi_encoder_input_format::add(rempi_event *event, int test_id)
 
 void rempi_encoder_input_format::format()
 {
+  
   return;
 }
 

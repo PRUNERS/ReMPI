@@ -164,6 +164,7 @@ int rempi_re_cdc::re_test(
 {
   int ret;
   size_t clock;
+  int test_id = get_test_id();
 
 #if 0
   REMPI_DBGI(1, "request: %p", *request);
@@ -181,13 +182,13 @@ int rempi_re_cdc::re_test(
     /*If recoding mode, record the test function*/
     /*TODO: change froi void* to MPI_Request*/
     if(clock != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
-      // REMPI_DBGI(1, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
-      // 		 1, 0, *flag,
-      // 		 status->MPI_SOURCE, status->MPI_TAG, clock);
-      recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_NEXT, get_test_id());
+       // REMPI_DBG( "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
+       // 		 1, 0, *flag,
+       // 		  status->MPI_SOURCE, status->MPI_TAG, clock);
+      recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
     }
   } else {
-    recorder->replay_test(request, flag, status, get_test_id());
+    recorder->replay_test(request, flag, status, test_id);
   }
 
   return ret;
@@ -215,6 +216,7 @@ int rempi_re_cdc::re_testsome(
   int ret;
   size_t *clocks;
   int is_with_next = REMPI_MPI_EVENT_WITH_NEXT;
+  int test_id = get_test_id();
   
   if (array_of_statuses == NULL) {
     /*TODO: allocate array_of_statuses in ReMPI instead of the error below*/
@@ -226,14 +228,15 @@ int rempi_re_cdc::re_testsome(
     clmpi_register_recv_clocks(clocks, incount);
 #if 0
     for (int i = 0; i < incount; i++) {
-      REMPI_DBGI(1, "request: %p (%d/%d)", array_of_requests[i], i, incount);
+      REMPI_DBG("request: %p (%d/%d)", array_of_requests[i], i, incount);
     }
 #endif
     ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
     if (*outcount == 0) {
       int flag = 0;
       if(clocks[0] != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
-	recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, get_test_id());
+	//	REMPI_DBG("aaa");
+	recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
       } else {
 #if 0	
 	REMPI_DBGI(1, "skipp flag = 0, clock: %d (incount: %d)", clocks[0], incount);
@@ -254,7 +257,7 @@ int rempi_re_cdc::re_testsome(
 	  /*array_of_statuses only contain statuese for completed messages (i.e. length of array_of_indices == *outcount)
 	    so I use [i] insted of [index]
 	   */
-	  recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, clocks[index], is_with_next, get_test_id());
+	  recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, clocks[index], is_with_next, test_id);
 	}  else {
 #if 0	
 	  REMPI_DBGI(1, "skipp flag = 1, clock: %d (%d/%d)", clocks[i], i, *outcount);
@@ -268,7 +271,7 @@ int rempi_re_cdc::re_testsome(
 // #ifdef REMPI_DBG_REPLAY
 //     REMPI_DBGI(REMPI_DBG_REPLAY, "testsome call");
 // #endif
-    recorder->replay_testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, get_test_id());
+    recorder->replay_testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, test_id);
 // #ifdef REMPI_DBG_REPLAY
 //     REMPI_DBGI(REMPI_DBG_REPLAY, "testsome end");
 // #endif

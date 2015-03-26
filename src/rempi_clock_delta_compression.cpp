@@ -234,7 +234,6 @@ public:
 
 };
 
-
 int rempi_clock_delta_compression::next_start_search_it(
 							int msg_id_up_clock,
 							int msg_id_left_clock,
@@ -425,6 +424,8 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
       cutil->compress_by_linear_prediction(clock_delta_data_id);
       cutil->compress_by_linear_prediction(clock_delta_data_delta);
       delete cutil;
+    } else {
+      REMPI_DBG("Linear Prediction is disabled !!");
     }
 #if 0
     for (int i = 0; i < clock_delta_data_id.size(); i++) {

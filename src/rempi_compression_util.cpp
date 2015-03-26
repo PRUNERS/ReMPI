@@ -63,6 +63,7 @@ void rempi_compression_util<T>::decompress_by_zero_one_binary(unsigned char* bin
   if (vec.size() != 0) {
     REMPI_ERR("vec has values");
   }
+
   unsigned char offset;
   while (1) {
     b = bin[index];

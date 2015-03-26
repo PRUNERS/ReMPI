@@ -17,8 +17,16 @@ class rempi_encoder_input_format_test_table
  public:
   /*Used for any compression*/
   vector<rempi_event*> events_vec;
+
   /*Used for CDC*/
   int count = 0;
+
+  unordered_map<size_t, size_t>      epoch_umap;
+  vector<size_t>                  epoch_rank_vec;
+  vector<size_t>                  epoch_clock_vec;
+  size_t                       epoch_size; /*each size of epoch_{rank|clock}_vec. so epoch_size x 2 is total size of epoch*/
+
+
   vector<size_t>               with_previous_vec;
   size_t                       compressed_with_previous_length = 0;
   size_t                       compressed_with_previous_size   = 0;
@@ -29,7 +37,9 @@ class rempi_encoder_input_format_test_table
   char*                        compressed_unmatched_events_id      = NULL;
   size_t                       compressed_unmatched_events_count_size = 0;
   char*                        compressed_unmatched_events_count      = NULL;
-  map<int, rempi_event*>       matched_events_ordered_map;
+  map<int, rempi_event*>       matched_events_ordered_map; /*Used in recording*/
+  vector<size_t>                  matched_events_id_vec;  /*Used in replay*/
+  vector<size_t>                  matched_events_delay_vec;  /*Used in replay*/
   size_t                       compressed_matched_events_size = 0;
   char*                        compressed_matched_events      = NULL;
   

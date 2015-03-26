@@ -58,13 +58,11 @@ clean:
 	@$(MAKE) clean -C ../src
 	-rm -f $(PROGRAMS) $(OBJS) $(DEPS)
 
-.PHONY: clean_core
-clean_core:
+.PHONY: cleanc
+cleanc:
 	-rm -f *.core
-
-.PHONY: clean_btr
-clean_btr:
 	-rm -f *.btr
+
 
 .PHONY: clean_record
 clean_record:
