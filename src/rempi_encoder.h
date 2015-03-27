@@ -38,8 +38,11 @@ class rempi_encoder_input_format_test_table
   size_t                       compressed_unmatched_events_count_size = 0;
   char*                        compressed_unmatched_events_count      = NULL;
   map<int, rempi_event*>       matched_events_ordered_map; /*Used in recording*/
-  vector<size_t>                  matched_events_id_vec;  /*Used in replay*/
-  vector<size_t>                  matched_events_delay_vec;  /*Used in replay*/
+  vector<size_t>               matched_events_id_vec;      /*Used in replay*/
+  vector<size_t>               matched_events_delay_vec;   /*Used in replay*/
+  vector<int>                  matched_events_square_sizes_vec;/*Used in replay*/
+  vector<int>                  matched_events_permutated_indices_vec; /*Used in replay*/
+  size_t                       replayed_matched_event_index;
   size_t                       compressed_matched_events_size = 0;
   char*                        compressed_matched_events      = NULL;
   
@@ -120,6 +123,14 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
 
 class rempi_encoder_cdc : public rempi_encoder
 {
+ private:
+  void cdc_prepare_decode_indices(
+				  size_t matched_event_count,
+				  vector<size_t> &matched_events_id_vec,
+				  vector<size_t> &matched_events_delay_vec,
+				  vector<int> &matched_events_square_sizes,
+				  vector<int> &matched_events_permutated_indices);
+  void cdc_decode_ordering(vector<rempi_event*> &event_vec, rempi_encoder_input_format_test_table* test_table, vector<rempi_event*> &replay_event_vec);
  protected:
 
   rempi_clock_delta_compression *cdc;
