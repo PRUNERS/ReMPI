@@ -69,6 +69,8 @@ int main(int argc, char *argv[])
   }
 
 
+  usleep((rand() % 2) * 100000);
+
   for (i = 0; i < NUM_KV_PER_RANK; i++) { 
     //    MPI_Send(&my_kv[i], 2, MPI_INT, (my_rank + i)        % size, 0, MPI_COMM_WORLD);
     MPI_Send(&my_kv[i], 8, MPI_CHAR, (my_rank + i)        % size, 0, MPI_COMM_WORLD);
@@ -90,14 +92,14 @@ int main(int argc, char *argv[])
       int recv_index;
       int send_dest;
       recv_index = testsome_array_of_indices[i];
-#if 1
+#if 0
       if (my_rank == 2) {
 	int count = -1;
 	MPI_Get_count(&status[i], MPI_CHAR, &count);
-	/* fprintf(stderr, "i    : rank:%d: Receved source:%d tag:%d outcount:%d i    :%d count:%d\n",  */
-	/* 	my_rank, status[i].MPI_SOURCE, status[i].MPI_TAG, testsome_outcount, i, count); */
-	/* fprintf(stderr, "index: rank:%d: Receved source:%d tag:%d outcount:%d index:%d\n",  */
-	/* 	      my_rank, status[recv_index].MPI_SOURCE, status[recv_index].MPI_TAG, testsome_outcount, recv_index); */
+	fprintf(stderr, "i    : rank:%d: Receved source:%d tag:%d outcount:%d i    :%d count:%d\n",
+		my_rank, status[i].MPI_SOURCE, status[i].MPI_TAG, testsome_outcount, i, count);
+	fprintf(stderr, "index: rank:%d: Receved source:%d tag:%d outcount:%d index:%d\n",
+		      my_rank, status[recv_index].MPI_SOURCE, status[recv_index].MPI_TAG, testsome_outcount, recv_index);
       }
 #endif
       memcpy(&sendrecv_kv, &recv_kv[recv_index], sizeof(struct key_val));

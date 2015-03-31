@@ -52,6 +52,7 @@ class rempi_event
     
     virtual int get_event_counts();
     virtual int get_is_testsome();
+    virtual void set_with_next(long);
     virtual int get_comm_id();
     virtual int get_flag();
     virtual int get_source();

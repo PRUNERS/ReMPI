@@ -208,11 +208,12 @@ _EXTERN_C_ int MPI_Send(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, i
   int _wrap_py_return_val = 0;
   {
     _wrap_py_return_val = PMPI_Send(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
-    // int rank;
-    //  PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    int rank;
+    PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
     //  if (rank == 1) {
     //    fprintf(stderr, "rank %d: source: %d, tag: %d\n", rank, arg_3, arg_4);
     //  }
+    fprintf(stderr, "rank  %d: source: %d, tag: %d\n", rank, arg_3, arg_4);
   }
   return _wrap_py_return_val;
 }

@@ -565,8 +565,10 @@ int rempi_recorder_cdc::replay_testsome(
 	}
       }
 
+
       int event_list_status;
       while ((replaying_event = replaying_event_list->dequeue_replay(test_id, event_list_status)) != NULL) {
+
 #ifdef REMPI_DBG_REPLAY
 	REMPI_DBGI(REMPI_DBG_REPLAY, "RPQ->A  : (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)",
 		   replaying_event->get_event_counts(), replaying_event->get_is_testsome(), replaying_event->get_flag(),
@@ -575,6 +577,8 @@ int rempi_recorder_cdc::replay_testsome(
 
 	replaying_event_vec.push_back(replaying_event);
 	with_next = replaying_event->get_is_testsome();
+
+
 	if (with_next ==  REMPI_MPI_EVENT_NOT_WITH_NEXT) {
 	  /*Label:1*/
 	  break;
@@ -592,6 +596,7 @@ int rempi_recorder_cdc::replay_testsome(
     }
   }
 
+
   if (replaying_event_vec.size() == 1) {
     if (replaying_event_vec.front()->get_flag() == 0) {
       rempi_event *e = replaying_event_vec.front();
@@ -605,6 +610,10 @@ int rempi_recorder_cdc::replay_testsome(
       return ret;
     }
   }
+
+
+
+  
 
   /*Copy from proxy to actuall buff, then set array_of_indices/statuses, outcount*/
   *outcount = 0;

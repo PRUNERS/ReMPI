@@ -15,6 +15,10 @@ using namespace std;
 class rempi_encoder_input_format_test_table
 {
  public:
+  bool is_decoded_all();
+  bool is_pending_all_rank_msg();
+
+
   /*Used for any compression*/
   vector<rempi_event*> events_vec;
 
@@ -28,11 +32,13 @@ class rempi_encoder_input_format_test_table
 
 
   vector<size_t>               with_previous_vec;
+  vector<bool>                 with_previous_bool_vec;
   size_t                       compressed_with_previous_length = 0;
   size_t                       compressed_with_previous_size   = 0;
   char*                        compressed_with_previous        = NULL;
   vector<size_t>               unmatched_events_id_vec;
   vector<size_t>               unmatched_events_count_vec;
+  unordered_map<size_t, size_t>        unmatched_events_umap; /*Used in replay*/
   size_t                       compressed_unmatched_events_id_size = 0;
   char*                        compressed_unmatched_events_id      = NULL;
   size_t                       compressed_unmatched_events_count_size = 0;
@@ -42,9 +48,16 @@ class rempi_encoder_input_format_test_table
   vector<size_t>               matched_events_delay_vec;   /*Used in replay*/
   vector<int>                  matched_events_square_sizes_vec;/*Used in replay*/
   vector<int>                  matched_events_permutated_indices_vec; /*Used in replay*/
-  size_t                       replayed_matched_event_index;
+  size_t                       replayed_matched_event_index = 0;
   size_t                       compressed_matched_events_size = 0;
   char*                        compressed_matched_events      = NULL;
+
+  /*Used in replay decode ordering*/
+  list<rempi_event*>                 ordered_event_list;
+  //  unordered_map<int, list<rempi_event*>*>  pending_events_umap;
+  unordered_map<int, int> pending_event_count_umap; /*rank->pending_counts*/
+  unordered_map<int, int> current_epoch_line_umap;  /* rank->max clock of this rank*/
+  //  rempi_event*                       min_clock_event_in_current_epoch = NULL;
   
   void clear();
 };
@@ -130,7 +143,7 @@ class rempi_encoder_cdc : public rempi_encoder
 				  vector<size_t> &matched_events_delay_vec,
 				  vector<int> &matched_events_square_sizes,
 				  vector<int> &matched_events_permutated_indices);
-  void cdc_decode_ordering(vector<rempi_event*> &event_vec, rempi_encoder_input_format_test_table* test_table, vector<rempi_event*> &replay_event_vec);
+  bool cdc_decode_ordering(vector<rempi_event*> &event_vec, rempi_encoder_input_format_test_table* test_table, vector<rempi_event*> &replay_event_vec);
  protected:
 
   rempi_clock_delta_compression *cdc;

@@ -91,6 +91,11 @@ int rempi_event::get_is_testsome()
   return mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_IS_TESTSOME];
 }
 
+void rempi_event::set_with_next(long with_next) 
+{
+  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_IS_TESTSOME] = with_next;
+}
+
 int rempi_event::get_comm_id()
 {
   return mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_COMM_ID];
