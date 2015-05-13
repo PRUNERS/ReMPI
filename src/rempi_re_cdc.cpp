@@ -51,6 +51,7 @@ int rempi_re_cdc::init_clmpi()
 
 int rempi_re_cdc::get_test_id()
 {
+  if (!rempi_is_test_id) return 0;
   string test_id_string;
   test_id_string = rempi_btrace_string();
   //TODO: get the binary name
@@ -182,6 +183,10 @@ int rempi_re_cdc::re_test(
     /*If recoding mode, record the test function*/
     /*TODO: change froi void* to MPI_Request*/
     if(clock != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
+// #ifdef REMPI_DBG_REPLAY
+//   REMPI_DBGI(REMPI_DBG_REPLAY, "  Test: (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
+// 	     1, 0, *flag, status->MPI_SOURCE, status->MPI_TAG, clock, test_id);
+// #endif
        // REMPI_DBG( "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
        // 		 1, 0, *flag,
        // 		  status->MPI_SOURCE, status->MPI_TAG, clock);
@@ -251,9 +256,11 @@ int rempi_re_cdc::re_testsome(
 	    is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
 	  }
 
-	  // REMPI_DBGI(1, "Record  : index: %d (incount: %d, outcount: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
-	  // 	     index, incount, *outcount, is_with_next, flag,
-	  // 	     array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, clocks[index]);
+
+// #ifdef REMPI_DBG_REPLAY
+// 	  REMPI_DBGI(REMPI_DBG_REPLAY, "  Test: index: %d (incount: %d, outcount: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",     index, incount, *outcount, is_with_next, flag,
+// 		     array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, clocks[index], test_id);
+// #endif
 	  /*array_of_statuses only contain statuese for completed messages (i.e. length of array_of_indices == *outcount)
 	    so I use [i] insted of [index]
 	   */
@@ -292,6 +299,45 @@ int rempi_re_cdc::re_testsome(
 
   //  REMPI_DBG(" ----------- ");
 
+  return ret;
+}
+
+
+
+int rempi_re_cdc::re_waitall(
+			  int incount, 
+			  MPI_Request array_of_requests[],
+			  MPI_Status array_of_statuses[])
+{
+  int ret;
+  size_t *clocks;
+  int is_with_next = REMPI_MPI_EVENT_WITH_NEXT;
+  int test_id = get_test_id();
+  
+  if (array_of_statuses == NULL) {
+    /*TODO: allocate array_of_statuses in ReMPI instead of the error below*/
+    REMPI_ERR("ReMPI requires array_of_statues in MPI_Testsome");
+  }
+
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    clocks = (size_t*)malloc(sizeof(size_t) * incount);
+    clmpi_register_recv_clocks(clocks, incount);
+    ret = PMPI_Waitall(incount, array_of_requests, array_of_statuses);
+
+    for (int i = 0; i < incount; i++) {
+      int flag = 1;
+      int index = i;
+      if(clocks[index] != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
+	if (i == incount - 1) {
+	  is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
+	}
+	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, clocks[index], is_with_next, test_id);
+      }
+    }
+    free(clocks);
+  } else {
+    REMPI_ERR("Not implementd yet");
+  }
   return ret;
 }
 

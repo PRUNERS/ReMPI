@@ -38,8 +38,10 @@ void rempi_event_list<T>::normal_push(T event)
   mtx.unlock();
 }
 
+
+//previous_recording_event_umap
 template <class T>
-void rempi_event_list<T>::push(T event)
+void rempi_event_list<T>::push(rempi_event *event)
 {
   if (is_push_closed) {
     REMPI_ERR("event_list push was closed");
@@ -50,7 +52,9 @@ void rempi_event_list<T>::push(T event)
     return;
   }
 
-  if ((*this->previous_recording_event) == *event) {
+  //TODO: use previous_recording_event_umap
+  if ((*this->previous_recording_event) == *event 
+      && this->previous_recording_event->get_test_id() == event->get_test_id()) {
     /*If the event is exactry same as previsou one, ...*/
     /*Just increment the counter of the event
      in order to reduce the memory consumption.

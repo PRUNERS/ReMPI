@@ -115,6 +115,14 @@ _EXTERN_C_ int MPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_
   return _wrap_py_return_val;
 }
 
+/* ================== C Wrappers for MPI_Waitall ================== */
+_EXTERN_C_ int PMPI_Waitall(int arg_0, MPI_Request *arg_1, MPI_Status *arg_2);
+_EXTERN_C_ int MPI_Waitall(int arg_0, MPI_Request *arg_1, MPI_Status *arg_2) {
+  int _wrap_py_return_val = 0;
+  _wrap_py_return_val = rempi_record_replay->re_waitall(arg_0, arg_1, arg_2);
+  return _wrap_py_return_val;
+}
+
 
 /* ================== C Wrappers for MPI_Cancel ================== */
 _EXTERN_C_ int PMPI_Cancel(MPI_Request *arg_0);

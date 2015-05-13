@@ -139,6 +139,23 @@ int rempi_record_replay_testsome(
   return return_val;
 }
 
+
+int rempi_record_replay_waitall(
+				 int incount,
+				 MPI_Request array_of_requests[],
+				 MPI_Status array_of_statuses[])
+{
+  int return_val;
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    return_val = PMPI_Waitall(incount, array_of_requests, array_of_statuses);
+    rempi_record_testsome(incount, (void**)(array_of_requests), incount, (void**)array_of_statuses);
+  } else {
+    // TODO: replay                                                                                                                                      
+    // rempi_replay_test(buf, count, (int)(&datatype), source, tag, 0, (void*)request);                                                                  
+  }
+  return return_val;
+}
+
 int rempi_record_replay_finalize(void)
 {
   int return_val;

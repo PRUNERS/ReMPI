@@ -159,9 +159,13 @@ class rempi_recorder {
 class rempi_recorder_cdc : public rempi_recorder
 {
  private:
+  
   void* allocate_proxy_buf(int count, MPI_Datatype datatype);
   void copy_proxy_buf(void* fromt, void* to, int count, MPI_Datatype datatype);
   int get_test_id();
+  int get_recv_test_id(int test_id);
+  unordered_map<int, int> test_id_to_recv_test_id_umap;
+  int next_recv_test_id_to_assign = 0;
   int init_clmpi();
   PNMPIMOD_register_recv_clocks_t clmpi_register_recv_clocks;
   PNMPIMOD_clock_control_t clmpi_clock_control;

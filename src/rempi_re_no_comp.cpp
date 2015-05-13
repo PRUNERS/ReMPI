@@ -250,6 +250,16 @@ int rempi_re_no_comp::re_testsome(
 }
 
 
+int rempi_re_no_comp::re_waitall(
+			  int incount, 
+			  MPI_Request array_of_requests[],
+			  MPI_Status array_of_statuses[])
+{
+  REMPI_ERR("not implemented yet");
+  return 0;
+}
+
+
 int rempi_re_no_comp::re_finalize()
 {
   int ret;

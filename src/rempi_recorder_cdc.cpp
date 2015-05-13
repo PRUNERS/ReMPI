@@ -64,7 +64,7 @@ void rempi_recorder_cdc::copy_proxy_buf(void* from, void* to, int count, MPI_Dat
 /*get_test_id must be called under MPI_Irecv*/
 // int rempi_recorder_cdc::get_test_id()
 // {
-//   string test_id_string;
+//    string test_id_string;
 //   test_id_string = rempi_btrace_string();
 //   if (stacktrace_to_test_id_umap.find(test_id_string) ==  stacktrace_to_test_id_umap.end()) {
 //     stacktrace_to_test_id_umap[test_id_string] = next_test_id_to_assign;
@@ -72,6 +72,16 @@ void rempi_recorder_cdc::copy_proxy_buf(void* from, void* to, int count, MPI_Dat
 //   }
 //   return stacktrace_to_test_id_umap[test_id_string];
 // }
+
+
+int rempi_recorder_cdc::get_recv_test_id(int test_id)
+{
+  if (test_id_to_recv_test_id_umap.find(test_id) == test_id_to_recv_test_id_umap.end()) {
+    test_id_to_recv_test_id_umap[test_id] = next_recv_test_id_to_assign;
+    next_recv_test_id_to_assign++;
+  }
+  return test_id_to_recv_test_id_umap[test_id];
+}
 
 int rempi_recorder_cdc::init_clmpi()
 {
@@ -281,11 +291,15 @@ int rempi_recorder_cdc::record_test(
   //   REMPI_ERR("No test_id for this MPI_Request");
   // }
   // test_id = request_to_test_id_umap[request];
-// #if REMPI_DBG_REPLAY
-//    REMPI_DBGI(REMPI_DBG_REPLAY, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
-// 	      event_count, with_previous, *flag,                                      
-// 	      record_source, record_tag, record_clock);
-// #endif
+#if REMPI_DBG_REPLAY
+  REMPI_DBGI(REMPI_DBG_REPLAY, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
+	      event_count, with_previous, *flag,                                      
+	     record_source, record_tag, record_clock, test_id);
+#endif
+ // REMPI_DBGI(0, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
+ // 	      event_count, with_previous, *flag,                                      
+ // 	     record_source, record_tag, record_clock, test_id);
+
   // REMPI_DBG("Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
   //    event_count, with_previous, *flag,                                      
   // 	     record_source, record_tag, record_clock);
@@ -458,6 +472,7 @@ int rempi_recorder_cdc::replay_test(
 // }
 
 
+
 int rempi_recorder_cdc::replay_testsome(
 					int incount,
 					MPI_Request array_of_requests[],
@@ -474,8 +489,9 @@ int rempi_recorder_cdc::replay_testsome(
   rempi_event *replaying_event;
   vector<rempi_event*> replaying_event_vec;
 
+
 #ifdef REMPI_DBG_REPLAY
-  REMPI_DBGI(REMPI_DBG_REPLAY, "testsome call");
+  REMPI_DBGI(REMPI_DBG_REPLAY, "testsome call: test_id %d", test_id);
 #endif
 
 #ifdef REMPI_DBG_REPLAY	  
@@ -521,7 +537,7 @@ int rempi_recorder_cdc::replay_testsome(
 	/*If this request is for irecv (not isend)*/
 	irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[i]];
 	proxy_request = irecv_inputs->request_proxy_list.front();
-
+	test_id = get_recv_test_id(test_id);
 
 	//	REMPI_DBGI(0, "   Test: request:%p(%p) source:%d tag:%d size:%d req:%p", &proxy_request->request, proxy_request, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, irecv_inputs->request_proxy_list.size(), array_of_requests[i]);
 
@@ -536,10 +552,10 @@ int rempi_recorder_cdc::replay_testsome(
 	  event_pooled =  new rempi_test_event(1, -1, -1, 1, status.MPI_SOURCE, status.MPI_TAG, clock, test_id);
 	  PMPI_Get_count(&status, irecv_inputs->datatype, &(event_pooled->msg_count));
 #ifdef REMPI_DBG_REPLAY	  
-	  REMPI_DBGI(REMPI_DBG_REPLAY, "A->RCQ  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d,  clock: %d, msg_count: %d %p)",
+	  REMPI_DBGI(REMPI_DBG_REPLAY, "A->RCQ  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d,  clock: %d, msg_count: %d %p): test_id: %d",
 		    event_pooled->get_event_counts(), event_pooled->get_is_testsome(), event_pooled->get_flag(),
 		     event_pooled->get_source(), event_pooled->get_tag(), event_pooled->get_clock(), event_pooled->msg_count,
-		     event_pooled);
+		     event_pooled, test_id);
 #endif
 	  recording_event_list->enqueue_replay(event_pooled, test_id);
 
@@ -602,9 +618,9 @@ int rempi_recorder_cdc::replay_testsome(
       rempi_event *e = replaying_event_vec.front();
       *outcount = 0;
 #ifdef REMPI_DBG_REPLAY      
-      REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)",
+      REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): test_id: %d",
 		 e ->get_event_counts(), e ->get_is_testsome(), e ->get_flag(),
-		 e ->get_source(), e ->get_clock());
+		 e ->get_source(), e ->get_clock(), test_id);
 #endif
       delete replaying_event_vec.front();
       return ret;
@@ -664,9 +680,9 @@ int rempi_recorder_cdc::replay_testsome(
   for (int j = 0; j < replaying_event_vec.size(); j++) {
     //#ifdef REMPI_DBG_REPLAY	  
 #ifdef REMPI_DBG_REPLAY
-    REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) ",
+    REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): test_id: %d ",
 	       replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
-	       replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock());
+	       replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), test_id);
 #endif
     delete replaying_event_vec[j];
   }

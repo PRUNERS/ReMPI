@@ -36,10 +36,15 @@ void rempi_encoder_zlib::compress_matched_events(rempi_encoder_input_format &inp
   }
   original_buff   = (char*)&events_id_vec[0];
   original_size   = events_id_vec.size() * sizeof(events_id_vec[0]);
-  compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
-  test_table->compressed_matched_events           = (compressed_buff == NULL)? original_buff:compressed_buff;
-  test_table->compressed_matched_events_size      = (compressed_buff == NULL)? original_size:compressed_size;
-  REMPI_DBG("  matched(id): %lu bytes (<-zlib- %lu)", test_table->compressed_matched_events_size, original_size);
+
+  // compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
+  // test_table->compressed_matched_events           = compressed_buff;
+  // test_table->compressed_matched_events_size      = compressed_size;
+
+  input_format.write_queue_vec.push_back((char*)&original_size);
+  input_format.write_size_queue_vec.push_back(sizeof(original_size));
+  input_format.write_queue_vec.push_back(original_buff);
+  input_format.write_size_queue_vec.push_back(original_size);
   return;
 }
 

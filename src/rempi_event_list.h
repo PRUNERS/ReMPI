@@ -22,6 +22,7 @@ class rempi_event_list
   unordered_map<int, rempi_spsc_queue<T>*> replay_events;
   /*TODO: change from preivous_event to previous_recording_event*/
   rempi_event *previous_recording_event;
+  unordered_map<int, rempi_event*> previous_recording_event_umap;
   unordered_map<int, rempi_event*> previous_replaying_event_umap;
   bool is_push_closed = false;
   T mpi_event;
@@ -43,7 +44,7 @@ class rempi_event_list
   /*TODO: push -> enqueue, pop -> dequeue */
   size_t size();
   void normal_push(T event);
-  void push(T event);
+  void push(rempi_event *event);
   void push_all();
   void close_push();
   T pop();

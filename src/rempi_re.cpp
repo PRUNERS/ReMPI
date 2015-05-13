@@ -105,6 +105,16 @@ int rempi_re::re_testsome(
   return ret;
 }
 
+int rempi_re::re_waitall(
+			  int incount, 
+			  MPI_Request array_of_requests[],
+			  MPI_Status array_of_statuses[])
+{
+  int ret;
+  ret = PMPI_Waitall(incount, array_of_requests, array_of_statuses);
+  return ret;
+}
+
 
 int rempi_re::re_finalize()
 {

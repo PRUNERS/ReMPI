@@ -95,6 +95,8 @@ class rempi_encoder
     list<rempi_event*> matched_event_pool;
     bool is_event_pooled(rempi_event* replaying_event);
     rempi_event* pop_event_pool(rempi_event* replaying_event);
+
+    vector<size_t> write_size_vec;
  public:
 
     rempi_event_list<rempi_event*> *events;

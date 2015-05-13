@@ -61,6 +61,11 @@ class rempi_re
 			  int array_of_indices[], 
 			  MPI_Status array_of_statuses[]);
 
+  virtual int re_waitall(
+			  int incount, 
+			  MPI_Request array_of_requests[],
+			  MPI_Status array_of_statuses[]);
+
   virtual int re_finalize();
 };
 
@@ -117,6 +122,11 @@ class rempi_re_no_comp : public rempi_re
 			  int array_of_indices[], 
 			  MPI_Status array_of_statuses[]);
 
+  virtual int re_waitall(
+			  int incount, 
+			  MPI_Request array_of_requests[],
+			  MPI_Status array_of_statuses[]);
+
   virtual int re_finalize();
 };
 
@@ -169,6 +179,11 @@ class rempi_re_cdc : public rempi_re_no_comp
 			  MPI_Request array_of_requests[],
 			  int *outcount, 
 			  int array_of_indices[], 
+			  MPI_Status array_of_statuses[]);
+
+  virtual int re_waitall(
+			  int incount, 
+			  MPI_Request array_of_requests[],
 			  MPI_Status array_of_statuses[]);
 
   virtual int re_finalize();

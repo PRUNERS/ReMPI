@@ -17,12 +17,21 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
 :recording_events(recording_events), replaying_events(replaying_events), id(id), mode(mode)
 {
   record_path = rempi_record_dir_path + "/rank_" + id + ".rempi";
-  //  encoder = new rempi_encoder(mode);                       //  (1): Simple record (count, flag, rank with_next and clock)
-  //encoder = new rempi_encoder_simple_zlib(mode);           //  (2): (1) + format change
-  //encoder = new rempi_encoder_zlib(mode);                  //  (3): (2) + distingusishing different test/testsome
-  //encoder = new rempi_encoder_cdc_row_wise_diff(mode);     //  (4): (3) + row_wise diff
-  encoder = new rempi_encoder_cdc(mode);                   //  (5): (3) + edit distance (two values for an only permutated message)
-  //encoder = new rempi_encoder_cdc_permutation_diff(mode);    //  (6): (3) + edit distance (one value for each message)
+  if (rempi_encode == 0) {
+    encoder = new rempi_encoder(mode);                       //  (1): Simple record (count, flag, rank with_next and clock)
+  } else if (rempi_encode == 1) {
+    encoder = new rempi_encoder_simple_zlib(mode);           //  (2): (1) + format change
+  } else if (rempi_encode == 2) {
+    encoder = new rempi_encoder_zlib(mode);                  //  (3): (2) + distingusishing different test/testsome
+  } else if (rempi_encode == 3) {
+    encoder = new rempi_encoder_cdc_row_wise_diff(mode);     //  (4): (3) + row_wise diff
+  } else if (rempi_encode == 4) {
+    encoder = new rempi_encoder_cdc(mode);                   //  (5): (3) + edit distance (two values for an only permutated message)
+  } else if (rempi_encode == 5) {
+    encoder = new rempi_encoder_cdc_permutation_diff(mode);    //  (6): (3) + edit distance (one value for each message)
+  } else {
+    REMPI_ERR("No such encode");
+  }
 }
 
 void rempi_io_thread::write_record()
@@ -32,12 +41,14 @@ void rempi_io_thread::write_record()
   rempi_encoder_input_format *nonencoded_events;
   nonencoded_events = encoder->create_encoder_input_format();
 
+
   while(1) {
     /*use "new" to be able to select compression methods depending on specified input value*/
 
     bool is_extracted;
     char *encoded_events;
     size_t size;
+    double s, e;
     //    rempi_dbgi(0, "events: %p, size: %lu", encoded_events, size);
 
     /*Get a sequence of events, ...  */
@@ -46,9 +57,14 @@ void rempi_io_thread::write_record()
     if (is_extracted) {
       /*If I get the sequence,... */
       /*... , encode(compress) the seuence*/
+
+      s = rempi_get_time();
       encoder->encode(*nonencoded_events);
       /*Then, write to file.*/
       encoder->write_record_file(*nonencoded_events);
+      e = rempi_get_time();
+      REMPI_DBG(" RATE |%f|%d|%f|" , nonencoded_events->length() / (e - s), nonencoded_events->length(), e - s);
+      
       delete nonencoded_events; //TODO: also delete iternal data in this variable
       nonencoded_events = encoder->create_encoder_input_format();
       /*TODO: free rempi_encoded_cdc_input_format*/

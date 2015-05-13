@@ -9,7 +9,6 @@
 #include "rempi_config.h"
 #include "rempi_compression_util.h"
 
-#define MAX_INPUT_FORMAT_LENGTH (2000000000)
 
 /* ============================================= */
 /*  CLASS rempi_encoder_input_format_test_table  */
@@ -223,10 +222,11 @@ bool rempi_encoder::extract_encoder_input_format_chunk(rempi_event_list<rempi_ev
     return is_ready_for_encoding; /*false*/
   }
 
-  if (input_format.length() > MAX_INPUT_FORMAT_LENGTH || events.is_push_closed_()) {
+  if (input_format.length() > REMPI_MAX_INPUT_FORMAT_LENGTH || events.is_push_closed_()) {
     /*If got enough chunck size, OR the end of run*/
     input_format.format();
     is_ready_for_encoding = true;
+    //    REMPI_DBGI(0, "========= formating simple");
   }
   return is_ready_for_encoding; /*true*/
 }
@@ -264,17 +264,20 @@ void rempi_encoder::encode(rempi_encoder_input_format &input_format)
 #endif 
   }
   //  rempi_dbgi(0, "-> encoding: %p, size: %d: count: %d", encoding_event, encoding_event_sequence.size(), count++);                                     
-#if 0
-  test_table->compressed_matched_events      = compression_util.compress_by_zlib((char*)original_buff, original_size, compressed_size);
-  test_table->compressed_matched_events_size = compressed_size;
-#else
-  test_table->compressed_matched_events      = (char*)original_buff;
-  test_table->compressed_matched_events_size = original_size;
-#endif
+  if (rempi_gzip) {
+    test_table->compressed_matched_events      = compression_util.compress_by_zlib((char*)original_buff, original_size, compressed_size);
+    test_table->compressed_matched_events_size = compressed_size;
+  } else {
+    test_table->compressed_matched_events      = (char*)original_buff;
+    test_table->compressed_matched_events_size = original_size;
+  }
   
   // REMPI_DBG("xOriginal size: count:%5d(matched/unmatched entry) x 4 bytes x 5 = %d bytes,  Compressed size: %lu bytes , %d %lu", 
-  // 	    input_format.total_length, original_size , compressed_size, 
+  //  	    input_format.total_length, original_size , compressed_size, 
   // 	    original_size, compressed_size)
+
+  // REMPI_DBG("length: %5d, Size: %lu, %lu", 
+  // 	    input_format.total_length, test_table->compressed_matched_events_size, original_size);
 
   return;
 }
@@ -286,10 +289,15 @@ void rempi_encoder::write_record_file(rempi_encoder_input_format &input_format)
   rempi_event *encoding_event;
   rempi_encoder_input_format_test_table *test_table;
 
+  if (input_format.test_tables_map.size() > 1) {
+    REMPI_ERR("test_table_size is %d", input_format.test_tables_map.size());
+  }
+
   test_table = input_format.test_tables_map[0];
   whole_data      = test_table->compressed_matched_events;
   whole_data_size = test_table->compressed_matched_events_size;
   record_fs.write(whole_data, whole_data_size);
+  write_size_vec.push_back(whole_data_size);
 
   /*Free all recorded data*/
   input_format.clear();
@@ -299,6 +307,11 @@ void rempi_encoder::write_record_file(rempi_encoder_input_format &input_format)
 
 void rempi_encoder::close_record_file()
 {
+  size_t total_write_size = 0;
+  for (int i = 0, n = write_size_vec.size(); i < n; i++) {
+    total_write_size += write_size_vec[i];
+  }
+  REMPI_DBG("EVAL Total write size: |%lu|", total_write_size);
   record_fs.close();
 }
 
