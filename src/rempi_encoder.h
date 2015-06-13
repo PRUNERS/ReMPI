@@ -10,6 +10,11 @@
 #include "rempi_compression_util.h"
 #include "rempi_clock_delta_compression.h"
 
+/*In CDC, rempi_endoers needs to fetch and update next_clocks, 
+so CLMPI and PNMPI module need to be included*/
+#include "clmpi.h"
+#include "pnmpimod.h"
+
 using namespace std;
 
 class rempi_encoder_input_format_test_table
@@ -26,8 +31,8 @@ class rempi_encoder_input_format_test_table
   int count = 0;
 
   unordered_map<size_t, size_t>      epoch_umap;
-  vector<size_t>                  epoch_rank_vec;
-  vector<size_t>                  epoch_clock_vec;
+  vector<size_t>                  epoch_rank_vec;  /*ranks creating this epoch line in this test_table*/
+  vector<size_t>                  epoch_clock_vec; /*each value of epoch line of ranks in  epoch_rank_vec*/
   size_t                       epoch_size; /*each size of epoch_{rank|clock}_vec. so epoch_size x 2 is total size of epoch*/
 
 
@@ -70,6 +75,15 @@ class rempi_encoder_input_format
   /*Used for CDC*/  
   map<int, rempi_encoder_input_format_test_table*> test_tables_map;  
 
+  /* === For CDC replay ===*/
+  int    mc_length       = -1;
+  /*All source ranks in all receive MPI functions*/
+  int    *mc_recv_ranks  = NULL; 
+  /*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*/
+  size_t *mc_next_clocks = NULL;
+  /* ======================*/
+  
+
   /*vector to write to file*/
   vector<char*>  write_queue_vec;
   vector<size_t> write_size_queue_vec;
@@ -81,6 +95,8 @@ class rempi_encoder_input_format
   virtual void add(rempi_event *event, int test_id);
   virtual void format();
   virtual void debug_print();
+  /*For CDC replay*/
+
   void clear();
 };
 
@@ -127,6 +143,7 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
 {
  private:
   //  bool compare(rempi_event *event1, rempi_event *event2);
+
  public:
   virtual void add(rempi_event *event);
   virtual void format();
@@ -134,11 +151,28 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
 };
 
 
-
-
 class rempi_encoder_cdc : public rempi_encoder
 {
+  struct local_minimal_id {
+    int rank;
+    size_t clock;
+  };
+
+  struct frontier_detection_clocks{ /*fd = frontier detection*/
+    size_t next_clock;    /*TODO: Remove    next_clock, which is not used any more */
+    size_t trigger_clock; /*TODO: Remove trigger_clock, which is not used any more */
+  };
+
  private:
+  /* === For frontier detection === */
+  MPI_Comm mpi_fd_clock_comm;
+  MPI_Win mpi_fd_clock_win;
+  PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
+  struct local_minimal_id local_min_id= {.rank=-1, .clock=0};
+  struct frontier_detection_clocks fd_clocks;
+  void fetch_and_update_local_min_id(rempi_encoder_input_format &input_format);
+  /* ============================== */
+
   void cdc_prepare_decode_indices(
 				  size_t matched_event_count,
 				  vector<size_t> &matched_events_id_vec,
@@ -146,13 +180,14 @@ class rempi_encoder_cdc : public rempi_encoder
 				  vector<int> &matched_events_square_sizes,
 				  vector<int> &matched_events_permutated_indices);
   bool cdc_decode_ordering(vector<rempi_event*> &event_vec, rempi_encoder_input_format_test_table* test_table, vector<rempi_event*> &replay_event_vec);
- protected:
 
+ protected:
   rempi_clock_delta_compression *cdc;
   virtual void compress_non_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
   virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
   virtual void decompress_non_matched_events(rempi_encoder_input_format &input_format);
   virtual void decompress_matched_events(rempi_encoder_input_format &input_format);
+
  public:
   rempi_encoder_cdc(int mode);
   /*For common*/

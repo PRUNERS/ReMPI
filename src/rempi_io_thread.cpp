@@ -64,7 +64,6 @@ void rempi_io_thread::write_record()
       encoder->write_record_file(*nonencoded_events);
       e = rempi_get_time();
       REMPI_DBG(" RATE |%f|%d|%f|" , nonencoded_events->length() / (e - s), nonencoded_events->length(), e - s);
-      
       delete nonencoded_events; //TODO: also delete iternal data in this variable
       nonencoded_events = encoder->create_encoder_input_format();
       /*TODO: free rempi_encoded_cdc_input_format*/

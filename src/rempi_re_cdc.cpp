@@ -67,10 +67,16 @@ int rempi_re_cdc::get_test_id()
 int rempi_re_cdc::re_init(int *argc, char ***argv)
 {
   int ret;
+  int provided;
   /*Init CLMPI*/
   init_clmpi();
 
-  ret = PMPI_Init(argc, argv);
+  /*A CDC thread make MPI calls, so call PMPI_Init_thraed insted of PMPI_Init */
+  ret = PMPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, &provided);
+  if (provided < MPI_THREAD_SERIALIZED) {
+    REMPI_ERR("MPI supports only MPI_THREAD_SINGLE, and ReMPI does not work on this MPI");
+  }
+  //  REMPI_ERR("provided: %d", provided);
   /*Init from configuration and for valiables for errors*/
   init_after_pmpi_init(argc, argv);
 
@@ -92,7 +98,11 @@ int rempi_re_cdc::re_init_thread(
   /*Init CLMPI*/
   init_clmpi();
 
-  ret = PMPI_Init_thread(argc, argv, required, provided);
+  ret = PMPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, provided);
+  if (*provided < MPI_THREAD_SERIALIZED) {
+    REMPI_ERR("MPI supports only MPI_THREAD_SINGLE, and ReMPI does not work on this MPI");
+  }
+
 
   /*Init from configuration and for valiables for errors*/
   init_after_pmpi_init(argc, argv);
@@ -147,10 +157,10 @@ int rempi_re_cdc::re_irecv(
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
     //TODO: Get Datatype,
-    recorder->record_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], request);
+    recorder->record_irecv(buf, count, datatype, source, tag, (int)comm_id[0], request);
   } else {
     /*TODO: Really need datatype ??*/
-    recorder->replay_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], &comm, request);
+    recorder->replay_irecv(buf, count, datatype, source, tag, (int)comm_id[0], &comm, request);
   }
 #if 0
   REMPI_DBGI(1, "source: %d, tag: %d, count: %d, request: %p", source, tag, count, *request);
@@ -345,6 +355,7 @@ int rempi_re_cdc::re_waitall(
 int rempi_re_cdc::re_finalize()
 {
   int ret;
+
   ret = PMPI_Finalize();
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
@@ -352,6 +363,7 @@ int rempi_re_cdc::re_finalize()
   } else {
     ret = recorder->replay_finalize();
   }
+
   return ret;
 }
 

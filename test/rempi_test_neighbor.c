@@ -32,7 +32,6 @@ int is_finished(){
 
 int main(int argc, char *argv[])
 {
-
   int my_rank;
   int size;
   int seed;
@@ -68,8 +67,7 @@ int main(int argc, char *argv[])
     MPI_Irecv(&recv_kv[i], 8, MPI_CHAR, (my_rank + size - i)        % size, MPI_ANY_TAG, MPI_COMM_WORLD, &request[i]);
   }
 
-
-  usleep((rand() % 2) * 100000);
+  usleep((my_rank % 2) * 100000);
 
   for (i = 0; i < NUM_KV_PER_RANK; i++) { 
     //    MPI_Send(&my_kv[i], 2, MPI_INT, (my_rank + i)        % size, 0, MPI_COMM_WORLD);
@@ -115,7 +113,7 @@ int main(int argc, char *argv[])
       if (send_msg_count[recv_index] < MAX_MESG_PASS) {
 	sendrecv_kv.val = get_hash(sendrecv_kv.val, MAX_VAL);
 	//	MPI_Send(&sendrecv_kv, 2, MPI_INT, (my_rank + recv_index) % size, 0, MPI_COMM_WORLD);
-	usleep((rand() % 2) * 100000);
+	//	usleep((rand() % 2) * 100000);
 	MPI_Send(&sendrecv_kv, 8, MPI_CHAR, (my_rank + recv_index) % size, 0, MPI_COMM_WORLD);
 	send_msg_count[recv_index]++;
       }

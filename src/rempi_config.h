@@ -26,7 +26,7 @@ extern int rempi_gzip;
 #define REMPI_ENV_NAME_TEST_ID "REMPI_TEST_ID"
 extern int rempi_is_test_id;
 
-//#define REMPI_DBG_REPLAY -1
+#define REMPI_DBG_REPLAY 2
 
 #define REMPI_MAX_INPUT_FORMAT_LENGTH (1024 * 2)
 

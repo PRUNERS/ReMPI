@@ -131,10 +131,10 @@ int rempi_re_no_comp::re_irecv(
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
     //TODO: Get Datatype,
-    recorder->record_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], request);
+    recorder->record_irecv(buf, count, datatype, source, tag, (int)comm_id[0], request);
   } else {
     /*TODO: Really need datatype ??*/
-    recorder->replay_irecv(buf, count, (int)(datatype), source, tag, (int)comm_id[0], &comm, request);
+    recorder->replay_irecv(buf, count, datatype, source, tag, (int)comm_id[0], &comm, request);
   }
   return ret;
 }

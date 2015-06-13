@@ -152,13 +152,14 @@ int rempi_recorder_cdc::replay_init(int *argc, char ***argv, int rank)
   //  REMPI_DBG("io thread is not runnig");
   read_record_thread->start();
 
+  sleep(1);
   return 0;
 }
 
 int rempi_recorder_cdc::record_irecv(
    void *buf,
    int count,
-   int datatype,
+   MPI_Datatype datatype,
    int source,
    int tag,
    int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
@@ -207,7 +208,6 @@ int rempi_recorder_cdc::replay_irecv(
     request_to_irecv_inputs_umap[*request] = new rempi_irecv_inputs(buf, count, datatype, source, tag, *comm, *request, -1);
   }
 
-  
   irecv_inputs = request_to_irecv_inputs_umap[*request];
 
   if (irecv_inputs->request_proxy_list.size() == 0) {
@@ -293,12 +293,8 @@ int rempi_recorder_cdc::record_test(
   // test_id = request_to_test_id_umap[request];
 #if REMPI_DBG_REPLAY
   REMPI_DBGI(REMPI_DBG_REPLAY, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
-	      event_count, with_previous, *flag,                                      
-	     record_source, record_tag, record_clock, test_id);
+	      event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
 #endif
- // REMPI_DBGI(0, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
- // 	      event_count, with_previous, *flag,                                      
- // 	     record_source, record_tag, record_clock, test_id);
 
   // REMPI_DBG("Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
   //    event_count, with_previous, *flag,                                      
@@ -531,9 +527,13 @@ int rempi_recorder_cdc::replay_testsome(
 
 	return ret;
       } else {
+	/*If this is testsome for recv*/
 	int flag = 0;
 	rempi_proxy_request *proxy_request;
 	MPI_Status status;
+
+	/*koko dayo*/
+
 	/*If this request is for irecv (not isend)*/
 	irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[i]];
 	proxy_request = irecv_inputs->request_proxy_list.front();
@@ -613,8 +613,8 @@ int rempi_recorder_cdc::replay_testsome(
   }
 
 
-  if (replaying_event_vec.size() == 1) {
-    if (replaying_event_vec.front()->get_flag() == 0) {
+  if (replaying_event_vec.size() == 1) { 
+    if (replaying_event_vec.front()->get_flag() == 0) { /*if unmatched event*/
       rempi_event *e = replaying_event_vec.front();
       *outcount = 0;
 #ifdef REMPI_DBG_REPLAY      
@@ -720,6 +720,7 @@ int rempi_recorder_cdc::record_finalize(void)
   }
 
   record_thread->join();
+
 
   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   return 0;

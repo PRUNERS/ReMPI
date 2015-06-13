@@ -47,7 +47,7 @@ int rempi_recorder::replay_init(int *argc, char ***argv, int rank)
 int rempi_recorder::record_irecv(
    void *buf,
    int count,
-   int datatype,
+   MPI_Datatype datatype,
    int source,
    int tag,
    int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
@@ -60,14 +60,13 @@ int rempi_recorder::record_irecv(
 int rempi_recorder::replay_irecv(
    void *buf,
    int count,
-   int datatype,
+   MPI_Datatype datatype,
    int source,
    int tag,
    int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
    MPI_Comm *comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
    MPI_Request *request)
 {
-
   // if (request_to_irecv_inputs_umap.find(*request) 
   //  != request_to_irecv_inputs_umap.end()) {
   //   REMPI_ERR("This MPI_Request is not diactivated. This mainly caused by irecv call "
@@ -337,9 +336,9 @@ int rempi_recorder::replay_testsome(
 
 int rempi_recorder::record_finalize(void)
 {
-
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     recording_event_list->push_all();
+
     /*TODO: set flag in event_list 
       insteand of setting flag of thread (via complete_flush)
       like in replay mode*/

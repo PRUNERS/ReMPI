@@ -22,7 +22,6 @@ int rempi_record_replay::init(int *argc, char ***argv)
   return PMPI_Init(argc, argv);
 }
 
-
 int rempi_record_replay::irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request)
 {
   return PMPI_Irecv(buf, count, datatype, source, tag, comm, request);

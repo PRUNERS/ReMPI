@@ -30,8 +30,11 @@ class rempi_event_list
   size_t max_size;
   size_t spin_time;
   size_t globally_minimal_clock; /*which is used for CDC compression*/
+
  public:
- rempi_event_list(size_t max_size, size_t spin_time) :
+  /*Indicate which test_id of MPI_Test*,MPI_Wait* an application is waiting event from */
+  int waiting_test_id = -1; 
+  rempi_event_list(size_t max_size, size_t spin_time) :
   previous_recording_event(NULL), is_push_closed(false),
     max_size(max_size), spin_time(spin_time), globally_minimal_clock(0) {}
   ~rempi_event_list() {

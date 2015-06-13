@@ -95,7 +95,7 @@ class rempi_recorder {
   virtual int record_irecv(
 			   void *buf,
 			   int count,
-			   int datatype, // The value is assigned in ReMPI_convertor
+			   MPI_Datatype datatype, // The value is assigned in ReMPI_convertor
 			   int source,
 			   int tag,
 			   int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
@@ -104,7 +104,7 @@ class rempi_recorder {
   virtual int replay_irecv(
 			   void *buf,
 			   int count,
-			   int datatype, // The value is assigned in ReMPI_convertor
+			   MPI_Datatype datatype, // The value is assigned in ReMPI_convertor
 			   int source,
 			   int tag,
 			   int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
@@ -178,7 +178,7 @@ class rempi_recorder_cdc : public rempi_recorder
   int record_irecv(
 		   void *buf,
 		   int count,
-		   int datatype, // The value is assigned in ReMPI_convertor
+		   MPI_Datatype datatype, // The value is assigned in ReMPI_convertor
 		   int source,
 		   int tag,
 		   int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
@@ -187,7 +187,7 @@ class rempi_recorder_cdc : public rempi_recorder
   int replay_irecv(
 		   void *buf,
 		   int count,
-		   int datatype, // The value is assigned in ReMPI_convertor
+		   MPI_Datatype datatype, // The value is assigned in ReMPI_convertor
 		   int source,
 		   int tag,
 		   int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor

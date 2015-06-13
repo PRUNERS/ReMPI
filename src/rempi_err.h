@@ -15,18 +15,21 @@
 #define REMPI_DBG(dbg_fmt, ...)			\
   rempi_dbg(" "					\
 	    dbg_fmt				\
-	    " (%s:%s:%d)",			\
+	    " (%s:%d)",			\
             ## __VA_ARGS__,			\
-            __FILE__, __func__, __LINE__);
+            __FILE__, __LINE__);
+  //            __FILE__, __func__, __LINE__);
+
 
 /*if __VA_ARGS__ is empty, the previous comma can be removed by "##" statement*/
 #define REMPI_DBGI(i, dbg_fmt, ...)		\
   rempi_dbgi(i,					\
 	     " "				\
 	     dbg_fmt				\
-	     " (%s:%s:%d)",			\
+	     " (%s:%d)",			\
 	     ## __VA_ARGS__,			\
-	     __FILE__, __func__, __LINE__);
+            __FILE__, __LINE__);
+//	     __FILE__, __func__, __LINE__);
 
 
 void rempi_err_init(int r);

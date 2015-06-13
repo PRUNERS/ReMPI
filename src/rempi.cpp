@@ -155,14 +155,20 @@ _EXTERN_C_ int MPI_Type_contiguous(int arg_0, MPI_Datatype arg_1, MPI_Datatype *
 }
 
 /* ================== C Wrappers for MPI_Type_struct ================== */
+#if MPI_VERSION == 3 && !defined(OPEN_MPI)
+_EXTERN_C_ int PMPI_Type_struct(int arg_0, const int *arg_1, const MPI_Aint *arg_2, const MPI_Datatype *arg_3, MPI_Datatype *arg_4);
+_EXTERN_C_ int MPI_Type_struct(int arg_0, const int *arg_1, const MPI_Aint *arg_2, const MPI_Datatype *arg_3, MPI_Datatype *arg_4) {
+#else
 _EXTERN_C_ int PMPI_Type_struct(int arg_0, int *arg_1, MPI_Aint *arg_2, MPI_Datatype *arg_3, MPI_Datatype *arg_4);
 _EXTERN_C_ int MPI_Type_struct(int arg_0, int *arg_1, MPI_Aint *arg_2, MPI_Datatype *arg_3, MPI_Datatype *arg_4) {
+#endif
   int _wrap_py_return_val = 0;
   {  
    
     _wrap_py_return_val = PMPI_Type_struct(arg_0, arg_1, arg_2, arg_3, arg_4);
   }    return _wrap_py_return_val;
 }
+
 
 /* ================== C Wrappers for MPI_Comm_split ================== */
 _EXTERN_C_ int PMPI_Comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3);
@@ -197,11 +203,17 @@ _EXTERN_C_ int MPI_Finalize()
 
 
 /* ================== C Wrappers for MPI_Isend ================== */
+#if MPI_VERSION == 3
+_EXTERN_C_ int PMPI_Isend(const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
+_EXTERN_C_ int MPI_Isend(const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) {
+#else
 _EXTERN_C_ int PMPI_Isend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
 _EXTERN_C_ int MPI_Isend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) {
+#endif
+
   int _wrap_py_return_val = 0;
   {
-    _wrap_py_return_val = rempi_record_replay->re_isend(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+    _wrap_py_return_val = rempi_record_replay->re_isend((void *)arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
     // int rank;
     //  PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
     //  if (rank == 1) {
@@ -211,20 +223,20 @@ _EXTERN_C_ int MPI_Isend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, 
 }
 
 /* ================== C Wrappers for MPI_Send ================== */
+#if MPI_VERSION == 3
+_EXTERN_C_ int PMPI_Send(const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5);
+_EXTERN_C_ int MPI_Send(const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5) {
+#else 
 _EXTERN_C_ int PMPI_Send(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5);
 _EXTERN_C_ int MPI_Send(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5) {
+#endif
   int _wrap_py_return_val = 0;
   {
     _wrap_py_return_val = PMPI_Send(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
-    int rank;
-    PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    //  if (rank == 1) {
-    //    fprintf(stderr, "rank %d: source: %d, tag: %d\n", rank, arg_3, arg_4);
-    //  }
-    fprintf(stderr, "rank  %d: source: %d, tag: %d\n", rank, arg_3, arg_4);
   }
   return _wrap_py_return_val;
 }
+
 
 
 
