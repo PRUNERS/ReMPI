@@ -14,6 +14,13 @@ rempi_mutex rempi_io_thread::mtx;
 rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_events, 
 				 rempi_event_list<rempi_event*> *replaying_events, 
 				 string id, int mode)
+  :rempi_io_thread(recording_events, replaying_events, id, mode, NULL)
+{}
+
+rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_events, 
+				 rempi_event_list<rempi_event*> *replaying_events, 
+				 string id, int mode,
+				 rempi_encoder **mc_encoder)
 :recording_events(recording_events), replaying_events(replaying_events), id(id), mode(mode)
 {
   record_path = rempi_record_dir_path + "/rank_" + id + ".rempi";
@@ -31,6 +38,10 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
     encoder = new rempi_encoder_cdc_permutation_diff(mode);    //  (6): (3) + edit distance (one value for each message)
   } else {
     REMPI_ERR("No such encode");
+  }
+
+  if (mc_encoder != NULL) {
+    *mc_encoder = encoder;
   }
 }
 

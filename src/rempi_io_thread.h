@@ -32,6 +32,11 @@ class rempi_io_thread : public rempi_thread
                 rempi_io_thread(rempi_event_list<rempi_event*> *recording_events, 
 				rempi_event_list<rempi_event*> *replaying_events, 
 				string id, int mode);
+
+                rempi_io_thread(rempi_event_list<rempi_event*> *recording_events, 
+				rempi_event_list<rempi_event*> *replaying_events, 
+				string id, int mode,
+				rempi_encoder **mc_encoder);
 		void complete_flush();
 };
 

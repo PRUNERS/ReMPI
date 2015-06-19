@@ -133,7 +133,7 @@ int rempi_recorder_cdc::record_init(int *argc, char ***argv, int rank)
   id = std::to_string((long long int)rank);
   replaying_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
   recording_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
-  record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode); //0: recording mode
+  record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode, &mc_encoder); //0: recording mode
   record_thread->start();
   
   return 0;
@@ -148,11 +148,10 @@ int rempi_recorder_cdc::replay_init(int *argc, char ***argv, int rank)
   /*recording_event_list is needed for CDC, and when switching from repla mode to recording mode */
   recording_event_list = new rempi_event_list<rempi_event*>(10000000, 100); 
   replaying_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
-  read_record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode); //1: replay mode
+  read_record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode, &mc_encoder); //1: replay mode
   //  REMPI_DBG("io thread is not runnig");
   read_record_thread->start();
 
-  sleep(1);
   return 0;
 }
 
@@ -604,6 +603,12 @@ int rempi_recorder_cdc::replay_testsome(
 	/*If breaked i Label:1, I also want to breakthis for loop*/
 	break;
       }
+   
+      /*If no event to replay, execut frontier detection 
+	TODO: Due to multi-threaded issue in MPI/PNMPI, we call this function from main thread */
+      //REMPI_ERR("%p ----", mc_encoder);
+      mc_encoder->fetch_and_update_local_min_id();
+
       if (event_list_status == REMPI_EVENT_LIST_FINISH) {
 	if (i == incount) {
 	  REMPI_ERR("No thing to replay");

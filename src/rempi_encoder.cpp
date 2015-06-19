@@ -10,6 +10,7 @@
 #include "rempi_compression_util.h"
 
 
+
 /* ============================================= */
 /*  CLASS rempi_encoder_input_format_test_table  */
 /* ============================================= */
@@ -430,6 +431,12 @@ void rempi_encoder::insert_encoder_input_format_chunk(rempi_event_list<rempi_eve
   return;    
 }
 
+
+void rempi_encoder::fetch_and_update_local_min_id()
+{    
+  REMPI_ERR("please remove this REMPI_ERR later");
+  return;
+}
 
 
 // char* rempi_encoder::read_decoding_event_sequence(size_t *size)

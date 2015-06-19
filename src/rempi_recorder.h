@@ -7,6 +7,7 @@
 #include "rempi_event_list.h"
 #include "rempi_io_thread.h"
 #include "clmpi.h"
+#include "rempi_encoder.h"
 
 /* class rempi_matching_id */
 /* { */
@@ -83,13 +84,16 @@ class rempi_recorder {
   int next_test_id_to_assign = 0;
   unordered_map<MPI_Request, rempi_irecv_inputs*> request_to_irecv_inputs_umap; 
   //  list<rempi_proxy_request*> proxy_request_pool_list;
-  //  unordered_map<MPI_Request*, int> request_to_test_id_umap;
-  
+  //unordered_map<MPI_Request*, int> request_to_test_id_umap;
   rempi_event_list<rempi_event*> *recording_event_list, *replaying_event_list;
   rempi_io_thread *record_thread, *read_record_thread;
-  
 
- public:
+  /*TODO: Fix bug in PNMPI fo rmulti-threaded, and remove this outputing*/
+  rempi_encoder *mc_encoder = NULL;
+
+public:
+
+
   virtual int record_init(int *argc, char ***argv, int rank);
   virtual int replay_init(int *argc, char ***argv, int rank);
   virtual int record_irecv(

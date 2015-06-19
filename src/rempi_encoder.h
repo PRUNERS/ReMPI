@@ -57,8 +57,13 @@ class rempi_encoder_input_format_test_table
   size_t                       compressed_matched_events_size = 0;
   char*                        compressed_matched_events      = NULL;
 
-  /*Used in replay decode ordering*/
-  list<rempi_event*>                 ordered_event_list;
+  /*== Used in replay decode ordering == */
+  /*All events go to this list, then sorted*/
+  list<rempi_event*>                 ordered_event_list; 
+  /*Events (< minimul clock) in ordered_event_list are divided into chuncks, 
+    whose size is squire size, then move to ordered_event_chunk_list. 
+    After that, by appying permutation to this list, we can decode replaying order*/
+  list<rempi_event*>                 ordered_event_chunk_list; 
   //  unordered_map<int, list<rempi_event*>*>  pending_events_umap;
   unordered_map<int, int> pending_event_count_umap; /*rank->pending_counts*/
   unordered_map<int, int> current_epoch_line_umap;  /* rank->max clock of this rank*/
@@ -102,7 +107,7 @@ class rempi_encoder_input_format
 
 
 class rempi_encoder
-{
+{  
  protected:
     int mode;
     string record_path;
@@ -112,9 +117,19 @@ class rempi_encoder
     bool is_event_pooled(rempi_event* replaying_event);
     rempi_event* pop_event_pool(rempi_event* replaying_event);
 
-    vector<size_t> write_size_vec;
- public:
 
+    /* === For CDC replay ===*/
+    int    mc_flag         = 0; /*if mc_flag == 1: main thread execute frontier detection*/
+    int    mc_length       = 0;
+    /*All source ranks in all receive MPI functions*/
+    int    *mc_recv_ranks  = NULL; 
+    /*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*/
+    size_t *mc_next_clocks = NULL;
+    /* ======================*/
+
+    vector<size_t> write_size_vec;
+
+ public:
     rempi_event_list<rempi_event*> *events;
     rempi_encoder(int mode);
     /*Common for record & replay*/
@@ -131,12 +146,15 @@ class rempi_encoder
     virtual bool read_record_file(rempi_encoder_input_format &input_format);
     virtual void decode(rempi_encoder_input_format &input_format);
     virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
+
+    /*TODO: Due to multi-threaded issues in MPI/PNMPI, we define this function.
+      But we would like to remove this function in future*/
+    virtual void fetch_and_update_local_min_id();
     
     /*Old functions for replay*/
     //    virtual char* read_decoding_event_sequence(size_t *size);
     //    virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };
-
 
 
 class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
@@ -157,6 +175,7 @@ class rempi_encoder_cdc : public rempi_encoder
     int rank;
     size_t clock;
   };
+  
 
   struct frontier_detection_clocks{ /*fd = frontier detection*/
     size_t next_clock;    /*TODO: Remove    next_clock, which is not used any more */
@@ -169,8 +188,8 @@ class rempi_encoder_cdc : public rempi_encoder
   MPI_Win mpi_fd_clock_win;
   PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
   struct local_minimal_id local_min_id= {.rank=-1, .clock=0};
-  struct frontier_detection_clocks fd_clocks;
-  void fetch_and_update_local_min_id(rempi_encoder_input_format &input_format);
+  struct frontier_detection_clocks *fd_clocks = NULL;
+
   /* ============================== */
 
   void cdc_prepare_decode_indices(
@@ -180,6 +199,7 @@ class rempi_encoder_cdc : public rempi_encoder
 				  vector<int> &matched_events_square_sizes,
 				  vector<int> &matched_events_permutated_indices);
   bool cdc_decode_ordering(vector<rempi_event*> &event_vec, rempi_encoder_input_format_test_table* test_table, vector<rempi_event*> &replay_event_vec);
+  void update_fd_next_clock(int is_waiting_recv);
 
  protected:
   rempi_clock_delta_compression *cdc;
@@ -200,6 +220,8 @@ class rempi_encoder_cdc : public rempi_encoder
   virtual bool read_record_file(rempi_encoder_input_format &input_format);
   virtual void decode(rempi_encoder_input_format &input_format);
   virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
+
+  virtual void fetch_and_update_local_min_id();
 
   //  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };
