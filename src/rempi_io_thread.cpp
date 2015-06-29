@@ -119,7 +119,6 @@ void rempi_io_thread::read_record()
       input_format = encoder->create_encoder_input_format();
     }
   }
-
 #ifdef REMPI_DBG_REPLAY
   //  REMPI_DBGI(REMPI_DBG_REPLAY,"end ======");
   REMPI_DBG("end ======");
