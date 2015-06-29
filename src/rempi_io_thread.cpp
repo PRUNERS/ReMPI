@@ -75,6 +75,8 @@ void rempi_io_thread::write_record()
       encoder->write_record_file(*nonencoded_events);
       e = rempi_get_time();
       REMPI_DBG(" RATE |%f|%d|%f|" , nonencoded_events->length() / (e - s), nonencoded_events->length(), e - s);
+      nonencoded_events->debug_print();
+      
       delete nonencoded_events; //TODO: also delete iternal data in this variable
       nonencoded_events = encoder->create_encoder_input_format();
       /*TODO: free rempi_encoded_cdc_input_format*/
@@ -110,6 +112,7 @@ void rempi_io_thread::read_record()
       replaying_events->close_push();
       break;
     } else {
+
       encoder->decode(*input_format);
       encoder->insert_encoder_input_format_chunk(*recording_events, *replaying_events, *input_format);
       delete input_format;

@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include <map>
+#include <array>
 
 #include "rempi_event.h"
 #include "rempi_event_list.h"
@@ -52,6 +53,7 @@ class rempi_encoder_input_format_test_table
   vector<size_t>               matched_events_id_vec;      /*Used in replay*/
   vector<size_t>               matched_events_delay_vec;   /*Used in replay*/
   vector<int>                  matched_events_square_sizes_vec;/*Used in replay*/
+  int                          matched_events_square_sizes_vec_index = 0;/*Used in replay*/
   vector<int>                  matched_events_permutated_indices_vec; /*Used in replay*/
   size_t                       replayed_matched_event_index = 0;
   size_t                       compressed_matched_events_size = 0;
@@ -60,10 +62,10 @@ class rempi_encoder_input_format_test_table
   /*== Used in replay decode ordering == */
   /*All events go to this list, then sorted*/
   list<rempi_event*>                 ordered_event_list; 
-  /*Events (< minimul clock) in ordered_event_list are divided into chuncks, 
-    whose size is squire size, then move to ordered_event_chunk_list. 
-    After that, by appying permutation to this list, we can decode replaying order*/
-  list<rempi_event*>                 ordered_event_chunk_list; 
+  /*Events (< minimul clock) in ordered_event_list go to this list.
+    It is gueranteed this order is solid, and does not change by future events
+  */
+  list<rempi_event*>                 solid_ordered_event_list; 
   //  unordered_map<int, list<rempi_event*>*>  pending_events_umap;
   unordered_map<int, int> pending_event_count_umap; /*rank->pending_counts*/
   unordered_map<int, int> current_epoch_line_umap;  /* rank->max clock of this rank*/
@@ -149,7 +151,10 @@ class rempi_encoder
 
     /*TODO: Due to multi-threaded issues in MPI/PNMPI, we define this function.
       But we would like to remove this function in future*/
-    virtual void fetch_and_update_local_min_id();
+    virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
+    virtual void update_local_min_id(int min_recv_rank, size_t min_next_clock);
+    virtual void update_fd_next_clock(int is_waiting_recv, int num_of_recv_msg_in_next_event);
+    int *num_of_recv_msg_in_next_event = NULL; /*array[i] contain the number of test_id=i*/
     
     /*Old functions for replay*/
     //    virtual char* read_decoding_event_sequence(size_t *size);
@@ -198,8 +203,8 @@ class rempi_encoder_cdc : public rempi_encoder
 				  vector<size_t> &matched_events_delay_vec,
 				  vector<int> &matched_events_square_sizes,
 				  vector<int> &matched_events_permutated_indices);
-  bool cdc_decode_ordering(vector<rempi_event*> &event_vec, rempi_encoder_input_format_test_table* test_table, vector<rempi_event*> &replay_event_vec);
-  void update_fd_next_clock(int is_waiting_recv);
+  bool cdc_decode_ordering(rempi_event_list<rempi_event*> &recording_events, vector<rempi_event*> &event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> &replay_event_list, int test_id);
+
 
  protected:
   rempi_clock_delta_compression *cdc;
@@ -221,7 +226,9 @@ class rempi_encoder_cdc : public rempi_encoder
   virtual void decode(rempi_encoder_input_format &input_format);
   virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
-  virtual void fetch_and_update_local_min_id();
+  virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
+  virtual void update_local_min_id(int min_recv_rank, size_t min_next_clock);
+  virtual void update_fd_next_clock(int is_waiting_recv, int num_of_recv_msg_in_next_event);
 
   //  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };

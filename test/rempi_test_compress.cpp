@@ -33,112 +33,103 @@ void test_simple() {
   //  compressed_data = rempi_compress::binary_compress(msg_ids, compressed_size);
 }
 
+bool compare(rempi_event* event1,
+             rempi_event* event2)
+{
+  if (event1->get_clock() < event2->get_clock()) {
+    return true;
+  } else if (event1->get_clock() == event2->get_clock()) {
+    return event1->get_source() < event2->get_source();
+  }
+  return false;
+}
 
-// void test_clock_delta() {
-//   map<int, rempi_message_identifier*> msg_ids_clocked;
-//   vector<rempi_message_identifier*> msg_ids_observed;
-//   char* compressed_data;
-//   size_t compressed_size;
-//   rempi_message_identifier *msg_id;
-//   int id = 0;
-//   double s_add, e_add, s_comp, e_comp;
-// #define add_identifier(a, b, c, d)			\
-//   msg_id = new rempi_message_identifier(a, b, c, d);	\
-//   msg_ids_clocked[msg_id->clock] = msg_id;              \
-//   msg_ids_observed.push_back(msg_id);
 
-//   s_add = rempi_get_time();
-// #if 1
-//   for(int i = 0; i < 10000; i++) {
-//     int delay = (i % 100 == 0)? 100:0;
-//     add_identifier(i, 1, 1, i - delay);
-//   }
-// #else
-//   add_identifier(2, 1, 1, 40);
-//   add_identifier(1, 1, 1,  0);
-//   add_identifier(3, 1, 1, 60);
-//   add_identifier(1, 1, 1, 20);
-//   add_identifier(2, 1, 1, 30);
-//   add_identifier(3, 1, 1, 70);
-//   add_identifier(1, 1, 1, 10);
-//   add_identifier(3, 1, 1, 50);
-// #endif
-//   e_add = rempi_get_time();
-//   REMPI_DBG("ADD: %f", e_add - s_add);
+void test_clock_delta() {
+  map<int, rempi_event*> msg_ids_clocked;
+  vector<rempi_event*> msg_ids_observed;
+  vector<rempi_event*> *sorted_msg_ids_observed;
+  rempi_event *e;
+  size_t compressed_size;
+  char* compressed_data;
 
-// #undef add_identifier
-//   // for (int i = 0; i < msg_ids_observed.size(); i++) {
-//   //   REMPI_DBG("%d\n", msg_ids_observed[i]);
-//   // }
-//   s_comp = rempi_get_time();
-//   compressed_data = rempi_clock_delta_compression::compress(msg_ids_clocked, msg_ids_observed, compressed_size);
-//   e_comp = rempi_get_time();
-//   REMPI_DBG("COM: %f", e_comp - s_comp);
+  int id = 0;
+  double s_add, e_add, s_comp, e_comp;
 
-// #if 1
-//   {
-//     //    REMPI_DBG("size:%d", compressed_size);
-//     int i;
-//     int *compressed_data_int = (int*)compressed_data;
-//     for (i = 0; i < compressed_size/4; i++) {
-//       REMPI_DBG("  %d", compressed_data_int[i]);
-//     }
-//   }
-// #endif
-// }
 
-// void test_clock_delta3() {
-//   map<int, rempi_message_identifier*> msg_ids_clocked;
-//   vector<rempi_message_identifier*> msg_ids_observed;
-//   char* compressed_data;
-//   size_t compressed_size;
-//   rempi_message_identifier *msg_id;
-//   int id = 0;
-//   double s_add, e_add, s_comp, e_comp;
-// #define add_identifier(a, b, c, d)			\
-//   msg_id = new rempi_message_identifier(a, b, c, d);	\
-//   msg_ids_clocked[msg_id->clock] = msg_id;              \
-//   msg_ids_observed.push_back(msg_id);
+#define ADD_EVENT(rank, clock)			\
+  e = new rempi_test_event(1, 0, 0, 1, rank, 0, clock, 0);	\
+  msg_ids_observed.push_back(e);
 
-//   s_add = rempi_get_time();
-// #if 1
-//   for(int i = 0; i < 10000; i++) {
-//     int delay = (i % 100 == 0)? 100:0;
-//     add_identifier(i, 1, 1, i - delay);
-//   }
-// #else
-//   add_identifier(2, 1, 1, 40);
-//   add_identifier(1, 1, 1,  0);
-//   add_identifier(3, 1, 1, 60);
-//   add_identifier(1, 1, 1, 20);
-//   add_identifier(2, 1, 1, 30);
-//   add_identifier(3, 1, 1, 70);
-//   add_identifier(1, 1, 1, 10);
-//   add_identifier(3, 1, 1, 50);
-// #endif
-//   e_add = rempi_get_time();
-//   REMPI_DBG("ADD: %f", e_add - s_add);
+  s_add = rempi_get_time();
 
-// #undef add_identifier
-//   // for (int i = 0; i < msg_ids_observed.size(); i++) {
-//   //   REMPI_DBG("%d\n", msg_ids_observed[i]);
-//   // }
-//   s_comp = rempi_get_time();
-//   compressed_data = rempi_clock_delta_compression::compress(msg_ids_clocked, msg_ids_observed, compressed_size);
-//   e_comp = rempi_get_time();
-//   REMPI_DBG("COM: %f", e_comp - s_comp);
+  /*test 1*/
+  // ADD_EVENT(3, 10);
+  // ADD_EVENT(2, 11);
+  // ADD_EVENT(1, 12);
+  // ADD_EVENT(3, 16);
+  // ADD_EVENT(2, 29);
+  // ADD_EVENT(1, 18);
+  // ADD_EVENT(3, 31);
+  // ADD_EVENT(2, 31);
+  // ADD_EVENT(3, 36);
+  // ADD_EVENT(1, 22);
+  // ADD_EVENT(2, 36);
+  // ADD_EVENT(1, 36);
 
-// #if 1
-//   {
-//     //    REMPI_DBG("size:%d", compressed_size);
-//     int i;
-//     int *compressed_data_int = (int*)compressed_data;
-//     for (i = 0; i < compressed_size/4; i++) {
-//       REMPI_DBG("  %d", compressed_data_int[i]);
-//     }
-//   }
-// #endif
-// }
+  /*test 2*/
+  ADD_EVENT(1, 32); /*8*/
+  ADD_EVENT(1, 11); /*1*/
+  ADD_EVENT(1, 17); /*4*/
+  ADD_EVENT(1, 36); /*9*/
+  ADD_EVENT(1, 31); /*7*/
+  ADD_EVENT(1, 12); /*2*/
+  ADD_EVENT(1, 22); /*6*/
+  ADD_EVENT(1, 10); /*0*/
+  ADD_EVENT(1, 16); /*3*/
+  ADD_EVENT(1, 18); /*5*/  
+
+#undef ADD_EVENT
+  
+  sorted_msg_ids_observed = new vector<rempi_event*>(msg_ids_observed);
+  sort(sorted_msg_ids_observed->begin(), sorted_msg_ids_observed->end(), compare);
+  for (int i = 0; i < sorted_msg_ids_observed->size(); i++) {
+    msg_ids_clocked[i] = sorted_msg_ids_observed->at(i);
+    sorted_msg_ids_observed->at(i)->clock_order = i;
+  }
+
+  
+  for (rempi_event *e: msg_ids_observed) {
+    REMPI_DBG(" rank: %d , clock: %d", e->get_source(), e->get_clock());
+  }
+
+  for (auto &p: msg_ids_clocked) {
+    int id = p.first;
+    rempi_event *e = p.second;
+    REMPI_DBG(" order: %d , rank: %d clock: %d", id, e->get_source(), e->get_clock());
+  }
+  
+
+  e_add = rempi_get_time();
+  REMPI_DBG("ADD: %f", e_add - s_add);
+
+  rempi_clock_delta_compression *cdc = new rempi_clock_delta_compression(1);
+  
+  s_comp = rempi_get_time();
+  compressed_data = cdc->compress(msg_ids_clocked, msg_ids_observed, compressed_size);
+  e_comp = rempi_get_time();
+  REMPI_DBG("COM: %f", e_comp - s_comp);
+
+#if 1
+  {
+    int i;
+    int *compressed_data_int = (int*)compressed_data;
+    for (i = 0; i < compressed_size/4; i++) {
+      REMPI_DBG("  %d", compressed_data_int[i]);
+    }
+  }
+#endif
+}
 
 
 void split(std::vector<std::string> &v, const std::string &input_string, const std::string &delimiter)
@@ -154,6 +145,8 @@ void split(std::vector<std::string> &v, const std::string &input_string, const s
 }
 
 
+
+
 bool test_clock_compare(const pair<int, int> &id1,
 			const pair<int, int> &id2)
 {
@@ -163,118 +156,6 @@ bool test_clock_compare(const pair<int, int> &id1,
   return id1.first < id2.first;
 }
 
-// void test_clock_delta2() {
-//   map<int, rempi_message_identifier*> msg_ids_clocked;
-//   vector<rempi_message_identifier*> msg_ids_observed;
-//   char* compressed_data;
-//   size_t compressed_size;
-//   rempi_message_identifier *msg_id;
-//   ifstream ifs(file);
-//   string line;
-//   int id = 0;
-//   double s_add, e_add, s_comp, e_comp;
-//   unordered_map<int, vector<pair<int,int>>*> map_rank_clock_order;
-
-//   if (!ifs) {
-//     REMPI_DBG("open error !");
-//   }
-
-//   while (getline(ifs, line)) {
-//     vector<string> v1, v2;
-//     int clock;
-//     int source;
-//     int rank;
-//     split(v1, line, "\t");
-//     split(v2, v1[4], "|");
-
-//     clock = atoi(v1[0].c_str());
-//     source = atoi(v1[1].c_str());
-//     rank  = atoi(v2[1].c_str());
-
-//     if (map_rank_clock_order.count(rank) == 0) {
-//       map_rank_clock_order[rank] = new vector<pair<int, int>>();
-//     }
-// 	map_rank_clock_order[rank]->push_back(pair<int, int>(clock, source));
-//       v1.clear();
-//       v2.clear();
-//   }
-
-	
-//   unordered_map<int, vector<pair<int,int>>*>::iterator m_it;
-//   map<pair<int, int>, int> map_part_to_id;
-//   for (m_it  = map_rank_clock_order.begin();
-//        m_it != map_rank_clock_order.end();
-//        m_it++) {
-//     int rank = m_it->first;
-//     vector<pair<int,int>> *vv = m_it->second;
-//     vector<pair<int,int>> vv_sort;
-//     /*Copy vector*/
-//     for (int i = 0; i < vv->size(); i++) {
-//       vv_sort.push_back(vv->at(i));
-//     }
-//     sort(vv_sort.begin(), vv_sort.end(), test_clock_compare);
-//     /*Put ordering number*/
-//     for (int i = 0; i < vv_sort.size(); i++) {
-//       map_part_to_id.insert(make_pair(vv_sort[i] , i));
-//     }
-//     /*change from Clock to ordering number*/
-//     for (int i = 0; i < vv->size(); i++) {
-//       vv->at(i).first = map_part_to_id.at(make_pair(vv->at(i).first, vv->at(i).second));
-//     }
-
-//     // for (int i = 0; i < vv->size(); i++) {
-//     //   REMPI_DBG("%d vv search %d", rank, vv->at(i).first);
-//     // }	   
-//   }
-
-
-// #define add_identifier(a, b, c, d)			\
-//   msg_id = new rempi_message_identifier(a, b, c, d);	\
-//   msg_ids_clocked[msg_id->clock] = msg_id;              \
-//   msg_ids_observed.push_back(msg_id);
-
-
-//   for (m_it  = map_rank_clock_order.begin();
-//        m_it != map_rank_clock_order.end();
-//        m_it++) {
-//     msg_ids_clocked.clear();
-//     msg_ids_observed.clear();
-
-//     int rank = m_it->first;
-//     vector<pair<int,int>> *vv = m_it->second;
-//     //s_add = rempi_get_time();  
-//     for (int i = 0; i < vv->size(); i++) {
-//       add_identifier(-1, -1, -1, vv->at(i).first);
-//     }
-//     //  e_add = rempi_get_time();
-//     //  REMPI_DBG("ADD: %f", e_add - s_add);
-//     s_comp = rempi_get_time();
-//     //    REMPI_DBG("Compress search %d", rank);
-//     compressed_data = rempi_clock_delta_compression::compress(msg_ids_clocked, msg_ids_observed, compressed_size);
-//     e_comp = rempi_get_time();
-//     //  REMPI_DBG("COM: %f", e_comp - s_comp);
-//     {
-//       ofstream fd(file + "." + to_string((long long)rank) + ".rempi-cdc", ofstream::binary);
-//       fd.write(compressed_data, compressed_size);
-//       fd.close();
-//     }
-// #if 1
-//     {
-//       REMPI_DBG("rank %d, size:%d (%d)", rank, compressed_size, msg_ids_observed.size() * 4);
-//       int *compressed_data_int = (int*)compressed_data;
-//       for (int i = 0; i < compressed_size/4; i++) {
-// 	//	REMPI_DBG("  %d", compressed_data_int[i]);
-//       }
-//     }
-// #endif
-
-//   }
-
-
-// #undef add_identifier
-
-
-// }
 
 void test_zlib(size_t length)
 {
@@ -383,6 +264,9 @@ int test_bin(int length)
 
 
 int main(int argc, char* argv[]) {
+
+  test_clock_delta();
+
 #if 0
  if (argc != 2) {
    REMPI_ERR("a.out <file>");
@@ -390,7 +274,7 @@ int main(int argc, char* argv[]) {
  file = string(argv[1]);
  // test_clock_delta2();
  // test_clock_delta3();
-#endif
+
  for (int i = 1; i < 1024 * 1024; i = i*4) {
    for (int j = -3; j <= 3; j++) {
      //     REMPI_DBG("i: %d", i);
@@ -410,6 +294,7 @@ int main(int argc, char* argv[]) {
  REMPI_DBG("BIN OK");
 
  return 0;
+#endif
 }
 
 

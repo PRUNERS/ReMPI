@@ -72,10 +72,11 @@ int rempi_re_cdc::re_init(int *argc, char ***argv)
   init_clmpi();
 
   /*A CDC thread make MPI calls, so call PMPI_Init_thraed insted of PMPI_Init */
-  ret = PMPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, &provided);
-  if (provided < MPI_THREAD_SERIALIZED) {
-    REMPI_ERR("MPI supports only MPI_THREAD_SINGLE, and ReMPI does not work on this MPI");
-  }
+  // ret = PMPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, &provided);
+  // if (provided < MPI_THREAD_SERIALIZED) {
+  //   REMPI_ERR("MPI supports only MPI_THREAD_SINGLE, and ReMPI does not work on this MPI");
+  // }
+  ret = PMPI_Init(argc, argv);
   //  REMPI_ERR("provided: %d", provided);
   /*Init from configuration and for valiables for errors*/
   init_after_pmpi_init(argc, argv);

@@ -315,94 +315,62 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
 							    list<pair<int, int>*> &diff,
 							    size_t &compressed_bytes)
 {
-  list<pair<int, int>*>::reverse_iterator reverse_diff_it;
-  vector<int> clock_delta_data_id, clock_delta_data_delta;
+  list<pair<int, int>*>::reverse_iterator reverse_diff_it, reverse_diff_it_end;
+
   unordered_map<int, pair<int, int>*> map_id_to_type_and_index;
   unordered_map<int, pair<int, int>*>::iterator  map_id_to_type_and_index_it;
+
   int* clock_delta_data_int;
+  int id;
+  int type;
+  unordered_map<int, list<pair<int, int>*>::reverse_iterator> pending_delta_umap;
+  list<pair<int, int>*>::reverse_iterator memorized_diff_it;
+  vector<int> clock_delta_data_id, clock_delta_data_delta; /*results is added*/
 #ifdef DEBUG_PERF
   double s_1, t_1;
 #endif
 
+
   int num_msg_passed = 0;
   /*the "diff" list is already reversed, using reversed_iterator, we dage the sequence in order*/
-  for (reverse_diff_it = diff.rbegin(); reverse_diff_it != diff.rend(); reverse_diff_it++) {
-    int id;
-    int type;
-    pair<int, int>* current_count_and_type;
-
-    type = (*reverse_diff_it)->second;
-    current_count_and_type = new pair<int, int>(num_msg_passed, type);    
-
+  for (reverse_diff_it  = diff.rbegin(), reverse_diff_it_end = diff.rend(); 
+       reverse_diff_it != reverse_diff_it_end; reverse_diff_it++) {
     id   = (*reverse_diff_it)->first;
-
-    if (type != EDIT_IGNORE) {
-      if(!map_id_to_type_and_index.insert({id, current_count_and_type}).second) {
-	/*If the id have already been in the map, ...
-	  Note:
-	  In this case, this {id, current_count_and_type} does not overwrite on exisiting key
-	*/
-	int data;
-	int delta;
-
-	pair<int, int> *last_count_and_type;
-	int last_id, last_num_msg_passed, last_type;
-
-	/*TODO: Do not call insert twice for performance*/
-	map_id_to_type_and_index_it = map_id_to_type_and_index.insert({id, current_count_and_type}).first; // this is to memorize 
-	last_id             = (*map_id_to_type_and_index_it).first;
-	last_count_and_type = (*map_id_to_type_and_index_it).second;
-	last_num_msg_passed = last_count_and_type->first;
-	last_type           = last_count_and_type->second;
-
-	data = id;
-	delta =  num_msg_passed - last_num_msg_passed - 1; /*Num of message "in-between" so -1*/
-#if 0
-	REMPI_DBG("delta:%d (= num %d - last %d - 1)", delta, num_msg_passed, last_num_msg_passed);
-#endif
-
-#ifdef DEBUG_PERF
-	s_1 = rempi_get_time();
-#endif
-	{
-	  /*Remove exisitng id*/
-	  if (map_id_to_type_and_index.erase(id) == 0) {
-	    REMPI_ERR("This should not happens");
+    type = (*reverse_diff_it)->second;
+    if (type != EDIT_IGNORE) {    /*If this id need to be permutated; EDIT_ADD or EDIT_REMOVE*/
+      if (pending_delta_umap.find(id) == pending_delta_umap.end()) {
+	pending_delta_umap[id] = reverse_diff_it;
+      } else {
+	int delta = 0;
+	memorized_diff_it = pending_delta_umap[id];
+	//	REMPI_DBG("id: %d", id);
+	/*Currently, memorized_diff_it is pointing myself. So move forward by one*/
+	for (memorized_diff_it++ ; memorized_diff_it != reverse_diff_it; memorized_diff_it++) {
+	  int memorized_id   = (*memorized_diff_it)->first;
+	  int memorized_type = (*memorized_diff_it)->second;
+	  /*
+	    Ignore    : +1
+	    Remove(<) : If id is     in pending_delta_umap, then +1;
+	    Add(>)    : If id is NOT in pending_delta_umap, then +1;
+	   */
+	  if (memorized_type == EDIT_IGNORE) {
+	    delta++;
+	  } else if (memorized_type == EDIT_REMOVE) {
+	    if (pending_delta_umap.find(memorized_id) != pending_delta_umap.end()) delta++;
+	  } else if (memorized_type == EDIT_ADD) {
+	    if (pending_delta_umap.find(memorized_id) == pending_delta_umap.end()) delta++;
 	  }
-	  for (map_id_to_type_and_index_it  = map_id_to_type_and_index.begin();
-	       map_id_to_type_and_index_it != map_id_to_type_and_index.end();
-	       map_id_to_type_and_index_it++) {
-	    int tmp_nmp;
-	    int tmp_type;
-	    tmp_nmp  = (*map_id_to_type_and_index_it).second->first;
-	    tmp_type = (*map_id_to_type_and_index_it).second->second;
-	    if (tmp_type == EDIT_ADD) delta--;
-	    if (type == EDIT_REMOVE) {
-	      (*map_id_to_type_and_index_it).second->first = (*map_id_to_type_and_index_it).second->first + 1;
-	    }
-	    //	  REMPI_DBG("rmp %d, type:%d", tmp_nmp, tmp_type);
-	  }
+	  // REMPI_DBG("  id: %d, type: %d (current delta: %d/ bool: %d %d)", memorized_id, memorized_type, delta, 
+	  // 	    pending_delta_umap.find(id) == pending_delta_umap.end(),
+	  // 	    pending_delta_umap.find(id) != pending_delta_umap.end());
 	}
-
-#ifdef DEBUG_PERF
-	t_1 += rempi_get_time() - s_1;
-#endif
-
-	delta = (type == EDIT_REMOVE)? -delta: delta;
-      
-#if 0      
-	REMPI_DBG("id %d, delta:%d", data, delta);
-#endif
-	clock_delta_data_id.push_back(data);
+	//	REMPI_DBG(" === id: %d - delta: %d ===", id, delta);
+	clock_delta_data_id.push_back(id);
+	if (type == EDIT_REMOVE) delta = -delta;
 	clock_delta_data_delta.push_back(delta);
-
-	delete last_count_and_type;
-	delete current_count_and_type;
-
+	pending_delta_umap.erase(id);
       }
     }
-    num_msg_passed++;
-
   }
 
 #ifdef DEBUG_PERF
@@ -419,7 +387,8 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
       REMPI_DBG("Before: %d\t%d",  clock_delta_data_id[i], clock_delta_data_delta[i]);
     }
 #endif
-    if (linear_prediction) {
+
+   if (linear_prediction) {
       rempi_compression_util<int> *cutil = new rempi_compression_util<int>();
       cutil->compress_by_linear_prediction(clock_delta_data_id);
       cutil->compress_by_linear_prediction(clock_delta_data_delta);
@@ -427,12 +396,15 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
     } else {
       REMPI_DBG("Linear Prediction is disabled !!");
     }
+
+
 #if 0
     for (int i = 0; i < clock_delta_data_id.size(); i++) {
       REMPI_DBG("After: %d\t%d",  clock_delta_data_id[i], clock_delta_data_delta[i]);
     }
 #endif
   }  
+
   /*Copy to char* */
   {
     if (clock_delta_data_id.size() != clock_delta_data_delta.size()) {
@@ -447,310 +419,166 @@ char* rempi_clock_delta_compression::convert_to_diff_binary(
 
 #if 0
     REMPI_DBG("addr: %p", clock_delta_data_int);
-    int *clock_delta_data_int = (int*)clock_delta_data_int;
-    for (int j = 0; j < clock_delta_data.size(); j++) {
-      REMPI_DBG("  %d", clock_delta_data_int[j]);
+    int *clock_delta_data_int_a = (int*)clock_delta_data_int;
+    for (int j = 0; j < clock_delta_data_id.size() * 2; j++) {
+      REMPI_DBG("  %d", clock_delta_data_int_a[j]);
     }
 #endif
   }
-  
+
   return (char*)clock_delta_data_int;
 }
 
 
-#if 0
-char* rempi_clock_delta_compression::convert_to_diff_binary(
-							    list<pair<int, int>*> &diff,
-							    size_t &compressed_bytes)
-{
-  list<pair<int, int>*>::reverse_iterator reverse_diff_it;
-  vector<int> clock_delta_data_id, clock_delta_data_delta;
-  unordered_map<int, pair<int, int>*> map_id_to_type_and_index;
-  unordered_map<int, pair<int, int>*>::iterator  map_id_to_type_and_index_it;
-  int* clock_delta_data_int;
-#ifdef DEBUG_PERF
-  double s_1, t_1;
-#endif
+// char* rempi_clock_delta_compression::convert_to_diff_binary(
+// 							    list<pair<int, int>*> &diff,
+// 							    size_t &compressed_bytes)
+// {
+//   list<pair<int, int>*>::reverse_iterator reverse_diff_it;
+//   vector<int> clock_delta_data_id, clock_delta_data_delta;
+//   unordered_map<int, pair<int, int>*> map_id_to_type_and_index;
+//   unordered_map<int, pair<int, int>*>::iterator  map_id_to_type_and_index_it;
+//   int* clock_delta_data_int;
+// #ifdef DEBUG_PERF
+//   double s_1, t_1;
+// #endif
 
-  int num_msg_passed = 0;
-  /*the "diff" list is already reversed, using reversed_iterator, we dage the sequence in order*/
-  for (reverse_diff_it = diff.rbegin(); reverse_diff_it != diff.rend(); reverse_diff_it++) {
-    int id;
-    int type;
-    pair<int, int>* current_count_and_type;
+//   int num_msg_passed = 0;
+//   /*the "diff" list is already reversed, using reversed_iterator, we dage the sequence in order*/
+//   for (reverse_diff_it = diff.rbegin(); reverse_diff_it != diff.rend(); reverse_diff_it++) {
+//     int id;
+//     int type;
+//     pair<int, int>* current_count_and_type;
 
-    type = (*reverse_diff_it)->second;
-    current_count_and_type = new pair<int, int>(num_msg_passed, type);    
+//     type = (*reverse_diff_it)->second;
+//     current_count_and_type = new pair<int, int>(num_msg_passed, type);    
 
-    id   = (*reverse_diff_it)->first;
+//     id   = (*reverse_diff_it)->first;
 
-    if (type != EDIT_IGNORE) {
-      if(!map_id_to_type_and_index.insert({id, current_count_and_type}).second) {
-	/*If the id have already been in the map, ...
-	  Note:
-	  In this case, this {id, current_count_and_type} does not overwrite on exisiting key
-	*/
-	int data;
-	int delta;
 
-	pair<int, int> *last_count_and_type;
-	int last_id, last_num_msg_passed, last_type;
+//     if (type != EDIT_IGNORE) {    /*If this id need to be permutated; EDIT_ADD or EDIT_REMOVE*/
+//       if(!map_id_to_type_and_index.insert({id, current_count_and_type}).second) {
+// 	/*If the id have already been in the map, ...
+// 	  Note:
+// 	  In this case, this {id, current_count_and_type} does not overwrite on exisiting key
+// 	*/
+// 	int data;
+// 	int delta;
 
-	/*TODO: Do not call insert twice for performance*/
-	map_id_to_type_and_index_it = map_id_to_type_and_index.insert({id, current_count_and_type}).first;
-	last_id             = (*map_id_to_type_and_index_it).first;
-	last_count_and_type = (*map_id_to_type_and_index_it).second;
-	last_num_msg_passed = last_count_and_type->first;
-	last_type           = last_count_and_type->second;
+// 	pair<int, int> *last_count_and_type;
+// 	int last_id, last_num_msg_passed, last_type;
 
-	data = id;
-	delta =  num_msg_passed - last_num_msg_passed - 1; /*Num of message "in-between" so -1*/
-#if 0
-	REMPI_DBG("delta:%d (= num %d - last %d - 1)", delta, num_msg_passed, last_num_msg_passed);
-#endif
+// 	/*TODO: Do not call insert twice for performance*/
+// 	map_id_to_type_and_index_it = map_id_to_type_and_index.insert({id, current_count_and_type}).first; // this is to memorize 
+// 	last_id             = (*map_id_to_type_and_index_it).first;
+// 	last_count_and_type = (*map_id_to_type_and_index_it).second;
+// 	last_num_msg_passed = last_count_and_type->first;
+// 	last_type           = last_count_and_type->second;
 
-#ifdef DEBUG_PERF
-	s_1 = rempi_get_time();
-#endif
-	{
-	  /*Remove exisitng id*/
-	  if (map_id_to_type_and_index.erase(id) == 0) {
-	    REMPI_ERR("This should not happens");
-	  }
-	  for (map_id_to_type_and_index_it  = map_id_to_type_and_index.begin();
-	       map_id_to_type_and_index_it != map_id_to_type_and_index.end();
-	       map_id_to_type_and_index_it++) {
-	    int tmp_nmp;
-	    int tmp_type;
-	    tmp_nmp  = (*map_id_to_type_and_index_it).second->first;
-	    tmp_type = (*map_id_to_type_and_index_it).second->second;
-	    if (tmp_type == EDIT_ADD) delta--;
-	    if (type == EDIT_REMOVE) {
-	      (*map_id_to_type_and_index_it).second->first = (*map_id_to_type_and_index_it).second->first + 1;
-	    }
-	    //	  REMPI_DBG("rmp %d, type:%d", tmp_nmp, tmp_type);
-	  }
-	}
+// 	data = id;
+// 	delta =  num_msg_passed - last_num_msg_passed - 1; /*Num of message "in-between" so -1*/
+// #if 0
+// 	REMPI_DBG("delta:%d (= num %d - last %d - 1)", delta, num_msg_passed, last_num_msg_passed);
+// #endif
 
-#ifdef DEBUG_PERF
-	t_1 += rempi_get_time() - s_1;
-#endif
+// #ifdef DEBUG_PERF
+// 	s_1 = rempi_get_time();
+// #endif
+// 	{
+// 	  /*Remove exisitng id*/
+// 	  if (map_id_to_type_and_index.erase(id) == 0) {
+// 	    REMPI_ERR("This should not happens");
+// 	  }
+// 	  for (map_id_to_type_and_index_it  = map_id_to_type_and_index.begin();
+// 	       map_id_to_type_and_index_it != map_id_to_type_and_index.end();
+// 	       map_id_to_type_and_index_it++) {
+// 	    int tmp_nmp;
+// 	    int tmp_type;
+// 	    tmp_nmp  = (*map_id_to_type_and_index_it).second->first;
+// 	    tmp_type = (*map_id_to_type_and_index_it).second->second;
+// 	    if (tmp_type == EDIT_ADD) delta--;
+// 	    if (type == EDIT_REMOVE) {
+// 	      (*map_id_to_type_and_index_it).second->first = (*map_id_to_type_and_index_it).second->first + 1;
+// 	    }
+// 	    //	  REMPI_DBG("rmp %d, type:%d", tmp_nmp, tmp_type);
+// 	  }
+// 	}
 
-	delta = (type == EDIT_REMOVE)? -delta: delta;
+// #ifdef DEBUG_PERF
+// 	t_1 += rempi_get_time() - s_1;
+// #endif
+
+// 	delta = (type == EDIT_REMOVE)? -delta: delta;
       
-#if 0      
-	REMPI_DBG("id %d, delta:%d", data, delta);
-#endif
-	clock_delta_data_id.push_back(data);
-	clock_delta_data_delta.push_back(delta);
+// #if 1
+// 	REMPI_DBG("id %d, delta:%d", data, delta);
+// #endif
+// 	clock_delta_data_id.push_back(data);
+// 	clock_delta_data_delta.push_back(delta);
 
-	delete last_count_and_type;
-	delete current_count_and_type;
+// 	delete last_count_and_type;
+// 	delete current_count_and_type;
+//       }
+//     }
+//     num_msg_passed++;
 
-      }
-    }
-    num_msg_passed++;
+//   }
 
-  }
+// #ifdef DEBUG_PERF
+//   REMPI_DBG("COM (bin) %f", t_1);
+// #endif
+ 
+//   if (clock_delta_data_id.size() != clock_delta_data_delta.size()) {
+//     REMPI_ERR("clock_delta_data_id.size() != clock_delta_data_delta.size()");
+//   }
+//   /* Compression by Linear Predictor */
+//   {
+// #if 0
+//     for (int i = 0; i < clock_delta_data_id.size(); i++) {
+//       REMPI_DBG("Before: %d\t%d",  clock_delta_data_id[i], clock_delta_data_delta[i]);
+//     }
+// #endif
+//     if (linear_prediction) {
+//       rempi_compression_util<int> *cutil = new rempi_compression_util<int>();
+//       cutil->compress_by_linear_prediction(clock_delta_data_id);
+//       cutil->compress_by_linear_prediction(clock_delta_data_delta);
+//       delete cutil;
+//     } else {
+//       REMPI_DBG("Linear Prediction is disabled !!");
+//     }
+// #if 0
+//     for (int i = 0; i < clock_delta_data_id.size(); i++) {
+//       REMPI_DBG("After: %d\t%d",  clock_delta_data_id[i], clock_delta_data_delta[i]);
+//     }
+// #endif
+//   }  
+//   /*Copy to char* */
+//   {
+//     if (clock_delta_data_id.size() != clock_delta_data_delta.size()) {
+//       REMPI_DBG("This should not happen");
+//     }
+//     compressed_bytes = clock_delta_data_id.size() * sizeof(int) * 2;  
+//     clock_delta_data_int = (int*)rempi_malloc(compressed_bytes); // for id and delta => sizex2
+//     memcpy(clock_delta_data_int, 
+// 	   (int*)&clock_delta_data_id[0],    compressed_bytes/2);
+//     memcpy(clock_delta_data_int + clock_delta_data_id.size(), 
+// 	   (int*)&clock_delta_data_delta[0], compressed_bytes/2);
 
-#ifdef DEBUG_PERF
-  REMPI_DBG("COM (bin) %f", t_1);
-#endif
-  // wavelet
-  if (clock_delta_data_id.size() != clock_delta_data_delta.size()) {
-    REMPI_ERR("lsdjfklsj");
-  }
-
-  for (int i = 0; i < clock_delta_data_id.size(); i++) {
-    int cdd_id    = clock_delta_data_id[i];
-    int cdd_delta = clock_delta_data_delta[i];
-    REMPI_DBG("%d\t%d",  cdd_id, cdd_delta);
-  }
-
-  REMPI_ERR(" ======== ");
-
-  if(clock_delta_data_id.size()>1){
-    for (int i = 0; i < clock_delta_data_id.size() - 1; i++) {
-      int cdd_id    = clock_delta_data_id[i] - clock_delta_data_id[i+1];
-      clock_delta_data_id[i] = cdd_id;
-      int cdd_delta = clock_delta_data_delta[i] - clock_delta_data_delta[i+1];
-      clock_delta_data_delta[i] = cdd_delta;
-      REMPI_DBG("%d\t%d",  cdd_id, cdd_delta);
-    }
-    REMPI_DBG(" ======== final");
-
-
-    // for (int i = 0; i < clock_delta_data_id.size() - 2; i++) {
-    //   int cdd_id    = clock_delta_data_id[i] + clock_delta_data_id[i+1];
-    //   clock_delta_data_id[i] = cdd_id;
-    //   int cdd_delta = clock_delta_data_delta[i] + clock_delta_data_delta[i+1];
-    //   clock_delta_data_delta[i] = cdd_delta;
-    //   REMPI_DBG("%d\t%d",  cdd_id, cdd_delta);
-    // }
-    /// REMPI_DBG(" ======== ");
-
-    for (int i = 0; i < clock_delta_data_id.size() - 3; i++) {
-      int cdd_id    = clock_delta_data_id[i] - clock_delta_data_id[i+1];
-      clock_delta_data_id[i] = cdd_id;
-      int cdd_delta = clock_delta_data_delta[i] - clock_delta_data_delta[i+1];
-      clock_delta_data_delta[i] = cdd_delta;
-      REMPI_DBG("%d\t%d",  cdd_id, cdd_delta);
-      //      REMPI_DBG("|%d|",  cdd_id);
-      //      REMPI_DBG("|%d|",  cdd_delta);
-    }
-    //    REMPI_ERR("kento exit");
-  }
+// #if 0
+//     REMPI_DBG("addr: %p", clock_delta_data_int);
+//     int *clock_delta_data_int = (int*)clock_delta_data_int;
+//     for (int j = 0; j < clock_delta_data.size(); j++) {
+//       REMPI_DBG("  %d", clock_delta_data_int[j]);
+//     }
+// #endif
+//   }
   
-
-  // copy to int* array
-  {
-    if (clock_delta_data_id.size() != clock_delta_data_delta.size()) {
-      REMPI_DBG("This should not happen");
-    }
-    compressed_bytes = clock_delta_data_id.size() * sizeof(int) * 2;  
-    clock_delta_data_int = (int*)rempi_malloc(compressed_bytes); // for id and delta => sizex2
-    memcpy(clock_delta_data_int, 
-	   (int*)&clock_delta_data_id[0],    compressed_bytes/2);
-    memcpy(clock_delta_data_int + clock_delta_data_id.size(), 
-	   (int*)&clock_delta_data_delta[0], compressed_bytes/2);
-
-#if 0
-    REMPI_DBG("addr: %p", clock_delta_data_int);
-    int *clock_delta_data_int = (int*)clock_delta_data_int;
-    for (int j = 0; j < clock_delta_data.size(); j++) {
-      REMPI_DBG("  %d", clock_delta_data_int[j]);
-    }
-#endif
-    
-  
-  }
-  
-  return (char*)clock_delta_data_int;
-}
-#endif
+//   return (char*)clock_delta_data_int;
+//}
 
 
 
 
-
-#if 0
-char* rempi_clock_delta_compression::convert_to_diff_binary(
-							    list<pair<int, int>*> &diff,
-							    size_t &compressed_bytes)
-{
-  list<pair<int, int>*>::reverse_iterator reverse_diff_it;
-  vector<int> clock_delta_data;
-  unordered_map<int, pair<int, int>*> map_id_to_type_and_index;
-  unordered_map<int, pair<int, int>*>::iterator  map_id_to_type_and_index_it;
-  int* clock_delta_data_int;
-#ifdef DEBUG_PERF
-  double s_1, t_1;
-#endif
-
-  int num_msg_passed = 0;
-  /*the "diff" list is already reversed, using reversed_iterator, we dage the sequence in order*/
-  for (reverse_diff_it = diff.rbegin(); reverse_diff_it != diff.rend(); reverse_diff_it++) {
-    int id;
-    int type;
-    pair<int, int>* current_count_and_type;
-
-    type = (*reverse_diff_it)->second;
-    current_count_and_type = new pair<int, int>(num_msg_passed, type);    
-
-    id   = (*reverse_diff_it)->first;
-
-    if (type != EDIT_IGNORE) {
-      if(!map_id_to_type_and_index.insert({id, current_count_and_type}).second) {
-	/*If the id have already been in the map, ...
-	  Note:
-	  In this case, this {id, current_count_and_type} does not overwrite on exisiting key
-	*/
-	int data;
-	int delta;
-
-	pair<int, int> *last_count_and_type;
-	int last_id, last_num_msg_passed, last_type;
-
-	/*TODO: Do not call insert twice for performance*/
-	map_id_to_type_and_index_it = map_id_to_type_and_index.insert({id, current_count_and_type}).first;
-	last_id             = (*map_id_to_type_and_index_it).first;
-	last_count_and_type = (*map_id_to_type_and_index_it).second;
-	last_num_msg_passed = last_count_and_type->first;
-	last_type           = last_count_and_type->second;
-
-	data = id;
-	delta =  num_msg_passed - last_num_msg_passed - 1; /*Num of message "in-between" so -1*/
-#if 0
-	REMPI_DBG("delta:%d (= num %d - last %d - 1)", delta, num_msg_passed, last_num_msg_passed);
-#endif
-
-#ifdef DEBUG_PERF
-	s_1 = rempi_get_time();
-#endif
-	{
-	  /*Remove exisitng id*/
-	  if (map_id_to_type_and_index.erase(id) == 0) {
-	    REMPI_ERR("This should not happens");
-	  }
-	  for (map_id_to_type_and_index_it  = map_id_to_type_and_index.begin();
-	       map_id_to_type_and_index_it != map_id_to_type_and_index.end();
-	       map_id_to_type_and_index_it++) {
-	    int tmp_nmp;
-	    int tmp_type;
-	    tmp_nmp  = (*map_id_to_type_and_index_it).second->first;
-	    tmp_type = (*map_id_to_type_and_index_it).second->second;
-	    if (tmp_type == EDIT_ADD) delta--;
-	    if (type == EDIT_REMOVE) {
-	      (*map_id_to_type_and_index_it).second->first = (*map_id_to_type_and_index_it).second->first + 1;
-	    }
-	    //	  REMPI_DBG("rmp %d, type:%d", tmp_nmp, tmp_type);
-	  }
-	}
-
-#ifdef DEBUG_PERF
-	t_1 += rempi_get_time() - s_1;
-#endif
-
-	delta = (type == EDIT_REMOVE)? -delta: delta;
-      
-#if 0      
-	REMPI_DBG("id %d, delta:%d", data, delta);
-#endif
-	clock_delta_data.push_back(data);
-	clock_delta_data.push_back(delta);
-
-	delete last_count_and_type;
-	delete current_count_and_type;
-
-      }
-    }
-    num_msg_passed++;
-
-  }
-
-#ifdef DEBUG_PERF
-  REMPI_DBG("COM (bin) %f", t_1);
-#endif
-  
-  {
-    compressed_bytes = clock_delta_data.size() * sizeof(int);  
-    clock_delta_data_int = (int*)rempi_malloc(compressed_bytes);
-    memcpy(clock_delta_data_int, (int*)&clock_delta_data[0], compressed_bytes);
-
-#if 0
-    REMPI_DBG("addr: %p", clock_delta_data_int);
-    int *clock_delta_data_int = (int*)clock_delta_data_int;
-    for (int j = 0; j < clock_delta_data.size(); j++) {
-      REMPI_DBG("  %d", clock_delta_data_int[j]);
-    }
-#endif
-    
-  
-  }
-  
-  return (char*)clock_delta_data_int;
-}
-#endif
 
 bool rempi_clock_delta_compression::is_matching(rempi_event *left, rempi_event *up)
 {
@@ -814,7 +642,7 @@ char* rempi_clock_delta_compression::compress(
 			   msg_ids_clocked_start_it,
 			   current_column_of_search_it,
 			   current_column_of_start_it);
-    //    REMPI_DBG("--- matched_column: %d %d", current_column_of_start_it, msg_ids_clocked_search_it->second->clock);
+    //REMPI_DBG("--- matched_column: %d %d", current_column_of_start_it, msg_ids_clocked_search_it->second->clock);
     /*find matched clock column*/
     current_column_of_search_it += 
       find_matched_clock_column(
@@ -858,7 +686,6 @@ char* rempi_clock_delta_compression::compress(
 #endif
 
 
-
 #if 0
   {
     map<int, int>::iterator map_it;
@@ -871,7 +698,6 @@ char* rempi_clock_delta_compression::compress(
     }
   }
 #endif
-
 
 
 
@@ -889,9 +715,53 @@ char* rempi_clock_delta_compression::compress(
     }
 #endif
 
+    /*
+      Map: "diff.first" -> "diff.second (1: Add, 0:IGNORE, -1:DELITE)"
+ 
+      Map: "11"->  1 
+      Map: "10"->  1
+      Map: " 9"->  1
+      Map:  11 ->  0
+      Map:  10 -> -1
+      Map:   9 -> -1
+      Map: " 7"->  1
+      Map:   8 ->  0
+      Map:   7 -> -1
+      Map: " 5"->  1
+      Map:   6 ->  0
+      Map:   5 -> -1
+      Map:   4 -> -1
+      Map:   3 ->  0
+      Map:   2 ->  0
+      Map:   1 ->  0
+      Map:   0 ->  0
+    */
+
     change_to_seq_order_id(diff, msg_ids_observed, map_clock_to_order);
 
-#if 0
+    /*
+      Map: "diff.first" -> "diff.second (1: Add, 0:IGNORE, -1:DELITE)"
+ 
+      Map: 9 -> 1 
+      Map: 10 -> 1
+      Map: 5 -> 1
+      Map: 11 -> 0
+      Map: 10 -> -1
+      Map: 9 -> -1
+      Map: 7 -> 1
+      Map: 8 -> 0
+      Map: 7 -> -1
+      Map: 4 -> 1
+      Map: 6 -> 0
+      Map: 5 -> -1
+      Map: 4 -> -1
+      Map: 3 -> 0
+      Map: 2 -> 0
+      Map: 1 -> 0
+      Map: 0 -> 0
+    */
+
+#if 1
     list<pair<int, int>*>::iterator diff_it_1;
     REMPI_DBG(" ==== ");
     for (diff_it_1  = diff.begin(); 
@@ -904,6 +774,18 @@ char* rempi_clock_delta_compression::compress(
 #endif
 
     compressed_data = convert_to_diff_binary(diff, compressed_bytes);
+
+    /*
+       4 -> 2 delay
+       7 -> 1 delay
+       5 -> 7 delay
+      10 -> 2 delay
+       9 -> 3 delay
+
+       compressed_data:
+          4 7 5 10 9 2 1 7 2 3
+    */
+
 #ifdef DEBUG_PERF
     e_part = rempi_get_time();
     REMPI_DBG("COM (part): %f", e_part - s_part);
@@ -1052,7 +934,6 @@ char* rempi_clock_delta_compression_2::compress(
     sed_path_seerch.convert_to_diff_reversed(diff);
 
 
-
 #if 0
     list<pair<int, int>*>::iterator diff_it;
     for (diff_it  = diff.begin(); 
@@ -1063,7 +944,7 @@ char* rempi_clock_delta_compression_2::compress(
 
     //    change_to_seq_order_id(diff, msg_ids_observed, map_clock_to_order);
 
-#if 0
+#if 1
     list<pair<int, int>*>::iterator diff_it_1;
     REMPI_DBG(" ==== ");
     for (diff_it_1  = diff.begin(); 

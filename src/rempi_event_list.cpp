@@ -352,6 +352,15 @@ void rempi_event_list<T>::enqueue_replay(T event, int test_id)
   spsc_queue->enqueue(event);
 }
 
+
+template <class T>
+size_t rempi_event_list<T>::size_replay(int test_id)
+{
+  rempi_spsc_queue<rempi_event*> *spsc_queue;
+  spsc_queue = replay_events[test_id];
+  return spsc_queue->rough_size();
+}
+
 template <class T>
 T rempi_event_list<T>::pop()
 {

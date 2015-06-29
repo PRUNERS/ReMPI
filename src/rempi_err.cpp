@@ -41,6 +41,7 @@ void rempi_err(const char* fmt, ...)
   vfprintf(stderr, fmt, argp);
   va_end(argp);
   fprintf(stderr, "\n");
+  fflush(stderr);
   exit(1);
   return;
 }

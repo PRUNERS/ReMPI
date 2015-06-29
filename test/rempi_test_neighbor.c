@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <mpi.h>
 #include <sys/time.h>
+#include <signal.h>
 
 #include "rempi_test_util.h"
 
-#define NUM_KV_PER_RANK (2)
+#define NUM_KV_PER_RANK (3)
 #define MAX_VAL (10)
 #define MAX_MESG_PASS (4)
 
@@ -43,11 +44,17 @@ int main(int argc, char *argv[])
   MPI_Status status[NUM_KV_PER_RANK];
   MPI_Request request[NUM_KV_PER_RANK];
 
+
   /* Init */
   MPI_Init(&argc, &argv);
+  signal(SIGSEGV, SIG_DFL);
   start = MPI_Wtime();
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+
+
+
 
   seed = my_rank;
   init_rand(seed);
@@ -67,10 +74,15 @@ int main(int argc, char *argv[])
     MPI_Irecv(&recv_kv[i], 8, MPI_CHAR, (my_rank + size - i)        % size, MPI_ANY_TAG, MPI_COMM_WORLD, &request[i]);
   }
 
-  usleep((my_rank % 2) * 100000);
+  //usleep((my_rank % 2) * 100000);
 
   for (i = 0; i < NUM_KV_PER_RANK; i++) { 
     //    MPI_Send(&my_kv[i], 2, MPI_INT, (my_rank + i)        % size, 0, MPI_COMM_WORLD);
+    /* MPI_Request req; */
+    /* MPI_Status  stat; */
+    /* MPI_Isend(&my_kv[i], 8, MPI_CHAR, (my_rank + i)        % size, 0, MPI_COMM_WORLD, &req); */
+    /* MPI_Wait(&req, &stat); */
+
     MPI_Send(&my_kv[i], 8, MPI_CHAR, (my_rank + i)        % size, 0, MPI_COMM_WORLD);
     send_msg_count[i]++;
   }
@@ -113,7 +125,11 @@ int main(int argc, char *argv[])
       if (send_msg_count[recv_index] < MAX_MESG_PASS) {
 	sendrecv_kv.val = get_hash(sendrecv_kv.val, MAX_VAL);
 	//	MPI_Send(&sendrecv_kv, 2, MPI_INT, (my_rank + recv_index) % size, 0, MPI_COMM_WORLD);
-	//	usleep((rand() % 2) * 100000);
+	//usleep((rand() % 2) * 100000);
+	/* MPI_Request req; */
+	/* MPI_Status stat; */
+	/* MPI_Isend(&sendrecv_kv, 8, MPI_CHAR, (my_rank + recv_index) % size, 0, MPI_COMM_WORLD, &req); */
+	/* MPI_Wait(&req, &stat); */
 	MPI_Send(&sendrecv_kv, 8, MPI_CHAR, (my_rank + recv_index) % size, 0, MPI_COMM_WORLD);
 	send_msg_count[recv_index]++;
       }

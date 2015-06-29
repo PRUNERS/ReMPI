@@ -56,6 +56,7 @@ class rempi_event_list
   T     front_replay(int test_id);
   T    dequeue_replay(int test_id, int &status);
   void enqueue_replay(T event, int test_id);
+  size_t size_replay(int test_id);
 		
   size_t get_globally_minimal_clock();
   void   set_globally_minimal_clock(size_t gmc);
