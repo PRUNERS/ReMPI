@@ -23,6 +23,7 @@ class rempi_encoder_input_format_test_table
  public:
   bool is_decoded_all();
   bool is_pending_all_rank_msg();
+  bool is_reached_epoch_line();
 
 
   /*Used for any compression*/

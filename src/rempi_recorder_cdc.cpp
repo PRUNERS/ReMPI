@@ -498,8 +498,8 @@ int rempi_recorder_cdc::replay_testsome(
       REMPI_DBGI(REMPI_DBG_REPLAY, "   Test: request:%p(%p) source:%d tag:%d count:%d", &proxy_request->request, proxy_request, irecv_inputs->source, irecv_inputs->tag, irecv_inputs->count);
     }
   }
-  //	usleep(500000);
 #endif
+
 
   while (with_next == REMPI_MPI_EVENT_WITH_NEXT) {
     int is_all_flag_zero;
@@ -515,7 +515,9 @@ int rempi_recorder_cdc::replay_testsome(
        This function needs to be called before PMPI_Test. 
        If flag=0, we can make sure there are no in-flight messages, and 
        local_min_id is really minimal. */
+    //    REMPI_DBGI(REMPI_DBG_REPLAY, " ==== fetch start: rank: %d clock:%lu", min_recv_rank, min_next_clock);
     mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
+    //    REMPI_DBGI(REMPI_DBG_REPLAY, " ==== fetch end: rank: %d clock:%lu", min_recv_rank, min_next_clock);
     is_all_flag_zero = 1;
     /* ======================================================== */
 
@@ -626,6 +628,7 @@ int rempi_recorder_cdc::replay_testsome(
 	  break;
 	}
       }
+
       /*checking Condition B*/
       if (with_next ==  REMPI_MPI_EVENT_NOT_WITH_NEXT) {
 	/*If breaked i Label:1, I also want to breakthis for loop*/
@@ -636,31 +639,32 @@ int rempi_recorder_cdc::replay_testsome(
 	}
       }
 
+      //      usleep(50000);
 
-#if 0
-      {
-	for (pair<const MPI_Request, rempi_irecv_inputs*> &v: request_to_irecv_inputs_umap) {
-#ifdef REMPI_DBG_REPLAY
-	  MPI_Status stat;
-	  PMPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, v.second->comm, &has_pending_recv, &stat);
-	  if (has_pending_recv) {
-	    REMPI_DBGI(REMPI_DBG_REPLAY, "Iprobe: rank: %d", stat.MPI_SOURCE);
-	  }
-#else
-	  PMPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, v.second->comm, &has_pending_recv, MPI_STATUS_IGNORE);
-	  if (has_pending_recv) break;
-#endif 	  
+// #if 0
+//       {
+// 	for (pair<const MPI_Request, rempi_irecv_inputs*> &v: request_to_irecv_inputs_umap) {
+// #ifdef REMPI_DBG_REPLAY
+// 	  MPI_Status stat;
+// 	  PMPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, v.second->comm, &has_pending_recv, &stat);
+// 	  if (has_pending_recv) {
+// 	    REMPI_DBGI(REMPI_DBG_REPLAY, "Iprobe: rank: %d", stat.MPI_SOURCE);
+// 	  }
+// #else
+// 	  PMPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, v.second->comm, &has_pending_recv, MPI_STATUS_IGNORE);
+// 	  if (has_pending_recv) break;
+// #endif 	  
 	
-	}
-	if (!has_pending_recv) {
-	  /*No pending recve message means, updated local min is correct. 
-	    So we call fetch_and_update_local_min_id()*/
-	  mc_encoder->update_local_min_id(min_recv_rank, min_next_clock);
-	} else {
-	  REMPI_DBG("Skip update");
-	}
-      }
-#endif
+// 	}
+// 	if (!has_pending_recv) {
+// 	  /*No pending recve message means, updated local min is correct. 
+// 	    So we call fetch_and_update_local_min_id()*/
+// 	  mc_encoder->update_local_min_id(min_recv_rank, min_next_clock);
+// 	} else {
+// 	  REMPI_DBG("Skip update");
+// 	}
+//       }
+// #endif
 
       if (event_list_status == REMPI_EVENT_LIST_FINISH) {
 	if (i == incount) {
@@ -676,7 +680,9 @@ int rempi_recorder_cdc::replay_testsome(
        local_min_id is really minimal.
     */
     if (is_all_flag_zero) {
+      //      REMPI_DBGI(REMPI_DBG_REPLAY, " ==== update start");
       mc_encoder->update_local_min_id(min_recv_rank, min_next_clock);
+      //      REMPI_DBGI(REMPI_DBG_REPLAY, " ==== update end");
     }
     /* ======================================================== */
   }
@@ -697,8 +703,6 @@ int rempi_recorder_cdc::replay_testsome(
     }
   }
 
-
-  
 
   /*Copy from proxy to actuall buff, then set array_of_indices/statuses, outcount*/
   *outcount = 0;
@@ -751,6 +755,11 @@ int rempi_recorder_cdc::replay_testsome(
 
   if (*outcount != replaying_event_vec.size()) {
     REMPI_DBG(" ==== tete 6.0 : replay size: %d %d", replaying_event_vec.size(), *outcount);
+    for (int j = 0; j < replaying_event_vec.size(); j++) {
+      REMPI_DBG(" = Wrong: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): test_id: %d ",
+		replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
+		replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), test_id);
+    }
     REMPI_ERR("All events are not replayed");
   }
 

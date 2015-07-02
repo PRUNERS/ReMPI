@@ -64,6 +64,30 @@ bool rempi_encoder_input_format_test_table::is_pending_all_rank_msg()
   }
   return true;
 }
+
+
+bool rempi_encoder_input_format_test_table::is_reached_epoch_line()
+{
+
+// #ifdef REMPI_DBG_REPLAY
+//     REMPI_DBGI(REMPI_DBG_REPLAY, "epoch_vec size : %d", epoch_rank_vec.size());
+// #endif
+
+  for (int i = 0, n = epoch_rank_vec.size(); i < n ; i++) {
+    int rank = epoch_rank_vec[i];
+    int last_clock = epoch_clock_vec[i];
+    int current_lock = current_epoch_line_umap[rank];
+#ifdef REMPI_DBG_REPLAY
+    //    REMPI_DBGI(REMPI_DBG_REPLAY, "rank: %d count: %d", rank, count);
+#endif
+    if (last_clock != current_lock) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
 /* ==================================== */
 
 
@@ -313,11 +337,18 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
   int flag;
 
   //  if (!mc_flag || !mc_length) return;
-  if (mc_length <= 0) return; //TODO: For now, main thread call MPI_Get everytime
+  /*When CDC finish initialization of mc_recv_ranks, mc_next_clocks .., 
+    then set mc_length. If mc_length is <= 0, skip execution of MPI_Get */
+  if (mc_length <= 0) {
+    //TODO: For now, main thread call MPI_Get everytime
+    *min_recv_rank  = -1;
+    *min_next_clock =  0;
+    return;
+  }
 
 #ifdef REMPI_DBG_REPLAY
   for (int i = 0; i < mc_length; ++i) {
-    REMPI_DBG("Before recved: rank: %d clock:%lu, my next clock: %lu", mc_recv_ranks[i], mc_next_clocks[i], fd_clocks->next_clock);
+    REMPI_DBGI(REMPI_DBG_REPLAY, "Before recved: rank: %d clock:%lu, my next clock: %lu", mc_recv_ranks[i], mc_next_clocks[i], fd_clocks->next_clock);
   }
 #endif
   /*Only after MPI_Win_flush_local_all, the retrived values by PMPI_Get become visible*/
@@ -334,9 +365,8 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
 
 #ifdef REMPI_DBG_REPLAY
   for (int i = 0; i < mc_length; ++i) {
-    REMPI_DBG("After recved: rank: %d clock:%lu", mc_recv_ranks[i], mc_next_clocks[i]);
+    REMPI_DBGI(REMPI_DBG_REPLAY, "After recved: rank: %d clock:%lu", mc_recv_ranks[i], mc_next_clocks[i]);
   }
-  //sleep(1);
 #endif
 
   *min_recv_rank  = mc_recv_ranks[0];
@@ -939,8 +969,9 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     this->mc_next_clocks = input_format.mc_next_clocks;
     this->mc_length      = input_format.mc_length;
     /*array for waiting receive msg count for each test_id*/
-    this->num_of_recv_msg_in_next_event = new int[input_format.test_tables_map.size()];
-    memset(this->num_of_recv_msg_in_next_event, 0, sizeof(int) * input_format.test_tables_map.size());
+    int *tmp =  new int[input_format.test_tables_map.size()];;
+    memset(tmp, 0, sizeof(int) * input_format.test_tables_map.size());
+    this->num_of_recv_msg_in_next_event = tmp;
   }
 
   
@@ -950,7 +981,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     REMPI_ERR("Inconsistent size");
   }
   
-  //  input_format.debug_print();
+  input_format.debug_print();
   return;
 }
 
@@ -1231,6 +1262,8 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 
   /*Sort observed list, and create totally-ordered list*/
   test_table->ordered_event_list.sort(compare);    
+
+  //  usleep(50000);
   
 
   { 
@@ -1241,7 +1274,8 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
      */
     int solid_event_count = 0;
     for (rempi_event *event:test_table->ordered_event_list) {
-      if (!compare2(local_min_id.rank, local_min_id.clock, event)) {
+      bool is_reached_epoch_line = test_table->is_reached_epoch_line();
+      if (!compare2(local_min_id.rank, local_min_id.clock, event) || is_reached_epoch_line) {
 	solid_event_count++;
 	/*If event < local_min_id.{rank, clock} ... */
       } else {
@@ -1281,7 +1315,6 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
       REMPI_DBGI(REMPI_DBG_REPLAY, "      slist (rank: %d, clock: %lu): count: %d", e->get_source(), e->get_clock(), solid_event_count);
     }
 #endif   
-    // sleep(1);
   }
 
   /* 
@@ -1307,7 +1340,7 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
     int permutated_index = test_table->matched_events_permutated_indices_vec[replaying_event->clock_order]
       - test_table->replayed_matched_event_index;
 #ifdef REMPI_DBG_REPLAY
-    REMPI_DBG("  index: %d -> %d(%d) replayed_count: %d (event_clock: %d)", replaying_event->clock_order, 
+    REMPI_DBGI(REMPI_DBG_REPLAY, "  index: %d -> %d(%d) replayed_count: %d (event_clock: %d)", replaying_event->clock_order, 
 	      test_table->matched_events_permutated_indices_vec[replaying_event->clock_order], 
 	      permutated_index, test_table->replayed_matched_event_index, replaying_event->get_clock());
 #endif
@@ -1315,6 +1348,8 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
     if (0 <= permutated_index && permutated_index < outcount) {
       replay_event_vec[permutated_index] = replaying_event;
       added_count++;
+    } else if (permutated_index < 0){
+      REMPI_ERR("permutated_index < 0");
     }
   }
 
@@ -1353,8 +1388,46 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
     test_table->solid_ordered_event_list.remove(replay_event_vec[i]); /*This ".remove" may be slow*/
   }
 
-  test_table->replayed_matched_event_index += replay_event_vec.size();
+#if 1
+    for (int i = 0, n = replay_event_vec.size(); i < n; i++) {
+      for (int j = 0; j < n; j++) { 
+	if (j == i) continue;
 
+	if (replay_event_vec[i]->get_source() == replay_event_vec[j]->get_source()) {
+	  for (int k = 0; k < n; k++) {
+	    REMPI_DBG("Wrong  RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): order: %d",
+		       replay_event_vec[k]->get_event_counts(), replay_event_vec[k]->get_is_testsome(), replay_event_vec[k]->get_flag(),
+		      replay_event_vec[k]->get_source(), replay_event_vec[k]->get_tag(), replay_event_vec[k]->get_clock(),
+		      replay_event_vec[k]->clock_order);
+	  }
+	  REMPI_DBG("local_min (rank: %d, clock: %lu): count: X, RCQ:%d(test:%d)", 
+		    local_min_id.rank, local_min_id.clock,
+		    recording_events.size_replay(test_id), test_id);
+	  for (rempi_event *e: test_table->ordered_event_list) {
+	    //	    REMPI_DBG("       list (rank: %d, clock: %lu): count: %d", e->get_source(), e->get_clock(), solid_event_count);
+	    REMPI_DBG("       list (rank: %d, clock: %lu)", e->get_source(), e->get_clock());
+	  }
+	  for (rempi_event *e: test_table->solid_ordered_event_list) {
+	    //	    REMPI_DBG("      slist (rank: %d, clock: %lu): count: %d", e->get_source(), e->get_clock(), solid_event_count);
+	    REMPI_DBG("      slist (rank: %d, clock: %lu, order: %lu)", e->get_source(), e->get_clock(), e->clock_order);
+	  }
+	  REMPI_DBG(" replayed_matched_event_index: %d", test_table->replayed_matched_event_index);
+	  for (rempi_event *replaying_event: replay_event_vec) {
+	    int permutated_index = test_table->matched_events_permutated_indices_vec[replaying_event->clock_order]
+	      - test_table->replayed_matched_event_index;
+	    REMPI_DBG("  index: %d -> %d(%d) replayed_count: %d (source: %d, event_clock: %d)", replaying_event->clock_order, 
+		       test_table->matched_events_permutated_indices_vec[replaying_event->clock_order], 
+		       permutated_index, test_table->replayed_matched_event_index, 
+		      replaying_event->get_source(), replaying_event->get_clock());
+	  }
+	  sleep(1);
+	  exit(1);
+	}
+      }      
+    }
+#endif
+
+  test_table->replayed_matched_event_index += replay_event_vec.size();
   
 #ifdef REMPI_DBG_REPLAY
   for (int i = 0, n = replay_event_vec.size(); i < n; i++) {
@@ -1363,6 +1436,8 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 	       replay_event_vec[i]->get_source(), replay_event_vec[i]->get_tag(), replay_event_vec[i]->get_clock());
   }
 #endif
+
+
 
   return test_table->is_decoded_all();
 }
@@ -1383,7 +1458,7 @@ void rempi_encoder_cdc::update_fd_next_clock(int is_waiting_recv, int num_of_rec
   }
 
 #ifdef REMPI_DBG_REPLAY  
-  REMPI_DBG( "Local clock: %d: next_clock: %d, fd_clocks: %d, local_min (rank: %d, clock: %lu) num: %d", 
+  REMPI_DBGI(REMPI_DBG_REPLAY, "Local clock: %d: tmp next_clock: %d, next_clock: %d, local_min (rank: %d, clock: %lu) num: %d", 
 	     clock, next_clock, fd_clocks->next_clock, local_min_id.rank, local_min_id.clock, num_of_recv_msg_in_next_event);
 #endif
   if (fd_clocks->next_clock < next_clock) {
