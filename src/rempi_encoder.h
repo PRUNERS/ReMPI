@@ -154,8 +154,9 @@ class rempi_encoder
       But we would like to remove this function in future*/
     virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
     virtual void update_local_min_id(int min_recv_rank, size_t min_next_clock);
-    virtual void update_fd_next_clock(int is_waiting_recv, int num_of_recv_msg_in_next_event);
+    virtual void update_fd_next_clock(int is_waiting_recv, int num_of_recv_msg_in_next_event, size_t interim_min_clock_in_next_event);
     int *num_of_recv_msg_in_next_event = NULL; /*array[i] contain the number of test_id=i*/
+    size_t *interim_min_clock_in_next_event = NULL;
     
     /*Old functions for replay*/
     //    virtual char* read_decoding_event_sequence(size_t *size);
@@ -229,7 +230,7 @@ class rempi_encoder_cdc : public rempi_encoder
 
   virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
   virtual void update_local_min_id(int min_recv_rank, size_t min_next_clock);
-  virtual void update_fd_next_clock(int is_waiting_recv, int num_of_recv_msg_in_next_event);
+  virtual void update_fd_next_clock(int is_waiting_recv, int num_of_recv_msg_in_next_event, size_t interim_min_clock_in_next_event);
 
   //  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };

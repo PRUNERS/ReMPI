@@ -444,7 +444,7 @@ void rempi_encoder::update_local_min_id(int min_recv_rank, size_t min_next_clock
   return;
 }
 
-void rempi_encoder::update_fd_next_clock(int is_waiting_recv, int num_of_recv_msg_in_next_event)
+void rempi_encoder::update_fd_next_clock(int is_waiting_recv, int num_of_recv_msg_in_next_event, size_t interim_min_clock_in_next_event)
 { 
   REMPI_ERR("please remove this REMPI_ERR later");
   return;
