@@ -983,7 +983,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     REMPI_ERR("Inconsistent size");
   }
   
-  input_format.debug_print();
+  //  input_format.debug_print();
   return;
 }
 
