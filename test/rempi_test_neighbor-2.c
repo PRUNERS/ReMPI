@@ -1,6 +1,8 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <mpi.h>
 #include <sys/time.h>
+#include <time.h>
 #include <signal.h>
 
 #include "rempi_test_util.h"
@@ -51,11 +53,12 @@ int bin_reduction_start()
 
 int bin_reduction_end()
 {
-
+  MPI_Status status;
   int last_child_rank = (my_rank + 1) * 2;
   int num_children = 0 ;
   int recv_count = 0;
   int flag = 0;
+
   if (last_child_rank < size) {
     num_children = 2;
   } else if (last_child_rank == size ) {
@@ -66,8 +69,9 @@ int bin_reduction_end()
 
   //  fprintf(stderr, "my_rank: %3d\n", my_rank);
 
+
   while (recv_count < num_children) {
-    MPI_Test(&reduction_recv_req, &flag, MPI_STATUS_IGNORE);
+    MPI_Test(&reduction_recv_req, &flag, &status);
     if (flag) {
       recv_count++;
       MPI_Irecv(&reduction_val, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, reduction_comm, &reduction_recv_req);
@@ -76,10 +80,13 @@ int bin_reduction_end()
   }
   //  fprintf(stderr, "my_rank: %3d: complete\n", my_rank);
 
+
   MPI_Cancel(&reduction_recv_req);
   if (my_rank != 0) {
-    MPI_Wait(&reduction_send_req, MPI_STATUS_IGNORE);
+
+    MPI_Wait(&reduction_send_req, &status);
   }
+
   MPI_Comm_free(&reduction_comm);
   
   //  fprintf(stderr, "my_rank: %3d: complete finalize\n", my_rank);
@@ -109,13 +116,13 @@ int main(int argc, char *argv[])
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-  seed = my_rank;
+  seed = time(0);//my_rank;
   init_rand(seed);
 
   my_kv = (struct key_val*)malloc(sizeof(struct key_val) * NUM_KV_PER_RANK);
   for (i = 0; i < NUM_KV_PER_RANK; i++) {
     my_kv[i].key = my_rank * NUM_KV_PER_RANK + i;
-    my_kv[i].val = get_rand(MAX_VAL);
+    my_kv[i].val = my_rank;//get_rand(MAX_VAL);
     recv_msg_count[i] = 0;
     send_msg_count[i] = 0;
   }
@@ -177,7 +184,7 @@ int main(int argc, char *argv[])
 	if (send_msg_count[recv_index] < MAX_MESG_PASS) {
 	  sendrecv_kv.val = get_hash(sendrecv_kv.val, MAX_VAL);
 	  //	MPI_Send(&sendrecv_kv, 2, MPI_INT, (my_rank + recv_index) % size, 0, MPI_COMM_WORLD);
-	  //usleep((rand() % 2) * 100000);
+	  usleep((rand() % 2) * 100000);
 	  /* MPI_Request req; */
 	  /* MPI_Status stat; */
 	  /* MPI_Isend(&sendrecv_kv, 8, MPI_CHAR, (my_rank + recv_index) % size, 0, MPI_COMM_WORLD, &req); */
@@ -190,7 +197,6 @@ int main(int argc, char *argv[])
     /* ======================== */
     /* 3. End: binary tree reduction */
     /* ======================== */
-    //    bin_reduction_start();
     bin_reduction_end();
   } // end: for
 

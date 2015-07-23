@@ -202,6 +202,7 @@ int rempi_re_cdc::re_test(
        // 		 1, 0, *flag,
        // 		  status->MPI_SOURCE, status->MPI_TAG, clock);
       recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
+
     }
   } else {
     recorder->replay_test(request, flag, status, test_id);

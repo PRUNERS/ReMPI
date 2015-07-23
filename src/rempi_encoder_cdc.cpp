@@ -183,6 +183,7 @@ void rempi_encoder_cdc_input_format::format()
 
       //      REMPI_DBGI(0, "source: %d , clock: %d", sorted_events_vec[i]->get_source(), sorted_events_vec[i]->get_clock());
       /*Update epoch line by using unordered_map*/
+      /*TODO: if & else are doing the same thing except error check, REMPI_ERR("Later ... */
       if (test_table->epoch_umap.find(sorted_events_vec[i]->get_source()) == test_table->epoch_umap.end()) {
 	test_table->epoch_umap[sorted_events_vec[i]->get_source()] = sorted_events_vec[i]->get_clock();
       } else {
