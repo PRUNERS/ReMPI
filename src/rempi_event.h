@@ -39,9 +39,13 @@ class rempi_event
     static int record_num;
     static int record_element_size;
 
-    int clock_order = - 1; /*Ordered by clock when CDC compression is used */
-    int msg_count = -1; /*Actual message count from sender. This is used in copy_proxy_buf*/
+    int clock_order; /*Ordered by clock when CDC compression is used */
+    int msg_count; /*Actual message count from sender. This is used in copy_proxy_buf*/
     vector<long> mpi_inputs;
+
+    rempi_event()
+      : clock_order(-1), 
+        msg_count(-1) {}
 
     virtual void operator ++(int);
     virtual bool operator ==(rempi_event event);
@@ -65,8 +69,9 @@ class rempi_event
 
 class rempi_irecv_event : public rempi_event
 {
-  public:
-    rempi_irecv_event(int event_counts, int count, int source, int tag, int comm, int request);
+ public:
+  rempi_irecv_event(int event_counts, int count, int source, int tag, int comm, int request);
+
 };
 
 class rempi_test_event : public rempi_event

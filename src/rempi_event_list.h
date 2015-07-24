@@ -24,7 +24,7 @@ class rempi_event_list
   rempi_event *previous_recording_event;
   unordered_map<int, rempi_event*> previous_recording_event_umap;
   unordered_map<int, rempi_event*> previous_replaying_event_umap;
-  bool is_push_closed = false;
+  bool is_push_closed;
   T mpi_event;
   rempi_mutex mtx;
   size_t max_size;
@@ -33,10 +33,15 @@ class rempi_event_list
 
  public:
   /*Indicate which test_id of MPI_Test*,MPI_Wait* an application is waiting event from */
-  int waiting_test_id = -1; 
-  rempi_event_list(size_t max_size, size_t spin_time) :
-  previous_recording_event(NULL), is_push_closed(false),
-    max_size(max_size), spin_time(spin_time), globally_minimal_clock(0) {}
+  int waiting_test_id; 
+  rempi_event_list(size_t max_size, size_t spin_time)
+    : previous_recording_event(NULL), 
+      is_push_closed(false),
+      max_size(max_size), 
+      spin_time(spin_time), 
+      globally_minimal_clock(0),
+      waiting_test_id(-1) {}
+
   ~rempi_event_list() {
     mtx.lock();
     while (events.rough_size()) {

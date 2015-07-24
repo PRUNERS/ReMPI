@@ -11,7 +11,6 @@
 
 using namespace std;
 
-rempi_re::rempi_re(){}
 
 int rempi_re::init_after_pmpi_init(int *argc, char ***argv)
 {

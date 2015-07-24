@@ -30,7 +30,7 @@ class rempi_encoder_input_format_test_table
   vector<rempi_event*> events_vec;
 
   /*Used for CDC*/
-  int count = 0;
+  int count;// = 0;
 
   unordered_map<size_t, size_t>      epoch_umap;
   vector<size_t>                  epoch_rank_vec;  /*ranks creating this epoch line in this test_table*/
@@ -40,25 +40,39 @@ class rempi_encoder_input_format_test_table
 
   vector<size_t>               with_previous_vec;
   vector<bool>                 with_previous_bool_vec;
-  size_t                       compressed_with_previous_length = 0;
-  size_t                       compressed_with_previous_size   = 0;
-  char*                        compressed_with_previous        = NULL;
+  size_t                       compressed_with_previous_length;// = 0;
+  size_t                       compressed_with_previous_size;//   = 0;
+  char*                        compressed_with_previous;//        = NULL;
   vector<size_t>               unmatched_events_id_vec;
   vector<size_t>               unmatched_events_count_vec;
   unordered_map<size_t, size_t>        unmatched_events_umap; /*Used in replay*/
-  size_t                       compressed_unmatched_events_id_size = 0;
-  char*                        compressed_unmatched_events_id      = NULL;
-  size_t                       compressed_unmatched_events_count_size = 0;
-  char*                        compressed_unmatched_events_count      = NULL;
+  size_t                       compressed_unmatched_events_id_size;// = 0;
+  char*                        compressed_unmatched_events_id;//      = NULL;
+  size_t                       compressed_unmatched_events_count_size;// = 0;
+  char*                        compressed_unmatched_events_count;//      = NULL;
   map<int, rempi_event*>       matched_events_ordered_map; /*Used in recording*/
   vector<size_t>               matched_events_id_vec;      /*Used in replay*/
   vector<size_t>               matched_events_delay_vec;   /*Used in replay*/
   vector<int>                  matched_events_square_sizes_vec;/*Used in replay*/
-  int                          matched_events_square_sizes_vec_index = 0;/*Used in replay*/
+  int                          matched_events_square_sizes_vec_index;// = 0;/*Used in replay*/
   vector<int>                  matched_events_permutated_indices_vec; /*Used in replay*/
-  size_t                       replayed_matched_event_index = 0;
-  size_t                       compressed_matched_events_size = 0;
-  char*                        compressed_matched_events      = NULL;
+  size_t                       replayed_matched_event_index;// = 0;
+  size_t                       compressed_matched_events_size;// = 0;
+  char*                        compressed_matched_events;//      = NULL;
+
+  rempi_encoder_input_format_test_table()
+    : count(0)
+    , compressed_with_previous_length(0)
+    , compressed_with_previous_size(0)
+    , compressed_with_previous(NULL)
+    , compressed_unmatched_events_id_size(0)
+    , compressed_unmatched_events_id(NULL)
+    , compressed_unmatched_events_count_size(0)
+    , compressed_unmatched_events_count(NULL)
+    , matched_events_square_sizes_vec_index(0)
+    , replayed_matched_event_index(0)
+    , compressed_matched_events_size(0)
+    , compressed_matched_events(NULL) {}
 
   /*== Used in replay decode ordering == */
   /*All events go to this list, then sorted*/
@@ -78,17 +92,17 @@ class rempi_encoder_input_format_test_table
 class rempi_encoder_input_format
 {
  public:
-  size_t total_length = 0;
+  size_t total_length;// = 0;
   
   /*Used for CDC*/  
   map<int, rempi_encoder_input_format_test_table*> test_tables_map;  
 
   /* === For CDC replay ===*/
-  int    mc_length       = -1;
+  int    mc_length;//       = -1;
   /*All source ranks in all receive MPI functions*/
-  int    *mc_recv_ranks  = NULL; 
+  int    *mc_recv_ranks;//  = NULL; 
   /*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*/
-  size_t *mc_next_clocks = NULL;
+  size_t *mc_next_clocks;// = NULL;
   /* ======================*/
   
 
@@ -103,8 +117,14 @@ class rempi_encoder_input_format
   virtual void add(rempi_event *event, int test_id);
   virtual void format();
   virtual void debug_print();
-  /*For CDC replay*/
 
+  rempi_encoder_input_format()
+    : total_length(0)
+    , mc_length(-1)
+    , mc_recv_ranks(NULL)
+    , mc_next_clocks(NULL) {}
+
+  /*For CDC replay*/
   void clear();
 };
 
@@ -122,19 +142,31 @@ class rempi_encoder
 
 
     /* === For CDC replay ===*/
-    int    mc_flag         = 0; /*if mc_flag == 1: main thread execute frontier detection*/
-    int    mc_length       = 0;
+    int    mc_flag;//         = 0; /*if mc_flag == 1: main thread execute frontier detection*/
+    int    mc_length;//       = 0;
     /*All source ranks in all receive MPI functions*/
-    int    *mc_recv_ranks  = NULL; 
+    int    *mc_recv_ranks;//  = NULL; 
     /*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*/
-    size_t *mc_next_clocks = NULL;
+    size_t *mc_next_clocks;// = NULL;
     /* ======================*/
 
     vector<size_t> write_size_vec;
 
  public:
+    int *num_of_recv_msg_in_next_event;// = NULL; /*array[i] contain the number of test_id=i*/
+    size_t *interim_min_clock_in_next_event;// = NULL;
+
     rempi_event_list<rempi_event*> *events;
-    rempi_encoder(int mode);
+
+    rempi_encoder(int mode)
+      : mode(mode) 
+      , mc_flag(0)
+      , mc_length(0)
+      , mc_recv_ranks(NULL)
+      , mc_next_clocks(NULL) 
+      , num_of_recv_msg_in_next_event(NULL)
+      , interim_min_clock_in_next_event(NULL) {}
+
     /*Common for record & replay*/
     virtual rempi_encoder_input_format* create_encoder_input_format();
 
@@ -155,8 +187,7 @@ class rempi_encoder
     virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
     virtual void update_local_min_id(int min_recv_rank, size_t min_next_clock);
     virtual void update_fd_next_clock(int is_waiting_recv, int num_of_recv_msg_in_next_event, size_t interim_min_clock_in_next_event);
-    int *num_of_recv_msg_in_next_event = NULL; /*array[i] contain the number of test_id=i*/
-    size_t *interim_min_clock_in_next_event = NULL;
+
     
     /*Old functions for replay*/
     //    virtual char* read_decoding_event_sequence(size_t *size);
@@ -194,8 +225,8 @@ class rempi_encoder_cdc : public rempi_encoder
   MPI_Comm mpi_fd_clock_comm;
   MPI_Win mpi_fd_clock_win;
   PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
-  struct local_minimal_id local_min_id= {.rank=-1, .clock=0};
-  struct frontier_detection_clocks *fd_clocks = NULL;
+  struct local_minimal_id local_min_id; //= {.rank=-1, .clock=0};
+  struct frontier_detection_clocks *fd_clocks;// = NULL;
 
   /* ============================== */
 

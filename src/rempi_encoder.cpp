@@ -119,8 +119,6 @@ void rempi_encoder_input_format::debug_print()
 /*      CLASS rempi_encoder             */
 /* ==================================== */
 
-rempi_encoder::rempi_encoder(int mode): mode(mode) {}
-
 bool rempi_encoder::is_event_pooled(rempi_event* replaying_event)
 {
   list<rempi_event*>::iterator matched_event_pool_it;

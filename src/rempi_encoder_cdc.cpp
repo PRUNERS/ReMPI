@@ -181,7 +181,7 @@ void rempi_encoder_cdc_input_format::format()
       sorted_events_vec[i]->clock_order = i;
       test_table->matched_events_ordered_map.insert(make_pair(i, sorted_events_vec[i]));
 
-      //      REMPI_DBGI(0, "source: %d , clock: %d", sorted_events_vec[i]->get_source(), sorted_events_vec[i]->get_clock());
+      REMPI_DBGI(0, "source: %d , clock: %d (test_id: %d)", sorted_events_vec[i]->get_source(), sorted_events_vec[i]->get_clock(), test_tables_map_it->first);
       /*Update epoch line by using unordered_map*/
       /*TODO: if & else are doing the same thing except error check, REMPI_ERR("Later ... */
       if (test_table->epoch_umap.find(sorted_events_vec[i]->get_source()) == test_table->epoch_umap.end()) {
@@ -294,7 +294,10 @@ void rempi_encoder_cdc_input_format::debug_print()
 /* ==================================== */
 
 
-rempi_encoder_cdc::rempi_encoder_cdc(int mode): rempi_encoder(mode)
+rempi_encoder_cdc::rempi_encoder_cdc(int mode)
+  : rempi_encoder(mode)
+  , local_min_id({.rank=-1, .clock=0})
+  , fd_clocks(NULL)
 {
 
   /* === Create CDC object  === */

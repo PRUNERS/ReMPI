@@ -46,8 +46,8 @@ rempi_re *rempi_record_replay;
 int PNMPI_RegistrationPoint()
 {
   int err;
-  PNMPI_Service_descriptor_t service;
-  PNMPI_Global_descriptor_t global;
+  // PNMPI_Service_descriptor_t service;
+  // PNMPI_Global_descriptor_t global;
 
   /* register this module and its services */  
   err = PNMPI_Service_RegisterModule(PNMPI_MODULE_REMPI);

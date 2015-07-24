@@ -15,9 +15,6 @@
 
 using namespace std;
 
-rempi_re_cdc::rempi_re_cdc() {
-  recorder = new rempi_recorder_cdc();
-}
 
 int rempi_re_cdc::init_clmpi()
 {

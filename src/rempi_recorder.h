@@ -81,19 +81,20 @@ class rempi_recorder {
  protected:
   rempi_message_manager msg_manager; //TODO: this is not used
   //  unordered_map<string, int> stacktrace_to_test_id_umap;
-  int next_test_id_to_assign = 0;
+  int next_test_id_to_assign;// = 0;
   unordered_map<MPI_Request, rempi_irecv_inputs*> request_to_irecv_inputs_umap; 
   //  list<rempi_proxy_request*> proxy_request_pool_list;
   //unordered_map<MPI_Request*, int> request_to_test_id_umap;
   rempi_event_list<rempi_event*> *recording_event_list, *replaying_event_list;
   rempi_io_thread *record_thread, *read_record_thread;
-
   /*TODO: Fix bug in PNMPI fo rmulti-threaded, and remove this outputing*/
-  rempi_encoder *mc_encoder = NULL;
+  rempi_encoder *mc_encoder;// = NULL;
 
-public:
-
-
+ public:
+  rempi_recorder()
+    : next_test_id_to_assign(0)
+    , mc_encoder(NULL) {}
+  
   virtual int record_init(int *argc, char ***argv, int rank);
   virtual int replay_init(int *argc, char ***argv, int rank);
   virtual int record_irecv(
@@ -169,7 +170,7 @@ class rempi_recorder_cdc : public rempi_recorder
   int get_test_id();
   int get_recv_test_id(int test_id);
   unordered_map<int, int> test_id_to_recv_test_id_umap;
-  int next_recv_test_id_to_assign = 0;
+  int next_recv_test_id_to_assign; // = 0;
   int init_clmpi();
   PNMPIMOD_register_recv_clocks_t clmpi_register_recv_clocks;
   PNMPIMOD_clock_control_t clmpi_clock_control;
@@ -177,6 +178,10 @@ class rempi_recorder_cdc : public rempi_recorder
   PNMPIMOD_sync_clock_t      clmpi_sync_clock;
 
  public:
+   rempi_recorder_cdc()
+     : rempi_recorder()
+     , next_recv_test_id_to_assign(0) {}
+
   int record_init(int *argc, char ***argv, int rank);
   int replay_init(int *argc, char ***argv, int rank);
   int record_irecv(

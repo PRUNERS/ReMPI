@@ -291,9 +291,11 @@ int rempi_recorder_cdc::record_test(
   // }
   // test_id = request_to_test_id_umap[request];
 #if REMPI_DBG_REPLAY
-  // REMPI_DBGI(REMPI_DBG_REPLAY, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
-  // 	      event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
+  //  REMPI_DBGI(REMPI_DBG_REPLAY, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
+  //        event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
 #endif
+  REMPI_DBGI(0, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
+         event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
 
   // REMPI_DBG("Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
   //    event_count, with_previous, *flag,                                      

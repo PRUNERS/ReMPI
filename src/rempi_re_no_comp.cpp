@@ -15,9 +15,6 @@
 
 using namespace std;
 
-rempi_re_no_comp::rempi_re_no_comp() {
-  recorder = new rempi_recorder();
-}
 
 int rempi_re_no_comp::init_clmpi()
 {

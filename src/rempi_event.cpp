@@ -129,7 +129,9 @@ int rempi_event::get_test_id()
 
 /*====== child class constructures ======*/
 
-rempi_irecv_event::rempi_irecv_event(int event_counts, int count, int source, int tag, int comm, int request) {
+rempi_irecv_event::rempi_irecv_event(int event_counts, int count, int source, int tag, int comm, int request)
+  : rempi_event()
+{
     mpi_inputs.push_back(event_counts);
     mpi_inputs.push_back(count);
     mpi_inputs.push_back(source);
@@ -139,6 +141,7 @@ rempi_irecv_event::rempi_irecv_event(int event_counts, int count, int source, in
 }
 
 rempi_test_event::rempi_test_event(int event_counts, int is_testsome, int comm_id, int flag, int source, int tag)
+  : rempi_event()
 {
   /*If you change this function, you also need to change: 
      1. #define REMPI_MPI_EVENT_INPUT_NUM (6)
@@ -156,6 +159,7 @@ rempi_test_event::rempi_test_event(int event_counts, int is_testsome, int comm_i
 }
 
 rempi_test_event::rempi_test_event(int event_counts, int is_testsome, int comm_id, int flag, int source, int tag, int clock)
+  : rempi_event()
 {
   /*If you change this function, you also need to change: 
      1. #define REMPI_MPI_EVENT_INPUT_NUM (6)
@@ -173,6 +177,7 @@ rempi_test_event::rempi_test_event(int event_counts, int is_testsome, int comm_i
 }
 
 rempi_test_event::rempi_test_event(int event_counts, int is_testsome, int comm_id, int flag, int source, int tag, int clock, int test_id)
+  : rempi_event()
 {
   /*If you change this function, you also need to change: 
      1. #define REMPI_MPI_EVENT_INPUT_NUM (6)

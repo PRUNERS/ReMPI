@@ -51,6 +51,7 @@ int bin_reduction_start()
   return 0;
 }
 
+int a = 0;
 int bin_reduction_end()
 {
   MPI_Status status;
@@ -58,6 +59,8 @@ int bin_reduction_end()
   int num_children = 0 ;
   int recv_count = 0;
   int flag = 0;
+  
+  if (my_rank == 0)fprintf(stderr, "aaaaa: %d\n", a++);
 
   if (last_child_rank < size) {
     num_children = 2;
@@ -79,7 +82,6 @@ int bin_reduction_end()
     //    fprintf(stderr, "my_rank: %3d, recv_count: %3d, num_children: %d\n", my_rank, recv_count, num_children);
   }
   //  fprintf(stderr, "my_rank: %3d: complete\n", my_rank);
-
 
   MPI_Cancel(&reduction_recv_req);
   if (my_rank != 0) {
