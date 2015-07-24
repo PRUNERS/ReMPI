@@ -322,12 +322,14 @@ rempi_encoder_cdc::rempi_encoder_cdc(int mode)
     clmpi_get_local_clock=(PNMPIMOD_get_local_clock_t) ((void*)serv.fct);
   }
 
-  /* == Init Window for one-sided communication for frontier detection*/
-  PMPI_Comm_dup(MPI_COMM_WORLD, &mpi_fd_clock_comm);
-  PMPI_Win_allocate(sizeof(struct frontier_detection_clocks), sizeof(size_t), MPI_INFO_NULL, mpi_fd_clock_comm, &fd_clocks, &mpi_fd_clock_win);
-  memset(fd_clocks, 0, sizeof(struct frontier_detection_clocks));
-  PMPI_Win_lock_all(MPI_MODE_NOCHECK, mpi_fd_clock_win);
-  //PMPI_Win_lock_all(0, mpi_fd_clock_win);
+  if (mode == REMPI_ENV_REMPI_MODE_REPLAY) {
+    /* == Init Window for one-sided communication for frontier detection*/
+    PMPI_Comm_dup(MPI_COMM_WORLD, &mpi_fd_clock_comm);
+    PMPI_Win_allocate(sizeof(struct frontier_detection_clocks), sizeof(size_t), MPI_INFO_NULL, mpi_fd_clock_comm, &fd_clocks, &mpi_fd_clock_win);
+    memset(fd_clocks, 0, sizeof(struct frontier_detection_clocks));
+    PMPI_Win_lock_all(MPI_MODE_NOCHECK, mpi_fd_clock_win);
+    //PMPI_Win_lock_all(0, mpi_fd_clock_win);
+  }
 
   return;
 }
