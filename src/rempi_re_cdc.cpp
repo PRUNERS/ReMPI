@@ -24,26 +24,32 @@ int rempi_re_cdc::init_clmpi()
   /*Load clock-mpi*/
   err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_CLMPI, &handle_clmpi);
   if (err!=PNMPI_SUCCESS) {
+    REMPI_ERR("failed");
     return err;
   }
   /*Get clock-mpi service*/
   err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_register_recv_clocks","pi",&serv);
-  if (err!=PNMPI_SUCCESS)
+  if (err!=PNMPI_SUCCESS) {
+    REMPI_ERR("failed");
     return err;
+  }
   clmpi_register_recv_clocks=(PNMPIMOD_register_recv_clocks_t) ((void*)serv.fct);
 
   /*Get clock-mpi service*/
   err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_local_clock","p",&serv);
-  if (err!=PNMPI_SUCCESS)
+  if (err!=PNMPI_SUCCESS) {
+    REMPI_ERR("failed");
     return err;
+  }
   clmpi_get_local_clock=(PNMPIMOD_get_local_clock_t) ((void*)serv.fct);
 
   /*Load own moduel*/
   err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_REMPI, &handle_rempi);
-  if (err!=PNMPI_SUCCESS)
+  if (err!=PNMPI_SUCCESS) {
+    REMPI_ERR("failed");
     return err;
-
-  return err;
+  }
+  return PNMPI_SUCCESS;
 }
 
 int rempi_re_cdc::get_test_id()
@@ -149,8 +155,6 @@ int rempi_re_cdc::re_irecv(
   int comm_id_int;
   int resultlen;
   PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);
-
-
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);

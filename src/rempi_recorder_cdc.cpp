@@ -719,15 +719,16 @@ int rempi_recorder_cdc::replay_testsome(
 
       irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[i]];
       for (int j = 0; j < replaying_event_vec.size(); j++) {
-	bool is_source  =  (irecv_inputs->source == replaying_event_vec[j]->get_source());
+	bool is_any_source =  (irecv_inputs->source == MPI_ANY_SOURCE);
+	bool is_source     =  (irecv_inputs->source == replaying_event_vec[j]->get_source());
 
 #if REMPI_DBG_REPLAY
-	REMPI_DBGI(REMPI_DBG_REPLAY, "irecv_inputs.source: %d === replaying_events[j].source: %d", 
-		   irecv_inputs->source, replaying_event_vec[j]->get_source());
+	REMPI_DBGI(REMPI_DBG_REPLAY, "irecv_inputs.source: %d === replaying_events[j].source: %d (MPI_ANY_SOURCE: %d)", 
+		   irecv_inputs->source, replaying_event_vec[j]->get_source(), MPI_ANY_SOURCE);
 #endif
 	/*TODO: if array_of_requests has requests from the same rank, is_source does not work. And it introduces inconsistent replay
 	  Use MPI_Request pointer (is_request) instead of is_source. In MCB, this is OK.*/
-	if (is_source) {
+	if (is_source || is_any_source) {
 	  array_of_indices[*outcount] = i;
 	  array_of_statuses[*outcount].MPI_SOURCE = replaying_event_vec[j]->get_source();
 	  array_of_statuses[*outcount].MPI_TAG    = replaying_event_vec[j]->get_tag();
@@ -762,7 +763,7 @@ int rempi_recorder_cdc::replay_testsome(
 
 
   if (*outcount != replaying_event_vec.size()) {
-    REMPI_DBG(" ==== tete 6.0 : replay size: %d %d", replaying_event_vec.size(), *outcount);
+    REMPI_DBG(" ==== tete 6.0 : replayng matching count is %d, but found  %d messages", replaying_event_vec.size(), *outcount);
     for (int j = 0; j < replaying_event_vec.size(); j++) {
       REMPI_DBG(" = Wrong: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): test_id: %d ",
 		replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),

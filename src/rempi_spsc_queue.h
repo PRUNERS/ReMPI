@@ -45,18 +45,17 @@ template<typename T>
 class rempi_spsc_queue
 {
 private:
-	size_t enqueue_count;
-	size_t dequeue_count;
+  //
 
 public:
-  rempi_spsc_queue()
-  {
-      node* n = new node;
-      n->next_ = 0;
-      tail_ = head_ = first_= tail_copy_ = n;
-
-  	  enqueue_count = 0;
-  	  dequeue_count = 0;
+  size_t enqueue_count;
+  size_t dequeue_count;
+  rempi_spsc_queue() {
+    node* n = new node;
+    n->next_ = 0;
+    tail_ = head_ = first_= tail_copy_ = n;
+    enqueue_count = 0;
+    dequeue_count = 0;
   }
 
   ~rempi_spsc_queue()
@@ -73,7 +72,10 @@ public:
 
   size_t rough_size()
   {
-	return enqueue_count - dequeue_count;
+    /*TODO: find out why this pointer sometime becomes NULL*/
+    while (this == NULL);
+    return enqueue_count - dequeue_count;
+
   }
 
   void enqueue(T v)
@@ -122,6 +124,8 @@ public:
 
   T front()
   {
+    /*TODO: find out why this pointer sometime becomes NULL*/
+
     T v;
     if (load_consume(&tail_->next_)) {
       v = tail_->next_->value_;

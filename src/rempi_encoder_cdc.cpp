@@ -352,11 +352,11 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
     return;
   }
 
-#ifdef REMPI_DBG_REPLAY
-  for (int i = 0; i < mc_length; ++i) {
-    REMPI_DBGI(REMPI_DBG_REPLAY, "Before recved: rank: %d clock:%lu, my next clock: %lu", mc_recv_ranks[i], mc_next_clocks[i], fd_clocks->next_clock);
-  }
-#endif
+// #ifdef REMPI_DBG_REPLAY
+//   for (int i = 0; i < mc_length; ++i) {
+//     REMPI_DBGI(REMPI_DBG_REPLAY, "Before recved: rank: %d clock:%lu, my next clock: %lu", mc_recv_ranks[i], mc_next_clocks[i], fd_clocks->next_clock);
+//   }
+// #endif
   /*Only after MPI_Win_flush_local_all, the retrived values by PMPI_Get become visible*/
   /* We call PMPI_Win_flush_local_all first to sync with the previous PMPI_Get,
        then post the next PMPI_Get(), which is synced by the next fetch_and_update_local_min_id() call.
@@ -369,11 +369,11 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
   }
   PMPI_Win_flush_local_all(mpi_fd_clock_win);
 
-#ifdef REMPI_DBG_REPLAY
-  for (int i = 0; i < mc_length; ++i) {
-    REMPI_DBGI(REMPI_DBG_REPLAY, "After recved: rank: %d clock:%lu", mc_recv_ranks[i], mc_next_clocks[i]);
-  }
-#endif
+// #ifdef REMPI_DBG_REPLAY
+//   for (int i = 0; i < mc_length; ++i) {
+//     REMPI_DBGI(REMPI_DBG_REPLAY, "After recved: rank: %d clock:%lu", mc_recv_ranks[i], mc_next_clocks[i]);
+//   }
+// #endif
 
   *min_recv_rank  = mc_recv_ranks[0];
   *min_next_clock = mc_next_clocks[0];
@@ -989,7 +989,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     REMPI_ERR("Inconsistent size");
   }
   
-  //  input_format.debug_print();
+  input_format.debug_print();
   return;
 }
 
@@ -1294,9 +1294,14 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
     /* ====== End of Operation B  ========*/
 
 #ifdef REMPI_DBG_REPLAY
-    REMPI_DBGI(REMPI_DBG_REPLAY, "local_min (rank: %d, clock: %lu): count: %d, RCQ:%d(test:%d)", 
-	       local_min_id.rank, local_min_id.clock, solid_event_count, 
-	       recording_events.size_replay(test_id), test_id);
+    REMPI_DBGI(REMPI_DBG_REPLAY, "local_min (rank: %d, clock: %lu): count: %d",
+	       local_min_id.rank, local_min_id.clock, solid_event_count);
+    /* TODO: caling recording_events.size_replay(test_id) here causes seg fault, so I removed 
+       I'll find out the reason later
+     */
+    // REMPI_DBGI(REMPI_DBG_REPLAY, "local_min (rank: %d, clock: %lu): count: %d, RCQ:%d(test:%d)", 
+    // 	       local_min_id.rank, local_min_id.clock, solid_event_count, 
+    // 	       recording_events.size_replay(test_id), test_id);
 #endif 
     /*Between Operation A and B, 
       main thread may enqueue events(A), and increment <local_min_id>, then solid order become wrong order 

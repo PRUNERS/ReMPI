@@ -6,6 +6,7 @@
 #include <sys/time.h>
 
 #include "rempi_re.h"
+#include "rempi_err.h"
 #include "pnmpimod.h"
 
 #ifndef _EXTERN_C_

@@ -35,7 +35,7 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
   } else if (rempi_encode == 4) {
     encoder = new rempi_encoder_cdc(mode);                   //  (5): (3) + edit distance (two values for an only permutated message)
   } else if (rempi_encode == 5) {
-    encoder = new rempi_encoder_cdc_permutation_diff(mode);    //  (6): (3) + edit distance (one value for each message)
+    encoder = new rempi_encoder_cdc_permutation_diff(mode);  //  (6): (3) + edit distance (one value for each message)
   } else {
     REMPI_ERR("No such encode");
   }
@@ -43,6 +43,7 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
   if (mc_encoder != NULL) {
     *mc_encoder = encoder;
   }
+
 }
 
 void rempi_io_thread::write_record()
@@ -113,7 +114,6 @@ void rempi_io_thread::read_record()
       replaying_events->close_push();
       break;
     } else {
-
       encoder->decode(*input_format);
       encoder->insert_encoder_input_format_chunk(*recording_events, *replaying_events, *input_format);
       delete input_format;
@@ -122,7 +122,7 @@ void rempi_io_thread::read_record()
   }
 #ifdef REMPI_DBG_REPLAY
   //  REMPI_DBGI(REMPI_DBG_REPLAY,"end ======");
-  REMPI_DBG("end ======");
+  REMPI_DBG("end ====== (CDC thread)");
 #endif
 
   encoder->close_record_file();
