@@ -94,14 +94,18 @@ int bin_reduction_end()
       recv_count++;
       //      fprintf(stderr, "rank %d: 2. >>>>>>>>> communicator: %p <<<<<<<<<<< recv_count: %d, num_children: %d\n",
       //      	      my_rank, reduction_comm, recv_count, num_children);
-      if (recv_count < num_children) MPI_Irecv(&reduction_val, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, reduction_comm, &reduction_recv_req);
-      //if (recv_count < num_children) MPI_Irecv(&reduction_val, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &reduction_recv_req);
+      MPI_Irecv(&reduction_val, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, reduction_comm, &reduction_recv_req);
+      //    if (recv_count < num_children) MPI_Irecv(&reduction_val, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, reduction_comm, &reduction_recv_req);
+      //    if (recv_count < num_children) MPI_Irecv(&reduction_val, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &reduction_recv_req);
     }
     //    fprintf(stderr, "my_rank: %3d, recv_count: %3d, num_children: %d\n", my_rank, recv_count, num_children);
   }
-  //  fprintf(stderr, "my_rank: %3d: complete\n", my_rank);
+  //fprintf(stderr, "my_rank: %3d: complete\n", my_rank);
 
-  //  MPI_Cancel(&reduction_recv_req);
+  if (num_children > 0) {
+    MPI_Cancel(&reduction_recv_req);
+  }
+  
   if (my_rank != 0) {
     //    fprintf(stderr, "Send Test : rank %d: send_request: %p\n", my_rank, reduction_send_req);
     int flag_a = 0;
@@ -112,13 +116,12 @@ int bin_reduction_end()
     }
     //    fprintf(stderr, "Send Test End : rank %d: send_request: %p\n", my_rank, reduction_send_req);
     //    MPI_Wait(&reduction_send_req, &status);
-  }
-
-
-  
+  }  
   //  fprintf(stderr, "my_rank: %3d: complete finalize\n", my_rank);
 
-  /* usleep(my_rank * 10000); */
+
+
+  usleep(my_rank * 1000);
   /* printf("my_rank: %3d, parent: %3d, num_children: %3d\n", my_rank, parent, num_children); */
   /* exit(0); */
   return 0;
@@ -230,7 +233,6 @@ int main(int argc, char *argv[])
     /* ======================== */
     bin_reduction_end();
   } // end: for
-
   MPI_Comm_free(&reduction_comm);
 
 

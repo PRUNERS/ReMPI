@@ -229,6 +229,7 @@ int rempi_recorder_cdc::replay_cancel(MPI_Request *request)
   int ret;
   rempi_irecv_inputs *irecv_inputs;
   rempi_proxy_request *proxy_request;
+
   if (request_to_irecv_inputs_umap.find(*request) == request_to_irecv_inputs_umap.end()) {
     REMPI_ERR("No such request: %p", request);
   }

@@ -156,6 +156,7 @@ int rempi_re_cdc::re_irecv(
   int resultlen;
   PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);
 
+
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
     //TODO: Get Datatype,
