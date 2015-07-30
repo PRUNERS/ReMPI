@@ -126,6 +126,7 @@ public:
   {
     /*TODO: find out why this pointer sometime becomes NULL*/
 
+
     T v;
     if (load_consume(&tail_->next_)) {
       v = tail_->next_->value_;
