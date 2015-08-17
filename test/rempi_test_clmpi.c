@@ -14,9 +14,9 @@ PNMPIMOD_register_recv_clocks_t clmpi_register_recv_clocks;
 PNMPIMOD_clock_control_t        clmpi_clock_control;
 PNMPIMOD_get_local_clock_t      clmpi_get_local_clock;
 PNMPIMOD_sync_clock_t           clmpi_sync_clock;
-PNMPIMOD_fetch_next_clocks_t clmpi_fetch_next_clocks;
-PNMPIMOD_get_next_clock_t       clmpi_get_next_clock;
-PNMPIMOD_set_next_clock_t       clmpi_set_next_clock;
+/* PNMPIMOD_fetch_next_clocks_t clmpi_fetch_next_clocks; */
+/* PNMPIMOD_get_next_clock_t       clmpi_get_next_clock; */
+/* PNMPIMOD_set_next_clock_t       clmpi_set_next_clock; */
 
 int init_clmpi()
 {
@@ -52,24 +52,24 @@ int init_clmpi()
     return err;
   clmpi_sync_clock=(PNMPIMOD_sync_clock_t) ((void*)serv.fct);
 
-  /*Get clock-mpi service*/
-  err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_fetch_next_clocks","ipp",&serv);
-  if (err!=PNMPI_SUCCESS)
-    return err;
-  clmpi_fetch_next_clocks=(PNMPIMOD_fetch_next_clocks_t) ((void*)serv.fct);
+  /* /\*Get clock-mpi service*\/ */
+  /* err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_fetch_next_clocks","ipp",&serv); */
+  /* if (err!=PNMPI_SUCCESS) */
+  /*   return err; */
+  /* clmpi_fetch_next_clocks=(PNMPIMOD_fetch_next_clocks_t) ((void*)serv.fct); */
 
 
-  /*Get clock-mpi service*/
-  err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_next_clock","p",&serv);
-  if (err!=PNMPI_SUCCESS)
-    return err;
-  clmpi_get_next_clock=(PNMPIMOD_get_next_clock_t) ((void*)serv.fct);
+  /* /\*Get clock-mpi service*\/ */
+  /* err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_next_clock","p",&serv); */
+  /* if (err!=PNMPI_SUCCESS) */
+  /*   return err; */
+  /* clmpi_get_next_clock=(PNMPIMOD_get_next_clock_t) ((void*)serv.fct); */
 
-  /*Get clock-mpi service*/
-  err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_set_next_clock","p",&serv);
-  if (err!=PNMPI_SUCCESS)
-    return err;
-  clmpi_set_next_clock=(PNMPIMOD_set_next_clock_t) ((void*)serv.fct);
+  /* /\*Get clock-mpi service*\/ */
+  /* err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_set_next_clock","p",&serv); */
+  /* if (err!=PNMPI_SUCCESS) */
+  /*   return err; */
+  /* clmpi_set_next_clock=(PNMPIMOD_set_next_clock_t) ((void*)serv.fct); */
 
   /*Load own moduel*/
   err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_TEST, &handle_test);
@@ -95,11 +95,11 @@ int main(int argc, char *argv[])
   
   start = MPI_Wtime();
   while(next_clock < MAX_NEXT_CLOCK + 10) {
-    ranks[0] = (my_rank + 1) % size;
-    clmpi_fetch_next_clocks(1, ranks, remote_next_clocks);
-    next_clock = remote_next_clocks[0] + 1;
-    clmpi_set_next_clock(next_clock);
-    clmpi_get_next_clock(&next_clock);
+    /* ranks[0] = (my_rank + 1) % size; */
+    /* clmpi_fetch_next_clocks(1, ranks, remote_next_clocks); */
+    /* next_clock = remote_next_clocks[0] + 1; */
+    /* clmpi_set_next_clock(next_clock); */
+    /* clmpi_get_next_clock(&next_clock); */
   }
   end = MPI_Wtime();
   

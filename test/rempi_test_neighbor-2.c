@@ -13,7 +13,7 @@
 #define MAX_MESG_PASS (4)
 
 
-double start, end, overall_end;
+double start, end, overall_start, overall_end;
 int recv_msg_count[NUM_KV_PER_RANK], send_msg_count[NUM_KV_PER_RANK];
 int my_rank;
 int size;
@@ -62,7 +62,7 @@ int bin_reduction_start()
 
   if (my_rank != 0) {
     MPI_Isend(&my_rank,     1, MPI_INT, parent,           0, reduction_comm, &reduction_send_req);
-    //    fprintf(stderr, "Isend: rank %d: send_request: %p\n", my_rank, reduction_send_req);
+    //    fprintf(stderr, "Isend: rank %d: send_request: %p, dest: %d\n", my_rank, reduction_send_req, parent);
   }
   
   //  fprintf(stderr, "rank %d: 1. >>>>>>>>> communicator: %p <<<<<<<<<<<\n", my_rank, reduction_comm);
@@ -87,7 +87,6 @@ int bin_reduction_end()
   }
 
   //  fprintf(stderr, "my_rank: %3d\n", my_rank);
-
   while (recv_count < num_children) {
     MPI_Test(&reduction_recv_req, &flag, &recv_status);
     if (flag) {
@@ -98,9 +97,8 @@ int bin_reduction_end()
       //    if (recv_count < num_children) MPI_Irecv(&reduction_val, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, reduction_comm, &reduction_recv_req);
       //    if (recv_count < num_children) MPI_Irecv(&reduction_val, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &reduction_recv_req);
     }
-    //    fprintf(stderr, "my_rank: %3d, recv_count: %3d, num_children: %d\n", my_rank, recv_count, num_children);
   }
-  //fprintf(stderr, "my_rank: %3d: complete\n", my_rank);
+  //  fprintf(stderr, "my_rank: %3d: complete\n", my_rank);
 
   if (num_children > 0) {
     MPI_Cancel(&reduction_recv_req);
@@ -121,8 +119,8 @@ int bin_reduction_end()
 
 
 
-  usleep(my_rank * 1000);
-  /* printf("my_rank: %3d, parent: %3d, num_children: %3d\n", my_rank, parent, num_children); */
+  usleep(my_rank * 10000);
+  //  printf("my_rank: %3d, num_children: %3d\n", my_rank, num_children); 
   /* exit(0); */
   return 0;
 }
@@ -138,11 +136,16 @@ int main(int argc, char *argv[])
 
   MPI_Status status[NUM_KV_PER_RANK];
   MPI_Request request[NUM_KV_PER_RANK];
+  MPI_Status send_stat;
+  MPI_Request send_req;
+  int flag = 0 ;
+
 
   /* Init */
   MPI_Init(&argc, &argv);
   signal(SIGSEGV, SIG_DFL);
   start = MPI_Wtime();
+  overall_start = get_time();
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
@@ -168,15 +171,23 @@ int main(int argc, char *argv[])
     /* ======================== */
     /* 2.  neighbor exchange    */
     /* ======================== */
-#if 0
+#if 1
     for (i = 0; i < NUM_KV_PER_RANK; i++) {
       //    printf("rank %d: recv: %d\n", my_rank, (my_rank + size - (i + 1))        % size);
       MPI_Irecv(&recv_kv[i], 8, MPI_CHAR, (my_rank + size - (i + 1))        % size, MPI_ANY_TAG, MPI_COMM_WORLD, &request[i]);
     }
 
     for (i = 0; i < NUM_KV_PER_RANK; i++) {
+
       //    printf("rank %d: send: %d\n", my_rank, (my_rank + (i + 1))        % size);
-      MPI_Send(&my_kv[i], 8, MPI_CHAR, (my_rank + (i + 1))        % size, 0, MPI_COMM_WORLD);
+      //MPI_Send(&my_kv[i], 8, MPI_CHAR, (my_rank + (i + 1))        % size, 0, MPI_COMM_WORLD);
+
+      MPI_Isend(&my_kv[i], 8, MPI_CHAR, (my_rank + (i + 1))        % size, 0, MPI_COMM_WORLD, &send_req);
+      flag = 0;
+      while (flag == 0) {
+	MPI_Test(&send_req, &flag, &send_stat); 
+      }
+
       send_msg_count[i]++;
     }
   
@@ -220,21 +231,27 @@ int main(int argc, char *argv[])
 	  usleep((rand() % 2) * 100000);
 	  /* MPI_Request req; */
 	  /* MPI_Status stat; */
-	  /* MPI_Isend(&sendrecv_kv, 8, MPI_CHAR, (my_rank + recv_index) % size, 0, MPI_COMM_WORLD, &req); */
-	  /* MPI_Wait(&req, &stat); */
-	  MPI_Send(&sendrecv_kv, 8, MPI_CHAR, (my_rank + (recv_index + 1)) % size, 0, MPI_COMM_WORLD);
+	  MPI_Isend(&sendrecv_kv, 8, MPI_CHAR, (my_rank + recv_index) % size, 0, MPI_COMM_WORLD, &send_req); 
+	  flag = 0;
+	  while (flag == 0) {
+	    MPI_Test(&send_req, &flag, &send_stat); 
+	  }
+	  //	  MPI_Send(&sendrecv_kv, 8, MPI_CHAR, (my_rank + (recv_index + 1)) % size, 0, MPI_COMM_WORLD);
 	  send_msg_count[recv_index]++;
 	}
       } // end: for
     } // end: while
 #endif
+
     /* ======================== */
     /* 3. End: binary tree reduction */
     /* ======================== */
     bin_reduction_end();
-  } // end: for
-  MPI_Comm_free(&reduction_comm);
 
+    MPI_Barrier(MPI_COMM_WORLD);
+  } // end: for
+  //  fprintf(stderr, "2. my_rank: %d: test -----\n", my_rank);
+  MPI_Comm_free(&reduction_comm);
 
   /* for (i = 0; i < NUM_KV_PER_RANK; i++) { */
   /*   fprintf(stderr, "rank %d: recv: %d send: %d\n", my_rank, recv_msg_count[i], send_msg_count[i]); */
@@ -243,21 +260,26 @@ int main(int argc, char *argv[])
   /*   fprintf(stderr, "rank: %d key: %d val: %d\n", my_rank, recv_kv[i].key, recv_kv[i].val); */
   /* } */
 
+
+  
   final_kv = (struct key_val*)malloc(sizeof(struct key_val) * NUM_KV_PER_RANK * size);  
   memset(final_kv, 0, sizeof(final_kv));
+
   MPI_Gather(recv_kv, 2 * NUM_KV_PER_RANK, MPI_INT, final_kv, 2 * NUM_KV_PER_RANK, MPI_INT, 0, MPI_COMM_WORLD);
+
+  //  fprintf(stderr, "4. my_rank: %d: test -----\n", my_rank);
+
   int hash = 1;
   if (my_rank == 0) {
-
     for (i = 0; i < size * NUM_KV_PER_RANK; i++) {
       hash = get_hash(hash * final_kv[i].val + final_kv[i].key, 1000000);
     }
   
-#if 0    
+#if 0
     int print_key = 0;
     while(print_key < size * NUM_KV_PER_RANK) {
       for (i = 0; i < size * NUM_KV_PER_RANK; i++) {
-    	if (final_kv[i].key == print_key) {
+   	if (final_kv[i].key == print_key) {
     	  fprintf(stdout, "rank: %d, val: %d\n", final_kv[i].key, final_kv[i].val);
     	  print_key++;
     	}
@@ -269,14 +291,17 @@ int main(int argc, char *argv[])
     }
 #endif
   }
+  //    fprintf(stderr, "3. my_rank: %d: test -----\n", my_rank);
   free(my_kv);
   free(final_kv);
 
   end = MPI_Wtime();
   MPI_Finalize();
-  overall_end = MPI_Wtime();
+  ///  fprintf(stderr, "4. my_rank: %d: test -----\n", my_rank);
+  overall_end = get_time();
   if (my_rank == 0) {
-    fprintf(stdout, "Hash %d, Time (Main loop): %f, Time (Overall): %f\n", hash, end - start, overall_end - start);
+    //    fprintf(stdout, "Hash %d, Time (Main loop): %f, Time (Overall): %f\n", hash, end - start, overall_end);
+    fprintf(stdout, "Hash %d, Time (Main loop): %f\n", hash, end - start);
   }
   return 0;
 

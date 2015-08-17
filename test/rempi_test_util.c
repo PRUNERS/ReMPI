@@ -1,7 +1,18 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/time.h>
 
 #include "rempi_test_util.h"
 
+double get_time(void)
+{
+  double t;
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  t = ((double)(tv.tv_sec) + (double)(tv.tv_usec) * 0.001 * 0.001);
+  return t;
+}
 
 int init_rand(int seed) 
 {

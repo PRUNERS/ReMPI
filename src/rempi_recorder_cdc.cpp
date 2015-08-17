@@ -295,8 +295,8 @@ int rempi_recorder_cdc::record_test(
   //  REMPI_DBGI(REMPI_DBG_REPLAY, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
   //        event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
 #endif
-  REMPI_DBGI(0, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
-         event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
+  // REMPI_DBGI(0, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
+  //        event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
 
   // REMPI_DBG("Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
   //    event_count, with_previous, *flag,                                      
@@ -812,7 +812,7 @@ int rempi_recorder_cdc::replay_finalize(void)
   read_record_thread->join();
 
   //TODO:
-  //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
+  //fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   return 0;
 }
 

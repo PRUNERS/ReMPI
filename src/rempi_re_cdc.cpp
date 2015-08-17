@@ -359,11 +359,16 @@ int rempi_re_cdc::re_waitall(
 int rempi_re_cdc::re_finalize()
 {
   int ret;
+  
+
 
   ret = PMPI_Finalize();
+  sleep(1);
+  REMPI_DBG("----------------");
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = recorder->record_finalize();
+
   } else {
     ret = recorder->replay_finalize();
   }

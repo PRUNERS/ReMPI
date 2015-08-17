@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 
   end = MPI_Wtime();
   MPI_Finalize();
-  overall_end = MPI_Wtime();
+  //  overall_end = MPI_Wtime();
   if (my_rank == 0) {
     fprintf(stdout, "Hash %d, Time (Main loop): %f, Time (Overall): %f\n", hash, end - start, overall_end - start);
   }

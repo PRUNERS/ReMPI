@@ -338,7 +338,6 @@ int rempi_recorder::record_finalize(void)
 {
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     recording_event_list->push_all();
-
     /*TODO: set flag in event_list 
       insteand of setting flag of thread (via complete_flush)
       like in replay mode*/
