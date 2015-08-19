@@ -292,9 +292,11 @@ int rempi_recorder_cdc::record_test(
   // }
   // test_id = request_to_test_id_umap[request];
 #if REMPI_DBG_REPLAY
-  //  REMPI_DBGI(REMPI_DBG_REPLAY, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
-  //        event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
+  REMPI_DBGI(REMPI_DBG_REPLAY, "= Record: (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
+	     event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
 #endif
+  REMPI_PRTI(0, "= Record: (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
+	     event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
   // REMPI_DBGI(0, "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
   //        event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
 
@@ -701,9 +703,9 @@ int rempi_recorder_cdc::replay_testsome(
       rempi_event *e = replaying_event_vec.front();
       *outcount = 0;
 #ifdef REMPI_DBG_REPLAY      
-      REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): test_id: %d",
+      REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
 		 e ->get_event_counts(), e ->get_is_testsome(), e ->get_flag(),
-		 e ->get_source(), e ->get_clock(), test_id);
+		 e ->get_source(), e->get_tag(), e ->get_clock(), test_id);
 #endif
       delete replaying_event_vec.front();
       return ret;
@@ -776,9 +778,9 @@ int rempi_recorder_cdc::replay_testsome(
     for (int j = 0; j < replaying_event_vec.size(); j++) {
       //#ifdef REMPI_DBG_REPLAY	  
 #ifdef REMPI_DBG_REPLAY
-      REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): test_id: %d ",
+      REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d ",
 		 replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
-		 replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), test_id);
+		 replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_tag(), replaying_event_vec[j]->get_clock(), test_id);
 #endif
       delete replaying_event_vec[j];
     }

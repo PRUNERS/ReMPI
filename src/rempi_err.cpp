@@ -103,6 +103,18 @@ void rempi_dbgi(int r, const char* fmt, ...) {
   pthread_mutex_unlock (&print_mutex);
 }
 
+void rempi_printi(int r, const char* fmt, ...) {
+  if (my_rank != r && -1 != r) return;
+  pthread_mutex_lock (&print_mutex);
+  va_list argp;
+  fprintf(stdout, "REMPI:PRINT:%s:%3d: ", hostname, my_rank);
+  va_start(argp, fmt);
+  vfprintf(stdout, fmt, argp);
+  va_end(argp);
+  fprintf(stdout, "\n");
+  pthread_mutex_unlock (&print_mutex);
+}
+
 void rempi_debug(const char* fmt, ...)
 {
   va_list argp;

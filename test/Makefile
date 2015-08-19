@@ -15,10 +15,10 @@ rempi_test_neighbor_OBJS =  $(rempi_test_neighbor_SRCS:%.c=%.o)
 rempi_test_neighbor_DEPS =  $(rempi_test_neighbor_SRCS:%.c=%.d)
 rempi_test_neighbor_PROGRAM = rempi_test_neighbor
 
-rempi_test_neighbor-2_SRCS = rempi_test_neighbor-2.c rempi_test_util.c
-rempi_test_neighbor-2_OBJS =  $(rempi_test_neighbor-2_SRCS:%.c=%.o)
-rempi_test_neighbor-2_DEPS =  $(rempi_test_neighbor-2_SRCS:%.c=%.d)
-rempi_test_neighbor-2_PROGRAM = rempi_test_neighbor-2
+rempi_test_neighbor-tree_SRCS = rempi_test_neighbor-tree.c rempi_test_util.c
+rempi_test_neighbor-tree_OBJS =  $(rempi_test_neighbor-tree_SRCS:%.c=%.o)
+rempi_test_neighbor-tree_DEPS =  $(rempi_test_neighbor-tree_SRCS:%.c=%.d)
+rempi_test_neighbor-tree_PROGRAM = rempi_test_neighbor-tree
 
 rempi_test_clmpi_SRCS = rempi_test_clmpi.c rempi_test_util.c
 rempi_test_clmpi_OBJS =  $(rempi_test_clmpi_SRCS:%.c=%.o)
@@ -33,19 +33,19 @@ rempi_test_compress_PROGRAM = rempi_test_compress
 PROGRAMS= $(rempi_test_master_worker_PROGRAM) \
 	  $(rempi_test_isendrecv_PROGRAM) \
 	  $(rempi_test_neighbor_PROGRAM) \
-	  $(rempi_test_neighbor-2_PROGRAM) \
+	  $(rempi_test_neighbor-tree_PROGRAM) \
 	  $(rempi_test_clmpi_PROGRAM) \
 	  $(rempi_test_compress_PROGRAM)
 OBJS= $(rempi_test_master_worker_OBJS) \
       $(rempi_test_isendrecv_OBJS) \
       $(rempi_test_neighbor_OBJS) \
-      $(rempi_test_neighbor-2_OBJS) \
+      $(rempi_test_neighbor-tree_OBJS) \
       $(rempi_test_clmpi_OBJS) \
       $(rempi_test_compress_OBJS)
 DEPS= $(rempi_test_master_worker_DEPS) \
       $(rempi_test_isendrecv_DEPS) \
       $(rempi_test_neighbor_DEPS) \
-      $(rempi_test_neighbor-2_DEPS) \
+      $(rempi_test_neighbor-tree_DEPS) \
       $(rempi_test_clmpi_DEPS) \
       $(rempi_test_compress_DEPS)
 
@@ -72,7 +72,7 @@ $(rempi_test_isendrecv_PROGRAM): $(rempi_test_isendrecv_OBJS)
 $(rempi_test_neighbor_PROGRAM): $(rempi_test_neighbor_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
-$(rempi_test_neighbor-2_PROGRAM): $(rempi_test_neighbor-2_OBJS)
+$(rempi_test_neighbor-tree_PROGRAM): $(rempi_test_neighbor-tree_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 $(rempi_test_clmpi_PROGRAM): $(rempi_test_clmpi_OBJS)

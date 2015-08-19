@@ -25,5 +25,5 @@ int get_rand(int max)
 }
 
 int get_hash(int original_val, int max) {
-  return (original_val + get_rand(max)) % max;
+  return (original_val * original_val + original_val % 23) % max;
 }

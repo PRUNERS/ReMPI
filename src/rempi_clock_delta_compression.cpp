@@ -761,7 +761,7 @@ char* rempi_clock_delta_compression::compress(
       Map: 0 -> 0
     */
 
-#if 1
+#if 0
     list<pair<int, int>*>::iterator diff_it_1;
     REMPI_DBG(" ==== ");
     for (diff_it_1  = diff.begin(); 

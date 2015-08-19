@@ -32,6 +32,16 @@
 //	     __FILE__, __func__, __LINE__);
 
 
+#define REMPI_PRTI(i, dbg_fmt, ...)		\
+  rempi_printi(i, " "				\
+	    dbg_fmt				\
+	    " (%s:%d)",			\
+            ## __VA_ARGS__,			\
+            __FILE__, __LINE__);
+  //            __FILE__, __func__, __LINE__);
+
+
+
 void rempi_err_init(int r);
 void rempi_err(const char* fmt, ...);
 void rempi_erri(int r, const char* fmt, ...);
@@ -39,6 +49,7 @@ void rempi_alert(const char* fmt, ...);
 void rempi_dbg(const char* fmt, ...);
 void rempi_dbgi(int r, const char* fmt, ...);
 void rempi_print(const char* fmt, ...);
+void rempi_printi(int r, const char* fmt, ...);
 void rempi_debug(const char* fmt, ...);
 std::string rempi_btrace_string();
 void rempi_btrace();

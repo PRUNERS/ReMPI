@@ -328,8 +328,9 @@ rempi_encoder_cdc::rempi_encoder_cdc(int mode)
     PMPI_Win_allocate(sizeof(struct frontier_detection_clocks), sizeof(size_t), MPI_INFO_NULL, mpi_fd_clock_comm, &fd_clocks, &mpi_fd_clock_win);
     memset(fd_clocks, 0, sizeof(struct frontier_detection_clocks));
     PMPI_Win_lock_all(MPI_MODE_NOCHECK, mpi_fd_clock_win);
-    //PMPI_Win_lock_all(0, mpi_fd_clock_win);
+    //    PMPI_Win_lock_all(0, mpi_fd_clock_win);
   }
+
 
   return;
 }
@@ -363,11 +364,13 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
      In this way, we mimic asynchronously fetch and update. */
   //  PMPI_Win_flush_local_all(mpi_fd_clock_win);
   /* --------------------- */
+  
 
   for (i = 0; i < mc_length; ++i) {
     PMPI_Get(&mc_next_clocks[i], sizeof(size_t), MPI_BYTE, mc_recv_ranks[i], 0, sizeof(size_t), MPI_BYTE, mpi_fd_clock_win);
   }
   PMPI_Win_flush_local_all(mpi_fd_clock_win);
+
 
 // #ifdef REMPI_DBG_REPLAY
 //   for (int i = 0; i < mc_length; ++i) {
@@ -1367,7 +1370,7 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
       replay_event_vec[permutated_index] = replaying_event;
       added_count++;
     } else if (permutated_index < 0){
-      REMPI_ERR("permutated_index < 0");
+      REMPI_ERR("permutated_index:%d < 0 (record data may be truncated)", permutated_index);
     }
     if (i = outcount) {
       /*

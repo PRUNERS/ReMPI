@@ -251,16 +251,40 @@ int rempi_re_cdc::re_testsome(
     }
 #endif
     ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
+
     if (*outcount == 0) {
       int flag = 0;
+      /*TODO: 
+	PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK does not mean send request, but non-recv request.
+	It means that if the request is not called by Irecv, ReMPI regard the request as send request.
+	currently if at least one of requests is NOT PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK 
+	(which means one of request is called by Irecv), 
+        then ReMPI regard the rest of the request are recv requests that is not called by Irecv.
+	Thus, ReMPI record the events as unmatched event
+      */
+#if 1
+      int is_all_send_req = 1;
+      for (int i = 0; i < incount; i++) {
+	if(clocks[i] != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {	
+	  is_all_send_req = 0;
+	}
+      }
+
+      if (!is_all_send_req) {
+	recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
+      }
+#else
       if(clocks[0] != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
+	REMPI_PRTI(0, "outcount: %d", *outcount);
 	//	REMPI_DBG("aaa");
 	recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
       } else {
+	REMPI_PRTI(0, "skip outcount: %d", *outcount);
 #if 0	
 	REMPI_DBGI(1, "skipp flag = 0, clock: %d (incount: %d)", clocks[0], incount);
 #endif
       }
+#endif
     } else {
       for (int i = 0; i < *outcount; i++) {
 	int flag = 1;
@@ -359,12 +383,8 @@ int rempi_re_cdc::re_waitall(
 int rempi_re_cdc::re_finalize()
 {
   int ret;
-  
-
 
   ret = PMPI_Finalize();
-  sleep(1);
-  REMPI_DBG("----------------");
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = recorder->record_finalize();

@@ -105,8 +105,6 @@ int main(int argc, char *argv[])
       recv_msg_count[recv_index]++;
       if (recv_msg_count[recv_index] < MAX_MESG_PASS) {
 	MPI_Irecv(&recv_kv[recv_index], 8, MPI_CHAR, (my_rank + size - (recv_index + 1)) % size, MPI_ANY_TAG, MPI_COMM_WORLD, &request[recv_index]);
-      } else {
-	MPI_Irecv(&recv_kv[recv_index], 8, MPI_CHAR, (my_rank + size - (recv_index + 1)) % size, MPI_ANY_TAG, MPI_COMM_WORLD, &request[recv_index]);
       }
 
       if (send_msg_count[recv_index] < MAX_MESG_PASS) {
