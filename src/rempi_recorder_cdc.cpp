@@ -302,7 +302,6 @@ int rempi_recorder_cdc::record_test(
 #endif
   // REMPI_DBGI(0, "= Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
   // 	      event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
-
   // REMPI_DBG("Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
   //    event_count, with_previous, *flag,                                      
   // 	     record_source, record_tag, record_clock);
