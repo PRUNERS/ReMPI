@@ -40,6 +40,15 @@
             __FILE__, __LINE__);
   //            __FILE__, __func__, __LINE__);
 
+#define REMPI_PRT(dbg_fmt, ...)			\
+  rempi_print(" "					\
+	    dbg_fmt				\
+	    " (%s:%d)",			\
+            ## __VA_ARGS__,			\
+            __FILE__, __LINE__);
+
+
+
 
 
 void rempi_err_init(int r);

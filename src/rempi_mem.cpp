@@ -1,6 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+
+
 #include "rempi_err.h"
 
 unsigned long total_alloc_size = 0;
@@ -16,6 +21,9 @@ void* rempi_malloc(size_t size)
 
   //TODO: Manage memory consumption
   //  total_alloc_size += size;
+  // pid_t tid;
+  // tid = syscall(SYS_gettid);
+  // REMPI_DBG("malloc: %d, size: %lu", tid, size);
   //  rempi_dbg("malloc: done %d", total_alloc_size);
   return addr;
 }

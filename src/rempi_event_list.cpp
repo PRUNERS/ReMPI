@@ -18,24 +18,24 @@ template class rempi_event_list<rempi_event*>; // to tell compiler
 template <class T>
 size_t rempi_event_list<T>::size()
 {
-  mtx.lock();
+  //  mtx.lock();
   size_t result = events.rough_size();
-  mtx.unlock();
+  //  mtx.unlock();
   return result;
 }
 
 template <class T>
 void rempi_event_list<T>::normal_push(T event)
 {
-  mtx.lock();
+  //  mtx.lock();
   while (events.rough_size() >= max_size) {
-    mtx.unlock();
+    //    mtx.unlock();
     REMPI_DBG("rempi_event_list exceeded max_size");
     usleep(spin_time);
-    mtx.lock();
+    //    mtx.lock();
   }
   events.enqueue(event);
-  mtx.unlock();
+  //  mtx.unlock();
 }
 
 
@@ -64,15 +64,15 @@ void rempi_event_list<T>::push(rempi_event *event)
     (*this->previous_recording_event)++;
     delete event;
   } else {
-    mtx.lock();
+    //    mtx.lock();
     while (events.rough_size() >= max_size) {
-      mtx.unlock();
+      //      mtx.unlock();
       REMPI_DBG("rempi_event_list exceeded max_size");
       usleep(spin_time);
-      mtx.lock();
+      //      mtx.lock();
     }
     events.enqueue(previous_recording_event);
-    mtx.unlock();
+    //    mtx.unlock();
     previous_recording_event = event;
   }
   return;
@@ -87,15 +87,15 @@ void rempi_event_list<T>::push_all()
 
   if (previous_recording_event != NULL) {
     /*If previous is not empty, push the event to the event_list*/
-    mtx.lock();
+    //    mtx.lock();
     while (events.rough_size() >= max_size) {
-      mtx.unlock();
+      //      mtx.unlock();
       REMPI_DBG("rempi_event_list exceeded max_size");
       usleep(spin_time);
-      mtx.lock();
+      //      mtx.lock();
     }
     events.enqueue(previous_recording_event);
-    mtx.unlock();
+    //    mtx.unlock();
   }
 
   set_globally_minimal_clock(numeric_limits<size_t>::max());
@@ -145,11 +145,14 @@ T rempi_event_list<T>::dequeue_replay(int test_id, int &status)
   }
   
   /*Did io thread create the replay_events(test_id) spsc_queue instance for decoding ?*/
+  mtx.lock();
   if (replay_events.find(test_id) == replay_events.end()) {
     status = REMPI_EVENT_LIST_EMPTY;
+    mtx.unlock();
     return NULL;
   }
   spsc_queue = replay_events[test_id];
+  mtx.unlock();
 
 
   if (previous_replaying_event_umap[test_id] == NULL) {
@@ -325,31 +328,38 @@ template <class T>
 T rempi_event_list<T>::front_replay(int test_id)
 {
   rempi_spsc_queue<rempi_event*> *spsc_queue;
+  mtx.lock();
   if (replay_events.find(test_id) == replay_events.end()) {
+    mtx.unlock();
     return NULL;
   } 
   // else if (replay_events[test_id]->rough_size() == 0) {
   //   return NULL;
   // }
   T e = replay_events[test_id]->front();
+  mtx.unlock();
   return e; 
 }
 
 template <class T>
 void rempi_event_list<T>::enqueue_replay(T event, int test_id)
 {
+
   rempi_spsc_queue<rempi_event*> *spsc_queue;
+  mtx.lock();
   if (replay_events.find(test_id) == replay_events.end()) {
     replay_events[test_id] = new rempi_spsc_queue<rempi_event*>();
   }
 
   spsc_queue = replay_events[test_id];
+  mtx.unlock();
 
   while (spsc_queue->rough_size() >= max_size) {
     REMPI_DBG("rempi_event_list exceeded max_size");
     usleep(spin_time);
   }
   spsc_queue->enqueue(event);
+  return;
 }
 
 
@@ -357,14 +367,20 @@ template <class T>
 size_t rempi_event_list<T>::size_replay(int test_id)
 {
   rempi_spsc_queue<rempi_event*> *spsc_queue;
+  mtx.lock();
+  if (replay_events.find(test_id) == replay_events.end()) {
+    mtx.unlock();
+    return 0;
+  }
   spsc_queue = replay_events[test_id];
+  mtx.unlock();
   return spsc_queue->rough_size();
 }
 
 template <class T>
 T rempi_event_list<T>::pop()
 {
-  mtx.lock();
+  //  mtx.lock();
   /*
     while (events.rough_size() <= 0)
     {
@@ -375,7 +391,7 @@ T rempi_event_list<T>::pop()
     }
   */
   T item = events.dequeue();
-  mtx.unlock();
+  //  mtx.unlock();
   return item;
 }
 
@@ -383,9 +399,9 @@ T rempi_event_list<T>::pop()
 template <class T>
 T rempi_event_list<T>::front()
 {
-  mtx.lock();
+  //  mtx.lock();
   T item = events.front();
-  mtx.unlock();
+  //  mtx.unlock();
   return item;
 }
 

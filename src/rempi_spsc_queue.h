@@ -68,12 +68,16 @@ public:
           n = next;
       }
       while (n);
+      REMPI_ERR("rempi_spsc_queue is deleted, which is not intended");
   }
 
   size_t rough_size()
   {
     /*TODO: find out why this pointer sometime becomes NULL*/
-    while (this == NULL);
+    while (this == NULL) {
+      REMPI_DBG("this: %p", this);
+      sleep(1);
+    }
     return enqueue_count - dequeue_count;
 
   }

@@ -109,6 +109,7 @@ void rempi_io_thread::read_record()
     bool is_no_more_record;
 
     is_no_more_record = encoder->read_record_file(*input_format);
+
     if (is_no_more_record) {
       /*If replayed all recorded events, ...*/
       replaying_events->close_push();
@@ -116,10 +117,12 @@ void rempi_io_thread::read_record()
     } else {
       encoder->decode(*input_format);
       encoder->insert_encoder_input_format_chunk(*recording_events, *replaying_events, *input_format);
+
       delete input_format;
       input_format = encoder->create_encoder_input_format();
     }
   }
+
 #ifdef REMPI_DBG_REPLAY
   //  REMPI_DBGI(REMPI_DBG_REPLAY,"end ======");
   REMPI_DBG("end ====== (CDC thread)");

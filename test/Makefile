@@ -34,20 +34,17 @@ PROGRAMS= $(rempi_test_master_worker_PROGRAM) \
 	  $(rempi_test_isendrecv_PROGRAM) \
 	  $(rempi_test_neighbor_PROGRAM) \
 	  $(rempi_test_neighbor-tree_PROGRAM) \
-	  $(rempi_test_clmpi_PROGRAM) \
-	  $(rempi_test_compress_PROGRAM)
+	  $(rempi_test_clmpi_PROGRAM) 
 OBJS= $(rempi_test_master_worker_OBJS) \
       $(rempi_test_isendrecv_OBJS) \
       $(rempi_test_neighbor_OBJS) \
       $(rempi_test_neighbor-tree_OBJS) \
-      $(rempi_test_clmpi_OBJS) \
-      $(rempi_test_compress_OBJS)
+      $(rempi_test_clmpi_OBJS)
 DEPS= $(rempi_test_master_worker_DEPS) \
       $(rempi_test_isendrecv_DEPS) \
       $(rempi_test_neighbor_DEPS) \
       $(rempi_test_neighbor-tree_DEPS) \
-      $(rempi_test_clmpi_DEPS) \
-      $(rempi_test_compress_DEPS)
+      $(rempi_test_clmpi_DEPS)
 
 #$@: target name
 #$<: first dependent file

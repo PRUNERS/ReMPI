@@ -71,6 +71,7 @@ int rempi_re_cdc::re_init(int *argc, char ***argv)
 {
   int ret;
   int provided;
+
   /*Init CLMPI*/
   init_clmpi();
 
@@ -89,7 +90,9 @@ int rempi_re_cdc::re_init(int *argc, char ***argv)
   } else {
     //TODO: Check if inputs are same as values in recording run
     //TODO: Check if this is same run as the last recording run
+
     recorder->replay_init(argc, argv, my_rank);
+
   }
   return ret;
 }
@@ -130,8 +133,10 @@ int rempi_re_cdc::re_isend(
 		       MPI_Request *request)
 {
   int ret;
+#ifdef REMPI_DBG_REPLAY
   size_t clock;
   clmpi_get_local_clock(&clock);
+#endif
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
 #ifdef REMPI_DBG_REPLAY
   REMPI_DBGI(REMPI_DBG_REPLAY, "  Send: request: %p dest: %d, tag: %d, clock: %d, count: %d", *request, dest, tag, clock, count);
@@ -243,7 +248,7 @@ int rempi_re_cdc::re_testsome(
   }
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    clocks = (size_t*)malloc(sizeof(size_t) * incount);
+    clocks = (size_t*)rempi_malloc(sizeof(size_t) * incount);
     clmpi_register_recv_clocks(clocks, incount);
 #if 0
     for (int i = 0; i < incount; i++) {
@@ -255,7 +260,7 @@ int rempi_re_cdc::re_testsome(
     if (*outcount == 0) {
       int flag = 0;
       /*TODO: 
-	PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK does not mean send request, but non-recv request.
+	PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK does not mean it's send request, but mean it's not recv request.
 	It means that if the request is not called by Irecv, ReMPI regard the request as send request.
 	currently if at least one of requests is NOT PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK 
 	(which means one of request is called by Irecv), 
@@ -358,7 +363,7 @@ int rempi_re_cdc::re_waitall(
   }
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    clocks = (size_t*)malloc(sizeof(size_t) * incount);
+    clocks = (size_t*)rempi_malloc(sizeof(size_t) * incount);
     clmpi_register_recv_clocks(clocks, incount);
     ret = PMPI_Waitall(incount, array_of_requests, array_of_statuses);
 
