@@ -300,9 +300,11 @@ int rempi_recorder_cdc::record_test(
   REMPI_DBGI(REMPI_DBG_REPLAY, "= Record: (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
 	     event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
 #endif
-  // REMPI_DBGI(0, "= Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
-  // 	      event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
-  // REMPI_DBG("Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
+  // if (*flag == 1) {
+  //   REMPI_DBGI(0, "= Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
+  // 	       event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
+  // }
+    // REMPI_DBG("Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
   //    event_count, with_previous, *flag,                                      
   // 	     record_source, record_tag, record_clock);
   recording_event_list->push(new rempi_test_event(event_count, with_previous, record_comm_id, *flag, record_source, record_tag, record_clock, test_id));
@@ -780,6 +782,9 @@ int rempi_recorder_cdc::replay_testsome(
 		 replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
 		 replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_tag(), replaying_event_vec[j]->get_clock(), recv_test_id);
 #endif
+      // REMPI_DBGI(0, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): recv_test_id: %d ",
+      // 		 replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
+      // 		 replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_tag(), replaying_event_vec[j]->get_clock(), recv_test_id);
 
       delete replaying_event_vec[j];
     }

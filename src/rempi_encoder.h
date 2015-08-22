@@ -103,6 +103,7 @@ class rempi_encoder_input_format
   int    *mc_recv_ranks;//  = NULL; 
   /*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*/
   size_t *mc_next_clocks;// = NULL;
+  size_t *tmp_mc_next_clocks;
   /* ======================*/
   
 
@@ -122,7 +123,8 @@ class rempi_encoder_input_format
     : total_length(0)
     , mc_length(-1)
     , mc_recv_ranks(NULL)
-    , mc_next_clocks(NULL) {}
+    , mc_next_clocks(NULL)
+    , tmp_mc_next_clocks(NULL) {}
 
   /*For CDC replay*/
   void clear();
@@ -148,6 +150,10 @@ class rempi_encoder
     int    *mc_recv_ranks;//  = NULL; 
     /*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*/
     size_t *mc_next_clocks;// = NULL;
+    /* temporal array until in-flight message checking*/
+    size_t *tmp_mc_next_clocks;  
+    /* If no in-flight message, copyed from tmp_mc_next_clocks to solid_ordered_event_list*/
+    unordered_map<int, size_t> solid_mc_next_clocks_umap; 
     /* ======================*/
 
     vector<size_t> write_size_vec;
@@ -164,6 +170,7 @@ class rempi_encoder
       , mc_length(0)
       , mc_recv_ranks(NULL)
       , mc_next_clocks(NULL) 
+      , tmp_mc_next_clocks(NULL) 
       , num_of_recv_msg_in_next_event(NULL)
       , interim_min_clock_in_next_event(NULL) {}
 
@@ -184,9 +191,10 @@ class rempi_encoder
 
     /*TODO: Due to multi-threaded issues in MPI/PNMPI, we define this function.
       But we would like to remove this function in future*/
-    virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
+    virtual void fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock);
     virtual void update_local_min_id(int min_recv_rank, size_t min_next_clock);
     virtual void update_fd_next_clock(int is_waiting_recv, int num_of_recv_msg_in_next_event, size_t interim_min_clock_in_next_event);
+    virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock);
 
     
     /*Old functions for replay*/
@@ -225,7 +233,7 @@ class rempi_encoder_cdc : public rempi_encoder
   MPI_Comm mpi_fd_clock_comm;
   MPI_Win mpi_fd_clock_win;
   PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
-  struct local_minimal_id local_min_id; //= {.rank=-1, .clock=0};
+  struct local_minimal_id global_local_min_id; 
   struct frontier_detection_clocks *fd_clocks;// = NULL;
 
   /* ============================== */
@@ -262,6 +270,7 @@ class rempi_encoder_cdc : public rempi_encoder
   virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
   virtual void update_local_min_id(int min_recv_rank, size_t min_next_clock);
   virtual void update_fd_next_clock(int is_waiting_recv, int num_of_recv_msg_in_next_event, size_t interim_min_clock_in_next_event);
+  virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock);
 
   //  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };

@@ -138,8 +138,10 @@ int rempi_re_cdc::re_isend(
   clmpi_get_local_clock(&clock);
 #endif
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
+
 #ifdef REMPI_DBG_REPLAY
-  REMPI_DBGI(REMPI_DBG_REPLAY, "  Send: request: %p dest: %d, tag: %d, clock: %d, count: %d", *request, dest, tag, clock, count);
+  if (dest == REMPI_DBG_REPLAY) {
+    REMPI_DBG("  Send: request: %p dest: %d, tag: %d, clock: %d, count: %d", *request, dest, tag, clock, count);
 #endif
 
   return ret;

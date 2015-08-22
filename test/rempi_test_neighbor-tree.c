@@ -119,9 +119,6 @@ int bin_reduction_end()
   }  
   //  fprintf(stderr, "my_rank: %3d: complete finalize\n", my_rank);
 
-
-
-  usleep(my_rank * 10000);
   //  printf("my_rank: %3d, num_children: %3d\n", my_rank, num_children); 
   /* exit(0); */
   return 0;
