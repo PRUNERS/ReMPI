@@ -499,14 +499,14 @@ int rempi_recorder_cdc::replay_testsome(
 #endif
 
 #ifdef REMPI_DBG_REPLAY	  
-  for (int i = 0; i < incount; i++) {
-    if (request_to_irecv_inputs_umap.find(array_of_requests[i]) != request_to_irecv_inputs_umap.end()) {
-      rempi_proxy_request *proxy_request;
-      irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[i]];
-      proxy_request = irecv_inputs->request_proxy_list.front();
-      REMPI_DBGI(REMPI_DBG_REPLAY, "   Test: request:%p(%p) source:%d tag:%d count:%d", &proxy_request->request, proxy_request, irecv_inputs->source, irecv_inputs->tag, irecv_inputs->count);
-    }
-  }
+  // for (int i = 0; i < incount; i++) {
+  //   if (request_to_irecv_inputs_umap.find(array_of_requests[i]) != request_to_irecv_inputs_umap.end()) {
+  //     rempi_proxy_request *proxy_request;
+  //     irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[i]];
+  //     proxy_request = irecv_inputs->request_proxy_list.front();
+  //     REMPI_DBGI(REMPI_DBG_REPLAY, "   Test: request:%p(%p) source:%d tag:%d count:%d", &proxy_request->request, proxy_request, irecv_inputs->source, irecv_inputs->tag, irecv_inputs->count);
+  //   }
+  // }
 #endif
 
 

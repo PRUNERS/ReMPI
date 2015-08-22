@@ -96,7 +96,7 @@ int bin_reduction_end()
       //      fprintf(stderr, "rank %d: 2. >>>>>>>>> communicator: %p <<<<<<<<<<< recv_count: %d, num_children: %d\n",
       //      	      my_rank, reduction_comm, recv_count, num_children);
       MPI_Irecv(&reduction_val, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, reduction_comm, &reduction_recv_req);
-      //    if (recv_count < num_children) MPI_Irecv(&reduction_val, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, reduction_comm, &reduction_recv_req);
+      //   if (recv_count < num_children) MPI_Irecv(&reduction_val, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, reduction_comm, &reduction_recv_req);
       //    if (recv_count < num_children) MPI_Irecv(&reduction_val, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &reduction_recv_req);
     }
   }
@@ -119,6 +119,7 @@ int bin_reduction_end()
   }  
   //  fprintf(stderr, "my_rank: %3d: complete finalize\n", my_rank);
 
+  usleep(my_rank * 10000);
   //  printf("my_rank: %3d, num_children: %3d\n", my_rank, num_children); 
   /* exit(0); */
   return 0;
@@ -271,12 +272,14 @@ int main(int argc, char *argv[])
     bin_reduction_end();
 #endif
 
+    MPI_Barrier(MPI_COMM_WORLD); /*<= korehazushitemo daizyoubuni shi ro !!! MPI_Cancel problem*/
 
     /* for (i = 0; i < NUM_KV_PER_RANK; ++i)  { */
     /*   fprintf(stderr, "-- rank: %d: key: %d, val: %d index: %d\n", my_rank, recv_kv[i].key, recv_kv[i].val, i); */
     /* } */
 
   } // end: for
+
   //  fprintf(stderr, "2. my_rank: %d: test -----\n", my_rank);
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Comm_free(&reduction_comm);
@@ -292,7 +295,6 @@ int main(int argc, char *argv[])
   
   final_kv = (struct key_val*)malloc(sizeof(struct key_val) * NUM_KV_PER_RANK * size);  
   memset(final_kv, 0, sizeof(final_kv));
-
   MPI_Gather(recv_kv, 2 * NUM_KV_PER_RANK, MPI_INT, final_kv, 2 * NUM_KV_PER_RANK, MPI_INT, 0, MPI_COMM_WORLD);
 
   int hash = 1;

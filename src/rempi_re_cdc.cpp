@@ -142,6 +142,7 @@ int rempi_re_cdc::re_isend(
 #ifdef REMPI_DBG_REPLAY
   if (dest == REMPI_DBG_REPLAY) {
     REMPI_DBG("  Send: request: %p dest: %d, tag: %d, clock: %d, count: %d", *request, dest, tag, clock, count);
+  }
 #endif
 
   return ret;
