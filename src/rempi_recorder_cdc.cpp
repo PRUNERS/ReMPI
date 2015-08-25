@@ -585,7 +585,7 @@ int rempi_recorder_cdc::replay_testsome(
 	recv_test_id = get_recv_test_id(test_id);
 
 #ifdef REMPI_DBG_REPLAY
-	REMPI_DBGI(REMPI_DBG_REPLAY, "   Test: request:%p(%p) source:%d tag:%d size:%d req:%p", &proxy_request->request, proxy_request, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, irecv_inputs->request_proxy_list.size(), array_of_requests[i]);
+	//	REMPI_DBGI(REMPI_DBG_REPLAY, "   Test: request:%p(%p) source:%d tag:%d size:%d req:%p", &proxy_request->request, proxy_request, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, irecv_inputs->request_proxy_list.size(), array_of_requests[i]);
 #endif
 
 
@@ -643,9 +643,22 @@ int rempi_recorder_cdc::replay_testsome(
       if (mc_encoder->num_of_recv_msg_in_next_event != NULL && 
 	  mc_encoder->interim_min_clock_in_next_event != NULL) {
 	num_of_recv_msg_in_next_event = mc_encoder->num_of_recv_msg_in_next_event[recv_test_id];
-	/*If num_of_recv_msg_in_next_event > 0 (Condition A), this means CDC now trying to replay recv event next. 
-	  So if replaying_events_list->dequeue_replay does not return enough replay events (Condition B), this means 
-	  this main thread deuque "recv" events next*/
+	/* ===== NOTE ================================================================================================
+	   If num_of_recv_msg_in_next_event > 0 (Condition A), this means CDC now trying to replay recv event next. 
+	   So if replaying_events_list->dequeue_replay does not return enough replay events (Condition B), this means 
+	   this main thread deuque "recv" events next
+	   -- Main thread --
+	   Get  : num_of_recv_msg_in_next_event & interim_min_clock_in_next_event
+	   Test : Any in Replay_queue ?
+	   if (Test is false) Update : fd_next_clock
+	   -----------------
+	   -- CDC thread --
+	   Test : Is replaying matched events ?
+	   if (Test is true) Update: num_of_recv_msg_in_next_event & interim_min_clock_in_next_event
+	   if (Replaying events) : num_of_recv_msg_in_next_event = 0
+	   Update: Replay_queue
+	   -------------------
+	   ===========================================================================================================*/
 	if (mc_encoder->interim_min_clock_in_next_event == NULL) {
 	  REMPI_ERR("interim: %p", mc_encoder->interim_min_clock_in_next_event);
 	}

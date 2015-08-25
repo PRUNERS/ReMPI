@@ -12,7 +12,7 @@
 #define MAX_VAL (100)
 #define MAX_MESG_PASS (4)
 
-#define USE_MPI_SEND
+//#define USE_MPI_SEND
 #define USE_BIN_REDUCTION
 
 

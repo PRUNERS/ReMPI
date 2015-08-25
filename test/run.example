@@ -1,0 +1,16 @@
+LD_PRELOAD=../lib/librempi.so srun -n  rempi_test_neighbor
+LD_PRELOAD=/g/g90/sato5/opt/lib/libpnmpi.so PNMPI_CONF=./.pnmpi-conf-test PNMPI_LIB_PATH=/g/g90/sato5/opt/lib/pnmpi-modules/ ./M_mcb_coral_x86_val-sierra-part.csh 160000 12
+LD_PRELOAD=/g/g90/sato5/repo/WMPI/mpi_statistics/libfsmpi.so ./M_mcb_coral_x86_val-sierra-part.csh 40000 12
+LD_PRELOAD=/g/g90/sato5/opt/lib/libpnmpi.so REMPI_MODE=0 PNMPI_CONF=./.pnmpi-conf-test PNMPI_LIB_PATH=/g/g90/sato5/opt/lib/pnmpi-modules/ srun -n 2 ./rempi_test_neighbor
+LD_PRELOAD=/g/g90/sato5/opt/lib/libpnmpi.so REMPI_MODE=0 PNMPI_CONF=./.pnmpi-conf-test PNMPI_LIB_PATH=/g/g90/sato5/opt/lib/pnmpi-modules/ srun -n 2 ./rempi_test_neighbor
+REMPI_MODE=0 LD_PRELOAD=/g/g90/sato5/opt/lib/libpnmpi.so PNMPI_CONF=./.pnmpi-conf-test PNMPI_LIB_PATH=/g/g90/sato5/opt/lib/pnmpi-modules/ srun -n 3 ./rempi_test_master_worker
+REMPI_MODE= REMPI_DIR=./.rempi LD_PRELOAD=/g/g90/sato5/opt/lib/libpnmpi.so PNMPI_CONF=./.pnmpi-conf-test PNMPI_LIB_PATH=/g/g90/sato5/opt/lib/pnmpi-modules/ srun -n 3 ./rempi_test_master_worker
+REMPI_MODE=0 REMPI_DIR=./.rempi LD_PRELOAD=/g/g90/sato5/opt/lib/libpnmpi.so PNMPI_CONF=./.pnmpi-conf-test PNMPI_LIB_PATH=/g/g90/sato5/opt/lib/pnmpi-modules/ srun -n 4 ./rempi_test_neighbor
+LD_LIBRARY_PATH=/g/g90/sato5/repo/rempi/lib:/g/g90/sato5/opt/lib/ ./rempi_test_compress
+REMPI_MODE=0 REMPI_DIR=./.rempi REMPI_ENCODE=0 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=/g/g90/sato5/opt/lib/libpnmpi.so PNMPI_CONF=./.pnmpi-conf-test PNMPI_LIB_PATH=/g/g90/sato5/opt/lib/pnmpi-modules/ srun -n 4 ./rempi_test_neighbor
+export LD_LIBRARY_PATH=/usr/local/tools/ic-14.0.174/lib/:$LD_LIBRARY_PATH; REMPI_MODE=1 REMPI_DIR=./.rempi REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=/g/g90/sato5/opt/lib/libpnmpi.so PNMPI_CONF=./.pnmpi-conf-test PNMPI_LIB_PATH=/g/g90/sato5/opt/lib/pnmpi-modules/ srun -n 4 ./rempi_test_neighbor
+LD_PRELOAD=/g/g90/sato5/opt/lib/libpnmpi.so PNMPI_CONF=./.pnmpi-conf-test-clmpi PNMPI_LIB_PATH=/g/g90/sato5/opt/lib/pnmpi-modules/ srun -n 4 ./rempi_test_clmpi
+REMPI_MODE=0 REMPI_DIR=./.rempi REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=/g/g90/sato5/opt/lib/libpnmpi.so PNMPI_CONF=./.pnmpi-conf-test PNMPI_LIB_PATH=/g/g90/sato5/opt/lib/pnmpi-modules/ srun -n 4 ./rempi_test_neighbor
+REMPI_MODE=0or1 REMPI_DIR=./.rempi REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=/g/g90/sato5/opt/lib/libpnmpi.so PNMPI_CONF=./.pnmpi-conf-test PNMPI_LIB_PATH=/g/g90/sato5/opt/lib/pnmpi-modules/ srun -n 4 ./rempi_test_neighbor-2
+for i in 0 1 2 3; do grep ":  $i:" log0 | grep Record | cut -d: -f6-12 > record.log; grep ":  $i:" log1 | grep Replay | cut -d: -f6-12  > replay.log; diff record.log replay.log; wc -l record.log replay.log; done
+

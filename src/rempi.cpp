@@ -139,6 +139,8 @@ _EXTERN_C_ int MPI_Cancel(MPI_Request *arg_0) {
   int _wrap_py_return_val = 0;
   {
     /*Message pooling is needed, and arg_0 is not used internal. so ignore this cancel*/
+    //    REMPI_ERR("MPI_Cancel called");
+    REMPI_DBG("MPI_Cancel called");
     _wrap_py_return_val = rempi_record_replay->re_cancel(arg_0);
   }    return _wrap_py_return_val;
 }
