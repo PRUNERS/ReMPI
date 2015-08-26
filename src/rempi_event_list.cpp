@@ -378,6 +378,34 @@ size_t rempi_event_list<T>::size_replay(int test_id)
 }
 
 template <class T>
+size_t rempi_event_list<T>::get_enqueue_count(int test_id)
+{
+  rempi_spsc_queue<rempi_event*> *spsc_queue;
+  mtx.lock();
+  if (replay_events.find(test_id) == replay_events.end()) {
+    mtx.unlock();
+    return 0;
+  }
+  spsc_queue = replay_events[test_id];
+  mtx.unlock();
+  return spsc_queue->get_enqueue_count();
+}
+
+template <class T>
+size_t rempi_event_list<T>::get_dequeue_count(int test_id)
+{
+  rempi_spsc_queue<rempi_event*> *spsc_queue;
+  mtx.lock();
+  if (replay_events.find(test_id) == replay_events.end()) {
+    mtx.unlock();
+    return 0;
+  }
+  spsc_queue = replay_events[test_id];
+  mtx.unlock();
+  return spsc_queue->get_dequeue_count();
+}
+
+template <class T>
 T rempi_event_list<T>::pop()
 {
   //  mtx.lock();

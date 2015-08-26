@@ -51,6 +51,8 @@ class rempi_event_list
   }
   /*TODO: push -> enqueue, pop -> dequeue */
   size_t size();
+  size_t get_enqueue_count(int test_id);
+  size_t get_dequeue_count(int test_id);
   void normal_push(T event);
   void push(rempi_event *event);
   void push_all();

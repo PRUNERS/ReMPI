@@ -441,7 +441,6 @@ void rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_c
     solid_mc_next_clocks_umap[mc_recv_ranks[i]] = tmp_mc_next_clocks[i];
   }
   //  memcpy(solid_mc_next_clocks, tmp_mc_next_clocks, sizeof(size_t) * mc_length);  
-
 #ifdef REMPI_DBG_REPLAY
   int    last_local_min_id_rank  = global_local_min_id.rank;
   size_t last_local_min_id_clock = global_local_min_id.clock;
@@ -1045,13 +1044,17 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     this->mc_length      = input_format.mc_length;
     /*array for waiting receive msg count for each test_id*/
     //    int    *tmp =  new int[input_format.test_tables_map.size()];;
+
     int    *tmp =  (int*)rempi_malloc(sizeof(int) * input_format.test_tables_map.size());
     memset(tmp, 0, sizeof(int) * input_format.test_tables_map.size());
     this->num_of_recv_msg_in_next_event = tmp;
     //    size_t *tmp2 = new size_t[input_format.test_tables_map.size()];;
     size_t *tmp2 = (size_t*)rempi_malloc(sizeof(size_t) *input_format.test_tables_map.size());
     memset(tmp2, 0, sizeof(size_t) * input_format.test_tables_map.size());
-    this->interim_min_clock_in_next_event = tmp2;
+    this->dequeued_count = tmp2;
+    size_t *tmp3 = (size_t*)rempi_malloc(sizeof(size_t) *input_format.test_tables_map.size());
+    memset(tmp3, 0, sizeof(size_t) * input_format.test_tables_map.size());
+    this->interim_min_clock_in_next_event = tmp3;
   }
 
   
@@ -1305,26 +1308,31 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
   /*
     Before main thread increases next_clock via udpate_fd_next_clock(),
     with is_waiting_recv=1, main thread
-    (1) checks if next events are recv events (+ how many recv events), so that main
-    thread can make sure that 
+    (1) checks if next events are recv events, so that main
+    thread can make sure it
     (2) then, checks if replay queue is empty.
     If condition (1) & (2) both hold, the next event is recve event.
 
 
-    (1):
+    (1): -- CDC thread --
       So firstly, CDC needs to tell condition for (1)
       CDC events flow:
         CDC thread (Decode event, and put  => replay_list => 
            => replay_queue) => Main thread get events
       
-      At this point, all replayed events are visible to Main thread. 
-      So, if CDC thread increase num_of_recv_msg_in_next_event[test_id],
-      the information is consistent between CDC and Main thread
+      At this point, all replayed events are visible to Main thread.
+      So, if CDC's "is_waiting_msg is TREUE", and 
+      "handling_msg_count == adding_msg_count", then 
+      Condition (1) is held.
 
-    (2):
-      If it's empty, and (1) is held, recv events happens before send events.
-      This means next sending clock are increased by the number of the consecutive recve events.
-      When the number of the consecutive recv events is N, we update next_clock as min_clock + N;
+    (2): -- Main thread --
+      Main thread check 
+         first, "Condition (1)" 
+	 then, check if replay queue is empty.
+      In this case, main thread know 
+        1. Next events is receive, 
+	2. And, a clock of the receive event at least more than global_local_min_id
+	3. Thus, next_clock = max(global_local_min, local_clock) + 1
 
    */
   /* =========================================================*/
@@ -1443,13 +1451,12 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 
   /* ==== Condition for (1) ===================================*/
   /*At this point, CDC replay receve event, so increment the value*/
-  num_of_recv_msg_in_next_event[test_id] = outcount;
-  if (test_table->solid_ordered_event_list.size() < outcount) {
-    if (test_table->solid_ordered_event_list.size() > 0) {
-      interim_min_clock_in_next_event[test_id] = (size_t)test_table->solid_ordered_event_list.back()->get_clock();
-    }
-
-  } 
+  // num_of_recv_msg_in_next_event[test_id] = outcount;
+  // if (test_table->solid_ordered_event_list.size() < outcount) {
+  //   if (test_table->solid_ordered_event_list.size() > 0) {
+  //     interim_min_clock_in_next_event[test_id] = (size_t)test_table->solid_ordered_event_list.back()->get_clock();
+  //   }
+  // } 
   /* =========================================================*/
 
   int i = 0;
@@ -1485,21 +1492,49 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
   /*Check if all replaying events occured, 
     and are added to replay_event_vec*/
   if (added_count != outcount) {
-    /*If all replaying is not present ... */
-    /*Abort it */
+    /*If all replaying is not present, i.e., need more messages to replay, 
+      then, revoke(clear) this incomplete replay_event_vec  */
     replay_event_vec.clear();
 #ifdef REMPI_DBG_REPLAY
     //    REMPI_DBGI(REMPI_DBG_REPLAY, "abort !! outcount: %d, but added_count: %d", outcount, added_count);
 #endif
     int ret = test_table->is_decoded_all();
+    if (ret == true) {
+      REMPI_ERR("Inconsistent Replayed events and Recorded events");
+    }
+
+    /* ==== Condition for (1) ===================================*/
+    /*At this point, now, CDC need more msgs to replay.*/
+    num_of_recv_msg_in_next_event[test_id] = outcount;
+    size_t previous_count = dequeued_count[test_id];
+    dequeued_count[test_id] = test_table->replayed_matched_event_index 
+                                    + test_table->ordered_event_list.size() 
+                                    + test_table->solid_ordered_event_list.size();
+    if (previous_count > dequeued_count[test_id]) {
+      REMPI_ERR("dequeued_count does not monotonously increase; "
+		"(previous: %lu, new: %lu). "
+		"This is usually caused in the multiple chunk mode \n",
+		previous_count, dequeued_count[test_id]); 
+      /* ------------------------------------------*/
+      /*the below is a code to work around this problem,
+        but I do not use this code for now*/
+      dequeued_count[test_id] = test_table->replayed_matched_event_index 
+	                                + test_table->ordered_event_list.size() 
+	                                + test_table->solid_ordered_event_list.size()
+	                                + previous_count;
+      /* ------------------------------------------*/
+    }
+
+    /* =========================================================*/
     return ret;
+  } else {
+    /* ==== Condition for (1) ===================================*/
+    /*At this point, now, the recv msg will be replayed, 
+      and we do not know what the next event is now, so set 0*/
+    num_of_recv_msg_in_next_event[test_id] = 0;
+    /* =========================================================*/
   }
 
-  /* ==== Condition for (1) ===================================*/
-  /*At this point, now, the recv msg will be replayed, 
-   and we do not know what the next event is now, so set 0*/
-  num_of_recv_msg_in_next_event[test_id] = 0;
-  /* =========================================================*/
 
   /* Put with_next value  */
   for (int i = 0, n = replay_event_vec.size(); i < n; i++) {
@@ -1582,27 +1617,43 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 }
 
 
-void rempi_encoder_cdc::update_fd_next_clock(int is_waiting_recv, int num_of_recv_msg_in_next_event, size_t interim_min_clock_in_next_event)
+void rempi_encoder_cdc::update_fd_next_clock(
+					     int is_waiting_recv, 
+					     int num_of_recv_msg_in_next_event, 
+					     size_t interim_min_clock_in_next_event, 
+					     size_t enqueued_count,
+					     int recv_test_id)
 {
   size_t clock;
   size_t next_clock = 0;
   clmpi_get_local_clock(&clock);
+  bool is_waiting_msg = false;
   /*If waiting message recv to replay an event, the sending clock (next_clock) is bigger than "clock" by +1 */
+  /*
+    If is_waiting_recv == true, it means next events are matched recv event. 
+    If is_waiting_msg == true,  it means next events are matched recv event, 
+      and the events is triggered by a message which it have not received
+   */
   if (is_waiting_recv) {
-    /*min*/
-    next_clock = (interim_min_clock_in_next_event < global_local_min_id.clock)? interim_min_clock_in_next_event:global_local_min_id.clock;
+    is_waiting_msg = (enqueued_count == dequeued_count[recv_test_id]);
+    if (is_waiting_msg) {
+      next_clock = global_local_min_id.clock;
+    } else {
+      /*min*/
+      next_clock = (interim_min_clock_in_next_event < global_local_min_id.clock)? interim_min_clock_in_next_event:global_local_min_id.clock;
+    }
     /*max*/
     next_clock = (clock < next_clock)? next_clock:clock;
-    //next_clock += num_of_recv_msg_in_next_event;
-    next_clock += 1;
+    next_clock += 1; //next_clock += num_of_recv_msg_in_next_event; => this is wrong, must be +1
   } else {
     next_clock = clock;
   }
 
 #ifdef REMPI_DBG_REPLAY  
   if (fd_clocks->next_clock < next_clock) {
-    REMPI_DBGI(REMPI_DBG_REPLAY, "NEXT Clock Update: from %d to %d:  (local_min (rank: %d, clock: %lu), local: %d num: %d)", 
-	       fd_clocks->next_clock, next_clock, global_local_min_id.rank, global_local_min_id.clock, clock, num_of_recv_msg_in_next_event);
+    REMPI_DBGI(REMPI_DBG_REPLAY, "NEXT Clock Update: from %d to %d:  (local_min (rank: %d, clock: %lu), local: %d num: %d): is_waiting_recv: %d, is_waiting_msg: %d", 
+	       fd_clocks->next_clock, next_clock, global_local_min_id.rank, global_local_min_id.clock, 
+	       clock, num_of_recv_msg_in_next_event, is_waiting_recv, is_waiting_msg);
   }
 #endif
   if (fd_clocks->next_clock < next_clock) {

@@ -82,6 +82,14 @@ public:
 
   }
 
+  size_t get_enqueue_count() {
+    return enqueue_count;
+  }
+
+  size_t get_dequeue_count() {
+    return dequeue_count;
+  }
+
   void enqueue(T v)
   {
       node* n = alloc_node();

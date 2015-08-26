@@ -223,7 +223,7 @@ int rempi_recorder_cdc::replay_irecv(
   }
 
 #ifdef REMPI_DBG_REPLAY
-  REMPI_DBGI(REMPI_DBG_REPLAY, "  Irecv called");
+  REMPI_DBGI(REMPI_DBG_REPLAY, "  Irecv called (source:%d, tag:%d, proxy_length:%d)", source, tag, irecv_inputs->request_proxy_list.size());
 #endif
   
   return ret;
@@ -517,7 +517,7 @@ int rempi_recorder_cdc::replay_testsome(
 
     /*The last two 0s are not used, if the first vaiable is 0 
       Update next sending out clock for frontier detection*/
-    mc_encoder->update_fd_next_clock(0, 0, 0); /*Update next sending out clock for frontier detection*/
+    mc_encoder->update_fd_next_clock(0, 0, 0, 0, 0); /*Update next sending out clock for frontier detection*/
 
     /* ======================================================== */
     /* Frontier detection: Step 1                               */
@@ -587,7 +587,6 @@ int rempi_recorder_cdc::replay_testsome(
 #ifdef REMPI_DBG_REPLAY
 	//	REMPI_DBGI(REMPI_DBG_REPLAY, "   Test: request:%p(%p) source:%d tag:%d size:%d req:%p", &proxy_request->request, proxy_request, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, irecv_inputs->request_proxy_list.size(), array_of_requests[i]);
 #endif
-
 
 	clmpi_register_recv_clocks(&clock, 1);
 	clmpi_clock_control(0);
@@ -659,7 +658,7 @@ int rempi_recorder_cdc::replay_testsome(
 	   Update: Replay_queue
 	   -------------------
 	   ===========================================================================================================*/
-	if (mc_encoder->interim_min_clock_in_next_event == NULL) {
+	if (mc_encoder->interim_min_clock_in_next_event == NULL) { /*TODO: remove this because this is already checked in the above*/
 	  REMPI_ERR("interim: %p", mc_encoder->interim_min_clock_in_next_event);
 	}
 	interim_min_clock_in_next_event = mc_encoder->interim_min_clock_in_next_event[recv_test_id];
@@ -687,7 +686,8 @@ int rempi_recorder_cdc::replay_testsome(
 	break;
       } else {
 	if (num_of_recv_msg_in_next_event > 0) { /*checking Condition A*/
-	  mc_encoder->update_fd_next_clock(1, num_of_recv_msg_in_next_event, interim_min_clock_in_next_event);
+	  mc_encoder->update_fd_next_clock(1, num_of_recv_msg_in_next_event, interim_min_clock_in_next_event, 
+					   recording_event_list->get_enqueue_count(recv_test_id), recv_test_id);
 	}
       }
 
@@ -772,7 +772,7 @@ int rempi_recorder_cdc::replay_testsome(
       }
       /*The last two 0s are not used, if the first vaiable is 0 
 	Update next sending out clock for frontier detection*/
-      mc_encoder->update_fd_next_clock(0, 0, 0); 
+      mc_encoder->update_fd_next_clock(0, 0, 0, 0, 0); 
     } else {
       REMPI_ERR("request does no exist in request_to_irecv_inputs_umap");
     }

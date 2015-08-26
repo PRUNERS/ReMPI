@@ -161,6 +161,7 @@ class rempi_encoder
  public:
     int *num_of_recv_msg_in_next_event;// = NULL; /*array[i] contain the number of test_id=i*/
     size_t *interim_min_clock_in_next_event;// = NULL;
+    size_t *dequeued_count;// = NULL;
 
     rempi_event_list<rempi_event*> *events;
 
@@ -172,7 +173,9 @@ class rempi_encoder
       , mc_next_clocks(NULL) 
       , tmp_mc_next_clocks(NULL) 
       , num_of_recv_msg_in_next_event(NULL)
-      , interim_min_clock_in_next_event(NULL) {}
+      , interim_min_clock_in_next_event(NULL) 
+      , dequeued_count(NULL)
+      {}
 
     /*Common for record & replay*/
     virtual rempi_encoder_input_format* create_encoder_input_format();
@@ -193,7 +196,12 @@ class rempi_encoder
       But we would like to remove this function in future*/
     virtual void fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock);
     virtual void update_local_min_id(int min_recv_rank, size_t min_next_clock);
-    virtual void update_fd_next_clock(int is_waiting_recv, int num_of_recv_msg_in_next_event, size_t interim_min_clock_in_next_event);
+    virtual void update_fd_next_clock(
+				      int is_waiting_recv,
+				      int num_of_recv_msg_in_next_event,
+				      size_t interim_min_clock_in_next_event,
+				      size_t enqueued_count,
+				      int recv_test_id);
     virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock);
 
     
@@ -269,7 +277,12 @@ class rempi_encoder_cdc : public rempi_encoder
 
   virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
   virtual void update_local_min_id(int min_recv_rank, size_t min_next_clock);
-  virtual void update_fd_next_clock(int is_waiting_recv, int num_of_recv_msg_in_next_event, size_t interim_min_clock_in_next_event);
+  virtual void update_fd_next_clock(
+				    int is_waiting_recv,
+				    int num_of_recv_msg_in_next_event,
+				    size_t interim_min_clock_in_next_event,
+				    size_t enqueued_count,
+				    int recv_test_id);
   virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock);
 
   //  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
