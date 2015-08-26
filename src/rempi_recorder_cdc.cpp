@@ -562,8 +562,6 @@ int rempi_recorder_cdc::replay_testsome(
 		     i, array_of_requests[i]);
 	}
 #endif
-
-
 	ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
 #ifdef REMPI_DBG_REPLAY	  
 	for (int j = 0; j < *outcount; j++) {
