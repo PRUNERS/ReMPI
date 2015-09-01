@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <execinfo.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include <pthread.h>
 
@@ -31,6 +32,13 @@ void rempi_err_init(int r)
 
 char* rempi_gethostname() {
   return hostname;
+}
+
+
+void rempi_assert(int b)
+{
+  assert(b);
+  return;
 }
 
 void rempi_err(const char* fmt, ...)
@@ -143,19 +151,18 @@ void rempi_exit(int no) {
 string rempi_btrace_string()
 {
   int j, nptrs;
-  void *buffer[512];
+  void *buffer[1024];
   char **strings;
   string trace_string;
 
-  nptrs = backtrace(buffer, 512);
+  nptrs = backtrace(buffer, 1024);
 
   /* backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO)*/
   strings = backtrace_symbols(buffer, nptrs);
   if (strings == NULL) {
     perror("backtrace_symbols");
     exit(EXIT_FAILURE);
-  }   
-
+  }
   /*
     You can translate the address to function name by
     addr2line -f -e ./a.out <address>

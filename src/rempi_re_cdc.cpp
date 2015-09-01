@@ -62,6 +62,7 @@ int rempi_re_cdc::get_test_id()
   //  test_id_string = test_id_string.substr(pos);
   if (test_ids_map.find(test_id_string) == test_ids_map.end()) {
     test_ids_map[test_id_string] = next_test_id_to_assign;
+    //    REMPI_DBGI(REMPI_DBG_REPLAY, "global_test_id %d: %s", next_test_id_to_assign, test_id_string.c_str());
     next_test_id_to_assign++;
   }
   return test_ids_map[test_id_string];
@@ -280,6 +281,10 @@ int rempi_re_cdc::re_testsome(
 
       if (!is_all_send_req) {
 	recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
+      } else {
+#ifdef REMPI_DBG_REPLAY
+	REMPI_DBGI(REMPI_DBG_REPLAY, "Test send: test_id: %d: incount: %d outcount: %d", test_id, incount, *outcount);
+#endif
       }
 #else
       if(clocks[0] != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {

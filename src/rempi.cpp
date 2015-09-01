@@ -128,6 +128,7 @@ _EXTERN_C_ int MPI_Wait(MPI_Request *arg_1, MPI_Status *arg_2) {
 _EXTERN_C_ int PMPI_Waitall(int arg_0, MPI_Request *arg_1, MPI_Status *arg_2);
 _EXTERN_C_ int MPI_Waitall(int arg_0, MPI_Request *arg_1, MPI_Status *arg_2) {
   int _wrap_py_return_val = 0;
+  REMPI_DBG("MPI_Waitall called");
   _wrap_py_return_val = rempi_record_replay->re_waitall(arg_0, arg_1, arg_2);
   return _wrap_py_return_val;
 }

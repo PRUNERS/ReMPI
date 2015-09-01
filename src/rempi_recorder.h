@@ -34,11 +34,19 @@ class rempi_proxy_request
  public:
   MPI_Request request;
   void* buf;
-  //  MPI_Status status;
-  rempi_proxy_request(int count, MPI_Datatype datatype) {
-    int datatype_size;
-    MPI_Type_size(datatype, &datatype_size);
-    buf = malloc(datatype_size * count);
+  int    matched_source; /*If matched, memorize the matched source for matched_pending_request */
+  int    matched_tag;    /*If matched, memorize the matched tag    for matched_pending_request*/
+  size_t matched_clock;  /*If matched, memorize the matched clock  for matched_pending_request*/
+  int    matched_count;  /*If matched, memorize the count          for matched_pending_request*/
+
+ rempi_proxy_request(int count, MPI_Datatype datatype)
+    : matched_source(-1)
+    , matched_tag(-1)
+    , matched_clock(0)
+    , matched_count(-1) {
+      int datatype_size;
+      MPI_Type_size(datatype, &datatype_size);
+      buf = malloc(datatype_size * count);
   };
   ~rempi_proxy_request() {
     free(buf);
@@ -56,9 +64,12 @@ class rempi_irecv_inputs
   int tag;
   MPI_Comm comm;
   MPI_Request request;
-  int test_id;
-  list<rempi_proxy_request*> request_proxy_list;
-  list<rempi_proxy_request*> matched_request_proxy_list;
+  //  int test_id;
+  int recv_test_id;
+
+  list<rempi_proxy_request*> request_proxy_list; /*Posted by Irecv, but not matched yet*/
+  list<rempi_proxy_request*> matched_pending_request_proxy_list; /*Matched, but not enqueued*/
+  list<rempi_proxy_request*> matched_request_proxy_list; /*Enqueued, but not replayed*/
  rempi_irecv_inputs(
 		    void* buf,
 		    int count,
@@ -66,11 +77,15 @@ class rempi_irecv_inputs
 		    int source,
 		    int tag,
 		    MPI_Comm comm,
-		    MPI_Request request,
-		    int test_id):
-  buf(buf), count(count), datatype(datatype), source(source),
-    tag(tag), comm(comm), request(request),
-    test_id(test_id) {};
+		    MPI_Request request) 
+    : buf(buf)
+    , count(count)
+    , datatype(datatype)
+    , source(source)
+    , tag(tag)
+    , comm(comm)
+    , request(request)
+    , recv_test_id(-1) {};
   /* unordered_map<MPI_Request*, void*> proxy_requests_umap; */
   /* void insert_request(MPI_Request* proxy_request, void* proxy_buf); */
   /* void erase_request(MPI_Request* proxy_request); */
@@ -176,6 +191,10 @@ class rempi_recorder_cdc : public rempi_recorder
   PNMPIMOD_clock_control_t clmpi_clock_control;
   PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
   PNMPIMOD_sync_clock_t      clmpi_sync_clock;
+  
+  bool progress_recv_requests(int global_test_id,
+			      int incount,
+			      MPI_Request array_of_requests[]);
 
  public:
    rempi_recorder_cdc()

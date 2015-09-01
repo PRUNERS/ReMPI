@@ -399,6 +399,10 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
     }
   }
 
+#ifdef REMPI_DBG_REPLAY
+  //  REMPI_DBGI(REMPI_DBG_REPLAY, "GLLC Clock Fetched:");
+#endif
+
   // TODO: move to here later
   // for (i = 0; i < mc_length; ++i) {
   //   PMPI_Get(&mc_next_clocks[i], sizeof(size_t), MPI_BYTE, mc_recv_ranks[i], 0, sizeof(size_t), MPI_BYTE, mpi_fd_clock_win);
@@ -1437,6 +1441,8 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 #endif   
   }
 
+
+
   /* 
      Compute outcount, 
      and initialization vector with the outcount size 
@@ -1459,6 +1465,7 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
   // } 
   /* =========================================================*/
 
+#if 0
   int i = 0;
   int added_count = 0;
   for (rempi_event *replaying_event: test_table->solid_ordered_event_list) {
@@ -1489,6 +1496,66 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
     i++;
   }
 
+#else
+
+  int added_count = 0;
+  for (rempi_event *replaying_event: test_table->solid_ordered_event_list) {
+    int permutated_index = test_table->matched_events_permutated_indices_vec[replaying_event->clock_order]
+      - test_table->replayed_matched_event_index;
+#ifdef REMPI_DBG_REPLAY
+    if (is_ordered_event_list_updated || is_solid_ordered_event_list_updated) {
+      REMPI_DBGI(REMPI_DBG_REPLAY, "  index: %d -> %d(%d) replayed_count: %d (event_clock: %d)", replaying_event->clock_order, 
+		 test_table->matched_events_permutated_indices_vec[replaying_event->clock_order], 
+		 permutated_index, test_table->replayed_matched_event_index, replaying_event->get_clock());
+    }
+#endif
+    if (0 <= permutated_index && permutated_index < outcount) {
+      replay_event_vec[permutated_index] = replaying_event;
+      added_count++;
+    } else if (permutated_index < 0){
+      REMPI_ERR("permutated_index:%d < 0 (record data may be truncated)", permutated_index);
+    }
+  }
+
+  /* Update interim min */
+  /*   From the replay_event_vec, we estimate the next clock after this replay*/
+  size_t tmp_interim_min_clock = 0;
+  size_t replaying_clock = 0;
+  clmpi_get_local_clock(&tmp_interim_min_clock);
+  for (rempi_event *replaying_event: replay_event_vec) {
+    if (replaying_event == NULL) {
+      replaying_clock = local_min_id_clock;
+    } else {
+      replaying_clock = replaying_event->get_clock();
+    }
+    if (tmp_interim_min_clock < replaying_clock) {
+      tmp_interim_min_clock = replaying_clock;
+    }
+    tmp_interim_min_clock++;
+  }
+
+#if REMPI_DBG_REPLAY
+  if (interim_min_clock_in_next_event[test_id] < tmp_interim_min_clock) {
+    size_t local_clock_dbg;
+    clmpi_get_local_clock(&local_clock_dbg);
+    REMPI_DBGI(REMPI_DBG_REPLAY, "INTRM update: local_clock: %lu", local_clock_dbg);
+    for (rempi_event *replaying_event: replay_event_vec) {
+      if (replaying_event == NULL) {
+	replaying_clock = local_min_id_clock;
+	REMPI_DBGI(REMPI_DBG_REPLAY, "  INTRM update: (rank: %d, clock: %lu) min", local_min_id_rank, local_min_id_clock);
+      } else {
+	replaying_clock = replaying_event->get_clock();
+	REMPI_DBGI(REMPI_DBG_REPLAY, "  INTRM update: (rank: %d, clock: %lu)", replaying_event->get_source(), replaying_event->get_clock());
+      }
+    }
+    REMPI_DBGI(REMPI_DBG_REPLAY, "INTRM update: interim: %lu => %lu (recv_test_id: %d)", interim_min_clock_in_next_event[test_id], tmp_interim_min_clock, test_id);
+  }
+
+#endif
+  interim_min_clock_in_next_event[test_id] = tmp_interim_min_clock;
+
+#endif
+
   /*Check if all replaying events occured, 
     and are added to replay_event_vec*/
   if (added_count != outcount) {
@@ -1516,7 +1583,7 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 		"This is usually caused in the multiple chunk mode \n",
 		previous_count, dequeued_count[test_id]); 
       /* ------------------------------------------*/
-      /*the below is a code to work around this problem,
+      /*the below is a code to work around this problem in the multiple chunk mode,
         but I do not use this code for now*/
       dequeued_count[test_id] = test_table->replayed_matched_event_index 
 	                                + test_table->ordered_event_list.size() 
@@ -1536,11 +1603,13 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
   }
 
 
+
+
   /* Put with_next value  */
   for (int i = 0, n = replay_event_vec.size(); i < n; i++) {
-#ifdef REMPI_DBG_REPLAY
-    REMPI_DBGI(REMPI_DBG_REPLAY, "== size: %d, index: %d, added_count: %d, outcount: %d", replay_event_vec.size(), i, added_count, outcount);
-#endif
+// #ifdef REMPI_DBG_REPLAY
+//     REMPI_DBGI(REMPI_DBG_REPLAY, "== size: %d, index: %d, added_count: %d, outcount: %d", replay_event_vec.size(), i, added_count, outcount);
+// #endif
     replay_event_vec[i]->set_with_next(1);
   }
   replay_event_vec.back()->set_with_next(0);
@@ -1635,6 +1704,7 @@ void rempi_encoder_cdc::update_fd_next_clock(
       and the events is triggered by a message which it have not received
    */
   if (is_waiting_recv) {
+#if 0
     is_waiting_msg = (enqueued_count == dequeued_count[recv_test_id]);
     if (is_waiting_msg) {
       next_clock = global_local_min_id.clock;
@@ -1642,9 +1712,12 @@ void rempi_encoder_cdc::update_fd_next_clock(
       /*min*/
       next_clock = (interim_min_clock_in_next_event < global_local_min_id.clock)? interim_min_clock_in_next_event:global_local_min_id.clock;
     }
+#else
+    next_clock = interim_min_clock_in_next_event;
+#endif
     /*max*/
-    next_clock = (clock < next_clock)? next_clock:clock;
-    next_clock += 1; //next_clock += num_of_recv_msg_in_next_event; => this is wrong, must be +1
+    //    next_clock = (clock < next_clock)? next_clock:clock;
+    //    next_clock += 1; //next_clock += num_of_recv_msg_in_next_event; => this is wrong, must be +1
   } else {
     next_clock = clock;
   }

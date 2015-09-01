@@ -2,6 +2,13 @@
 #define __REMPI_ERR_H__
 
 #include <string>
+#include <assert.h>
+
+#define REMPI_ASSERT(b)  \
+  do {                \
+    rempi_assert(b);        \
+  } while(0)          \
+
 
 /*if __VA_ARGS__ is empty, the previous comma can be removed by "##" statement*/
 #define REMPI_ERR(err_fmt, ...)  \
@@ -50,7 +57,7 @@
 
 
 
-
+void rempi_assert(int b);
 void rempi_err_init(int r);
 void rempi_err(const char* fmt, ...);
 void rempi_erri(int r, const char* fmt, ...);
