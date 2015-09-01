@@ -54,7 +54,6 @@ void rempi_recorder_cdc::copy_proxy_buf(void* from, void* to, int count, MPI_Dat
       datatype == MPI_INT || 
       datatype == MPI_CHAR) {
     PMPI_Type_size(datatype, &datatype_size);
-    REMPI_DBG("to:%p, from:%p, datatype_size:%d,  count:%d, input: %d", to, from, datatype_size, count, datatype_size * count - sizeof(size_t));
     memcpy(to, from, datatype_size * count - sizeof(size_t)); 
   } else {
     REMPI_ERR("Unsurpported MPI_Datatype: %d", datatype);
@@ -659,6 +658,7 @@ int rempi_recorder_cdc::replay_testsome(
   }
     
   if (!is_all_recv_reqs) { 
+    mc_encoder->update_fd_next_clock(0, 0, 0, 0, 0); /*Update next sending out clock for frontier detection*/
     /* If this test call is all for Send requests */
     clocks = (size_t*)rempi_malloc(sizeof(size_t) * incount);
     clmpi_register_recv_clocks(clocks, incount);
