@@ -45,6 +45,8 @@ int is_finished(){
   return 1;
 }
 
+
+
 int bin_reduction_start()
 {
   int parent = (my_rank - 1) / 2;

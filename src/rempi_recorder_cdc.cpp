@@ -703,6 +703,7 @@ int rempi_recorder_cdc::replay_testsome(
     /* ======================================================== */
 
     is_progressed = progress_recv_requests(recv_test_id, incount, array_of_requests);
+    
 // #ifdef REMPI_DBG_REPLAY
 //     REMPI_DBGI(REMPI_DBG_REPLAY, "progrell: global: %d recv: %d", global_test_id, recv_test_id);
 // #endif
