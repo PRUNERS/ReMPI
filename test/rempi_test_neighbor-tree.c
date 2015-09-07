@@ -14,8 +14,8 @@
 
 #define USE_MPI_ISEND
 
-//#define USE_BIN_REDUCTION
-#define USE_WAITALL
+#define USE_BIN_REDUCTION
+//#define USE_WAITALL
 
 
 int hash_count = 0;

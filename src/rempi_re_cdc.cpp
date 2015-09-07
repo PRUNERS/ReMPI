@@ -438,7 +438,7 @@ int rempi_re_cdc::re_waitall(
 int rempi_re_cdc::re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3)
 {
   int ret;
-  REMPI_ERR("MPI_Comm_split is not implemented yet");
+  REMPI_DBG("MPI_Comm_split is not implemented yet");
   ret = PMPI_Comm_split(arg_0, arg_1, arg_2, arg_3);
   return ret;
 }
@@ -446,7 +446,7 @@ int rempi_re_cdc::re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *
 int rempi_re_cdc::re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2)
 {
   int ret;
-  REMPI_ERR("MPI_Comm_create is not implemented yet");
+  REMPI_DBG("MPI_Comm_create is not implemented yet");
   ret = PMPI_Comm_create(arg_0, arg_1, arg_2);
   return ret;
 }
