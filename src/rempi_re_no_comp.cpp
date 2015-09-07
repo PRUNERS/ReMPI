@@ -40,6 +40,7 @@ int rempi_re_no_comp::init_clmpi()
   return err;
 }
 
+#ifdef REVERT1
 int rempi_re_no_comp::get_test_id()
 {
   string test_id_string;
@@ -53,6 +54,13 @@ int rempi_re_no_comp::get_test_id()
   }
   return test_ids_map[test_id_string];
 }
+#else
+int rempi_re_no_comp::get_test_id(MPI_Request *requests)
+{
+  REMPI_ERR("Not implemented yet");
+  return 0 ;
+}
+#endif
 
 int rempi_re_no_comp::re_init(int *argc, char ***argv)
 {
@@ -255,6 +263,23 @@ int rempi_re_no_comp::re_waitall(
   REMPI_ERR("not implemented yet");
   return 0;
 }
+
+
+int rempi_re_no_comp::re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3)
+{
+  int ret;
+  ret = PMPI_Comm_split(arg_0, arg_1, arg_2, arg_3);
+  return ret;
+}
+
+int rempi_re_no_comp::re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2)
+{
+  int ret;
+  ret = PMPI_Comm_create(arg_0, arg_1, arg_2);
+  return ret;
+}
+
+
 
 
 int rempi_re_no_comp::re_finalize()

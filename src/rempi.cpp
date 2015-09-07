@@ -116,7 +116,7 @@ _EXTERN_C_ int MPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_
   return _wrap_py_return_val;
 }
 
-/* ================== C Wrappers for MPI_Waitall ================== */
+/* ================== C Wrappers for MPI_Wait ================== */
 _EXTERN_C_ int PMPI_Wait(MPI_Request *arg_1, MPI_Status *arg_2);
 _EXTERN_C_ int MPI_Wait(MPI_Request *arg_1, MPI_Status *arg_2) {
   int _wrap_py_return_val = 0;
@@ -128,7 +128,6 @@ _EXTERN_C_ int MPI_Wait(MPI_Request *arg_1, MPI_Status *arg_2) {
 _EXTERN_C_ int PMPI_Waitall(int arg_0, MPI_Request *arg_1, MPI_Status *arg_2);
 _EXTERN_C_ int MPI_Waitall(int arg_0, MPI_Request *arg_1, MPI_Status *arg_2) {
   int _wrap_py_return_val = 0;
-  REMPI_DBG("MPI_Waitall called");
   _wrap_py_return_val = rempi_record_replay->re_waitall(arg_0, arg_1, arg_2);
   return _wrap_py_return_val;
 }
@@ -141,7 +140,6 @@ _EXTERN_C_ int MPI_Cancel(MPI_Request *arg_0) {
   {
     /*Message pooling is needed, and arg_0 is not used internal. so ignore this cancel*/
     //    REMPI_ERR("MPI_Cancel called");
-    REMPI_DBG("MPI_Cancel called");
     _wrap_py_return_val = rempi_record_replay->re_cancel(arg_0);
   }    return _wrap_py_return_val;
 }
@@ -187,7 +185,9 @@ _EXTERN_C_ int PMPI_Comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *a
 _EXTERN_C_ int MPI_Comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3) {
   int _wrap_py_return_val = 0;
   {
-
+    // fprintf(stderr, "create");
+    // exit(1);
+    // _wrap_py_return_val = rempi_record_replay->re_comm_split(arg_0, arg_1, arg_2, arg_3);
     _wrap_py_return_val = PMPI_Comm_split(arg_0, arg_1, arg_2, arg_3);
   }    return _wrap_py_return_val;
 }
@@ -198,6 +198,9 @@ _EXTERN_C_ int PMPI_Comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2
 _EXTERN_C_ int MPI_Comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2) {
   int _wrap_py_return_val = 0;
   {
+    // fprintf(stderr, "create");
+    // exit(1);
+    // _wrap_py_return_val = rempi_record_replay->re_comm_create(arg_0, arg_1, arg_2);
     _wrap_py_return_val = PMPI_Comm_create(arg_0, arg_1, arg_2);
   }    return _wrap_py_return_val;
 }

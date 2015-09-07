@@ -1,8 +1,16 @@
 #ifndef __REMPI_RECORD_H__
 #define __REMPI_RECORD_H__
 
+#define REMPI_MF_FLAG_1_WAIT   (0)
+#define REMPI_MF_FLAG_1_TEST   (1)
+#define REMPI_MF_FLAG_2_SINGLE (2)
+#define REMPI_MF_FLAG_2_ANY    (3)
+#define REMPI_MF_FLAG_2_SOME   (4)
+#define REMPI_MF_FLAG_2_ALL    (5)
+
 #include <vector>
 
+#include "rempi_mem.h"
 #include "rempi_message_manager.h"
 #include "rempi_event_list.h"
 #include "rempi_io_thread.h"
@@ -45,8 +53,8 @@ class rempi_proxy_request
     , matched_clock(0)
     , matched_count(-1) {
       int datatype_size;
-      MPI_Type_size(datatype, &datatype_size);
-      buf = malloc(datatype_size * count);
+      PMPI_Type_size(datatype, &datatype_size);
+      buf = rempi_malloc(datatype_size * count);
   };
   ~rempi_proxy_request() {
     free(buf);
@@ -153,6 +161,7 @@ class rempi_recorder {
 			  int test_id
 			  );
   
+  /*TODO: Conmbine replay_test with replay_testsome into replay_mf by mf_flag_1 & mf_flag_2 ??*/
   virtual int replay_test(
 			  MPI_Request *request,
 			  int *flag,
@@ -165,7 +174,9 @@ class rempi_recorder {
 			      int *outcount, 
 			      int array_of_indices[], 
 			      MPI_Status array_of_statuses[],
-			      int test_id);
+			      int global_test_id,
+			      int mf_flag_1,
+			      int mf_flag_2);
 
   //TODO: Comm_dup Comm_split
 
@@ -194,7 +205,10 @@ class rempi_recorder_cdc : public rempi_recorder
   
   bool progress_recv_requests(int global_test_id,
 			      int incount,
-			      MPI_Request array_of_requests[]);
+			      MPI_Request array_of_requests[],
+			      int global_local_min_id_rank,
+			      size_t global_local_min_id_clock);
+
 
  public:
    rempi_recorder_cdc()
@@ -257,7 +271,10 @@ class rempi_recorder_cdc : public rempi_recorder
 		      int *outcount, 
 		      int array_of_indices[], 
 		      MPI_Status array_of_statuses[],
-		      int test_id);
+		      int global_test_id,
+		      int mf_flag_1,
+		      int mf_flag_2);
+
 
   //TODO: Comm_dup Comm_split
 

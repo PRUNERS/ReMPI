@@ -52,6 +52,7 @@ int rempi_re_cdc::init_clmpi()
   return PNMPI_SUCCESS;
 }
 
+#ifdef REVERT1
 int rempi_re_cdc::get_test_id()
 {
   if (!rempi_is_test_id) return 0;
@@ -67,6 +68,21 @@ int rempi_re_cdc::get_test_id()
   }
   return test_ids_map[test_id_string];
 }
+#else
+int rempi_re_cdc::get_test_id(MPI_Request *requests)
+{
+  if (!rempi_is_test_id) return 0;
+  //TODO: get the binary name
+  //  size_t pos = test_id_string.find("MCBenchmark");
+  //  test_id_string = test_id_string.substr(pos);
+  if (test_ids_map.find(requests) == test_ids_map.end()) {
+    test_ids_map[requests] = next_test_id_to_assign;
+    //    REMPI_DBGI(REMPI_DBG_REPLAY, "global_test_id %d: %s", next_test_id_to_assign, test_id_string.c_str());
+    next_test_id_to_assign++;
+  }
+  return test_ids_map[requests];
+}
+#endif
 
 int rempi_re_cdc::re_init(int *argc, char ***argv)
 {
@@ -163,7 +179,12 @@ int rempi_re_cdc::re_irecv(
   char comm_id[REMPI_COMM_ID_LENGTH];
   int comm_id_int;
   int resultlen;
+  if (comm != MPI_COMM_WORLD) {
+    REMPI_ERR("Current ReMPI does not multiple communicators");
+  }
+
   PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);
+
 
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
@@ -187,7 +208,11 @@ int rempi_re_cdc::re_test(
 {
   int ret;
   size_t clock;
+#ifdef REVERT1
   int test_id = get_test_id();
+#else
+  int test_id = get_test_id(request);
+#endif
 
 #if 0
   REMPI_DBGI(1, "request: %p", *request);
@@ -244,7 +269,11 @@ int rempi_re_cdc::re_testsome(
   int ret;
   size_t *clocks;
   int is_with_next = REMPI_MPI_EVENT_WITH_NEXT;
+#ifdef REVERT1
   int test_id = get_test_id();
+#else
+  int test_id = get_test_id(array_of_requests);
+#endif
   
   if (array_of_statuses == NULL) {
     /*TODO: allocate array_of_statuses in ReMPI instead of the error below*/
@@ -329,7 +358,7 @@ int rempi_re_cdc::re_testsome(
 // #ifdef REMPI_DBG_REPLAY
 //     REMPI_DBGI(REMPI_DBG_REPLAY, "testsome call");
 // #endif
-    recorder->replay_testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, test_id);
+    recorder->replay_testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, test_id, REMPI_MF_FLAG_1_TEST, REMPI_MF_FLAG_2_SOME);
 // #ifdef REMPI_DBG_REPLAY
 //     REMPI_DBGI(REMPI_DBG_REPLAY, "testsome end");
 // #endif
@@ -354,7 +383,7 @@ int rempi_re_cdc::re_testsome(
 }
 
 
-
+int array_of_indices_waitall[16]; 
 int rempi_re_cdc::re_waitall(
 			  int incount, 
 			  MPI_Request array_of_requests[],
@@ -363,8 +392,12 @@ int rempi_re_cdc::re_waitall(
   int ret;
   size_t *clocks;
   int is_with_next = REMPI_MPI_EVENT_WITH_NEXT;
+#ifdef REVERT1
   int test_id = get_test_id();
-  
+#else
+  int test_id = get_test_id(array_of_requests);
+#endif
+
   if (array_of_statuses == NULL) {
     /*TODO: allocate array_of_statuses in ReMPI instead of the error below*/
     REMPI_ERR("ReMPI requires array_of_statues in MPI_Testsome");
@@ -387,8 +420,34 @@ int rempi_re_cdc::re_waitall(
     }
     free(clocks);
   } else {
-    REMPI_ERR("Not implementd yet");
+    int  outcount;
+    /*TODO: This is to avoid malloc overhead. But to fix this limitation*/
+    if (incount > 16) {
+      REMPI_ERR("Current ReMPI only support incount <= 16 in MPI_Waitall");
+    }    
+    recorder->replay_testsome(incount, array_of_requests, &outcount, array_of_indices_waitall, array_of_statuses, test_id, 
+			      REMPI_MF_FLAG_1_WAIT, REMPI_MF_FLAG_2_ALL);
+    if (incount != outcount) {
+      REMPI_ERR("incount != outcount in MPI_Waitall: incount = %d outcount = %d", incount, outcount);
+    }
   }
+  return ret;
+}
+
+
+int rempi_re_cdc::re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3)
+{
+  int ret;
+  REMPI_ERR("MPI_Comm_split is not implemented yet");
+  ret = PMPI_Comm_split(arg_0, arg_1, arg_2, arg_3);
+  return ret;
+}
+  
+int rempi_re_cdc::re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2)
+{
+  int ret;
+  REMPI_ERR("MPI_Comm_create is not implemented yet");
+  ret = PMPI_Comm_create(arg_0, arg_1, arg_2);
   return ret;
 }
 

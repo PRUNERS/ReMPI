@@ -12,8 +12,10 @@
 #define MAX_VAL (100)
 #define MAX_MESG_PASS (4)
 
-//#define USE_MPI_SEND
-#define USE_BIN_REDUCTION
+#define USE_MPI_ISEND
+
+//#define USE_BIN_REDUCTION
+#define USE_WAITALL
 
 
 int hash_count = 0;
@@ -45,7 +47,37 @@ int is_finished(){
   return 1;
 }
 
+MPI_Request waitall_recv_req[2], waitall_send_req[2];
+int waitall_send_val[2], waitall_recv_val[2];
+void waitall_start() 
+{
+  waitall_send_val[0] = my_rank;
+  waitall_send_val[1] = my_rank;
+  MPI_Isend(&waitall_send_val[0], 1, MPI_INT, (my_rank + 1)        % size , 15, MPI_COMM_WORLD, &waitall_send_req[0]);
+  MPI_Isend(&waitall_send_val[1], 1, MPI_INT, (my_rank + size - 1) % size , 15, MPI_COMM_WORLD, &waitall_send_req[1]);
+  MPI_Irecv(&waitall_recv_val[0], 1, MPI_INT, MPI_ANY_SOURCE              , 15, MPI_COMM_WORLD, &waitall_recv_req[0]);
+  MPI_Irecv(&waitall_recv_val[1], 1, MPI_INT, MPI_ANY_SOURCE              , 15, MPI_COMM_WORLD, &waitall_recv_req[1]);
+  return;
+}
 
+
+void waitall_end() 
+{
+
+#if 0
+  MPI_Status status;
+  int flag;
+  while(!flag) MPI_Test(&waitall_send_req[0], &flag, &status);
+  while(!flag) MPI_Test(&waitall_send_req[1], &flag, &status);
+  while(!flag) MPI_Test(&waitall_recv_req[0], &flag, &status);
+  while(!flag) MPI_Test(&waitall_recv_req[1], &flag, &status);
+#else
+  MPI_Status status[2];
+  MPI_Waitall(2, waitall_send_req, status);
+  MPI_Waitall(2, waitall_recv_req, status);
+#endif
+  return;
+}
 
 int bin_reduction_start()
 {
@@ -172,6 +204,10 @@ int main(int argc, char *argv[])
     bin_reduction_start();
 #endif
 
+#ifdef USE_WAITALL
+    waitall_start();
+#endif
+
     /* ======================== */
     /* 2.  neighbor exchange    */
     /* ======================== */
@@ -189,14 +225,14 @@ int main(int argc, char *argv[])
 
       //    printf("rank %d: send: %d\n", my_rank, (my_rank + (i + 1))        % size);
       //      if (my_rank == 0)fprintf(stdout, "rank: %d: key: %d, val: %d index: %d (count: %d) -> ", my_rank, sendrecv_kv[i].key, sendrecv_kv[i].val, i, hash_count);
-#ifdef USE_MPI_SEND
-      MPI_Send(&sendrecv_kv[i], 8, MPI_CHAR, (my_rank + (i + 1))        % size, 0, MPI_COMM_WORLD);
-#else
+#ifdef USE_MPI_ISEND
       MPI_Isend(&sendrecv_kv[i], 8, MPI_CHAR, (my_rank + (i + 1))        % size, 0, MPI_COMM_WORLD, &send_req);
       flag = 0;
       while (flag == 0) {
 	MPI_Test(&send_req, &flag, &send_stat); 
       }
+#else
+      MPI_Send(&sendrecv_kv[i], 8, MPI_CHAR, (my_rank + (i + 1))        % size, 0, MPI_COMM_WORLD);
 #endif
       //      if (my_rank == 0)fprintf(stdout, "rank: %d: key: %d, val: %d index: %d (count: %d) \n", my_rank, sendrecv_kv[i].key, sendrecv_kv[i].val, i, hash_count);
 
@@ -248,14 +284,14 @@ int main(int argc, char *argv[])
 	  usleep((rand() % 3) * 100000);
 	  /* MPI_Request req; */
 	  /* MPI_Status stat; */
-#ifdef USE_MPI_SEND
-	  MPI_Send(&sendrecv_kv[recv_index], 8, MPI_CHAR, (my_rank + (recv_index + 1)) % size, 0, MPI_COMM_WORLD);
-#else
+#ifdef USE_MPI_ISEND
 	  MPI_Isend(&sendrecv_kv[recv_index], 8, MPI_CHAR, (my_rank + (recv_index + 1)) % size, 0, MPI_COMM_WORLD, &send_req); 
 	  flag = 0;
 	  while (flag == 0) {
 	    MPI_Test(&send_req, &flag, &send_stat); 
 	  }
+#else
+	  MPI_Send(&sendrecv_kv[recv_index], 8, MPI_CHAR, (my_rank + (recv_index + 1)) % size, 0, MPI_COMM_WORLD);
 #endif
 	  send_msg_count[recv_index]++;
 	}
@@ -270,9 +306,18 @@ int main(int argc, char *argv[])
     /* ======================== */
     /* 3. End: binary tree reduction */
     /* ======================== */
+
 #ifdef USE_BIN_REDUCTION
     bin_reduction_end();
 #endif
+
+
+
+
+#ifdef USE_WAITALL
+    waitall_end();
+#endif
+
 
     MPI_Barrier(MPI_COMM_WORLD); /*<= korehazushitemo daizyoubuni shi ro !!! MPI_Cancel problem*/
 

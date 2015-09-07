@@ -1,6 +1,8 @@
 #ifndef __REMPI_RE_H__
 #define __REMPI_RE_H__
 
+#define REVERT1
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -21,7 +23,11 @@ class rempi_re
  protected:
   int my_rank; // = -1;
   int init_after_pmpi_init(int *argc, char ***argv);
+#ifdef REVERT1
   virtual int get_test_id();
+#else
+  virtual int get_test_id(MPI_Request *requests);
+#endif
  public:
   rempi_re()
     : my_rank(-1) {}
@@ -68,7 +74,12 @@ class rempi_re
 			  MPI_Request array_of_requests[],
 			  MPI_Status array_of_statuses[]);
 
+  virtual int re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3);
+  virtual int re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2);
+
   virtual int re_finalize();
+  
+
 };
 
 
@@ -80,10 +91,18 @@ class rempi_re_no_comp : public rempi_re
   //  PNMPIMOD_get_recv_clocks_t clmpi_get_recv_clocks;
   int init_clmpi();
   rempi_recorder *recorder;  
+#ifdef REVERT1
   unordered_map<string, int> test_ids_map;
+#else
+  unordered_map<MPI_Request*, int> test_ids_map;
+#endif
   int next_test_id_to_assign;// = 0;
  protected:
+#ifdef REVERT1
   virtual int get_test_id();
+#else
+  virtual int get_test_id(MPI_Request *requests);
+#endif
  public:
   rempi_re_no_comp()
     : rempi_re()
@@ -134,6 +153,9 @@ class rempi_re_no_comp : public rempi_re
 			  MPI_Request array_of_requests[],
 			  MPI_Status array_of_statuses[]);
 
+  virtual int re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3);
+  virtual int re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2);
+
   virtual int re_finalize();
 };
 
@@ -145,10 +167,18 @@ class rempi_re_cdc : public rempi_re_no_comp
   //  PNMPIMOD_get_recv_clocks_t clmpi_get_recv_clocks;
   int init_clmpi();
   rempi_recorder *recorder;  
+#ifdef REVERT1
   unordered_map<string, int> test_ids_map;
+#else
+  unordered_map<MPI_Request*, int> test_ids_map;
+#endif
   int next_test_id_to_assign; // = 0;
  protected:
+#ifdef REVERT1
   int get_test_id();
+#else
+  int get_test_id(MPI_Request *requests);
+#endif
  public:
   rempi_re_cdc() 
     : rempi_re_no_comp()
@@ -197,6 +227,10 @@ class rempi_re_cdc : public rempi_re_no_comp
 			  int incount, 
 			  MPI_Request array_of_requests[],
 			  MPI_Status array_of_statuses[]);
+
+  virtual int re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3);
+
+  virtual int re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2);
 
   virtual int re_finalize();
 };

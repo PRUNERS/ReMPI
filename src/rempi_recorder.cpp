@@ -313,13 +313,16 @@ int rempi_recorder::replay_test(
 //   return 0;
 // }
 
+
 int rempi_recorder::replay_testsome(
 				    int incount,
 				    MPI_Request array_of_requests[],
 				    int *outcount,
 				    int array_of_indices[],
 				    MPI_Status array_of_statuses[],
-				    int test_id)
+				    int global_test_id,
+				    int mf_flag_1, 
+				    int mf_flag_2)
 {
   return PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
 }

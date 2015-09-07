@@ -25,10 +25,17 @@ int rempi_re::init_after_pmpi_init(int *argc, char ***argv)
   return 0;
 }
 
+#ifdef REVERT1
 int rempi_re::get_test_id()
 {
   return 0; /*rempi_re does not distingish different test/testsome from different call stacks */
 }
+#else
+int rempi_re::get_test_id(MPI_Request *requests)
+{
+  return 0; /*rempi_re does not distingish different test/testsome from different call stacks */
+}
+#endif
 
 
 int rempi_re::re_init(int *argc, char ***argv)
@@ -113,6 +120,23 @@ int rempi_re::re_waitall(
   ret = PMPI_Waitall(incount, array_of_requests, array_of_statuses);
   return ret;
 }
+
+
+int rempi_re::re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3)
+{
+  int ret;
+  ret = PMPI_Comm_split(arg_0, arg_1, arg_2, arg_3);
+  return ret;
+}
+
+int rempi_re::re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2)
+{
+  int ret;
+  ret = PMPI_Comm_create(arg_0, arg_1, arg_2);
+  return ret;
+}
+
+
 
 
 int rempi_re::re_finalize()

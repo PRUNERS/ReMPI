@@ -133,6 +133,10 @@ class rempi_encoder_input_format
 
 class rempi_encoder
 {  
+  struct local_minimal_id {
+    int rank;
+    size_t clock;
+  };
  protected:
     int mode;
     string record_path;
@@ -159,6 +163,8 @@ class rempi_encoder
     vector<size_t> write_size_vec;
 
  public:
+    struct local_minimal_id global_local_min_id; /*minimal <rank,clock> in all senders across different MFs*/
+
     int *num_of_recv_msg_in_next_event;// = NULL; /*array[i] contain the number of test_id=i*/
     size_t *interim_min_clock_in_next_event;// = NULL;
     size_t *dequeued_count;// = NULL;
@@ -225,10 +231,7 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
 
 class rempi_encoder_cdc : public rempi_encoder
 {
-  struct local_minimal_id {
-    int rank;
-    size_t clock;
-  };
+
   
 
   struct frontier_detection_clocks{ /*fd = frontier detection*/
@@ -241,7 +244,7 @@ class rempi_encoder_cdc : public rempi_encoder
   MPI_Comm mpi_fd_clock_comm;
   MPI_Win mpi_fd_clock_win;
   PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
-  struct local_minimal_id global_local_min_id; 
+
   struct frontier_detection_clocks *fd_clocks;// = NULL;
 
   /* ============================== */
@@ -263,6 +266,8 @@ class rempi_encoder_cdc : public rempi_encoder
   virtual void decompress_matched_events(rempi_encoder_input_format &input_format);
 
  public:
+
+
   rempi_encoder_cdc(int mode);
   /*For common*/
   virtual rempi_encoder_input_format* create_encoder_input_format();
