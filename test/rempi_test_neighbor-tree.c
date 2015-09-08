@@ -14,8 +14,8 @@
 
 #define USE_MPI_ISEND
 
-#define USE_BIN_REDUCTION
-//#define USE_WAITALL
+//#define USE_BIN_REDUCTION
+#define USE_WAITALL
 
 
 int hash_count = 0;
@@ -310,8 +310,6 @@ int main(int argc, char *argv[])
 #ifdef USE_BIN_REDUCTION
     bin_reduction_end();
 #endif
-
-
 
 
 #ifdef USE_WAITALL

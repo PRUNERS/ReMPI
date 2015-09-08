@@ -201,6 +201,15 @@ _EXTERN_C_ int MPI_Comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2)
   }    return _wrap_py_return_val;
 }
 
+/* ================== C Wrappers for MPI_Comm_dup ================== */
+ _EXTERN_C_ int PMPI_Comm_dup(MPI_Comm arg_0, MPI_Comm *arg_1);
+ _EXTERN_C_ int MPI_Comm_dup(MPI_Comm arg_0, MPI_Comm *arg_1) {
+   int _wrap_py_return_val = 0;
+   {
+     _wrap_py_return_val = PMPI_Comm_dup(arg_0, arg_1);
+   }    return _wrap_py_return_val;
+ }
+
 
 /* ================== C Wrappers for MPI_Finalize ================== */
 _EXTERN_C_ int PMPI_Finalize();

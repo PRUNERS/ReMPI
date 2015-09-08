@@ -76,6 +76,7 @@ class rempi_re
 
   virtual int re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3);
   virtual int re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2);
+  virtual int re_comm_dup(MPI_Comm arg_0, MPI_Comm *arg_2);
 
   virtual int re_finalize();
   
@@ -155,6 +156,7 @@ class rempi_re_no_comp : public rempi_re
 
   virtual int re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3);
   virtual int re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2);
+  virtual int re_comm_dup(MPI_Comm arg_0, MPI_Comm *arg_2);
 
   virtual int re_finalize();
 };
@@ -229,8 +231,8 @@ class rempi_re_cdc : public rempi_re_no_comp
 			  MPI_Status array_of_statuses[]);
 
   virtual int re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3);
-
   virtual int re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2);
+  virtual int re_comm_dup(MPI_Comm arg_0, MPI_Comm *arg_2);
 
   virtual int re_finalize();
 };

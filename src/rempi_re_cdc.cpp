@@ -154,6 +154,9 @@ int rempi_re_cdc::re_isend(
   size_t clock;
   clmpi_get_local_clock(&clock);
 #endif
+  if (comm != MPI_COMM_WORLD) {
+    REMPI_ERR("Current ReMPI does not multiple communicators");
+  }
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
 
 #ifdef REMPI_DBG_REPLAY
@@ -450,6 +453,15 @@ int rempi_re_cdc::re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_
   ret = PMPI_Comm_create(arg_0, arg_1, arg_2);
   return ret;
 }
+
+int rempi_re_cdc::re_comm_dup(MPI_Comm arg_0, MPI_Comm *arg_2)
+{
+  int ret;   
+  REMPI_DBG("MPI_Comm_create is not implemented yet");
+  ret = PMPI_Comm_dup(arg_0, arg_2);
+  return ret;
+}
+
 
 
 int rempi_re_cdc::re_finalize()

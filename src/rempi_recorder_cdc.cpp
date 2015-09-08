@@ -325,7 +325,7 @@ int rempi_recorder_cdc::record_test(
   // test_id = request_to_test_id_umap[request];
 #ifdef REMPI_DBG_REPLAY
   REMPI_DBGI(REMPI_DBG_REPLAY, "= Record: (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
-	     event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
+   	     event_count, with_previous, *flag, record_source, record_tag, record_clock, test_id);
 #endif
   // if (*flag == 1) {
   //   REMPI_DBGI(0, "= Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
@@ -838,7 +838,7 @@ int rempi_recorder_cdc::replay_testsome(
     /* ======================================================== */
     if (!has_pending_msg) {
       //      REMPI_DBGI(REMPI_DBG_REPLAY, " ==== update start");
-      mc_encoder->update_local_min_id(min_recv_rank, min_next_clock);
+     mc_encoder->update_local_min_id(min_recv_rank, min_next_clock);
       //      REMPI_DBGI(REMPI_DBG_REPLAY, " ==== update end");
     }
     /* ======================================================== */

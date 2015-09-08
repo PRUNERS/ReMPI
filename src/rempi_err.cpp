@@ -50,7 +50,7 @@ void rempi_err(const char* fmt, ...)
   va_end(argp);
   fprintf(stderr, "\n");
   fflush(stderr);
-  exit(1);
+  exit(15);
   return;
 }
 
@@ -63,7 +63,7 @@ void rempi_erri(int r, const char* fmt, ...)
   vfprintf(stderr, fmt, argp);
   va_end(argp);
   fprintf(stderr, "\n");
-  exit(1);
+  exit(15);
   return;
 }
 

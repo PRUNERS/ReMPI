@@ -279,6 +279,13 @@ int rempi_re_no_comp::re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *
   return ret;
 }
 
+int rempi_re_no_comp::re_comm_dup(MPI_Comm arg_0, MPI_Comm *arg_2)
+{
+  int ret;   
+  ret = PMPI_Comm_dup(arg_0, arg_2);
+  return ret;
+}
+
 
 
 
