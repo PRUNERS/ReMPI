@@ -1545,7 +1545,8 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
   */
   if (recording_events.size_replay(test_id) == 0) {
 
-    clmpi_get_local_clock(&tmp_interim_min_clock);
+    REMPI_DBG("Pointer: %p", clmpi_get_local_clock);
+    clmpi_get_local_sent_clock(&tmp_interim_min_clock);
     for (rempi_event *replaying_event: replay_event_vec) {
       if (replaying_event == NULL) {
 	replaying_clock = local_min_id_clock;
@@ -1561,7 +1562,7 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 #if REMPI_DBG_REPLAY
     if (interim_min_clock_in_next_event[test_id] < tmp_interim_min_clock) {
       size_t local_clock_dbg;
-      clmpi_get_local_clock(&local_clock_dbg);
+      clmpi_get_local_sent_clock(&local_clock_dbg);
       REMPI_DBGI(REMPI_DBG_REPLAY, "INTRM update: local_clock: %lu", local_clock_dbg);
       for (rempi_event *replaying_event: replay_event_vec) {
 	if (replaying_event == NULL) {
