@@ -321,13 +321,11 @@ rempi_encoder_cdc::rempi_encoder_cdc(int mode)
     clmpi_get_local_clock=(PNMPIMOD_get_local_clock_t) ((void*)serv.fct);
 
     /*Get clock-mpi service: fetch_next_clocks*/
-#ifdef DBG_SC
     err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_local_sent_clock","p",&serv);
     if (err!=PNMPI_SUCCESS) {
       REMPI_ERR("failed to load CLMPI function: clmpi_get_local_sent_clock");
     }
     clmpi_get_local_sent_clock=(PNMPIMOD_get_local_sent_clock_t) ((void*)serv.fct);
-#endif
   }
 
   if (mode == REMPI_ENV_REMPI_MODE_REPLAY) {
@@ -1545,7 +1543,6 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
   */
   if (recording_events.size_replay(test_id) == 0) {
 
-    REMPI_DBG("Pointer: %p", clmpi_get_local_clock);
     clmpi_get_local_sent_clock(&tmp_interim_min_clock);
     for (rempi_event *replaying_event: replay_event_vec) {
       if (replaying_event == NULL) {
@@ -1721,11 +1718,9 @@ void rempi_encoder_cdc::update_fd_next_clock(
 {
   size_t clock;
   size_t next_clock = 0;
-#ifdef DBG_SC
+
   clmpi_get_local_sent_clock(&clock);
-#else
-  clmpi_get_local_clock(&clock);
-#endif
+
   bool is_waiting_msg = false;
   /*If waiting message recv to replay an event, the sending clock (next_clock) is bigger than "clock" by +1 */
   /*
