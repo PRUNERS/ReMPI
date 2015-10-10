@@ -383,11 +383,11 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
   }
   PMPI_Win_flush_local_all(mpi_fd_clock_win);
 
-// #ifdef REMPI_DBG_REPLAY
-//   for (int i = 0; i < mc_length; ++i) {
-//     REMPI_DBGI(REMPI_DBG_REPLAY, "After recved: rank: %d clock:%lu", mc_recv_ranks[i], mc_next_clocks[i]);
-//   }
-// #endif
+#ifdef REMPI_DBG_REPLAY
+  // for (int i = 0; i < mc_length; ++i) {
+  //   REMPI_DBGI(REMPI_DBG_REPLAY, "After recved: rank: %d clock:%lu", mc_recv_ranks[i], mc_next_clocks[i]);
+  // }
+#endif
 
 
   /*mc_next_clocks can change later, so copy to tmp_mc_next_clocks */
@@ -1080,7 +1080,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     REMPI_ERR("The number of test_id exceeded the limit");
   }
   
-  // input_format.debug_print();
+  input_format.debug_print();
   return;
 }
 
@@ -1315,7 +1315,7 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 
   /* ===== replaying events is matched event from here =======*/
   this->compute_local_min_id(test_table, &local_min_id_rank, &local_min_id_clock);
- 
+  
  /* ====== Note: condition for relay =========================*/
   /*
     Before main thread increases next_clock via udpate_fd_next_clock(),
@@ -1389,6 +1389,9 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
       if (!compare2(local_min_id_rank, local_min_id_clock, event) || is_reached_epoch_line) {
 	solid_event_count++;
 	/*If event < local_min_id.{rank, clock} ... */
+#ifdef REMPI_DBG_REPLAY
+	is_solid_ordered_event_list_updated = true;
+#endif
       } else {
 	/*Because ordered_event_list is sorted, so we do not need to check the rest of events*/
 	break;
@@ -1428,11 +1431,6 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 	test_table->solid_ordered_event_list.push_back(event);
 	event->clock_order = next_clock_order++;
       }
-#ifdef REMPI_DBG_REPLAY
-      if (solid_event_count > 0) {
-	is_solid_ordered_event_list_updated = true;
-      }
-#endif
     }
 
     
@@ -1478,35 +1476,35 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
   /* =========================================================*/
 
 #if 0
-  int i = 0;
-  int added_count = 0;
-  for (rempi_event *replaying_event: test_table->solid_ordered_event_list) {
-    int permutated_index = test_table->matched_events_permutated_indices_vec[replaying_event->clock_order]
-      - test_table->replayed_matched_event_index;
-#ifdef REMPI_DBG_REPLAY
-    if (is_ordered_event_list_updated || is_solid_ordered_event_list_updated) {
-      REMPI_DBGI(REMPI_DBG_REPLAY, "  index: %d -> %d(%d) replayed_count: %d (event_clock: %d)", replaying_event->clock_order, 
-		 test_table->matched_events_permutated_indices_vec[replaying_event->clock_order], 
-		 permutated_index, test_table->replayed_matched_event_index, replaying_event->get_clock());
-    }
-#endif
-    if (0 <= permutated_index && permutated_index < outcount) {
-      replay_event_vec[permutated_index] = replaying_event;
-      added_count++;
-    } else if (permutated_index < 0){
-      REMPI_ERR("permutated_index:%d < 0 (record data may be truncated)", permutated_index);
-    }
-    if (i = outcount) {
-      /*
-	I'my replaying outcount of receive events. 
-	solid_ordered_event_list[outcount-1] <= max of clocks in the replaying receive events 
-	at least, the clock becomes solid_ordered_event_list[outcount-1] (+1 in actual)
-	So I set replaying_event->get_clock() (=solid_ordered_event_list[outcount-1])
-      */
-      interim_min_clock_in_next_event[test_id] = (size_t)replaying_event->get_clock();
-    }
-    i++;
-  }
+//   int i = 0;
+//   int added_count = 0;
+//   for (rempi_event *replaying_event: test_table->solid_ordered_event_list) {
+//     int permutated_index = test_table->matched_events_permutated_indices_vec[replaying_event->clock_order]
+//       - test_table->replayed_matched_event_index;
+// #ifdef REMPI_DBG_REPLAY
+//     if (is_ordered_event_list_updated || is_solid_ordered_event_list_updated) {
+//       REMPI_DBGI(REMPI_DBG_REPLAY, "  index: %d -> %d(%d) replayed_count: %d (event_clock: %d)", replaying_event->clock_order, 
+// 		 test_table->matched_events_permutated_indices_vec[replaying_event->clock_order], 
+// 		 permutated_index, test_table->replayed_matched_event_index, replaying_event->get_clock());
+//     }
+// #endif
+//     if (0 <= permutated_index && permutated_index < outcount) {
+//       replay_event_vec[permutated_index] = replaying_event;
+//       added_count++;
+//     } else if (permutated_index < 0){
+//       REMPI_ERR("permutated_index:%d < 0 (record data may be truncated)", permutated_index);
+//     }
+//     if (i = outcount) {
+//       /*
+// 	I'my replaying outcount of receive events. 
+// 	solid_ordered_event_list[outcount-1] <= max of clocks in the replaying receive events 
+// 	at least, the clock becomes solid_ordered_event_list[outcount-1] (+1 in actual)
+// 	So I set replaying_event->get_clock() (=solid_ordered_event_list[outcount-1])
+//       */
+//       interim_min_clock_in_next_event[test_id] = (size_t)replaying_event->get_clock();
+//     }
+//     i++;
+//   }
 
 #else
 
@@ -1541,12 +1539,25 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
     So update tmp_interim_min_clock only when recording_events is empty even after 
     calling compute_local_min_id.
   */
+  list<rempi_event*>::const_iterator cit     = test_table->ordered_event_list.cbegin();
+  list<rempi_event*>::const_iterator cit_end = test_table->ordered_event_list.cend();
   if (recording_events.size_replay(test_id) == 0) {
-
     clmpi_get_local_sent_clock(&tmp_interim_min_clock);
+    /*local_sent_clock is sent clock value, so the local_clock is local_sent_clock + 1*/
+    //    tmp_interim_min_clock++;
     for (rempi_event *replaying_event: replay_event_vec) {
       if (replaying_event == NULL) {
-	replaying_clock = local_min_id_clock;
+	/*Use min{local_min_clock, clock in ordered_event_list})*/
+	if (cit == cit_end) {
+	  replaying_clock = local_min_id_clock;
+	} else {
+	  if ((*cit)->get_clock() < local_min_id_clock) {
+	    replaying_clock = (*cit)->get_clock();
+	    cit++;
+	  } else {
+	    replaying_clock = local_min_id_clock;
+	  }
+	}
       } else {
 	replaying_clock = replaying_event->get_clock();
       }
@@ -1556,15 +1567,28 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
       tmp_interim_min_clock++;
     }
 
-#if REMPI_DBG_REPLAY
+#ifdef REMPI_DBG_REPLAY
     if (interim_min_clock_in_next_event[test_id] < tmp_interim_min_clock) {
+      cit     = test_table->ordered_event_list.cbegin();
+      cit_end = test_table->ordered_event_list.cend();
       size_t local_clock_dbg;
       clmpi_get_local_sent_clock(&local_clock_dbg);
       REMPI_DBGI(REMPI_DBG_REPLAY, "INTRM update: local_clock: %lu", local_clock_dbg);
       for (rempi_event *replaying_event: replay_event_vec) {
 	if (replaying_event == NULL) {
-	  replaying_clock = local_min_id_clock;
-	  REMPI_DBGI(REMPI_DBG_REPLAY, "  INTRM update: (rank: %d, clock: %lu) min", local_min_id_rank, local_min_id_clock);
+	  if (cit == cit_end) {
+	    replaying_clock = local_min_id_clock;
+	    REMPI_DBGI(REMPI_DBG_REPLAY, "  INTRM update: (rank: %d, clock: %lu) min", local_min_id_rank, local_min_id_clock);
+	  } else {
+	    if ((*cit)->get_clock() < local_min_id_clock) {
+	      replaying_clock = (*cit)->get_clock();
+	      REMPI_DBGI(REMPI_DBG_REPLAY, "  INTRM update: (rank: %d, clock: %lu) Q  ", (*cit)->get_source(), (*cit)->get_clock());
+	      cit++;
+	    } else {
+	      replaying_clock = local_min_id_clock;
+	      REMPI_DBGI(REMPI_DBG_REPLAY, "  INTRM update: (rank: %d, clock: %lu) min", local_min_id_rank, local_min_id_clock);
+	    }
+	  }
 	} else {
 	  replaying_clock = replaying_event->get_clock();
 	  REMPI_DBGI(REMPI_DBG_REPLAY, "  INTRM update: (rank: %d, clock: %lu)", replaying_event->get_source(), replaying_event->get_clock());
@@ -1714,12 +1738,13 @@ void rempi_encoder_cdc::update_fd_next_clock(
 					     int num_of_recv_msg_in_next_event, 
 					     size_t interim_min_clock_in_next_event, 
 					     size_t enqueued_count,
-					     int recv_test_id)
+					     int recv_test_id,
+					     int is_after_reve_event)
 {
-  size_t clock;
+  size_t local_clock;
   size_t next_clock = 0;
 
-  clmpi_get_local_sent_clock(&clock);
+
 
   bool is_waiting_msg = false;
   /*If waiting message recv to replay an event, the sending clock (next_clock) is bigger than "clock" by +1 */
@@ -1744,14 +1769,22 @@ void rempi_encoder_cdc::update_fd_next_clock(
     //    next_clock = (clock < next_clock)? next_clock:clock;
     //    next_clock += 1; //next_clock += num_of_recv_msg_in_next_event; => this is wrong, must be +1
   } else {
-    next_clock = clock;
+    //    next_clock = sent_clock + 1;
+    if (is_after_reve_event) {
+      clmpi_get_local_clock(&local_clock);
+    } else {
+      clmpi_get_local_sent_clock(&local_clock);
+      /*local_sent_clock is literary sent clock, so next clock must be over the sent clock, i.e., local_sent_clock + 1 at least*/
+      local_clock++;
+    }
+    next_clock = local_clock;
   }
 
 #ifdef REMPI_DBG_REPLAY  
   if (fd_clocks->next_clock < next_clock) {
-    REMPI_DBGI(REMPI_DBG_REPLAY, "NEXT Clock Update: from %d to %d:  (local_min (rank: %d, clock: %lu), local: %d num: %d): is_waiting_recv: %d, is_waiting_msg: %d", 
+    REMPI_DBGI(REMPI_DBG_REPLAY, "NEXT Clock Update: from %d to %d:  (local_min (rank: %d, clock: %lu), local: %d num: %d): is_waiting_recv: %d, is_after_recv_event: %d", 
 	       fd_clocks->next_clock, next_clock, global_local_min_id.rank, global_local_min_id.clock, 
-	       clock, num_of_recv_msg_in_next_event, is_waiting_recv, is_waiting_msg);
+	       clock, num_of_recv_msg_in_next_event, is_waiting_recv, is_after_reve_event);
   }
 #endif
   if (fd_clocks->next_clock < next_clock) {
@@ -1829,9 +1862,9 @@ void rempi_encoder_cdc::insert_encoder_input_format_chunk(rempi_event_list<rempi
 
     for (rempi_event *e: replay_event_list) {
 #ifdef REMPI_DBG_REPLAY
-      REMPI_DBGI(REMPI_DBG_REPLAY, "RPQv -> RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
+      REMPI_DBGI(REMPI_DBG_REPLAY, "RPQv -> RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d) recv_test_id: %d",
 		 e->get_event_counts(), e->get_is_testsome(), e->get_flag(),
-		 e->get_source(),       e->get_tag(),         e->get_clock());
+		 e->get_source(),       e->get_tag(),         e->get_clock(), test_id);
 #endif
       replaying_events.enqueue_replay(e, test_id);
     }

@@ -9,6 +9,7 @@
 #define REMPI_MF_FLAG_2_ALL    (5)
 
 #include <vector>
+#include <unordered_set>
 
 #include "rempi_mem.h"
 #include "rempi_message_manager.h"
@@ -129,6 +130,9 @@ class rempi_recorder {
 			   int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
 			   MPI_Request *request
 			   );
+
+  virtual int replay_isend(MPI_Request *request);
+
   virtual int replay_irecv(
 			   void *buf,
 			   int count,
@@ -198,10 +202,27 @@ class rempi_recorder_cdc : public rempi_recorder
   unordered_map<int, int> test_id_to_recv_test_id_umap;
   int next_recv_test_id_to_assign; // = 0;
   int init_clmpi();
+
   PNMPIMOD_register_recv_clocks_t clmpi_register_recv_clocks;
   PNMPIMOD_clock_control_t clmpi_clock_control;
   PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
   PNMPIMOD_sync_clock_t      clmpi_sync_clock;
+
+  size_t send_request_id;
+  unordered_map<MPI_Request, MPI_Request> isend_request_umap;
+
+  PNMPIMOD_get_local_sent_clock_t clmpi_get_local_sent_clock;
+
+  int REMPI_Send_Wait(MPI_Request *request, MPI_Status *status);
+  int REMPI_Send_Waitany(int arg_0, MPI_Request *arg_1, int *arg_2, MPI_Status *arg_3);
+  int REMPI_Send_Waitall(int count, MPI_Request *array_of_requests, MPI_Status *array_of_statuses);
+  int REMPI_Send_Waitsome(int incount, MPI_Request *array_of_requests, int *outcount, int *array_of_indices, MPI_Status *array_of_statuses);
+  int REMPI_Send_Test(MPI_Request *request, int *flag, MPI_Status *status);
+  int REMPI_Send_Testany(int count, MPI_Request *array_of_requests, int *index, int *flag, MPI_Status *status);
+  int REMPI_Send_Testall(int count, MPI_Request *array_of_requests, int *flag, MPI_Status *array_of_statuses);
+  int REMPI_Send_Testsome(int incount, MPI_Request *array_of_requests, int *outcount, int *array_of_indices, MPI_Status *array_of_statuses);
+
+  bool progress_send_requests();
   
   bool progress_recv_requests(int global_test_id,
 			      int incount,
@@ -210,10 +231,12 @@ class rempi_recorder_cdc : public rempi_recorder
 			      size_t global_local_min_id_clock);
 
 
+
  public:
    rempi_recorder_cdc()
      : rempi_recorder()
-     , next_recv_test_id_to_assign(0) {}
+     , next_recv_test_id_to_assign(0)
+     , send_request_id(100) {}
 
   int record_init(int *argc, char ***argv, int rank);
   int replay_init(int *argc, char ***argv, int rank);
@@ -226,6 +249,9 @@ class rempi_recorder_cdc : public rempi_recorder
 		   int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
 		   MPI_Request *request
 		   );
+
+  int replay_isend(MPI_Request *request);
+
   int replay_irecv(
 		   void *buf,
 		   int count,

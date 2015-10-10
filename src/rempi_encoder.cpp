@@ -447,7 +447,8 @@ void rempi_encoder::update_fd_next_clock(
 					 int num_of_recv_msg_in_next_event,
 					 size_t interim_min_clock_in_next_event,
 					 size_t enqueued_count,
-					 int recv_test_id)
+					 int recv_test_id,
+					 int is_after_recv_event)
 { 
   REMPI_ERR("please remove this REMPI_ERR later");
   return;

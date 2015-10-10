@@ -44,6 +44,11 @@ int rempi_recorder::replay_init(int *argc, char ***argv, int rank)
   return 0;
 }
 
+int rempi_recorder::replay_isend(MPI_Request *request)
+{ 
+  return 0;
+}
+
 int rempi_recorder::record_irecv(
    void *buf,
    int count,

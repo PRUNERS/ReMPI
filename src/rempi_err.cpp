@@ -44,7 +44,7 @@ void rempi_assert(int b)
 void rempi_err(const char* fmt, ...)
 {
   va_list argp;
-  fprintf(stderr, "REMPI:ERROR:%s:%3d: ", hostname, my_rank);
+  fprintf(stderr, "REMPI: ** ERROR ** :%s:%3d: ", hostname, my_rank);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);
@@ -58,7 +58,7 @@ void rempi_erri(int r, const char* fmt, ...)
 {
   if (my_rank != r) return;
   va_list argp;
-  fprintf(stderr, "REMPI:ERROR:%s:%3d: ", hostname, my_rank);
+  fprintf(stderr, "REMPI: ** ERROR ** :%s:%3d: ", hostname, my_rank);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);

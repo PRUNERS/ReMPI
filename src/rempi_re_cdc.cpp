@@ -158,11 +158,12 @@ int rempi_re_cdc::re_isend(
     REMPI_ERR("Current ReMPI does not multiple communicators");
   }
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
+    recorder->replay_isend(request);
+  }
 
 #ifdef REMPI_DBG_REPLAY
-  if (dest == REMPI_DBG_REPLAY) {
     REMPI_DBG("  Send: request: %p dest: %d, tag: %d, clock: %d, count: %d", *request, dest, tag, clock, count);
-  }
 #endif
 
   return ret;
@@ -461,8 +462,6 @@ int rempi_re_cdc::re_comm_dup(MPI_Comm arg_0, MPI_Comm *arg_2)
   ret = PMPI_Comm_dup(arg_0, arg_2);
   return ret;
 }
-
-
 
 int rempi_re_cdc::re_finalize()
 {

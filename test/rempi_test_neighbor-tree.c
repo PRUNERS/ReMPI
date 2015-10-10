@@ -13,10 +13,9 @@
 #define MAX_MESG_PASS (4)
 
 #define USE_MPI_ISEND
-
 //#define USE_BIN_REDUCTION
 #define USE_WAITALL
-
+//#define USE_COMM_DUP
 
 int hash_count = 0;
 
@@ -75,6 +74,7 @@ void waitall_end()
   MPI_Status status[2];
   MPI_Waitall(2, waitall_send_req, status);
   MPI_Waitall(2, waitall_recv_req, status);
+
 #endif
   return;
 }
@@ -193,7 +193,11 @@ int main(int argc, char *argv[])
     sendrecv_kv[i].val = my_rank;//get_rand(MAX_VAL);
   }
 
+#ifdef USE_COMM_DUP
   MPI_Comm_dup(MPI_COMM_WORLD, &reduction_comm);
+#else
+  reduction_comm = MPI_COMM_WORLD;
+#endif
   MPI_Barrier(MPI_COMM_WORLD);
 
   for (k = 0; k < NUM_ITE; ++k) {
@@ -301,7 +305,9 @@ int main(int argc, char *argv[])
     } // end: while
 #endif
 
+    fprintf(stderr, "========= BARRIER =========: rank %d\n", my_rank);
     MPI_Barrier(MPI_COMM_WORLD);
+    fprintf(stderr, "========= BARRIER end =========: rank %d\n", my_rank);
 
     /* ======================== */
     /* 3. End: binary tree reduction */
@@ -327,7 +333,9 @@ int main(int argc, char *argv[])
 
   //  fprintf(stderr, "2. my_rank: %d: test -----\n", my_rank);
   MPI_Barrier(MPI_COMM_WORLD);
+#ifdef USE_COMM_DUP
   MPI_Comm_free(&reduction_comm);
+#endif
 
   /* for (i = 0; i < NUM_KV_PER_RANK; i++) { */
   /*   fprintf(stderr, "rank %d: recv: %d send: %d\n", my_rank, recv_msg_count[i], send_msg_count[i]); */

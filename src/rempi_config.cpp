@@ -65,6 +65,11 @@ void rempi_set_configuration(int *argc, char ***argv)
     rempi_is_test_id = env_int;
   }
 
+  if (rempi_mode == 1 && rempi_is_test_id == 1) {
+    REMPI_DBGI(0, "REMPI_MODE=1 & REMPI_IS_TEST_IS=1 is not supported yet");
+  }
+
+
   REMPI_DBGI(0, "mode  :  %d", rempi_mode);
   REMPI_DBGI(0, "dir   :  %s", rempi_record_dir_path.c_str());
   REMPI_DBGI(0, "encode:  %d", rempi_encode);
