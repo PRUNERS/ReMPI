@@ -168,6 +168,7 @@ class rempi_encoder
     int *num_of_recv_msg_in_next_event;// = NULL; /*array[i] contain the number of test_id=i*/
     size_t *interim_min_clock_in_next_event;// = NULL;
     size_t *dequeued_count;// = NULL;
+    size_t tmp_fd_next_clock = 0; /*Temporal variable for set_fd_clock_state*/
 
     rempi_event_list<rempi_event*> *events;
 
@@ -181,6 +182,7 @@ class rempi_encoder
       , num_of_recv_msg_in_next_event(NULL)
       , interim_min_clock_in_next_event(NULL) 
       , dequeued_count(NULL)
+      , tmp_fd_next_clock(0)
       {}
 
     /*Common for record & replay*/
@@ -210,6 +212,7 @@ class rempi_encoder
 				      int recv_test_id,
 				      int is_after_recv_event);
     virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock);
+    virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/
 
     
     /*Old functions for replay*/
@@ -292,6 +295,7 @@ class rempi_encoder_cdc : public rempi_encoder
 				    int recv_test_id, 
 				    int is_after_recv_event);
   virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock);
+  virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/
 
   //  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };

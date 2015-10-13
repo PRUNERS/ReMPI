@@ -454,6 +454,11 @@ void rempi_encoder::update_fd_next_clock(
   return;
 }
 
+void rempi_encoder::set_fd_clock_state(int flag)
+{
+  return;
+}
+
 void rempi_encoder::compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock)
 {
   REMPI_ERR("please remove this REMPI_ERR later");

@@ -264,7 +264,7 @@ int rempi_recorder_cdc::replay_irecv(
     //    proxy_request = (MPI_Request*)rempi_malloc(sizeof(MPI_Request));
     irecv_inputs->request_proxy_list.push_back(proxy_request_info);
     ret = PMPI_Irecv(proxy_request_info->buf, count, datatype, source, tag, *comm, &proxy_request_info->request);
-    REMPI_DBG("matched_proxy: request: %p", *request);
+    //    REMPI_DBG("matched_proxy: request: %p", *request);
   } else {
     /*Irecv request with the same (source, tag, comm) was already posted, so simply return MPI_SUCCESS*/
     ret = MPI_SUCCESS;
@@ -1442,6 +1442,21 @@ int rempi_recorder_cdc::replay_finalize(void)
   return 0;
 }
 
+void rempi_recorder_cdc::set_fd_clock_state(int flag)
+{
+  mc_encoder->set_fd_clock_state(flag);
+  return;
+}
+
+void rempi_recorder_cdc::fetch_and_update_local_min_id()
+{
+  int min_recv_rank;
+  size_t  min_next_clock;
+  mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
+  mc_encoder->update_local_min_id(min_recv_rank, min_next_clock);  
+  return;
+}
+
 
 int rempi_recorder_cdc::REMPI_Send_Wait(MPI_Request *send_request_id, MPI_Status *status)
 {
@@ -1512,10 +1527,10 @@ int rempi_recorder_cdc::REMPI_Send_Waitsome(int incount, MPI_Request *array_of_s
 	local_outcount++;
 	array_of_send_request_ids[i] = MPI_REQUEST_NULL;
 	isend_request_umap.erase(array_of_send_request_ids[i]);
-	REMPI_DBG("checked request(SEND_NULL): %p", array_of_send_request_ids[i]);
+	//	REMPI_DBG("checked request(SEND_NULL): %p", array_of_send_request_ids[i]);
       } else if (array_of_send_request_ids[i] !=MPI_REQUEST_NULL) {
 	clmpi_register_recv_clocks(&clock, 1);
-	REMPI_DBG("check request: %p state: %p", array_of_send_request_ids[i], send_request);
+	//	REMPI_DBG("check request: %p state: %p", array_of_send_request_ids[i], send_request);
 	PMPI_Test(&send_request, &flag, &array_of_statuses[i]);
 	if (flag) {
 	  if (array_of_indices != MPI_INDICES_IGNORE) array_of_indices[local_outcount] = i;

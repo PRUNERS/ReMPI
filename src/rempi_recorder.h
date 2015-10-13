@@ -182,10 +182,15 @@ class rempi_recorder {
 			      int mf_flag_1,
 			      int mf_flag_2);
 
+
+
   //TODO: Comm_dup Comm_split
 
   virtual int record_finalize(void);
   virtual int replay_finalize(void);
+
+  virtual void set_fd_clock_state(int flag);
+  virtual void fetch_and_update_local_min_id();
 
 
 };
@@ -306,6 +311,9 @@ class rempi_recorder_cdc : public rempi_recorder
 
   int record_finalize(void);
   int replay_finalize(void);
+
+  void set_fd_clock_state(int flag);
+  void fetch_and_update_local_min_id();
 
 
 };

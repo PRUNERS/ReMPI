@@ -10,11 +10,11 @@
 #define NUM_ITE (2)
 #define NUM_KV_PER_RANK (3)
 #define MAX_VAL (100)
-#define MAX_MESG_PASS (4)
+#define MAX_MESG_PASS (10)
 
 #define USE_MPI_ISEND
 //#define USE_BIN_REDUCTION
-#define USE_WAITALL
+//#define USE_WAITALL
 //#define USE_COMM_DUP
 
 int hash_count = 0;
@@ -305,9 +305,7 @@ int main(int argc, char *argv[])
     } // end: while
 #endif
 
-    fprintf(stderr, "========= BARRIER =========: rank %d\n", my_rank);
     MPI_Barrier(MPI_COMM_WORLD);
-    fprintf(stderr, "========= BARRIER end =========: rank %d\n", my_rank);
 
     /* ======================== */
     /* 3. End: binary tree reduction */

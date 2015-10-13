@@ -369,3 +369,13 @@ int rempi_recorder::replay_finalize(void)
   return 0;
 }
 
+void rempi_recorder::set_fd_clock_state(int flag)
+{
+  return;
+}
+
+void rempi_recorder::fetch_and_update_local_min_id()
+{
+  return;
+}
+

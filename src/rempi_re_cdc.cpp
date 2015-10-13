@@ -43,6 +43,14 @@ int rempi_re_cdc::init_clmpi()
   }
   clmpi_get_local_clock=(PNMPIMOD_get_local_clock_t) ((void*)serv.fct);
 
+  /*Get clock-mpi service*/
+  err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_collective_sync_clock","p", &serv);
+  if (err!=PNMPI_SUCCESS) {
+    REMPI_ERR("failed");
+    return err;
+  }
+  clmpi_collective_sync_clock=(PNMPIMOD_collective_sync_clock_t) ((void*)serv.fct);
+
   /*Load own moduel*/
   err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_REMPI, &handle_rempi);
   if (err!=PNMPI_SUCCESS) {
@@ -461,6 +469,140 @@ int rempi_re_cdc::re_comm_dup(MPI_Comm arg_0, MPI_Comm *arg_2)
   REMPI_DBG("MPI_Comm_create is not implemented yet");
   ret = PMPI_Comm_dup(arg_0, arg_2);
   return ret;
+}
+
+
+int rempi_re_cdc::collective_sync_clock(MPI_Comm comm) 
+{
+  int ret;
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
+    recorder->set_fd_clock_state(1);
+  }
+  /*collectively sync clock*/
+  ret = clmpi_collective_sync_clock(comm);
+
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
+    recorder->set_fd_clock_state(0);    
+  }
+  return ret;
+}
+
+
+int rempi_re_cdc::re_allreduce(const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
+{
+  int ret;
+  collective_sync_clock(arg_5);
+  ret = PMPI_Allreduce(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
+  recorder->fetch_and_update_local_min_id();
+  return ret;  
+}
+
+int rempi_re_cdc::re_reduce(const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, int arg_5, MPI_Comm arg_6)
+{
+  int ret;
+  collective_sync_clock(arg_6);
+  ret = PMPI_Reduce(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+  recorder->fetch_and_update_local_min_id();
+  return ret;
+}
+
+int rempi_re_cdc::re_scan(const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
+{
+  int ret;
+  collective_sync_clock(arg_5);
+  ret = PMPI_Scan(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
+  recorder->fetch_and_update_local_min_id();
+  return ret; 
+}
+
+int rempi_re_cdc::re_allgather(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6)
+{
+  int ret;
+  collective_sync_clock(arg_6);
+  ret = PMPI_Allgather(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+  recorder->fetch_and_update_local_min_id();
+  return ret;
+}
+
+int rempi_re_cdc::re_gatherv(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, const int *arg_4, const int *arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8)
+{
+  int ret;
+  collective_sync_clock(arg_8);
+  ret = PMPI_Gatherv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8);
+  recorder->fetch_and_update_local_min_id();
+  return ret;
+}
+
+int rempi_re_cdc::re_reduce_scatter(const void *arg_0, void *arg_1, const int *arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
+{
+  int ret;
+  collective_sync_clock(arg_5);
+  ret = PMPI_Reduce_scatter(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
+  recorder->fetch_and_update_local_min_id();
+  return ret; 
+}
+
+int rempi_re_cdc::re_scatterv(const void *arg_0, const int *arg_1, const int *arg_2, MPI_Datatype arg_3, void *arg_4, int arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8)
+{
+  int ret;
+  collective_sync_clock(arg_8);
+  ret = PMPI_Scatterv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8);
+  recorder->fetch_and_update_local_min_id();
+  return ret;
+}
+
+int rempi_re_cdc::re_allgatherv(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, const int *arg_4, const int *arg_5, MPI_Datatype arg_6, MPI_Comm arg_7)
+{
+  int ret;
+  collective_sync_clock(arg_7);
+  ret = PMPI_Allgatherv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);
+  recorder->fetch_and_update_local_min_id();
+  return ret; 
+}
+
+int rempi_re_cdc::re_scatter(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7)
+{
+  int ret;
+  collective_sync_clock(arg_7);
+  ret = PMPI_Scatter(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);
+  recorder->fetch_and_update_local_min_id();
+  return ret;
+}
+
+int rempi_re_cdc::re_bcast(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, MPI_Comm arg_4)
+{
+  int ret;
+  collective_sync_clock(arg_4);
+  ret = PMPI_Bcast(arg_0, arg_1, arg_2, arg_3, arg_4);
+  recorder->fetch_and_update_local_min_id();
+  return ret; 
+}
+
+int rempi_re_cdc::re_alltoall(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6)
+{
+  int ret;
+  collective_sync_clock(arg_6);
+  ret = PMPI_Alltoall(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+  recorder->fetch_and_update_local_min_id();
+  return ret;
+}
+
+int rempi_re_cdc::re_gather(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7)
+{
+  int ret;
+  collective_sync_clock(arg_7);
+  ret = PMPI_Gather(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);
+  recorder->fetch_and_update_local_min_id();
+  return ret;
+}
+
+int rempi_re_cdc::re_barrier(MPI_Comm arg_0)
+{
+  int ret;
+  collective_sync_clock(arg_0);
+  ret = PMPI_Barrier(arg_0);
+  recorder->fetch_and_update_local_min_id();
+  return ret;  
 }
 
 int rempi_re_cdc::re_finalize()

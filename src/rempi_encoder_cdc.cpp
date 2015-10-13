@@ -182,7 +182,9 @@ void rempi_encoder_cdc_input_format::format()
       sorted_events_vec[i]->clock_order = i;
       test_table->matched_events_ordered_map.insert(make_pair(i, sorted_events_vec[i]));
 
-      REMPI_DBG("order: %d source: %d , clock: %d (test_id: %d)", i, sorted_events_vec[i]->get_source(), sorted_events_vec[i]->get_clock(), test_tables_map_it->first);
+#ifdef REMPI_DBG_REPLAY
+      REMPI_DBGI(REMPI_DBG_REPLAY, "order: %d source: %d , clock: %d (test_id: %d)", i, sorted_events_vec[i]->get_source(), sorted_events_vec[i]->get_clock(), test_tables_map_it->first);
+#endif
       /*Update epoch line by using unordered_map*/
       /*TODO: if & else are doing the same thing except error check, REMPI_ERR("Later ... */
       if (test_table->epoch_umap.find(sorted_events_vec[i]->get_source()) == test_table->epoch_umap.end()) {
@@ -377,11 +379,12 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
      In this way, we mimic asynchronously fetch and update. */
   //  PMPI_Win_flush_local_all(mpi_fd_clock_win);
   /* --------------------- */
-  
+
   for (i = 0; i < mc_length; ++i) {
     PMPI_Get(&mc_next_clocks[i], sizeof(size_t), MPI_BYTE, mc_recv_ranks[i], 0, sizeof(size_t), MPI_BYTE, mpi_fd_clock_win);
   }
   PMPI_Win_flush_local_all(mpi_fd_clock_win);
+
 
 #ifdef REMPI_DBG_REPLAY
   // for (int i = 0; i < mc_length; ++i) {
@@ -433,6 +436,19 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
   for (int i = 0; i < epoch_rank_vec_size; i++) {
     int    tmp_rank  =  test_table->epoch_rank_vec[i];
     size_t tmp_clock =  this->solid_mc_next_clocks_umap[tmp_rank];
+
+
+    /* =========== added for set_fd_clock_state ============ */
+    if (tmp_clock == PNMPI_MODULE_CLMPI_COLLECTIVE) { 
+    /*If this rank is in MPI_Collective, I skip this*/
+      continue; 
+    }
+    if (*local_min_id_clock == PNMPI_MODULE_CLMPI_COLLECTIVE) {
+      *local_min_id_rank   = tmp_rank;
+      *local_min_id_clock  = tmp_clock;
+    }
+    /* =========== added for set_fd_clock_state ============ */
+
     if (*local_min_id_clock > tmp_clock) { 
       *local_min_id_rank   = tmp_rank;
       *local_min_id_clock  = tmp_clock;
@@ -443,6 +459,7 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
       }
     }
   }   
+
   return;
 }
 
@@ -1080,7 +1097,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     REMPI_ERR("The number of test_id exceeded the limit");
   }
   
-  input_format.debug_print();
+  //  input_format.debug_print();
   return;
 }
 
@@ -1380,23 +1397,31 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 
   { 
     /* ====== Operation B  ========*/
-    /*Count solid event count 
-       Sorted "solid events" order does not change by the rest of events
-     */
     int solid_event_count = 0;
-    for (rempi_event *event:test_table->ordered_event_list) {
-      bool is_reached_epoch_line = test_table->is_reached_epoch_line();
-      if (!compare2(local_min_id_rank, local_min_id_clock, event) || is_reached_epoch_line) {
-	solid_event_count++;
-	/*If event < local_min_id.{rank, clock} ... */
+    if (local_min_id_clock == PNMPI_MODULE_CLMPI_COLLECTIVE) {
+      solid_event_count = test_table->ordered_event_list.size();
 #ifdef REMPI_DBG_REPLAY
-	is_solid_ordered_event_list_updated = true;
+      is_solid_ordered_event_list_updated = true;
 #endif
-      } else {
+    } else {
+      /*Count solid event count 
+	Sorted "solid events" order does not change by the rest of events
+      */
+      for (rempi_event *event:test_table->ordered_event_list) {
+	bool is_reached_epoch_line = test_table->is_reached_epoch_line();
+	if (!compare2(local_min_id_rank, local_min_id_clock, event) || is_reached_epoch_line) {
+	  solid_event_count++;
+	  /*If event < local_min_id.{rank, clock} ... */
+#ifdef REMPI_DBG_REPLAY
+	  is_solid_ordered_event_list_updated = true;
+#endif
+	} else {
 	/*Because ordered_event_list is sorted, so we do not need to check the rest of events*/
-	break;
-      }   
+	  break;
+	}   
+      }
     }
+
     /* ====== End of Operation B  ========*/
 
 #ifdef REMPI_DBG_REPLAY
@@ -1424,7 +1449,10 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 	rempi_event *event = test_table->ordered_event_list.front();
 	if (test_table->solid_ordered_event_list.size() > 0) {
 	  if (!compare(test_table->solid_ordered_event_list.back(), event)) {
-	    REMPI_ERR("Enqueuing an event with smaller <source, clock>");
+	    REMPI_ERR("Enqueuing an event (rank: %d, clock:%lu) which is smaller than (rank: %d, clock: %lu)",
+		      event->get_source(), event->get_clock(),
+		      test_table->solid_ordered_event_list.back()->get_source(),
+		      test_table->solid_ordered_event_list.back()->get_clock());
 	  }
 	}
 	test_table->      ordered_event_list.pop_front();
@@ -1539,9 +1567,10 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
     So update tmp_interim_min_clock only when recording_events is empty even after 
     calling compute_local_min_id.
   */
+
   list<rempi_event*>::const_iterator cit     = test_table->ordered_event_list.cbegin();
   list<rempi_event*>::const_iterator cit_end = test_table->ordered_event_list.cend();
-  if (recording_events.size_replay(test_id) == 0) {
+  if (recording_events.size_replay(test_id) == 0 && local_min_id_clock != PNMPI_MODULE_CLMPI_COLLECTIVE) {
     clmpi_get_local_sent_clock(&tmp_interim_min_clock);
     /*local_sent_clock is sent clock value, so the local_clock is local_sent_clock + 1*/
     //    tmp_interim_min_clock++;
@@ -1791,6 +1820,17 @@ void rempi_encoder_cdc::update_fd_next_clock(
     fd_clocks->next_clock = next_clock;
   }
   return;
+}
+
+void rempi_encoder_cdc::set_fd_clock_state(int flag)
+{
+  if (flag) {
+    tmp_fd_next_clock = fd_clocks->next_clock;
+    fd_clocks->next_clock = PNMPI_MODULE_CLMPI_COLLECTIVE;
+  } else {
+    fd_clocks->next_clock = tmp_fd_next_clock;
+  }
+  return;  
 }
 
 
