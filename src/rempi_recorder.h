@@ -212,6 +212,7 @@ class rempi_recorder_cdc : public rempi_recorder
   PNMPIMOD_clock_control_t clmpi_clock_control;
   PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
   PNMPIMOD_sync_clock_t      clmpi_sync_clock;
+  PNMPIMOD_get_num_of_incomplete_sending_msg_t clmpi_get_num_of_incomplete_sending_msg;
 
   size_t send_request_id;
   unordered_map<MPI_Request, MPI_Request> isend_request_umap;

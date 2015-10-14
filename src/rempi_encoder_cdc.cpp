@@ -346,6 +346,7 @@ rempi_encoder_cdc::rempi_encoder_cdc(int mode)
 }
 
 
+
 void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock)
 {  
 
@@ -384,6 +385,7 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
     PMPI_Get(&mc_next_clocks[i], sizeof(size_t), MPI_BYTE, mc_recv_ranks[i], 0, sizeof(size_t), MPI_BYTE, mpi_fd_clock_win);
   }
   PMPI_Win_flush_local_all(mpi_fd_clock_win);
+
 
 
 #ifdef REMPI_DBG_REPLAY
@@ -1098,6 +1100,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
   }
   
   //  input_format.debug_print();
+  //  exit(0);
   return;
 }
 
@@ -1551,7 +1554,11 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
       replay_event_vec[permutated_index] = replaying_event;
       added_count++;
     } else if (permutated_index < 0){
-      REMPI_ERR("permutated_index:%d < 0 (record data may be truncated)", permutated_index);
+      REMPI_ERR("permutated_index:%d < 0 (record data may be truncated): src_idx: %d -> dest_idx: %d, replayed_index: %d", 
+		permutated_index,
+		replaying_event->clock_order,
+		test_table->matched_events_permutated_indices_vec[replaying_event->clock_order],
+		test_table->replayed_matched_event_index);
     }
   }
 

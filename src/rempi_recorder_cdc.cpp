@@ -22,6 +22,12 @@
 
 #define  PNMPI_MODULE_REMPI "rempi"
 
+
+double stra, dura;
+int counta = 0;
+double strb, durb;
+
+
 // void rempi_irecv_inputs::insert_request(MPI_Request* proxy_request, void* proxy_buf)
 // {
 //   if (proxy_requests_umap.find(proxy_request) == proxy_requests_umap.end()) {
@@ -146,6 +152,13 @@ int rempi_recorder_cdc::init_clmpi()
   if (err!=PNMPI_SUCCESS)
     return err;
   clmpi_sync_clock=(PNMPIMOD_sync_clock_t) ((void*)serv.fct);
+
+  /*Get clock-mpi service*/                        
+  err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_incomplete_smsg_num","p",&serv);
+  if (err!=PNMPI_SUCCESS)
+    return err;
+  clmpi_get_num_of_incomplete_sending_msg=(PNMPIMOD_get_num_of_incomplete_sending_msg_t) ((void*)serv.fct);
+
 
   /*Load own moduel*/
   err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_REMPI, &handle_rempi);
@@ -853,6 +866,7 @@ int rempi_recorder_cdc::replay_testsome(
   REMPI_DBGI(REMPI_DBG_REPLAY, "Testsome recv call: global_test_id: %d => recv_test_id: %d (flag1: %d flag2: %d)", 
 	     global_test_id, recv_test_id, mf_flag_1, mf_flag_2);
 #endif
+  int interval = 0;
   while (with_next == REMPI_MPI_EVENT_WITH_NEXT) {
     int unmatched_flag_count = 0;
     int min_recv_rank;
@@ -869,10 +883,16 @@ int rempi_recorder_cdc::replay_testsome(
        This function needs to be called before PMPI_Test. 
        If flag=0, we can make sure there are no in-flight messages, and 
        local_min_id is really minimal. */
-    mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
+    stra = MPI_Wtime();
+    if (interval++ % 100 == 0) {
+      mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
+      counta++;
+    }
+    dura += MPI_Wtime() - stra;
     unmatched_flag_count = 0;
     /* ======================================================== */
 
+    strb = MPI_Wtime();
     /*progress for send: 
        if a send operation is completed, we can increment clock */
     progress_send_requests();
@@ -880,6 +900,7 @@ int rempi_recorder_cdc::replay_testsome(
     has_pending_msg = progress_recv_requests(recv_test_id, incount, array_of_requests, 
 					     mc_encoder->global_local_min_id.rank, 
 					     mc_encoder->global_local_min_id.clock);
+
 
 
     
@@ -965,11 +986,19 @@ int rempi_recorder_cdc::replay_testsome(
     
     /*checking Condition B*/
     if (with_next !=  REMPI_MPI_EVENT_NOT_WITH_NEXT) {
-      if (num_of_recv_msg_in_next_event > 0) { /*checking Condition A*/
+      size_t tmp_sent_clock, tmp_clock;
+      size_t num_of_incomplete_msg = 0;
+      //      clmpi_get_local_clock(&tmp_clock);
+      //      clmpi_get_local_sent_clock(&tmp_sent_clock);
+      bool is_next_event_recv = num_of_recv_msg_in_next_event > 0;
+      clmpi_get_num_of_incomplete_sending_msg(&num_of_incomplete_msg);
+      if (is_next_event_recv && num_of_incomplete_msg == 0) { /*checking Condition A*/
 	mc_encoder->update_fd_next_clock(1, num_of_recv_msg_in_next_event, interim_min_clock_in_next_event, 
 					 recording_event_list->get_enqueue_count(recv_test_id), recv_test_id, 0);
       }
     }
+
+    durb += MPI_Wtime() - strb;
 
 
   } /* while (with_next == REMPI_MPI_EVENT_WITH_NEXT) */
@@ -1433,12 +1462,19 @@ int rempi_recorder_cdc::record_finalize(void)
   return 0;
 }
 
+
+
 int rempi_recorder_cdc::replay_finalize(void)
 {
   read_record_thread->join();
 
   //TODO:
   //fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
+  if (counta == 0) {
+    REMPI_DBG("Get: %f (count: %lu), waiting: %f", dura, counta, durb);
+  } else {
+    REMPI_DBG("Get: %f (count: %lu, single: %f), waiting: %f", dura, counta, dura/counta, durb);
+  }
   return 0;
 }
 
@@ -1448,11 +1484,16 @@ void rempi_recorder_cdc::set_fd_clock_state(int flag)
   return;
 }
 
+
 void rempi_recorder_cdc::fetch_and_update_local_min_id()
 {
   int min_recv_rank;
   size_t  min_next_clock;
+
+  stra = MPI_Wtime();
   mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
+  counta++;
+  dura += MPI_Wtime() - stra;
   mc_encoder->update_local_min_id(min_recv_rank, min_next_clock);  
   return;
 }
@@ -1615,7 +1656,7 @@ int rempi_recorder_cdc::REMPI_Send_Testsome(int incount, MPI_Request *array_of_s
 #ifdef REMPI_DBG_REPLAY
 	size_t sent_clock;
 	clmpi_get_local_sent_clock(&sent_clock);
-	REMPI_DBGI(REMPI_DBG_REPLAY, " Send complated: sent_clock: %lu", sent_clock);
+	REMPI_DBGI(REMPI_DBG_REPLAY, " Send completed: sent_clock: %lu", sent_clock);
 #endif
 	//	REMPI_DBG("erase registered request: %p", array_of_send_request_ids[i]);
       }

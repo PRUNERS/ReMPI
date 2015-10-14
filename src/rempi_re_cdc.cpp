@@ -270,7 +270,7 @@ int rempi_re_cdc::re_cancel(MPI_Request *request)
   return ret;
 }
 
-  
+
 int rempi_re_cdc::re_testsome(
 			  int incount, 
 			  MPI_Request array_of_requests[],
