@@ -1,0 +1,91 @@
+include ../Makefile-bgq-gnu.config
+
+SRC_DIR=.
+SUB_DIR_ENC=
+
+rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
+		$(SRC_DIR)/rempi_err.cpp \
+		$(SRC_DIR)/rempi_mem.cpp \
+		$(SRC_DIR)/rempi_util.cpp \
+		$(SRC_DIR)/rempi_compression_util.cpp \
+		$(SRC_DIR)/rempi_config.cpp \
+                $(SRC_DIR)/rempi_re.cpp \
+                $(SRC_DIR)/rempi_re_no_comp.cpp \
+	        $(SRC_DIR)/rempi_re_cdc.cpp \
+		$(SRC_DIR)/rempi_recorder_cdc.cpp \
+		$(SRC_DIR)/rempi_recorder.cpp \
+		$(SRC_DIR)/rempi_message_manager.cpp \
+		$(SRC_DIR)/rempi_event_list.cpp \
+	     	$(SRC_DIR)/rempi_event.cpp \
+	     	$(SRC_DIR)/rempi_clock_delta_compression.cpp \
+		$(SRC_DIR)/rempi_encoder.cpp \
+		$(SRC_DIR)/rempi_encoder_cdc.cpp \
+		$(SRC_DIR)/rempi_encoder_cdc_row_wise_diff.cpp \
+		$(SRC_DIR)/rempi_encoder_cdc_permutation_diff.cpp \
+		$(SRC_DIR)/rempi_encoder_zlib.cpp \
+		$(SRC_DIR)/rempi_encoder_simple_zlib.cpp \
+		$(SRC_DIR)/rempi_thread.cpp \
+		$(SRC_DIR)/rempi_io_thread.cpp \
+		$(SRC_DIR)/rempi_mutex.cpp
+
+rempi_OBJS = 	$(rempi_SRCS:%.cpp=%.o) 
+rempi_DEPS = 	$(rempi_SRCS:%.cpp=%.d) 
+
+rempi_a_LIBS =	../lib/librempi.a 
+
+rempi_so_LIBS =	../lib/librempi.so	
+rcmpi_so_LIBS =	../lib/librcmpi.so	
+
+OBJS = $(rempi_OBJS)
+DEPS = $(rempi_DEPS)
+LIBS = $(rempi_a_LIBS) $(rempi_so_LIBS) $(rcmpi_so_LIBS)
+
+#$@: target name
+#$<: first dependent file
+#$^: all indemendent files
+
+
+all: $(LIBS)
+	@$(MAKE) -C ./external all
+
+
+-include $(DEPS)
+
+$(rempi_a_LIBS):  $(rempi_OBJS)
+	ar cr ../lib/librempi.a $(rempi_OBJS)
+	ranlib ../lib/librempi.a
+
+$(rempi_so_LIBS):  $(rempi_OBJS)
+	$(CC) -shared -o ../lib/librempi.so $(rempi_OBJS)
+
+
+$(rcmpi_so_LIBS):  $(SRC_DIR)/rempi_message_manager.o
+	$(CC) -shared -o $(rcmpi_so_LIBS)  $(SRC_DIR)/rempi_message_manager.o
+
+
+
+.SUFFIXES: .c .o
+.c.o: 
+	$(CC) $(CFLAGS) $(LDFLAGS) -c -MMD -MP $< 
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ -c $< 
+
+install: all
+	@$(MAKE) -C ./external install
+	pnmpi-patch ../lib/librempi.so /g/g90/sato5/opt/lib/pnmpi-modules/librempi.so
+
+
+.SUFFIXES: .cpp .o
+.cpp.o:
+	$(CC) $(CXXFLAGS) $(LDFLAGS) -c -MMD -MP $<
+	$(CC) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $< 
+
+.PHONY: clean
+clean:
+	-rm -rf $(OBJS) $(DEPS) $(LIBS)
+	@$(MAKE) -C ./external clean
+
+.PHONY: clean_core
+clean_core:
+	-rm -rf *.core
+
+
