@@ -388,6 +388,7 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
 
 
 
+
 #ifdef REMPI_DBG_REPLAY
   // for (int i = 0; i < mc_length; ++i) {
   //   REMPI_DBGI(REMPI_DBG_REPLAY, "After recved: rank: %d clock:%lu", mc_recv_ranks[i], mc_next_clocks[i]);
@@ -466,31 +467,32 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
 }
 
 /*TODO: change func name to update_solid_mc*/
-void rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_clock)
+int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_clock)
 {
   for (int i = 0; i < mc_length; i++) {
     solid_mc_next_clocks_umap[mc_recv_ranks[i]] = tmp_mc_next_clocks[i];
   }
   //  memcpy(solid_mc_next_clocks, tmp_mc_next_clocks, sizeof(size_t) * mc_length);  
-#ifdef REMPI_DBG_REPLAY
+
   int    last_local_min_id_rank  = global_local_min_id.rank;
   size_t last_local_min_id_clock = global_local_min_id.clock;
-#endif
+
 
   global_local_min_id.rank  = min_recv_rank;
   global_local_min_id.clock = min_next_clock;
 
-#ifdef REMPI_DBG_REPLAY
+
   if (last_local_min_id_rank  != global_local_min_id.rank ||
       last_local_min_id_clock != global_local_min_id.clock) {
-  REMPI_DBGI(REMPI_DBG_REPLAY, "GLLC Clock Update: (rank: %d, clock:%lu) -> (rank:%d, clock:%lu)",
-	     last_local_min_id_rank, last_local_min_id_clock,
-	     min_recv_rank, min_next_clock
-	     );
-  }
+#ifdef REMPI_DBG_REPLAY
+    REMPI_DBGI(REMPI_DBG_REPLAY, "GLLC Clock Update: (rank: %d, clock:%lu) -> (rank:%d, clock:%lu)",
+	       last_local_min_id_rank, last_local_min_id_clock,
+	       min_recv_rank, min_next_clock
+	       );
 #endif
-
-  return;
+    return 1;
+  }
+  return 0;
 }
 
 
@@ -1818,11 +1820,12 @@ void rempi_encoder_cdc::update_fd_next_clock(
 
 #ifdef REMPI_DBG_REPLAY  
   if (fd_clocks->next_clock < next_clock) {
-    REMPI_DBGI(REMPI_DBG_REPLAY, "NEXT Clock Update: from %d to %d:  (local_min (rank: %d, clock: %lu), local: %d num: %d): is_waiting_recv: %d, is_after_recv_event: %d", 
+    REMPI_DBGI(REMPI_DBG_REPLAY, "NEXT Clock Update(%lu): from %d to %d:  (local_min (rank: %d, clock: %lu), local: %d num: %d): is_waiting_recv: %d, is_after_recv_event: %d", MPI_Wtime(),
 	       fd_clocks->next_clock, next_clock, global_local_min_id.rank, global_local_min_id.clock, 
 	       clock, num_of_recv_msg_in_next_event, is_waiting_recv, is_after_reve_event);
   }
 #endif
+
   if (fd_clocks->next_clock < next_clock) {
     fd_clocks->next_clock = next_clock;
   }

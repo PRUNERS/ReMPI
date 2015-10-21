@@ -25,7 +25,10 @@
 
 double stra, dura;
 int counta = 0;
+int counta_update = 0;
+int counta_pending = 0;
 double strb, durb;
+int countb = 0;
 
 
 // void rempi_irecv_inputs::insert_request(MPI_Request* proxy_request, void* proxy_buf)
@@ -883,12 +886,16 @@ int rempi_recorder_cdc::replay_testsome(
        This function needs to be called before PMPI_Test. 
        If flag=0, we can make sure there are no in-flight messages, and 
        local_min_id is really minimal. */
-    stra = MPI_Wtime();
-    if (interval++ % 100 == 0) {
+
+    if (interval++ % 1000 == 0) {
+      stra = MPI_Wtime();
       mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
       counta++;
+      dura += MPI_Wtime() - stra;
+      REMPI_DBGI(0, "%f", MPI_Wtime() - stra);
+      REMPI_DBGI(3, "%f", MPI_Wtime() - stra);
     }
-    dura += MPI_Wtime() - stra;
+
     unmatched_flag_count = 0;
     /* ======================================================== */
 
@@ -932,9 +939,16 @@ int rempi_recorder_cdc::replay_testsome(
     /* Frontier detection: Step 2                               */
     /* ======================================================== */
     if (!has_pending_msg) {
+      int is_updated = 0;
       //      REMPI_DBGI(REMPI_DBG_REPLAY, " ==== update start");
-     mc_encoder->update_local_min_id(min_recv_rank, min_next_clock);
+      is_updated = mc_encoder->update_local_min_id(min_recv_rank, min_next_clock);
+      if (is_updated) {
+	counta_update++;
+      }
+      
       //      REMPI_DBGI(REMPI_DBG_REPLAY, " ==== update end");
+    } else {
+      counta_pending++;
     }
     /* ======================================================== */
 
@@ -981,9 +995,6 @@ int rempi_recorder_cdc::replay_testsome(
       }
     }
     
-
-
-    
     /*checking Condition B*/
     if (with_next !=  REMPI_MPI_EVENT_NOT_WITH_NEXT) {
       size_t tmp_sent_clock, tmp_clock;
@@ -998,7 +1009,11 @@ int rempi_recorder_cdc::replay_testsome(
       }
     }
 
+    countb += 1;
     durb += MPI_Wtime() - strb;
+    // if (MPI_Wtime() - strb > 0.00005) {
+    //   REMPI_DBG("Big: %f", MPI_Wtime() - strb);
+    // }
 
 
   } /* while (with_next == REMPI_MPI_EVENT_WITH_NEXT) */
@@ -1471,9 +1486,11 @@ int rempi_recorder_cdc::replay_finalize(void)
   //TODO:
   //fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   if (counta == 0) {
-    REMPI_DBG("Get: %f (count: %lu), waiting: %f", dura, counta, durb);
+    REMPI_DBG("Get: %f (count: %lu, is_pending:%lu, is_updated:%lu, single: %f), waiting: %f (count: %lu, single: %f)", 
+	      dura, counta, counta_pending, counta_update, -1, durb, countb, dura/countb);
   } else {
-    REMPI_DBG("Get: %f (count: %lu, single: %f), waiting: %f", dura, counta, dura/counta, durb);
+    REMPI_DBG("Get: %f (count: %lu, is_pending:%lu, is_updated:%lu, single: %f), waiting: %f (count: %lu, single: %f)", 
+	      dura, counta, counta_pending, counta_update, dura/counta, durb, countb, dura/countb);
   }
   return 0;
 }
@@ -1489,12 +1506,18 @@ void rempi_recorder_cdc::fetch_and_update_local_min_id()
 {
   int min_recv_rank;
   size_t  min_next_clock;
+  int is_updated;
 
   stra = MPI_Wtime();
   mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
   counta++;
   dura += MPI_Wtime() - stra;
-  mc_encoder->update_local_min_id(min_recv_rank, min_next_clock);  
+  REMPI_DBGI(0, "%f", MPI_Wtime() - stra);
+  REMPI_DBGI(3, "%f", MPI_Wtime() - stra);
+  is_updated = mc_encoder->update_local_min_id(min_recv_rank, min_next_clock);  
+  if (is_updated) {
+    counta_update++;
+  }
   return;
 }
 

@@ -168,7 +168,7 @@ class rempi_encoder
     int *num_of_recv_msg_in_next_event;// = NULL; /*array[i] contain the number of test_id=i*/
     size_t *interim_min_clock_in_next_event;// = NULL;
     size_t *dequeued_count;// = NULL;
-    size_t tmp_fd_next_clock = 0; /*Temporal variable for set_fd_clock_state*/
+    size_t tmp_fd_next_clock; /*Temporal variable for set_fd_clock_state*/
 
     rempi_event_list<rempi_event*> *events;
 
@@ -203,7 +203,7 @@ class rempi_encoder
     /*TODO: Due to multi-threaded issues in MPI/PNMPI, we define this function.
       But we would like to remove this function in future*/
     virtual void fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock);
-    virtual void update_local_min_id(int min_recv_rank, size_t min_next_clock);
+    virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock);
     virtual void update_fd_next_clock(
 				      int is_waiting_recv,
 				      int num_of_recv_msg_in_next_event,
@@ -286,7 +286,7 @@ class rempi_encoder_cdc : public rempi_encoder
   virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
   virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
-  virtual void update_local_min_id(int min_recv_rank, size_t min_next_clock);
+  virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock);
   virtual void update_fd_next_clock(
 				    int is_waiting_recv,
 				    int num_of_recv_msg_in_next_event,
