@@ -14,8 +14,16 @@ rempi_mutex rempi_io_thread::mtx;
 rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_events, 
 				 rempi_event_list<rempi_event*> *replaying_events, 
 				 string id, int mode)
+#ifdef BGQ
+{
+  rempi_io_thread::rempi_io_thread(recording_events, replaying_events, id, mode, NULL);
+}
+#else
   :rempi_io_thread(recording_events, replaying_events, id, mode, NULL)
 {}
+#endif
+
+
 
 rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_events, 
 				 rempi_event_list<rempi_event*> *replaying_events, 

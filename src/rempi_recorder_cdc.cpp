@@ -233,6 +233,7 @@ int rempi_recorder_cdc::replay_isend(MPI_Request *request)
   return ret;
 }
 
+int request_id = 0;
 int rempi_recorder_cdc::replay_irecv(
    void *buf,
    int count,
@@ -244,12 +245,8 @@ int rempi_recorder_cdc::replay_irecv(
    MPI_Request *request)
 {
   int ret;
-  void *proxy_buf;
-  MPI_Request *proxy_request;
   rempi_proxy_request *proxy_request_info;
   rempi_irecv_inputs *irecv_inputs;
-
-
 
   if (request_to_irecv_inputs_umap.find(*request) != 
       request_to_irecv_inputs_umap.end()) {
@@ -267,7 +264,12 @@ int rempi_recorder_cdc::replay_irecv(
       // 		"with MPI_Request which is not diactivated by MPI_{Wait|Test}{|some|any|all}");
     }
   } else {
+#ifdef BGQ
+    request = (MPI_Request*)rempi_malloc(sizeof(MPI_Request));//((source + 1) * (tag + 1) * (comm_id * 1));
+    *request = (MPI_Request)(request_id++);
+#else
     *request = (MPI_Request)rempi_malloc(sizeof(MPI_Request));//((source + 1) * (tag + 1) * (comm_id * 1));
+#endif
     request_to_irecv_inputs_umap[*request] = new rempi_irecv_inputs(buf, count, datatype, source, tag, *comm, *request);
   }
 
@@ -343,7 +345,6 @@ int rempi_recorder_cdc::record_test(
     int test_id)
 {
   int event_count = 1;
-  int request_val = -1;
   int record_comm_id = 0;
   int record_source = 0;
   int record_tag = 0;
@@ -550,9 +551,18 @@ bool rempi_recorder_cdc::progress_send_requests()
   MPI_Status status;
   MPI_Request send_request, send_request_id;
   size_t clock;
+#ifdef BGQ
+  for (unordered_map<MPI_Request, MPI_Request>::iterator it = isend_request_umap.begin(), it_end = isend_request_umap.end();
+       it != it_end;
+       it++) {
+    send_request_id = it->first;
+    send_request_id = it->second;
+#else
   for (auto &pair_send_req_and_send_req:isend_request_umap) {
     send_request_id = pair_send_req_and_send_req.first;
     send_request    = pair_send_req_and_send_req.second;
+#endif  
+
     if (send_request != MPI_REQUEST_SEND_NULL && 
 	send_request != MPI_REQUEST_NULL) {
       /*TODO: Actually, clock needs to be registered for PMPI_Test for send request*/
@@ -594,8 +604,16 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
   rempi_irecv_inputs *irecv_inputs;
   int matched_request_push_back_count = 0;
 
+#ifdef BGQ
+  for (unordered_map<MPI_Request, rempi_irecv_inputs*>::const_iterator cit = request_to_irecv_inputs_umap.cbegin(),
+	 cit_end = request_to_irecv_inputs_umap.cend();
+       cit != cit_end;
+       cit++) {
+    irecv_inputs = cit->second;
+#else
   for (auto &pair_req_and_irecv_inputs: request_to_irecv_inputs_umap) {
     irecv_inputs = pair_req_and_irecv_inputs.second;
+#endif
     /* Find out this request belongs to which MF (recv_test_id) */
     if (irecv_inputs->recv_test_id == -1) {
       for (int i = 0; i < incount; i++) {
@@ -622,7 +640,16 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
        ================================================= */
     if (irecv_inputs->recv_test_id != -1) {
       matched_request_push_back_count = 0;
+#ifdef BGQ
+      for (list<rempi_proxy_request*>::iterator it = irecv_inputs->matched_pending_request_proxy_list.begin(),
+	     it_end = irecv_inputs->matched_pending_request_proxy_list.end();
+	   it != it_end;
+	   it++) {
+	rempi_proxy_request *proxy_request = *it;
+#else
       for (rempi_proxy_request *proxy_request: irecv_inputs->matched_pending_request_proxy_list) {
+#endif      
+
 	REMPI_ASSERT(proxy_request->matched_source != -1);
 	REMPI_ASSERT(proxy_request->matched_tag    != -1);
 	REMPI_ASSERT(proxy_request->matched_clock  !=  0);
@@ -892,8 +919,6 @@ int rempi_recorder_cdc::replay_testsome(
       mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
       counta++;
       dura += MPI_Wtime() - stra;
-      REMPI_DBGI(0, "%f", MPI_Wtime() - stra);
-      REMPI_DBGI(3, "%f", MPI_Wtime() - stra);
     }
 
     unmatched_flag_count = 0;
@@ -1512,8 +1537,6 @@ void rempi_recorder_cdc::fetch_and_update_local_min_id()
   mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
   counta++;
   dura += MPI_Wtime() - stra;
-  REMPI_DBGI(0, "%f", MPI_Wtime() - stra);
-  REMPI_DBGI(3, "%f", MPI_Wtime() - stra);
   is_updated = mc_encoder->update_local_min_id(min_recv_rank, min_next_clock);  
   if (is_updated) {
     counta_update++;

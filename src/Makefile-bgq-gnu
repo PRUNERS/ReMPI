@@ -46,7 +46,8 @@ LIBS = $(rempi_a_LIBS) $(rempi_so_LIBS) $(rcmpi_so_LIBS)
 
 
 all: $(LIBS)
-	@$(MAKE) -C ./external all
+	@$(MAKE) -f Makefile-bgq-gnu -C ./external all
+	@$(MAKE) -f Makefile-bgq-gnu -C ./external install
 
 
 -include $(DEPS)
@@ -70,8 +71,8 @@ $(rcmpi_so_LIBS):  $(SRC_DIR)/rempi_message_manager.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ -c $< 
 
 install: all
-	@$(MAKE) -C ./external install
-	pnmpi-patch ../lib/librempi.so /g/g90/sato5/opt/lib/pnmpi-modules/librempi.so
+	@$(MAKE) -f Makefile-bgq-gnu -C ./external install
+	$(PnMPI_DIR)/bin/pnmpi-patch ../lib/librempi.so $(PnMPI_DIR)/lib/pnmpi-modules/librempi.so
 
 
 .SUFFIXES: .cpp .o
@@ -82,7 +83,7 @@ install: all
 .PHONY: clean
 clean:
 	-rm -rf $(OBJS) $(DEPS) $(LIBS)
-	@$(MAKE) -C ./external clean
+	@$(MAKE) -f Makefile-bgq-gnu -C ./external clean
 
 .PHONY: clean_core
 clean_core:

@@ -1058,7 +1058,15 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     input_format.mc_next_clocks     = (size_t*)rempi_malloc(sizeof(size_t) * input_format.mc_length);
     input_format.tmp_mc_next_clocks = (size_t*)rempi_malloc(sizeof(size_t) * input_format.mc_length);
 
+#ifdef BGQ
+    for (unordered_set<int>::const_iterator cit = mc_recv_ranks_uset.cbegin(),
+	   cit_end = mc_recv_ranks_uset.cend();
+	 cit != cit_end;
+	 cit++) {
+      int rank = *cit;
+#else
     for (const int &rank: mc_recv_ranks_uset) {
+#endif
       input_format.mc_recv_ranks [index]      = rank;
       input_format.mc_next_clocks[index]      = 0;
       input_format.tmp_mc_next_clocks[index]  = 0;
@@ -1126,7 +1134,15 @@ void rempi_encoder_cdc::cdc_prepare_decode_indices(
   /*memorize values to be permutated*/
   list<int>::iterator it = permutated_indices_list.begin();
   int last_id = 0;
+#ifdef BGQ
+  for (vector<size_t>::const_iterator cit = matched_events_id_vec.cbegin(),
+	 cit_end = matched_events_id_vec.cend();
+       cit != cit_end;
+       cit++) {
+    size_t id = *cit;
+#else
   for (size_t &id: matched_events_id_vec) {
+#endif
     advance(it, (int)(id) - last_id);
     permutated_indices_it_map[id] = it;
     last_id = id;
@@ -1158,7 +1174,15 @@ void rempi_encoder_cdc::cdc_prepare_decode_indices(
 #endif
   matched_events_permutated_indices_vec.resize(matched_event_count, 0);
   int sequence = 0;
+#ifdef BGQ
+  for (list<int>::const_iterator cit = permutated_indices_list.cbegin(),
+	 cit_end = permutated_indices_list.cend();
+       cit != cit_end;
+       cit++) {
+    int v = *cit;
+#else
   for (int &v: permutated_indices_list) {
+#endif
     matched_events_permutated_indices_vec[v] = sequence++;
   }
   
@@ -1412,7 +1436,15 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
       /*Count solid event count 
 	Sorted "solid events" order does not change by the rest of events
       */
+#ifdef BGQ
+      for (list<rempi_event*>::const_iterator cit = test_table->ordered_event_list.cbegin(),
+	     cit_end = test_table->ordered_event_list.cend();
+	   cit != cit_end;
+	   cit++) {
+	rempi_event *event = *cit;
+#else
       for (rempi_event *event:test_table->ordered_event_list) {
+#endif
 	bool is_reached_epoch_line = test_table->is_reached_epoch_line();
 	if (!compare2(local_min_id_rank, local_min_id_clock, event) || is_reached_epoch_line) {
 	  solid_event_count++;
@@ -1542,7 +1574,16 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 #else
 
   int added_count = 0;
+#ifdef BGQ
+  for (list<rempi_event*>::const_iterator cit = test_table->solid_ordered_event_list.cbegin(),
+	 cit_end = test_table->solid_ordered_event_list.cend();
+       cit != cit_end;
+       cit++) {
+    rempi_event *replaying_event = *cit;
+#else
   for (rempi_event *replaying_event: test_table->solid_ordered_event_list) {
+#endif
+
     int permutated_index = test_table->matched_events_permutated_indices_vec[replaying_event->clock_order]
       - test_table->replayed_matched_event_index;
 #ifdef REMPI_DBG_REPLAY
@@ -1583,7 +1624,15 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
     clmpi_get_local_sent_clock(&tmp_interim_min_clock);
     /*local_sent_clock is sent clock value, so the local_clock is local_sent_clock + 1*/
     //    tmp_interim_min_clock++;
+#ifdef BGQ
+    for (vector<rempi_event*>::const_iterator cit = replay_event_vec.cbegin(),
+	   cit_end = replay_event_vec.cend();
+	 cit != cit_end;
+	 cit++) {
+      rempi_event *replaying_event = *cit;
+#else    
     for (rempi_event *replaying_event: replay_event_vec) {
+#endif
       if (replaying_event == NULL) {
 	/*Use min{local_min_clock, clock in ordered_event_list})*/
 	if (cit == cit_end) {
@@ -1721,16 +1770,42 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 	  REMPI_DBG("== Wrong local_min (rank: %d, clock: %lu): count: X, RCQ:%d(test:%d)", 
 		    local_min_id_rank, local_min_id_clock,
 		    recording_events.size_replay(test_id), test_id);
+#ifdef BGQ
+	  for (list<rempi_event*>::const_iterator cit = test_table->ordered_event_list.cbegin(),
+		 cit_end = test_table->ordered_event_list.cend();
+	       cit != cit_end;
+	       cit++) {
+	    rempi_event *e = *cit;
+#else
 	  for (rempi_event *e: test_table->ordered_event_list) {
+#endif
 	    //	    REMPI_DBG("       list (rank: %d, clock: %lu): count: %d", e->get_source(), e->get_clock(), solid_event_count);
 	    REMPI_DBG("== Wrong       list (rank: %d, clock: %lu)", e->get_source(), e->get_clock());
 	  }
+#ifdef BGQ
+	  for (list<rempi_event*>::const_iterator cit = test_table->solid_ordered_event_list.cbegin(),
+		 cit_end = test_table->solid_ordered_event_list.cend();
+	       cit != cit_end;
+	       cit++) {
+	    rempi_event *e = *cit;
+#else
 	  for (rempi_event *e: test_table->solid_ordered_event_list) {
+#endif
+
 	    //	    REMPI_DBG("      slist (rank: %d, clock: %lu): count: %d", e->get_source(), e->get_clock(), solid_event_count);
 	    REMPI_DBG("== Wrong      slist (rank: %d, clock: %lu, order: %lu)", e->get_source(), e->get_clock(), e->clock_order);
 	  }
 	  REMPI_DBG("== Wrong replayed_matched_event_index: %d", test_table->replayed_matched_event_index);
+#ifdef BGQ
+	  for (vector<rempi_event*>::const_iterator cit = replay_event_vec.cbegin(),
+		 cit_end = replay_event_vec.cend();
+	       cit != cit_end;
+	       cit++) {
+	    rempi_event *replaying_event = *cit;
+#else
 	  for (rempi_event *replaying_event: replay_event_vec) {
+#endif
+
 	    int permutated_index = test_table->matched_events_permutated_indices_vec[replaying_event->clock_order]
 	      - test_table->replayed_matched_event_index;
 	    REMPI_DBG("== Wrong      index: %d -> %d(%d) replayed_count: %d (source: %d, event_clock: %d)", replaying_event->clock_order, 
@@ -1910,7 +1985,16 @@ void rempi_encoder_cdc::insert_encoder_input_format_chunk(rempi_event_list<rempi
       matched_events_vec_umap[test_id] = NULL;
     }
 
+#ifdef BGQ
+    for (list<rempi_event*>::iterator it = replay_event_list.begin(),
+	   it_end = replay_event_list.end();
+	 it != it_end;
+	 it++) {
+      rempi_event *e = *it;
+#else
     for (rempi_event *e: replay_event_list) {
+#endif
+
 #ifdef REMPI_DBG_REPLAY
       REMPI_DBGI(REMPI_DBG_REPLAY, "RPQv -> RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d) recv_test_id: %d",
 		 e->get_event_counts(), e->get_is_testsome(), e->get_flag(),
