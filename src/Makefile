@@ -38,7 +38,7 @@ rcmpi_so_LIBS =	../lib/librcmpi.so
 
 OBJS = $(rempi_OBJS)
 DEPS = $(rempi_DEPS)
-LIBS = $(rempi_a_LIBS) $(rempi_so_LIBS) $(rcmpi_so_LIBS)
+LIBS = $(rcmpi_so_LIBS) $(rempi_a_LIBS) $(rempi_so_LIBS)
 
 #$@: target name
 #$<: first dependent file
