@@ -7,7 +7,6 @@
 
 #include "rempi_re.h"
 #include "rempi_err.h"
-#include "pnmpimod.h"
 
 #ifndef _EXTERN_C_
 #ifdef __cplusplus
@@ -40,24 +39,20 @@ _EXTERN_C_ void pmpi_init__(MPI_Fint *ierr);
 rempi_re *rempi_record_replay;
 
 
-// int PNMPIMOD_get_recv_clocks () {
-//   return 1;
+// int PNMPI_RegistrationPoint()
+// {
+//   int err;
+//   // PNMPI_Service_descriptor_t service;
+//   // PNMPI_Global_descriptor_t global;
+
+//   /* register this module and its services */  
+//   err = PNMPI_Service_RegisterModule(PNMPI_MODULE_REMPI);
+//   if (err!=PNMPI_SUCCESS) {
+//     return MPI_ERROR_PNMPI;
+//   }
+
+//   return err;
 // }
-
-int PNMPI_RegistrationPoint()
-{
-  int err;
-  // PNMPI_Service_descriptor_t service;
-  // PNMPI_Global_descriptor_t global;
-
-  /* register this module and its services */  
-  err = PNMPI_Service_RegisterModule(PNMPI_MODULE_REMPI);
-  if (err!=PNMPI_SUCCESS) {
-    return MPI_ERROR_PNMPI;
-  }
-
-  return err;
-}
 
 void init_rempi() {
   rempi_record_replay = new rempi_re_cdc();

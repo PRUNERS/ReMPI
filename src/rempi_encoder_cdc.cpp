@@ -306,28 +306,30 @@ rempi_encoder_cdc::rempi_encoder_cdc(int mode)
 
   /* === Load CLMPI module  === */
   {
-    int err;
-    PNMPI_modHandle_t handle_test, handle_clmpi;
-    PNMPI_Service_descriptor_t serv;
-    /*Load clock-mpi*/
-    err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_CLMPI, &handle_clmpi);
-    if (err!=PNMPI_SUCCESS) {
-      REMPI_ERR("failed to load CLMPI modules");
-    }
+    // int err;
+    // PNMPI_modHandle_t handle_test, handle_clmpi;
+    // PNMPI_Service_descriptor_t serv;
+    // /*Load clock-mpi*/
+    // err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_CLMPI, &handle_clmpi);
+    // if (err!=PNMPI_SUCCESS) {
+    //   REMPI_ERR("failed to load CLMPI modules");
+    // }
 
-    /*Get clock-mpi service: fetch_next_clocks*/
-    err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_local_clock","p",&serv);
-    if (err!=PNMPI_SUCCESS) {
-      REMPI_ERR("failed to load CLMPI function: clmpi_get_local_clock");
-    }
-    clmpi_get_local_clock=(PNMPIMOD_get_local_clock_t) ((void*)serv.fct);
+    // /*Get clock-mpi service: fetch_next_clocks*/
+    // err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_local_clock","p",&serv);
+    // if (err!=PNMPI_SUCCESS) {
+    //   REMPI_ERR("failed to load CLMPI function: clmpi_get_local_clock");
+    // }
+    // clmpi_get_local_clock=(PNMPIMOD_get_local_clock_t) ((void*)serv.fct);
+    clmpi_get_local_clock = PNMPIMOD_get_local_clock;
 
-    /*Get clock-mpi service: fetch_next_clocks*/
-    err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_local_sent_clock","p",&serv);
-    if (err!=PNMPI_SUCCESS) {
-      REMPI_ERR("failed to load CLMPI function: clmpi_get_local_sent_clock");
-    }
-    clmpi_get_local_sent_clock=(PNMPIMOD_get_local_sent_clock_t) ((void*)serv.fct);
+    // /*Get clock-mpi service: fetch_next_clocks*/
+    // err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_local_sent_clock","p",&serv);
+    // if (err!=PNMPI_SUCCESS) {
+    //   REMPI_ERR("failed to load CLMPI function: clmpi_get_local_sent_clock");
+    // }
+    // clmpi_get_local_sent_clock=(PNMPIMOD_get_local_sent_clock_t) ((void*)serv.fct);
+    clmpi_get_local_sent_clock = PNMPIMOD_get_local_sent_clock;
   }
 
   if (mode == REMPI_ENV_REMPI_MODE_REPLAY) {
@@ -505,8 +507,8 @@ rempi_encoder_input_format* rempi_encoder_cdc::create_encoder_input_format()
 
 void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table *test_table)
 {
-  char  *compressed_buff, *original_buff;
-  size_t compressed_size,  original_size;
+  //  char  *compressed_buff, *original_buff;
+  //  size_t compressed_size,  original_size;
 
 
   /*=== message count ===*/
@@ -587,7 +589,6 @@ void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format &
 
 void rempi_encoder_cdc::compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table *test_table)
 {
-  char  *compressed_buff, *original_buff;
   size_t compressed_size,  original_size;
   test_table->compressed_matched_events = cdc->compress(
 							  test_table->matched_events_ordered_map, 
@@ -676,8 +677,8 @@ bool rempi_encoder_cdc::extract_encoder_input_format_chunk(rempi_event_list<remp
 
 void rempi_encoder_cdc::encode(rempi_encoder_input_format &input_format)
 {
-  char  *compressed_buff, *original_buff;
-  size_t compressed_size,  original_size;
+  //  char  *compressed_buff, *original_buff;
+  //  size_t compressed_size,  original_size;
 
   map<int, rempi_encoder_input_format_test_table*>::iterator test_tables_map_it;
   for (test_tables_map_it  = input_format.test_tables_map.begin();
@@ -782,8 +783,11 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
     total_original_size += input_format.write_size_queue_vec[i];
   }
   
+
+  
   compression_util.compress_by_zlib_vec(input_format.write_queue_vec, input_format.write_size_queue_vec,
 					compressed_write_queue_vec, compressed_write_size_queue_vec, total_compressed_size);
+
 
 
   record_fs.write((char*)&total_compressed_size, sizeof(total_compressed_size));
@@ -794,8 +798,8 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
     write_size_vec.push_back(compressed_write_size_queue_vec[i]);
   }
 
-   // REMPI_DBG("Event count: %d  ->  %lu %lu",
-   // 	     input_format.total_length, total_original_size, total_compressed_size + sizeof(total_compressed_size));
+  // REMPI_DBG("Event count: %d  ->  %lu %lu",
+  //  	     input_format.total_length, total_original_size, total_compressed_size + sizeof(total_compressed_size));
   return;
 }   
 
@@ -902,9 +906,10 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     input_format.test_tables_map[test_id++] = test_table;
 
     /*=== Decode count  ===*/
-    test_table->count = *(size_t*)decoding_address;
+    test_table->count = *(int*)decoding_address;
     decoding_address += sizeof(test_table->count);
     /*==========================*/
+
 
     /*=== Decode epoch  ===*/
     {
@@ -1122,7 +1127,19 @@ void rempi_encoder_cdc::cdc_prepare_decode_indices(
 						   vector<int> &matched_events_permutated_indices_vec)
 {
   list<int> permutated_indices_list;
+  /*
+    0:list = 0
+    1:list = 1
+    2:list = 2
+    3:list = 3
+  */
   unordered_map<int, list<int>::iterator> permutated_indices_it_map;
+  /*
+               0:list = 0
+    map[1] --> 1:list = 1
+    map[2] --> 2:list = 2
+               3:list = 3
+  */
   int it_index = 0;
 
   /*First create list initialized by sequencial numbers, 
@@ -1146,6 +1163,7 @@ void rempi_encoder_cdc::cdc_prepare_decode_indices(
     advance(it, (int)(id) - last_id);
     permutated_indices_it_map[id] = it;
     last_id = id;
+    //    REMPI_DBG(" -- id: %d (= %d) -- size:%lu", id, *it, permutated_indices_list.size());
     //    REMPI_DBGI(3, " -- id: %d (= %d) --", *it, permutated_indices_it_map.size());
   }  
   
@@ -1162,6 +1180,7 @@ void rempi_encoder_cdc::cdc_prepare_decode_indices(
     int id    = (int)matched_events_id_vec[i];
     int delay = (int)matched_events_delay_vec[i];
     list<int>::iterator it = permutated_indices_it_map[id];
+    //    REMPI_ERR("id:%d == delay:%d *it: %d", id, delay,*it);
     it = permutated_indices_list.erase(it);
     advance(it, delay);
     permutated_indices_list.insert(it, id);
@@ -1207,122 +1226,6 @@ void rempi_encoder_cdc::cdc_prepare_decode_indices(
 }
 
 
-// bool rempi_encoder_cdc::cdc_decode_ordering(vector<rempi_event*> &event_vec, rempi_encoder_input_format_test_table* test_table, vector<rempi_event*> &replay_event_vec)
-// {
-//   if (replay_event_vec.size() != 0) {
-//     REMPI_ERR("replay_event_vec is not empty, and the replaying events are not passed to replaying_events");
-//   }  
-
-// #ifdef REMPI_DBG_REPLAY
-//   //  REMPI_DBGI(REMPI_DBG_REPLAY, "unamtched size: %d, replayed count: %d, count %d", test_table->unmatched_events_umap.size(), test_table->replayed_matched_event_index, test_table->count);
-// #endif
-//   /*First, check if unmatched replay or not*/
-//   if (test_table->unmatched_events_umap.find(test_table->replayed_matched_event_index)
-//       != test_table->unmatched_events_umap.end()) {
-//     rempi_event *unmatched_event;
-//     int event_count = test_table->unmatched_events_umap[test_table->replayed_matched_event_index];
-//     unmatched_event = new rempi_test_event(event_count, 0,0,0,0,0,0,0);
-// #ifdef REMPI_DBG_REPLAY
-//     REMPI_DBGI(REMPI_DBG_REPLAY, "PQ -> RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)", 
-//      	        unmatched_event->get_event_counts(),  unmatched_event->get_is_testsome(),  unmatched_event->get_flag(),
-//  	        unmatched_event->get_source(),  unmatched_event->get_tag(),  unmatched_event->get_clock());
-// #endif
-
-//     replay_event_vec.push_back(unmatched_event);
-//     test_table->unmatched_events_umap.erase(test_table->replayed_matched_event_index);
-//     return test_table->is_decoded_all();
-//   }
-  
-//   /* ===== replaying events is matched event from here =======*/
-
-//   /* Detailed algorithm was written in my note on a day, March 30th*/
-//   /*1. Put events to list */
-//   if (!event_vec.empty()) {
-//     for (int i = 0, n = event_vec.size(); i < n; i++) {
-//       rempi_event *event;
-//       event = event_vec[i];
-//       test_table->ordered_event_list.push_back(event);
-//       /*2. update pending_msg_count_umap, epoch_line_umap */
-//       test_table->pending_event_count_umap[event->get_source()]++;
-//       test_table->current_epoch_line_umap[event->get_source()] = event->get_clock();
-// #if REMPI_DBG_REPLAY
-//       REMPI_DBGI(REMPI_DBG_REPLAY, "RCQ -> PQ ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): list size: %d",
-// 		 event_vec[i]->get_event_counts(), event_vec[i]->get_is_testsome(), event_vec[i]->get_flag(),
-// 		 event_vec[i]->get_source(), event_vec[i]->get_tag(), event_vec[i]->get_clock(), 
-// 		 test_table->ordered_event_list.size());
-// #endif
-//     }
-//     event_vec.clear();
-//   }
-
-//   /*3. If 2-(a), and satisfy (square_sizes), sort*/
-//   if (!test_table->is_pending_all_rank_msg()) { 
-//     return test_table->is_decoded_all();
-//   }
-
-//   test_table->ordered_event_list.sort(compare);
-
-// #ifdef REMPI_DBG_REPLAY
-//   REMPI_DBGI(REMPI_DBG_REPLAY, "local_min (rank: %d, clock: %lu)", local_min_id.rank, local_min_id.clock);
-// #endif 
-//   sleep(1);
-
-//   /* Compute outcount */
-//   int outcount = 1;
-//   if (test_table->with_previous_bool_vec.size() > 0) {
-//     for (int i = test_table->replayed_matched_event_index; test_table->with_previous_bool_vec[i] == true; i++) {
-//       outcount++;
-//     }
-//   }
-//   replay_event_vec.resize(outcount, NULL);
-  
-
-//   int i = 0;
-//   for (list<rempi_event*>::iterator 
-//   	 ordered_event_list_it = test_table->ordered_event_list.begin(), 
-//   	 ordered_event_list_it_end = test_table->ordered_event_list.end();
-//        ordered_event_list_it != ordered_event_list_it_end;
-//        ordered_event_list_it++, i++) {
-//     rempi_event *replaying_event;
-//     replaying_event = *ordered_event_list_it;
-
-//     if (!compare2(local_min_id.rank, local_min_id.clock, replaying_event)) {
-//       int permutated_index = test_table->matched_events_permutated_indices_vec[i + test_table->replayed_matched_event_index] 
-// 	- test_table->replayed_matched_event_index;
-//       if (permutated_index >= replay_event_vec.size()) continue;
-//       replay_event_vec[permutated_index] = replaying_event;
-//     }
-//   }
-  
-//   /* === If there is hanuke, we abort this replay  ====*/
-//   /*   At the same time, put with_next value  */
-//   for (int i = 0, n = replay_event_vec.size(); i < n; i++) {
-//     if (replay_event_vec[i] == NULL) {
-//       replay_event_vec.resize(0);
-//       return test_table->is_decoded_all();
-//     } 
-//     replay_event_vec[i]->set_with_next(1);
-//   }
-//   replay_event_vec.back()->set_with_next(0);
-  
-
-//   for (int i = 0, n = replay_event_vec.size(); i < n; i++) {
-//     test_table->pending_event_count_umap[replay_event_vec[i]->get_source()]--;
-//     test_table->ordered_event_list.remove(replay_event_vec[i]);
-//   }
-
-//   test_table->replayed_matched_event_index += replay_event_vec.size();
-
-  
-// #ifdef REMPI_DBG_REPLAY
-//   for (int i = 0, n = replay_event_vec.size(); i < n; i++) {
-//     REMPI_DBGI(REMPI_DBG_REPLAY, "Final   RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
-// 	       replay_event_vec[i]->get_event_counts(), replay_event_vec[i]->get_is_testsome(), replay_event_vec[i]->get_flag(),
-// 	       replay_event_vec[i]->get_source(), replay_event_vec[i]->get_tag(), replay_event_vec[i]->get_clock());
-//   }
-// #endif  
-//   return test_table->is_decoded_all();
-// }
 
 bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &recording_events, vector<rempi_event*> &event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> &replay_event_list, int test_id)
 {
@@ -1625,11 +1528,11 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
     /*local_sent_clock is sent clock value, so the local_clock is local_sent_clock + 1*/
     //    tmp_interim_min_clock++;
 #ifdef BGQ
-    for (vector<rempi_event*>::const_iterator cit = replay_event_vec.cbegin(),
-	   cit_end = replay_event_vec.cend();
-	 cit != cit_end;
-	 cit++) {
-      rempi_event *replaying_event = *cit;
+    for (vector<rempi_event*>::const_iterator cit_replay_event = replay_event_vec.cbegin(),
+	   cit_replay_event_end = replay_event_vec.cend();
+	 cit_replay_event != cit_replay_event_end;
+	 cit_replay_event++) {
+      rempi_event *replaying_event = *cit_replay_event;
 #else    
     for (rempi_event *replaying_event: replay_event_vec) {
 #endif

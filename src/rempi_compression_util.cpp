@@ -23,8 +23,6 @@
 
 using namespace std;
 
-template class rempi_compression_util<int>;
-template class rempi_compression_util<size_t>;
 
 template <class T>
 unsigned char *rempi_compression_util<T>::compress_by_zero_one_binary(vector<T> &vec, size_t &output_size)
@@ -356,3 +354,5 @@ size_t rempi_compression_util<T>::decompress_by_zlib_vec(vector<char*>  &input_v
   return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
 }
 
+template class rempi_compression_util<int>;
+template class rempi_compression_util<size_t>;

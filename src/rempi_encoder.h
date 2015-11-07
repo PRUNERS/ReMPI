@@ -14,7 +14,6 @@
 /*In CDC, rempi_endoers needs to fetch and update next_clocks, 
 so CLMPI and PNMPI module need to be included*/
 #include "clmpi.h"
-#include "pnmpimod.h"
 
 using namespace std;
 

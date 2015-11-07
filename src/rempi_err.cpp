@@ -17,13 +17,12 @@ pthread_mutex_t print_mutex;
 
 using namespace std;
 
-int my_rank;
+int rempi_my_rank;
 char hostname[256];
 
 
-void rempi_err_init(int r) 
-{
-  my_rank = r;
+void rempi_err_init(int r) {
+  rempi_my_rank = r;
   if (gethostname(hostname, sizeof(hostname)) != 0) {
     rempi_err("gethostname fialed (%s:%s:%d)", __FILE__, __func__, __LINE__);
   }
@@ -44,7 +43,7 @@ void rempi_assert(int b)
 void rempi_err(const char* fmt, ...)
 {
   va_list argp;
-  fprintf(stderr, "REMPI: ** ERROR ** :%s:%3d: ", hostname, my_rank);
+  fprintf(stderr, "REMPI: ** ERROR ** :%s:%3d: ", hostname, rempi_my_rank);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);
@@ -56,9 +55,9 @@ void rempi_err(const char* fmt, ...)
 
 void rempi_erri(int r, const char* fmt, ...)
 {
-  if (my_rank != r) return;
+  if (rempi_my_rank != r) return;
   va_list argp;
-  fprintf(stderr, "REMPI: ** ERROR ** :%s:%3d: ", hostname, my_rank);
+  fprintf(stderr, "REMPI: ** ERROR ** :%s:%3d: ", hostname, rempi_my_rank);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);
@@ -70,7 +69,7 @@ void rempi_erri(int r, const char* fmt, ...)
 void rempi_alert(const char* fmt, ...)
 {
   va_list argp;
-  fprintf(stderr, "GIO:ALERT:%s:%d: ", hostname, my_rank);
+  fprintf(stderr, "GIO:ALERT:%s:%d: ", hostname, rempi_my_rank);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
   va_end(argp);
@@ -81,7 +80,7 @@ void rempi_alert(const char* fmt, ...)
 
 void rempi_dbg(const char* fmt, ...) {
   va_list argp;
-  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%3d: ", hostname, my_rank);
+  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%3d: ", hostname, rempi_my_rank);
   va_start(argp, fmt);
   vfprintf(DEBUG_STDOUT, fmt, argp);
   va_end(argp);
@@ -91,7 +90,7 @@ void rempi_dbg(const char* fmt, ...) {
 
 void rempi_print(const char* fmt, ...) {
   va_list argp;
-  fprintf(stdout, "REMPI:%s:%d: ", hostname, my_rank);
+  fprintf(stdout, "REMPI:%s:%d: ", hostname, rempi_my_rank);
   va_start(argp, fmt);
   vfprintf(stdout, fmt, argp);
   va_end(argp);
@@ -100,10 +99,10 @@ void rempi_print(const char* fmt, ...) {
 }
 
 void rempi_dbgi(int r, const char* fmt, ...) {
-  if (my_rank != r && -1 != r) return;
+  if (rempi_my_rank != r && -1 != r) return;
   pthread_mutex_lock (&print_mutex);
   va_list argp;
-  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%3d: ", hostname, my_rank);
+  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%3d: ", hostname, rempi_my_rank);
   va_start(argp, fmt);
   vfprintf(DEBUG_STDOUT, fmt, argp);
   va_end(argp);
@@ -112,10 +111,10 @@ void rempi_dbgi(int r, const char* fmt, ...) {
 }
 
 void rempi_printi(int r, const char* fmt, ...) {
-  if (my_rank != r && -1 != r) return;
+  if (rempi_my_rank != r && -1 != r) return;
   pthread_mutex_lock (&print_mutex);
   va_list argp;
-  fprintf(stdout, "REMPI:PRINT:%s:%3d: ", hostname, my_rank);
+  fprintf(stdout, "REMPI:PRINT:%s:%3d: ", hostname, rempi_my_rank);
   va_start(argp, fmt);
   vfprintf(stdout, fmt, argp);
   va_end(argp);
@@ -126,7 +125,7 @@ void rempi_printi(int r, const char* fmt, ...) {
 void rempi_debug(const char* fmt, ...)
 {
   va_list argp;
-  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%d: ", hostname, my_rank);
+  fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%d: ", hostname, rempi_my_rank);
   va_start(argp, fmt);
   vfprintf(DEBUG_STDOUT, fmt, argp);
   va_end(argp);
@@ -135,7 +134,7 @@ void rempi_debug(const char* fmt, ...)
 
 
 void rempi_exit(int no) {
-  fprintf(stderr, "REMPI:DEBUG:%s:%d: == EXIT == sleep 1sec ...\n", hostname, my_rank);
+  fprintf(stderr, "REMPI:DEBUG:%s:%d: == EXIT == sleep 1sec ...\n", hostname, rempi_my_rank);
   sleep(1);
   exit(no);
   return;
@@ -200,7 +199,7 @@ void rempi_btrace()
 
 void rempi_btracei(int r) 
 {
-  if (my_rank != r) return;
+  if (rempi_my_rank != r) return;
   rempi_btrace();
   return;
 }

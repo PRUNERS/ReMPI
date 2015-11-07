@@ -309,7 +309,7 @@ void rempi_encoder::close_record_file()
   for (int i = 0, n = write_size_vec.size(); i < n; i++) {
     total_write_size += write_size_vec[i];
   }
-  //  REMPI_DBG("EVAL Total write size: |%lu|", total_write_size);
+  REMPI_DBG("EVAL Total write size: |%lu|", total_write_size);
   record_fs.close();
 }
 

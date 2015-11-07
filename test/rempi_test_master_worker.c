@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <mpi.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 
 #include "rempi_test_util.h"

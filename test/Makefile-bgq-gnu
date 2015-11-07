@@ -11,7 +11,7 @@ rempi_test_isendrecv_DEPS =  $(rempi_test_isendrecv_SRCS:%.c=%.d)
 rempi_test_isendrecv_PROGRAM = rempi_test_isendrecv
 
 rempi_test_neighbor_SRCS = rempi_test_neighbor.c rempi_test_util.c
-rempi_test_neighbor_OBJS =  $(rempi_test_neighbor_SRCS:%.c=%.o)
+rempi_test_neighbor_OBJS =  $(rempi_test_neighbor_SRCS:%.c=%.o) /g/g90/sato5/opt/opt-bgq/lib/librempi.a /usr/local/tools/zlib-1.2.6/lib/libz.a
 rempi_test_neighbor_DEPS =  $(rempi_test_neighbor_SRCS:%.c=%.d)
 rempi_test_neighbor_PROGRAM = rempi_test_neighbor
 
@@ -31,10 +31,10 @@ rempi_test_neighbor-collective_DEPS =  $(rempi_test_neighbor-collective_SRCS:%.c
 rempi_test_neighbor-collective_PROGRAM = rempi_test_neighbor-collective
 
 
-rempi_test_clmpi_SRCS = rempi_test_clmpi.c rempi_test_util.c
-rempi_test_clmpi_OBJS =  $(rempi_test_clmpi_SRCS:%.c=%.o)
-rempi_test_clmpi_DEPS =  $(rempi_test_clmpi_SRCS:%.c=%.d)
-rempi_test_clmpi_PROGRAM = rempi_test_clmpi
+#rempi_test_clmpi_SRCS = rempi_test_clmpi.c rempi_test_util.c
+#rempi_test_clmpi_OBJS =  $(rempi_test_clmpi_SRCS:%.c=%.o)
+#rempi_test_clmpi_DEPS =  $(rempi_test_clmpi_SRCS:%.c=%.d)
+#rempi_test_clmpi_PROGRAM = rempi_test_clmpi
 
 rempi_test_compress_SRCS = rempi_test_compress.cpp rempi_test_util.c ../src/rempi_compression_utilcpp
 rempi_test_compress_OBJS = rempi_test_compress.o rempi_test_util.o

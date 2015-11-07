@@ -2,6 +2,8 @@
 #include <mpi.h>
 #include <sys/time.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "rempi_test_util.h"
 

@@ -3,7 +3,6 @@
 
 #include <mpi.h>
 
-#include "pnmpimod.h"
 #include "rempi_re.h"
 #include "rempi_err.h"
 #include "rempi_mem.h"
@@ -19,25 +18,26 @@ using namespace std;
 int rempi_re_no_comp::init_clmpi()
 {
   int err;
-  PNMPI_modHandle_t handle_rempi, handle_clmpi;
-  PNMPI_Service_descriptor_t serv;
-  /*Load clock-mpi*/
-  err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_CLMPI, &handle_clmpi);
-  if (err!=PNMPI_SUCCESS) {
-    return err;
-  }
-  /*Get clock-mpi service*/
-  err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_register_recv_clocks","pi",&serv);
-  if (err!=PNMPI_SUCCESS)
-    return err;
-  clmpi_register_recv_clocks=(PNMPIMOD_register_recv_clocks_t) ((void*)serv.fct);
+  // PNMPI_modHandle_t handle_rempi, handle_clmpi;
+  // PNMPI_Service_descriptor_t serv;
+  // /*Load clock-mpi*/
+  // err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_CLMPI, &handle_clmpi);
+  // if (err!=PNMPI_SUCCESS) {
+  //   return err;
+  // }
+  // /*Get clock-mpi service*/
+  // err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_register_recv_clocks","pi",&serv);
+  // if (err!=PNMPI_SUCCESS)
+  //   return err;
+  // clmpi_register_recv_clocks=(PNMPIMOD_register_recv_clocks_t) ((void*)serv.fct);
+  clmpi_register_recv_clocks=PNMPIMOD_register_recv_clocks;
 
-  /*Load own moduel*/
-  err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_REMPI, &handle_rempi);
-  if (err!=PNMPI_SUCCESS)
-    return err;
+  // /*Load own moduel*/
+  // err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_REMPI, &handle_rempi);
+  // if (err!=PNMPI_SUCCESS)
+  //   return err;
 
-  return err;
+  return MPI_SUCCESS;
 }
 
 #ifdef REVERT1

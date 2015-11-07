@@ -31,37 +31,48 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 rempi_OBJS = 	$(rempi_SRCS:%.cpp=%.o) 
 rempi_DEPS = 	$(rempi_SRCS:%.cpp=%.d) 
 
+rempi_o_LIBS =	./librempi.o 
 rempi_a_LIBS =	../lib/librempi.a 
-
 rempi_so_LIBS =	../lib/librempi.so	
-rcmpi_so_LIBS =	../lib/librcmpi.so	
+
+CLMPI_DIR  =  ./external/clmpi/
+clmpi_OBJS =  $(CLMPI_DIR)/libclmpi.o
+
+rcmpi_so_LIBS=../lib/librcmpi.so	
+
+
 
 OBJS = $(rempi_OBJS)
 DEPS = $(rempi_DEPS)
-LIBS = $(rcmpi_so_LIBS) $(rempi_a_LIBS) $(rempi_so_LIBS)
+LIBS =  $(rempi_so_LIBS) $(rempi_a_LIBS) $(rcmpi_so_LIBS)
 
 #$@: target name
 #$<: first dependent file
 #$^: all indemendent files
 
 
-all: $(LIBS)
-	@$(MAKE) -C ./external all
+all: $(LIBS) $(clmpi_OBJS) 
 
+
+
+$(clmpi_OBJS):
+	@$(MAKE) -C ./external all
 
 -include $(DEPS)
 
 $(rempi_a_LIBS):  $(rempi_OBJS)
-	ar cr ../lib/librempi.a $(rempi_OBJS)
-	ranlib ../lib/librempi.a
+#	ar rvs   $(rempi_o_LIBS) $(rempi_OBJS)
+	ld    -o $(rempi_o_LIBS) -r $(rempi_OBJS)
+	ws       $(rempi_o_LIBS) $(clmpi_OBJS)
+	ar cr $@ $(rempi_o_LIBS) $(clmpi_OBJS)
+	ranlib $@
 
-$(rempi_so_LIBS):  $(rempi_OBJS)
-	$(CC) -shared -o ../lib/librempi.so $(rempi_OBJS)
+$(rempi_so_LIBS): $(rempi_a_LIBS) $(rempi_OBJS)
+	$(CC) -shared -o $@ $(rempi_o_LIBS)  $(clmpi_OBJS)
 
 
 $(rcmpi_so_LIBS):  $(SRC_DIR)/rempi_message_manager.o
 	$(CC) -shared -o $(rcmpi_so_LIBS)  $(SRC_DIR)/rempi_message_manager.o
-
 
 
 .SUFFIXES: .c .o
@@ -71,7 +82,8 @@ $(rcmpi_so_LIBS):  $(SRC_DIR)/rempi_message_manager.o
 
 install: all
 	@$(MAKE) -C ./external install
-	pnmpi-patch ../lib/librempi.so /g/g90/sato5/opt/lib/pnmpi-modules/librempi.so
+#	pnmpi-patch ../lib/librempi.so /g/g90/sato5/opt/lib/pnmpi-modules/librempi.so
+	cp ../lib/librempi.so /g/g90/sato5/opt/lib/librempi.so
 
 
 .SUFFIXES: .cpp .o
@@ -81,7 +93,7 @@ install: all
 
 .PHONY: clean
 clean:
-	-rm -rf $(OBJS) $(DEPS) $(LIBS)
+	-rm -rf $(OBJS) $(DEPS) $(LIBS) $(rempi_o_LIBS)
 	@$(MAKE) -C ./external clean
 
 .PHONY: clean_core

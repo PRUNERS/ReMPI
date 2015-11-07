@@ -31,38 +31,47 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 rempi_OBJS = 	$(rempi_SRCS:%.cpp=%.o) 
 rempi_DEPS = 	$(rempi_SRCS:%.cpp=%.d) 
 
+rempi_o_LIBS =  ./librempi.o
 rempi_a_LIBS =	../lib/librempi.a 
-
 rempi_so_LIBS =	../lib/librempi.so	
-rcmpi_so_LIBS =	../lib/librcmpi.so	
+
+CLMPI_DIR=./external/clmpi/
+clmpi_OBJS=$(CLMPI_DIR)/libclmpi.o
+
+rcmpi_so_LIBS=../lib/librcmpi.so	
+
+
 
 OBJS = $(rempi_OBJS)
 DEPS = $(rempi_DEPS)
-LIBS = $(rempi_a_LIBS) $(rempi_so_LIBS) $(rcmpi_so_LIBS)
+LIBS =  $(rempi_so_LIBS) $(rempi_a_LIBS) $(rcmpi_so_LIBS)
 
 #$@: target name
 #$<: first dependent file
 #$^: all indemendent files
 
 
-all: $(LIBS)
-	@$(MAKE) -f Makefile-bgq-gnu -C ./external all
-	@$(MAKE) -f Makefile-bgq-gnu -C ./external install
+all: $(LIBS) $(clmpi_OBJS)
+#all: $(clmpi_OBJS)
 
+
+$(clmpi_OBJS):
+	@$(MAKE) -f Makefile-bgq-gnu -C ./external all 
 
 -include $(DEPS)
 
 $(rempi_a_LIBS):  $(rempi_OBJS)
-	ar cr ../lib/librempi.a $(rempi_OBJS)
-	ranlib ../lib/librempi.a
+	ld    -o $(rempi_o_LIBS) -r $(rempi_OBJS)
+	ws       $(rempi_o_LIBS) $(clmpi_OBJS)
+	ar cr $@ $(rempi_o_LIBS) $(clmpi_OBJS)
+	ranlib $@
 
-$(rempi_so_LIBS):  $(rempi_OBJS)
-	$(CC) -shared -o ../lib/librempi.so $(rempi_OBJS)
+$(rempi_so_LIBS): $(rempi_a_LIBS) $(rempi_OBJS)
+	$(CC) -shared -o $@ $(rempi_o_LIBS)  $(clmpi_OBJS)
 
 
 $(rcmpi_so_LIBS):  $(SRC_DIR)/rempi_message_manager.o
 	$(CC) -shared -o $(rcmpi_so_LIBS)  $(SRC_DIR)/rempi_message_manager.o
-
 
 
 .SUFFIXES: .c .o
@@ -71,8 +80,10 @@ $(rcmpi_so_LIBS):  $(SRC_DIR)/rempi_message_manager.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ -c $< 
 
 install: all
-	@$(MAKE) -f Makefile-bgq-gnu -C ./external install
-	$(PnMPI_DIR)/bin/pnmpi-patch ../lib/librempi.so $(PnMPI_DIR)/lib/pnmpi-modules/librempi.so
+#	@$(MAKE) -f Makefile-bgq-gnu -C ./external install
+#	$(PnMPI_DIR)/bin/pnmpi-patch ../lib/librempi.so $(PnMPI_DIR)/lib/pnmpi-modules/librempi.so
+	cp ../lib/librempi.so /g/g90/sato5/opt/opt-bgq/lib/librempi.so
+	cp ../lib/librempi.a /g/g90/sato5/opt/opt-bgq/lib/librempi.a
 
 
 .SUFFIXES: .cpp .o
@@ -82,7 +93,7 @@ install: all
 
 .PHONY: clean
 clean:
-	-rm -rf $(OBJS) $(DEPS) $(LIBS)
+	-rm -rf $(OBJS) $(DEPS) $(LIBS) $(rempi_o_LIBS)
 	@$(MAKE) -f Makefile-bgq-gnu -C ./external clean
 
 .PHONY: clean_core

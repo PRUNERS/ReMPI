@@ -2,15 +2,17 @@
 #include <mpi.h>
 #include <sys/time.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "rempi_test_util.h"
 
 #define NUM_KV_PER_RANK (3)
 #define MAX_VAL (10)
-#define MAX_MESG_PASS (4)
+#define MAX_MESG_PASS (40000)
 
 
-double start, end, overall_end;
+double starta, end, overall_end;
 int recv_msg_count[NUM_KV_PER_RANK], send_msg_count[NUM_KV_PER_RANK];
 
 struct key_val{
@@ -20,7 +22,7 @@ struct key_val{
 
 double get_runtime()
 {
-  return MPI_Wtime() - start;
+  return MPI_Wtime() - starta;
 }
 
 int is_finished(){
@@ -48,7 +50,7 @@ int main(int argc, char *argv[])
   /* Init */
   MPI_Init(&argc, &argv);
   signal(SIGSEGV, SIG_DFL);
-  start = MPI_Wtime();
+  starta = MPI_Wtime();
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
@@ -162,7 +164,7 @@ int main(int argc, char *argv[])
   MPI_Finalize();
   //  overall_end = MPI_Wtime();
   if (my_rank == 0) {
-    fprintf(stdout, "Hash %d, Time (Main loop): %f, Time (Overall): %f\n", hash, end - start, overall_end - start);
+    fprintf(stdout, "Hash %d, Time (Main loop): %f, Time (Overall): %f\n", hash, end - starta, overall_end - starta);
   }
   return 0;
 

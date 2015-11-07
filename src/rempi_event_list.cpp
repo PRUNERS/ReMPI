@@ -13,7 +13,7 @@
 
 using namespace std;
 
-template class rempi_event_list<rempi_event*>; // to tell compiler
+
 
 template <class T>
 size_t rempi_event_list<T>::size()
@@ -445,4 +445,4 @@ void rempi_event_list<T>::set_globally_minimal_clock(size_t gmc)
   globally_minimal_clock = gmc;
 }
 
-
+template class rempi_event_list<rempi_event*>; // to tell compiler

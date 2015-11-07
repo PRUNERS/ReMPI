@@ -4,6 +4,8 @@
 #include <sys/time.h>
 #include <time.h>
 #include <signal.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "rempi_test_util.h"
 
