@@ -432,13 +432,13 @@ void rempi_encoder::insert_encoder_input_format_chunk(rempi_event_list<rempi_eve
 
 void rempi_encoder::fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock)
 {    
-  REMPI_ERR("please remove this REMPI_ERR later");
+  //  REMPI_ERR("please remove this REMPI_ERR later");
   return;
 }
 
 int rempi_encoder::update_local_min_id(int min_recv_rank, size_t min_next_clock)
 {    
-  REMPI_ERR("please remove this REMPI_ERR later");
+  //  REMPI_ERR("please remove this REMPI_ERR later");
   return 0;
 }
 
@@ -450,7 +450,7 @@ void rempi_encoder::update_fd_next_clock(
 					 int recv_test_id,
 					 int is_after_recv_event)
 { 
-  REMPI_ERR("please remove this REMPI_ERR later");
+  //  REMPI_ERR("please remove this REMPI_ERR later");
   return;
 }
 
@@ -461,7 +461,7 @@ void rempi_encoder::set_fd_clock_state(int flag)
 
 void rempi_encoder::compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock)
 {
-  REMPI_ERR("please remove this REMPI_ERR later");
+  //  REMPI_ERR("please remove this REMPI_ERR later");
   return;
 }
 

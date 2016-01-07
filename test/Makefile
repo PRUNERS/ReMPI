@@ -31,10 +31,10 @@ rempi_test_neighbor-collective_DEPS =  $(rempi_test_neighbor-collective_SRCS:%.c
 rempi_test_neighbor-collective_PROGRAM = rempi_test_neighbor-collective
 
 
-rempi_test_clmpi_SRCS = rempi_test_clmpi.c rempi_test_util.c
-rempi_test_clmpi_OBJS =  $(rempi_test_clmpi_SRCS:%.c=%.o)
-rempi_test_clmpi_DEPS =  $(rempi_test_clmpi_SRCS:%.c=%.d)
-rempi_test_clmpi_PROGRAM = rempi_test_clmpi
+# rempi_test_clmpi_SRCS = rempi_test_clmpi.c rempi_test_util.c
+# rempi_test_clmpi_OBJS =  $(rempi_test_clmpi_SRCS:%.c=%.o)
+# rempi_test_clmpi_DEPS =  $(rempi_test_clmpi_SRCS:%.c=%.d)
+# rempi_test_clmpi_PROGRAM = rempi_test_clmpi
 
 rempi_test_compress_SRCS = rempi_test_compress.cpp rempi_test_util.c ../src/rempi_compression_utilcpp
 rempi_test_compress_OBJS = rempi_test_compress.o rempi_test_util.o
@@ -46,22 +46,22 @@ PROGRAMS= $(rempi_test_master_worker_PROGRAM) \
 	  $(rempi_test_neighbor_PROGRAM) \
 	  $(rempi_test_neighbor-send_PROGRAM) \
 	  $(rempi_test_neighbor-tree_PROGRAM) \
-	  $(rempi_test_neighbor-collective_PROGRAM) \
-	  $(rempi_test_clmpi_PROGRAM) 
+	  $(rempi_test_neighbor-collective_PROGRAM) 
+
 OBJS= $(rempi_test_master_worker_OBJS) \
       $(rempi_test_isendrecv_OBJS) \
       $(rempi_test_neighbor_OBJS) \
       $(rempi_test_neighbor-send_OBJS) \
       $(rempi_test_neighbor-tree_OBJS) \
-      $(rempi_test_neighbor-collective_OBJS) \
-      $(rempi_test_clmpi_OBJS)
+      $(rempi_test_neighbor-collective_OBJS) 
+
 DEPS= $(rempi_test_master_worker_DEPS) \
       $(rempi_test_isendrecv_DEPS) \
       $(rempi_test_neighbor_DEPS) \
       $(rempi_test_neighbor-send_DEPS) \
       $(rempi_test_neighbor-tree_DEPS) \
-      $(rempi_test_neighbor-collective_DEPS) \
-      $(rempi_test_clmpi_DEPS)
+      $(rempi_test_neighbor-collective_DEPS) 
+
 
 #$@: target name
 #$<: first dependent file
@@ -95,8 +95,7 @@ $(rempi_test_neighbor-collective_PROGRAM): $(rempi_test_neighbor-collective_OBJS
 $(rempi_test_neighbor-tree_PROGRAM): $(rempi_test_neighbor-tree_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
-$(rempi_test_clmpi_PROGRAM): $(rempi_test_clmpi_OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS)  -o $@ $^
+
 
 $(rempi_test_compress_PROGRAM): $(rempi_test_compress_OBJS)
 	$(CC) $(CXXFLAGS) $(LDFLAGS) -L/g/g90/sato5/repo/rempi/lib -lrempi -o $@ $^

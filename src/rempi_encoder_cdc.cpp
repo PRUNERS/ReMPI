@@ -772,8 +772,7 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
   
   size_t total_compressed_size = 0;
   size_t total_original_size   = 0;
-  vector<char*> compressed_write_queue_vec;
-  vector<size_t> compressed_write_size_queue_vec;
+
 
   if (input_format.write_queue_vec.size() != input_format.write_size_queue_vec.size()) {
     REMPI_ERR("Size is different in write_queue_vec & write_size_queue_vec.");
@@ -783,20 +782,27 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
     total_original_size += input_format.write_size_queue_vec[i];
   }
   
-
-  
-  compression_util.compress_by_zlib_vec(input_format.write_queue_vec, input_format.write_size_queue_vec,
-					compressed_write_queue_vec, compressed_write_size_queue_vec, total_compressed_size);
-
-
-
-  record_fs.write((char*)&total_compressed_size, sizeof(total_compressed_size));
-  write_size_vec.push_back(sizeof(total_compressed_size));
-  for (int i = 0; i < compressed_write_queue_vec.size(); i++) {
-    record_fs.write(compressed_write_queue_vec[i], compressed_write_size_queue_vec[i]);
-    free(compressed_write_queue_vec[i]);
-    write_size_vec.push_back(compressed_write_size_queue_vec[i]);
+  if(rempi_gzip) {
+    vector<char*> compressed_write_queue_vec;
+    vector<size_t> compressed_write_size_queue_vec;
+    compression_util.compress_by_zlib_vec(input_format.write_queue_vec, input_format.write_size_queue_vec,
+					  compressed_write_queue_vec, compressed_write_size_queue_vec, total_compressed_size);
+    record_fs.write((char*)&total_compressed_size, sizeof(total_compressed_size));
+    write_size_vec.push_back(sizeof(total_compressed_size));
+    for (int i = 0; i < compressed_write_queue_vec.size(); i++) {
+      record_fs.write(compressed_write_queue_vec[i], compressed_write_size_queue_vec[i]);
+      free(compressed_write_queue_vec[i]);
+      write_size_vec.push_back(compressed_write_size_queue_vec[i]);
+    }
+  } else {
+    record_fs.write((char*)&total_original_size, sizeof(total_original_size));
+    write_size_vec.push_back(sizeof(total_original_size));
+    for (int i = 0; i < input_format.write_queue_vec.size(); i++) {
+      record_fs.write(input_format.write_queue_vec[i], input_format.write_size_queue_vec[i]);
+      write_size_vec.push_back(input_format.write_size_queue_vec[i]);
+    }
   }
+
 
   // REMPI_DBG("Event count: %d  ->  %lu %lu",
   //  	     input_format.total_length, total_original_size, total_compressed_size + sizeof(total_compressed_size));
@@ -1114,7 +1120,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     REMPI_ERR("The number of test_id exceeded the limit");
   }
   
-  //  input_format.debug_print();
+  input_format.debug_print();
   //  exit(0);
   return;
 }
@@ -1401,22 +1407,70 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
       }
     }
 
+
+
+//       REMPI_DBGI(0, "LIST Queue Update: Local_min (rank: %d, clock: %lu): count: %d, test_id: %d",
+// 		 local_min_id_rank, local_min_id_clock, solid_event_count, test_id);
+// #ifdef BGQ
+//       for (list<rempi_event*>::const_iterator it = test_table->ordered_event_list.cbegin(), 
+// 	     it_end = test_table->ordered_event_list.cend();
+// 	   it !=it_end;
+// 	   it++) {
+// 	rempi_event *e = *it;
+// #else
+//       for (rempi_event *e: test_table->ordered_event_list) {
+// #endif     
+// 	REMPI_DBGI(0, "       list (rank: %d, clock: %lu): count: %d", e->get_source(), e->get_clock(), solid_event_count);
+//       }
+
+// #ifdef BGQ
+//       for (list<rempi_event*>::const_iterator it = test_table->solid_ordered_event_list.cbegin(), 
+// 	     it_end = test_table->solid_ordered_event_list.cend();
+// 	   it !=it_end;
+// 	   it++) {
+// 	rempi_event *e = *it;
+// #else
+//       for (rempi_event *e: test_table->solid_ordered_event_list) {
+// #endif
+// 	REMPI_DBGI(0, "      slist (rank: %d, clock: %lu, order: %lu): count: %d", 
+// 		   e->get_source(), e->get_clock(), e->clock_order, solid_event_count);
+//       }
+
+
     
 #ifdef REMPI_DBG_REPLAY
     if (is_ordered_event_list_updated || is_solid_ordered_event_list_updated) {
       REMPI_DBGI(REMPI_DBG_REPLAY, "LIST Queue Update: Local_min (rank: %d, clock: %lu): count: %d, test_id: %d",
 		 local_min_id_rank, local_min_id_clock, solid_event_count, test_id);
+#ifdef BGQ
+      for (list<rempi_event*>::const_iterator it = test_table->ordered_event_list.cbegin(), 
+	     it_end = test_table->ordered_event_list.cend();
+	   it !=it_end;
+	   it++) {
+	rempi_event *e = *it;
+#else
       for (rempi_event *e: test_table->ordered_event_list) {
+#endif     
 	REMPI_DBGI(REMPI_DBG_REPLAY, "       list (rank: %d, clock: %lu): count: %d", e->get_source(), e->get_clock(), solid_event_count);
       }
+
+#ifdef BGQ
+      for (list<rempi_event*>::const_iterator it = test_table->solid_ordered_event_list.cbegin(), 
+	     it_end = test_table->solid_ordered_event_list.cend();
+	   it !=it_end;
+	   it++) {
+	rempi_event *e = *it;
+#else
       for (rempi_event *e: test_table->solid_ordered_event_list) {
+#endif
 	REMPI_DBGI(REMPI_DBG_REPLAY, "      slist (rank: %d, clock: %lu, order: %lu): count: %d", 
 		   e->get_source(), e->get_clock(), e->clock_order, solid_event_count);
       }
       is_ordered_event_list_updated = false;
       is_solid_ordered_event_list_updated = false;
     }
-#endif   
+#endif 
+
   }
 
 
@@ -1798,9 +1852,9 @@ void rempi_encoder_cdc::update_fd_next_clock(
 
 #ifdef REMPI_DBG_REPLAY  
   if (fd_clocks->next_clock < next_clock) {
-    REMPI_DBGI(REMPI_DBG_REPLAY, "NEXT Clock Update(%lu): from %d to %d:  (local_min (rank: %d, clock: %lu), local: %d num: %d): is_waiting_recv: %d, is_after_recv_event: %d", MPI_Wtime(),
-	       fd_clocks->next_clock, next_clock, global_local_min_id.rank, global_local_min_id.clock, 
-	       clock, num_of_recv_msg_in_next_event, is_waiting_recv, is_after_reve_event);
+    // REMPI_DBGI(REMPI_DBG_REPLAY, "NEXT Clock Update(%lu): from %d to %d:  (local_min (rank: %d, clock: %lu), local: %d num: %d): is_waiting_recv: %d, is_after_recv_event: %d", MPI_Wtime(),
+    // 	       fd_clocks->next_clock, next_clock, global_local_min_id.rank, global_local_min_id.clock, 
+    // 	       clock, num_of_recv_msg_in_next_event, is_waiting_recv, is_after_reve_event);
   }
 #endif
 

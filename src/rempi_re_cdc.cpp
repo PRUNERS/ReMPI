@@ -63,6 +63,21 @@ int rempi_re_cdc::init_clmpi()
   return MPI_SUCCESS;
 }
 
+unordered_map<string, int>matching_set_id_umap;
+unordered_map<MPI_Request, int>request_to_matching_set_id_umap;
+int next_matching_set_id_to_assign = 0;
+int get_matching_set_id()
+{
+  if (!rempi_is_test_id) return 0;
+  string matching_set_id_string;
+  matching_set_id_string = rempi_btrace_string();
+  if (matching_set_id_umap.find(matching_set_id_string) == matching_set_id_umap.end()) {
+    matching_set_id_umap[matching_set_id_string] = next_matching_set_id_to_assign;
+    next_matching_set_id_to_assign++;
+  }
+  return matching_set_id_umap[matching_set_id_string];
+}
+
 #ifdef REVERT1
 int rempi_re_cdc::get_test_id()
 {
@@ -74,7 +89,7 @@ int rempi_re_cdc::get_test_id()
   //  test_id_string = test_id_string.substr(pos);
   if (test_ids_map.find(test_id_string) == test_ids_map.end()) {
     test_ids_map[test_id_string] = next_test_id_to_assign;
-    //    REMPI_DBGI(REMPI_DBG_REPLAY, "global_test_id %d: %s", next_test_id_to_assign, test_id_string.c_str());
+    //    REMPI_DBGI(0, "global_test_id %d: %s", next_test_id_to_assign, test_id_string.c_str());
     next_test_id_to_assign++;
   }
   return test_ids_map[test_id_string];
@@ -88,7 +103,7 @@ int rempi_re_cdc::get_test_id(MPI_Request *requests)
   //  test_id_string = test_id_string.substr(pos);
   if (test_ids_map.find(requests) == test_ids_map.end()) {
     test_ids_map[requests] = next_test_id_to_assign;
-    //    REMPI_DBGI(REMPI_DBG_REPLAY, "global_test_id %d: %s", next_test_id_to_assign, test_id_string.c_str());
+    REMPI_DBGI(0, "global_test_id %d: %s", next_test_id_to_assign, test_id_string.c_str());
     next_test_id_to_assign++;
   }
   return test_ids_map[requests];
@@ -200,8 +215,6 @@ int rempi_re_cdc::re_irecv(
 
   PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);
 
-
-
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
     //TODO: Get Datatype,
@@ -210,8 +223,13 @@ int rempi_re_cdc::re_irecv(
     /*TODO: Really need datatype ??*/
     recorder->replay_irecv(buf, count, datatype, source, tag, (int)comm_id[0], &comm, request);
   }
-#if 0
-  REMPI_DBGI(1, "source: %d, tag: %d, count: %d, request: %p", source, tag, count, *request);
+#if 1
+  {
+    int matching_set_id;
+    matching_set_id  = get_matching_set_id();
+    request_to_matching_set_id_umap[*request] = matching_set_id;
+    REMPI_DBGI(0, "matching_set_id: %d, source: %d, tag: %d, count: %d, request: %p", matching_set_id, source, tag, (int)comm_id[0], *request);
+  }
 #endif
   return ret;
 }
@@ -229,8 +247,9 @@ int rempi_re_cdc::re_test(
   int test_id = get_test_id(request);
 #endif
 
-#if 0
-  REMPI_DBGI(1, "request: %p", *request);
+#if 1
+  int matching_set_id = request_to_matching_set_id_umap[*request];
+  REMPI_DBGI(0, "test_id: %d, request: %p (matching_set_id: %d)", test_id, *request, matching_set_id);
 #endif
 
 
@@ -298,9 +317,10 @@ int rempi_re_cdc::re_testsome(
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     clocks = (size_t*)rempi_malloc(sizeof(size_t) * incount);
     clmpi_register_recv_clocks(clocks, incount);
-#if 0
+#if 1
     for (int i = 0; i < incount; i++) {
-      REMPI_DBG("request: %p (%d/%d)", array_of_requests[i], i, incount);
+      int matching_set_id = request_to_matching_set_id_umap[array_of_requests[i]];
+      REMPI_DBGI(0, "test_id: %d, matching_set_id: %d", test_id, matching_set_id);
     }
 #endif
     ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
@@ -611,6 +631,7 @@ int rempi_re_cdc::re_barrier(MPI_Comm arg_0)
 int rempi_re_cdc::re_finalize()
 {
   int ret;
+
 
   ret = PMPI_Finalize();
 

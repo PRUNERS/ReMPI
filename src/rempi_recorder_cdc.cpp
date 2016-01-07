@@ -494,9 +494,6 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 	}
       }
     } 
-
-    // REMPI_DBG("checking irecv_inputs->recv_test_id: %d in recv_test_id %d (size:%d)", irecv_inputs->recv_test_id, recv_test_id, 
-    // 	      request_to_irecv_inputs_umap.size());
     
     /* =================================================
        1. Check if there are any matched requests (pending matched), 
@@ -504,6 +501,7 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
        ================================================= */
     if (irecv_inputs->recv_test_id != -1) {
       matched_request_push_back_count = 0;
+
 #ifdef BGQ
       for (list<rempi_proxy_request*>::iterator it = irecv_inputs->matched_pending_request_proxy_list.begin(),
 	     it_end = irecv_inputs->matched_pending_request_proxy_list.end();
@@ -589,7 +587,6 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 		status.MPI_SOURCE, status.MPI_TAG, clock, global_local_min_id_rank, global_local_min_id_clock);
     }
 
-    
     if (irecv_inputs->recv_test_id != -1) {
       //      REMPI_ASSERT(irecv_inputs->recv_test_id == recv_test_id);
       event_pooled =  new rempi_test_event(1, -1, -1, 1, status.MPI_SOURCE, status.MPI_TAG, clock, irecv_inputs->recv_test_id);
@@ -607,7 +604,6 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 		 event_pooled->get_source(), event_pooled->get_tag(), event_pooled->get_clock(), event_pooled->msg_count,
 		 event_pooled, irecv_inputs->recv_test_id);
 #endif
-
       /*Move from pending request list to matched request list 
 	This is used later for checking if a replayed event belongs to this list.  */
       irecv_inputs->matched_request_proxy_list.push_back(proxy_request);
@@ -796,8 +792,6 @@ int rempi_recorder_cdc::replay_testsome(
     has_pending_msg = progress_recv_requests(recv_test_id, incount, array_of_requests, 
 					     mc_encoder->global_local_min_id.rank, 
 					     mc_encoder->global_local_min_id.clock);
-
-
 
     
 // #ifdef REMPI_DBG_REPLAY

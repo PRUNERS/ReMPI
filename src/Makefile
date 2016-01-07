@@ -22,6 +22,7 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 		$(SRC_DIR)/rempi_encoder_cdc.cpp \
 		$(SRC_DIR)/rempi_encoder_cdc_row_wise_diff.cpp \
 		$(SRC_DIR)/rempi_encoder_cdc_permutation_diff.cpp \
+		$(SRC_DIR)/rempi_encoder_rep.cpp \
 		$(SRC_DIR)/rempi_encoder_zlib.cpp \
 		$(SRC_DIR)/rempi_encoder_simple_zlib.cpp \
 		$(SRC_DIR)/rempi_thread.cpp \
@@ -51,9 +52,7 @@ LIBS =  $(rempi_so_LIBS) $(rempi_a_LIBS) $(rcmpi_so_LIBS)
 #$^: all indemendent files
 
 
-all: $(LIBS) $(clmpi_OBJS) 
-
-
+all: $(clmpi_OBJS) $(LIBS)
 
 $(clmpi_OBJS):
 	@$(MAKE) -C ./external all
