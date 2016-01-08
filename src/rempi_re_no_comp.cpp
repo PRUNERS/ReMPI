@@ -41,8 +41,9 @@ int rempi_re_no_comp::init_clmpi()
 }
 
 #ifdef REVERT1
-int rempi_re_no_comp::get_test_id()
+int rempi_re_no_comp::get_test_id(MPI_Request *request, int count)
 {
+  REMPI_ERR("not supported");
   string test_id_string;
   test_id_string = rempi_btrace_string();
   //TODO: get the binary name

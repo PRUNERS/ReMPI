@@ -24,7 +24,7 @@ class rempi_re
   int my_rank; // = -1;
   int init_after_pmpi_init(int *argc, char ***argv);
 #ifdef REVERT1
-  virtual int get_test_id();
+  virtual int get_test_id(MPI_Request *request, int count);
 #else
   virtual int get_test_id(MPI_Request *requests);
 #endif
@@ -116,7 +116,7 @@ class rempi_re_no_comp : public rempi_re
   int next_test_id_to_assign;// = 0;
  protected:
 #ifdef REVERT1
-  virtual int get_test_id();
+  virtual int get_test_id(MPI_Request *request, int count);
 #else
   virtual int get_test_id(MPI_Request *requests);
 #endif
@@ -207,7 +207,7 @@ class rempi_re_cdc : public rempi_re_no_comp
   int next_test_id_to_assign; // = 0;
  protected:
 #ifdef REVERT1
-  int get_test_id();
+  int get_test_id(MPI_Request *request, int count);
 #else
   int get_test_id(MPI_Request *requests);
 #endif

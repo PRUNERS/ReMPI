@@ -26,7 +26,7 @@ int rempi_re::init_after_pmpi_init(int *argc, char ***argv)
 }
 
 #ifdef REVERT1
-int rempi_re::get_test_id()
+int rempi_re::get_test_id(MPI_Request *request, int count)
 {
   return 0; /*rempi_re does not distingish different test/testsome from different call stacks */
 }
