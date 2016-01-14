@@ -19,6 +19,11 @@ int init_rand(int seed)
   srand(seed);
 }
 
+int init_ndrand() 
+{
+  srand((int)get_time());
+}
+
 int get_rand(int max)
 {
   return rand() % max;

@@ -7,6 +7,7 @@
 #include "rempi_err.h"
 #include "rempi_mem.h"
 #include "rempi_config.h"
+#include "rempi_util.h"
 #include "clmpi.h"
 #include "rempi_recorder.h"
 
@@ -239,10 +240,12 @@ int update_matching_set(MPI_Request *request, int source, int tag, int comm_id)
 #ifdef REVERT1
 int rempi_re_cdc::get_test_id(MPI_Request *request, int count)
 {
+  double s, e;
+  int matching_set_id;
   if (rempi_is_test_id == 2) {
-    return get_matching_set_id(request, count);
+    matching_set_id =  get_matching_set_id(request, count);
   } else if (rempi_is_test_id == 0) {
-    return 0;
+    matching_set_id = 0;
   } else if  (rempi_is_test_id == 1) {
     string test_id_string;
     test_id_string = rempi_btrace_string();
@@ -250,9 +253,9 @@ int rempi_re_cdc::get_test_id(MPI_Request *request, int count)
       test_ids_map[test_id_string] = next_test_id_to_assign;
       next_test_id_to_assign++;
     }
-    return test_ids_map[test_id_string];
+    matching_set_id = test_ids_map[test_id_string];
   }
-  return -1;
+  return matching_set_id;
 }
 // int rempi_re_cdc::get_test_id(MPI_Request *request, int count)
 // {

@@ -90,6 +90,7 @@ void rempi_encoder_input_format::add(rempi_event *event, int test_id)
 
 void rempi_encoder_input_format::format()
 {
+  /*Nothing to do*/
   return;
 }
 
@@ -111,6 +112,7 @@ void rempi_encoder_input_format::clear()
 
 void rempi_encoder_input_format::debug_print()
 {
+  
   return;
 }
 
@@ -230,8 +232,6 @@ bool rempi_encoder::extract_encoder_input_format_chunk(rempi_event_list<rempi_ev
 }
 
 
-
-
 void rempi_encoder::encode(rempi_encoder_input_format &input_format)
 {
   size_t original_size, compressed_size;
@@ -252,16 +252,18 @@ void rempi_encoder::encode(rempi_encoder_input_format &input_format)
     original_buff[encodign_buff_head_index + 2] = encoding_event->get_flag();
     original_buff[encodign_buff_head_index + 3] = encoding_event->get_source();
     original_buff[encodign_buff_head_index + 4] = encoding_event->get_clock();
+    /*TODO
+      Call "delete encoding_event" here to reduce memory footprint.
+      Now, encoding_evet is freed by input_format.dealocate
+     */ 
+
 #ifdef REMPI_DBG_REPLAY
-    // REMPI_DBGI(REMPI_DBG_REPLAY, "Encoded  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)", 
-    // 	       encoding_event->get_event_counts(), encoding_event->get_is_testsome(), encoding_event->get_flag(), 
-    // 	       encoding_event->get_source(), encoding_event->get_tag(), encoding_event->get_clock());
     REMPI_DBG("Encoded  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)", 
 	       encoding_event->get_event_counts(), encoding_event->get_is_testsome(), encoding_event->get_flag(), 
 	       encoding_event->get_source(), encoding_event->get_tag(), encoding_event->get_clock());
 #endif 
+
   }
-  //  rempi_dbgi(0, "-> encoding: %p, size: %d: count: %d", encoding_event, encoding_event_sequence.size(), count++);                                     
   if (rempi_gzip) {
     test_table->compressed_matched_events      = compression_util.compress_by_zlib((char*)original_buff, original_size, compressed_size);
     test_table->compressed_matched_events_size = compressed_size;
@@ -322,6 +324,10 @@ bool rempi_encoder::read_record_file(rempi_encoder_input_format &input_format)
   size_t size;
   bool is_no_more_record = false;
 
+  /*TODO: 
+    Currently read only one event at one this function call, 
+    but this function will read an event chunk (multiple events) in future
+   */
   decoding_event_sequence = (char*)malloc(rempi_event::record_num * rempi_event::record_element_size);
   record_fs.read(decoding_event_sequence, rempi_event::record_num * rempi_event::record_element_size);
   size = record_fs.gcount();
@@ -347,8 +353,8 @@ bool rempi_encoder::read_record_file(rempi_encoder_input_format &input_format)
 				       (int)decoding_event_sequence_int[4],
 					0
 					);
-#if 0
-  REMPI_DBGI(0, "Read    ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)", 
+#if 1
+  REMPI_DBG( "Read    ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)", 
 	    (int)decoding_event_sequence_int[0],
 	    (int)decoding_event_sequence_int[1],
 	    (int)decoding_event_sequence_int[2],
