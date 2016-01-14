@@ -6,10 +6,9 @@
 
 #include "rempi_test_util.h"
 
-
 #define FUNC_NAME_LEN (32)
-#define NUM_TEST_MSG  (4)
-#define TEST_MSG_CHUNK_SIZE  (2)
+#define NUM_TEST_MSG  (32)
+#define TEST_MSG_CHUNK_SIZE  (4)
 
 #define MPI_Isend_id  (101)
 #define MPI_Ibsend_id (102) 
@@ -40,9 +39,25 @@
 #define MPI_Irecv_id     (602)
 #define MPI_Recv_init_id (603)
 
+
+
+#define TEST_MATCHING_FUNC
+#define TEST_PROBE_FUNC
+#define TEST_ISEND_FUNC
+#define TEST_INIT_SENDRECV_FUNC
+#define TEST_START_FUNC
+
+
 #define rempi_test_dbg_print(format, ...) \
   do { \
-  fprintf(stderr, "REMPI(test):%3d: " format " (%s:%d)\n", my_rank, ## __VA_ARGS__, __FILE__, __LINE__); \
+    fprintf(stderr, "REMPI(test):%3d: " format " (%s:%d)\n", my_rank, ## __VA_ARGS__, __FILE__, __LINE__); \
+  } while (0)
+
+#define rempi_test_dbgi_print(rank, format, ...) \
+  do { \
+    if (rank == 0) { \
+      fprintf(stderr, "REMPI(test):%3d: " format " (%s:%d)\n", my_rank, ## __VA_ARGS__, __FILE__, __LINE__); \
+    } \
   } while (0)
 
 
@@ -71,6 +86,18 @@ int isend_ids[] = {
   //  MPI_Ibsend_id, /*MPI_Ibsend does not work*/
   MPI_Irsend_id,
   MPI_Issend_id
+};
+
+int send_init_ids[] = {
+  MPI_Send_init_id,
+  //  MPI_Bsend_init_id /*MPI_Bsend_init does not work*/
+  MPI_Rsend_init_id,
+  //  MPI_Ssend_init_id /*MPI_Ssend_init does not work*/
+};
+
+int start_ids[] = {
+  MPI_Start_id,
+  MPI_Startall_id
 };
 
 
@@ -107,6 +134,7 @@ void rempi_test_send_init_with_random_sleep(int send_init_type, int start_type)
   MPI_Status statuses[TEST_MSG_CHUNK_SIZE];
   int vals[TEST_MSG_CHUNK_SIZE] = { my_rank, my_rank};
   MPI_Request requests[TEST_MSG_CHUNK_SIZE];
+
   if (NUM_TEST_MSG % TEST_MSG_CHUNK_SIZE != 0 || NUM_TEST_MSG < TEST_MSG_CHUNK_SIZE) {
     rempi_test_dbg_print("wrong configuration");
     exit(1);
@@ -114,18 +142,21 @@ void rempi_test_send_init_with_random_sleep(int send_init_type, int start_type)
   
   for (i = 0; i < TEST_MSG_CHUNK_SIZE; i++) {
     switch(send_init_type) {
-    case MPI_Isend_id:
+    case MPI_Send_init_id:
       MPI_Send_init(&vals[i], 1, MPI_INT, 0, vals[i], MPI_COMM_WORLD, &requests[i]);
       break;
-    case MPI_Ibsend_id:
+    case MPI_Bsend_init_id:
       MPI_Bsend_init(&vals[i], 1, MPI_INT, 0, vals[i], MPI_COMM_WORLD, &requests[i]);
       break;
-    case MPI_Irsend_id:
+    case MPI_Rsend_init_id:
       MPI_Rsend_init(&vals[i], 1, MPI_INT, 0, vals[i], MPI_COMM_WORLD, &requests[i]);
       break;
-    case MPI_Issend_id:
+    case MPI_Ssend_init_id:
       MPI_Ssend_init(&vals[i], 1, MPI_INT, 0, vals[i], MPI_COMM_WORLD, &requests[i]);
       break;
+    default:
+      rempi_test_dbg_print("Invalid send_init_type: %d", send_init_type);
+      exit(1);
     }  
   }
   
@@ -134,8 +165,8 @@ void rempi_test_send_init_with_random_sleep(int send_init_type, int start_type)
     case MPI_Start_id:
       for (j = 0; j < TEST_MSG_CHUNK_SIZE; j++) {
 	usleep(1000 * get_rand(5));
-	MPI_Start(&requests[i]);
-	MPI_Wait(&requests[i], &statuses[i]);
+	MPI_Start(&requests[j]);
+	MPI_Wait(&requests[j], &statuses[j]);
       }
       break;
     case MPI_Startall_id:
@@ -143,6 +174,9 @@ void rempi_test_send_init_with_random_sleep(int send_init_type, int start_type)
       MPI_Startall(TEST_MSG_CHUNK_SIZE, requests);
       MPI_Waitall(TEST_MSG_CHUNK_SIZE, requests, statuses);
       break;
+    default:
+      rempi_test_dbg_print("Invalid start_type: %d", start_type);
+      exit(1);
     }
   }
 }
@@ -178,14 +212,17 @@ void rempi_test_init_sendrecv(int send_init_type, int send_start_type, int recv_
     switch(recv_start_type) {
     case MPI_Start_id:
       for (j = 0; j < TEST_MSG_CHUNK_SIZE; j++) {
-	MPI_Start(&requests[i]);
-	MPI_Wait(&requests[i], &statuses[i]);
+	MPI_Start(&requests[j]);
+	MPI_Wait(&requests[j], &statuses[j]);
       }
       break;
     case MPI_Startall_id:
       MPI_Startall(TEST_MSG_CHUNK_SIZE, requests);
       MPI_Waitall(TEST_MSG_CHUNK_SIZE, requests, statuses);
       break;
+    default:
+      rempi_test_dbg_print("Invalid start_type: %d", recv_start_type);
+      exit(1);
     }
   }
 }
@@ -202,10 +239,9 @@ void rempi_test_nonblocking_sends(int isend_type)
   int recv_val;
   int num_send_msgs = (size - 1) * NUM_TEST_MSG;
   MPI_Status status;
-  rempi_test_dbg_print("test: %d", num_send_msgs);
   for (i = 0; i < num_send_msgs; i++) {
     MPI_Recv(&recv_val, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-    rempi_test_dbg_print("val %d (source: %d)", recv_val, status.MPI_SOURCE);
+    //    rempi_test_dbg_print("val %d (source: %d)", recv_val, status.MPI_SOURCE);
   }
 
   return;
@@ -239,6 +275,9 @@ void rempi_test_probe(int probe_type)
 	}
       }
       break;
+    default:
+      rempi_test_dbg_print("Invalid probe_type: %d", probe_type);
+      exit(1);
     }
     MPI_Get_count(&status, MPI_INT, &recv_count);
     MPI_Recv(&recv_val, recv_count, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
@@ -387,7 +426,7 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
 
 int main(int argc, char *argv[])
 {
-  int i;
+  int i, j;
   /* Init */
   MPI_Init(&argc, &argv);
   signal(SIGSEGV, SIG_DFL);
@@ -398,32 +437,56 @@ int main(int argc, char *argv[])
 
   start = MPI_Wtime();
 
-  /* for (i = 0; i < sizeof(matching_ids)/ sizeof(int); i++) { */
-  /*   rempi_test_mpi_send_and_nonblocking_recvs(matching_ids[i]); */
-  /* } */
+#if defined(TEST_MATCHING_FUNC)
+  if (my_rank == 0) fprintf(stdout, "Start testing matching functions ... "); fflush(stdout);
+  for (i = 0; i < sizeof(matching_ids)/ sizeof(int); i++) {
+    rempi_test_mpi_send_and_nonblocking_recvs(matching_ids[i]);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+  if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
   
-  /* MPI_Barrier(MPI_COMM_WORLD); */
+#if defined(TEST_PROBE_FUNC)
+  if (my_rank == 0) fprintf(stdout, "Start testing probe functions ... "); fflush(stdout);
+  for (i = 0; i < sizeof(probe_ids) / sizeof(int); i++) {
+    rempi_test_probe(probe_ids[i]);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+  if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
 
-  /* for (i = 0; i < sizeof(probe_ids) / sizeof(int); i++) { */
-  /*   rempi_test_probe(probe_ids[i]); */
-  /* } */
+#if defined(TEST_ISEND_FUNC)
+  if (my_rank == 0) fprintf(stdout, "Start testing isend functions ... "); fflush(stdout);
+  for (i = 0; i < sizeof(isend_ids) / sizeof(int); i++) {
+    rempi_test_nonblocking_sends(isend_ids[i]);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+  if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
 
-  /* MPI_Barrier(MPI_COMM_WORLD); */
+#if defined(TEST_INIT_SENDRECV_FUNC)
+  if (my_rank == 0) fprintf(stdout, "Start testing init send/recv functions ... "); fflush(stdout);
+  for (i = 0; i < sizeof(send_init_ids)/sizeof(int); i++) {
+    rempi_test_init_sendrecv(send_init_ids[i], MPI_Start_id, MPI_Start_id);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+  if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
 
-  /* for (i = 0; i < sizeof(isend_ids) / sizeof(int); i++) { */
-  /*   rempi_test_nonblocking_sends(isend_ids[i]); */
-  /* } */
+#if defined(TEST_START_FUNC)
+  if (my_rank == 0) fprintf(stdout, "Start testing start/startall functions ... "); fflush(stdout);
+  for (i = 0; i < sizeof(start_ids)/sizeof(int); i++) {
+    for (j = 0; j < sizeof(start_ids)/sizeof(int); j++) {
+      rempi_test_init_sendrecv(MPI_Send_init_id, start_ids[i], start_ids[j]);
+      MPI_Barrier(MPI_COMM_WORLD);
+    }
+  }
+  if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
 
-  /* MPI_Barrier(MPI_COMM_WORLD); */
-
-  rempi_test_init_sendrecv(MPI_Send_init_id, MPI_Start_id, MPI_Start_id);
-  //  rempi_test_init_sendrecv(MPI_Send_init_id, MPI_Start_id, MPI_Start_id);
-
-  MPI_Barrier(MPI_COMM_WORLD);
 
   end = MPI_Wtime();
 
-  rempi_test_dbg_print("mpi_finalize");
   MPI_Finalize();
   if (my_rank == 0) {
     rempi_test_dbg_print("Time to complete tests: %f", end - start);
