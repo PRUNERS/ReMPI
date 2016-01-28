@@ -81,7 +81,6 @@ void rempi_io_thread::write_record()
     if (is_extracted) {
       /*If I get the sequence,... */
       /*... , encode(compress) the seuence*/
-
       s = rempi_get_time();
       encoder->encode(*nonencoded_events);
       /*Then, write to file.*/

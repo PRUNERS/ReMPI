@@ -15,6 +15,7 @@
 #include "rempi_err.h"
 #include "rempi_config.h"
 #include "rempi_request_mg.h"
+#include "rempi_sig_handler.h"
 
 
 
@@ -26,7 +27,9 @@ int rempi_recorder::record_init(int *argc, char ***argv, int rank)
   replaying_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
   recording_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
   record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode); //0: recording mode
+  rempi_sig_handler_init(rank, record_thread, recording_event_list, &validation_code);
   record_thread->start();
+
   
   return 0;
 }
@@ -216,7 +219,7 @@ int rempi_recorder::record_test(
     record_tag     = tag;
     record_clock   = clock;
     //kento msg_manager.add_matched_recv(request, source, tag);
-    //    REMPI_DBG("%d %d %d %d %d %d %d", event_count, is_testsome, comm_id, *flag, source, tag, clock);
+    //REMPI_DBG("%d %d %d %d %d %d %d", event_count, is_testsome, comm_id, *flag, source, tag, clock);
   } 
   //TODO: we need to record *request ?
   recording_event_list->push(new rempi_test_event(event_count, with_previous, record_comm_id, *flag, record_source, record_tag, record_clock, test_id));
@@ -225,17 +228,19 @@ int rempi_recorder::record_test(
 }
 
 
-// int rempi_recorder::record_matching(int incount,
-//                                     MPI_Request array_of_requests[],
-//                                     int *outcount,
-//                                     int array_of_indices[],
-//                                     MPI_Status array_of_statuses[],
-//                                     int global_test_id,
-//                                     int matching_function_type)
-// {
 
 
-// }
+int rempi_recorder::record_mf(int incount,
+			      MPI_Request array_of_requests[],
+			      int *outcount,
+			      int array_of_indices[],
+			      MPI_Status array_of_statuses[],
+			      int global_test_id,
+			      int matching_function_type)
+{
+  
+  return 0;
+}
 
 int rempi_recorder::replay_test(
 				MPI_Request *request,

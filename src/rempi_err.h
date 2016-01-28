@@ -40,19 +40,15 @@
 
 
 #define REMPI_PRTI(i, dbg_fmt, ...)		\
-  rempi_printi(i, " "				\
-	    dbg_fmt				\
-	    " (%s:%d)",			\
-            ## __VA_ARGS__,			\
-            __FILE__, __LINE__);
-  //            __FILE__, __func__, __LINE__);
+  rempi_printi(i, " "					\
+	      dbg_fmt,					\
+	      ## __VA_ARGS__);
+
 
 #define REMPI_PRT(dbg_fmt, ...)			\
   rempi_print(" "					\
-	    dbg_fmt				\
-	    " (%s:%d)",			\
-            ## __VA_ARGS__,			\
-            __FILE__, __LINE__);
+	      dbg_fmt,					\
+	      ## __VA_ARGS__);
 
 
 

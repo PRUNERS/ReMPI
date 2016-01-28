@@ -1,5 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <mpi.h>
 
@@ -43,6 +46,8 @@ do { \
 
 int rempi_re::init_after_pmpi_init(int *argc, char ***argv)
 {
+  signal(SIGSEGV, SIG_DFL);
+
   char comm_id[REMPI_COMM_ID_LENGTH];
   comm_id[0] = 0;
   PMPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -61,7 +66,6 @@ int rempi_re::re_init(int *argc, char ***argv)
 
   /*Init CLMPI*/
   ret = PMPI_Init(argc, argv);
-
   /*Init from configuration and for valiables for errors*/
   init_after_pmpi_init(argc, argv);
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {

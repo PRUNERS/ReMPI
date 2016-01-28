@@ -115,6 +115,8 @@ class rempi_recorder {
   rempi_encoder *mc_encoder;// = NULL;
 
  public:
+  int validation_code; /*integer to check if correctly replayed the reocrded events*/
+
   rempi_recorder()
     : next_test_id_to_assign(0)
     , mc_encoder(NULL) {}
@@ -164,6 +166,15 @@ class rempi_recorder {
 			  int with_previous,
 			  int test_id
 			  );
+
+
+  virtual int record_mf(int incount,
+			MPI_Request array_of_requests[],
+			int *outcount,
+			int array_of_indices[],
+			MPI_Status array_of_statuses[],
+			int global_test_id,
+			int matching_function_type);
   
   /*TODO: Conmbine replay_test with replay_testsome into replay_mf by mf_flag_1 & mf_flag_2 ??*/
   virtual int replay_test(
@@ -290,6 +301,14 @@ class rempi_recorder_cdc : public rempi_recorder
 		  int with_previous,
 		  int test_id
 		  );
+
+  int record_mf(int incount,
+		MPI_Request array_of_requests[],
+		int *outcount,
+		int array_of_indices[],
+		MPI_Status array_of_statuses[],
+		int global_test_id,
+		int matching_function_type);
 
   int replay_test(
 		  MPI_Request *request,

@@ -397,6 +397,19 @@ int rempi_recorder_cdc::record_test(
   return 0;
 }
 
+
+int rempi_recorder_cdc::record_mf(int incount,
+					MPI_Request array_of_requests[],
+					int *outcount,
+					int array_of_indices[],
+					MPI_Status array_of_statuses[],
+					int global_test_id,
+					int matching_function_type)
+{
+  REMPI_ERR("not implemented yet");
+  return 0;
+}
+
 int rempi_recorder_cdc::replay_test(
                                 MPI_Request *request,
                                 int *flag,

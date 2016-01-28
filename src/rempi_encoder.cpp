@@ -213,8 +213,8 @@ bool rempi_encoder::extract_encoder_input_format_chunk(rempi_event_list<rempi_ev
   while (1) {
     /*Append events to current check as many as possible*/
     if (events.front() == NULL) break;
-
     event_dequeued = events.pop();
+    //    REMPI_DBG("event: source: %d", event_dequeued->get_source());
     input_format.add(event_dequeued);
   }
 
@@ -223,11 +223,17 @@ bool rempi_encoder::extract_encoder_input_format_chunk(rempi_event_list<rempi_ev
     return is_ready_for_encoding; /*false*/
   }
 
+
   if (input_format.length() > REMPI_MAX_INPUT_FORMAT_LENGTH || events.is_push_closed_()) {
     /*If got enough chunck size, OR the end of run*/
+    while (1) {
+      /*Append events to current check as many as possible*/
+      if (events.front() == NULL) break;
+      event_dequeued = events.pop();
+      input_format.add(event_dequeued);
+    }
     input_format.format();
     is_ready_for_encoding = true;
-    //    REMPI_DBGI(0, "========= formating simple");
   }
   return is_ready_for_encoding; /*true*/
 }

@@ -603,9 +603,10 @@ int main(int argc, char* argv[])
   /*   //  } */
   
   int i;
-  //  for (i = 0; ;i++) {
+
   int print_rank = 0;
-  for (i = 0; i < 400 ;i++) {
+  //  for (i = 0; i < 400 ;i++) {
+  for (i = 0; ;i++) {
     ParaSailsSetupPattern(0, 1);
     ParaSailsSetupValues(0);
     if (i % 200 == 0) {
