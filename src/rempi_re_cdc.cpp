@@ -148,7 +148,7 @@ int rempi_re_cdc::re_irecv(
     ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
     rempi_reqmg_register_recv_request(request, source, tag, (int)comm_id[0]);
     //TODO: Get Datatype,
-    recorder->record_irecv(buf, count, datatype, source, tag, (int)comm_id[0], request);
+    recorder->record_irecv(buf, count, datatype, source, tag, (int)comm_id[0], &comm, request);
   } else {
     /*TODO: Really need datatype ??*/
     recorder->replay_irecv(buf, count, datatype, source, tag, (int)comm_id[0], &comm, request);

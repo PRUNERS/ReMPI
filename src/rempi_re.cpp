@@ -119,15 +119,14 @@ int rempi_re::re_isend(
   return ret;
 }
 
-
 int rempi_re::re_irecv(
-		 void *buf,
-		 int count,
-		 MPI_Datatype datatype,
-		 int source,
-		 int tag,
-		 MPI_Comm comm,
-		 MPI_Request *request)
+		       void *buf,
+		       int count,
+		       MPI_Datatype datatype,
+		       int source,
+		       int tag,
+		       MPI_Comm comm,
+		       MPI_Request *request)
 {
   int ret;
   char comm_id[REMPI_COMM_ID_LENGTH];
@@ -143,7 +142,7 @@ int rempi_re::re_irecv(
     ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
     rempi_reqmg_register_recv_request(request, source, tag, (int)comm_id[0]);
     /*TODO: Really need datatype ??*/
-    recorder->record_irecv(buf, count, datatype, source, tag, (int)comm_id[0], request);
+    recorder->record_irecv(buf, count, datatype, source, tag, (int)comm_id[0], &comm, request);
   } else {
     /*TODO: Really need datatype ??*/
     recorder->replay_irecv(buf, count, datatype, source, tag, (int)comm_id[0], &comm, request);
@@ -151,6 +150,36 @@ int rempi_re::re_irecv(
 
   return ret;
 }
+
+
+// int rempi_re::re_irecv(
+// 		 void *buf,
+// 		 int count,
+// 		 MPI_Datatype datatype,
+// 		 int source,
+// 		 int tag,
+// 		 MPI_Comm comm,
+// 		 MPI_Request *request)
+// {
+//   int ret;
+//   char comm_id[REMPI_COMM_ID_LENGTH]; 
+//   int resultlen;                       
+
+//   PMPI_Comm_get_name(comm, comm_id, &resultlen);
+  
+//   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+//     REMPI_DBG("test");
+//     ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
+//     rempi_reqmg_register_recv_request(request, source, tag, (int)comm_id[0]);
+//     /*TODO: Really need datatype ??*/
+//     recorder->record_irecv(buf, count, datatype, source, tag, -1, &comm, request);
+//   } else {
+//     /*TODO: Really need datatype ??*/
+//     recorder->replay_irecv(buf, count, datatype, source, tag, -1, &comm, request);
+//   }
+
+//   return ret;
+// }
 
   
 int rempi_re::re_test(

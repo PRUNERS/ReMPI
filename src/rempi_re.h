@@ -13,7 +13,6 @@
 #include "rempi_recorder.h"
 #include "clmpi.h"
 
-#define REMPI_COMM_ID_LENGTH (128)
 
 using namespace std;
 

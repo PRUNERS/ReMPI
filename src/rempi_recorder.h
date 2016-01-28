@@ -129,7 +129,8 @@ class rempi_recorder {
 			   MPI_Datatype datatype, // The value is assigned in ReMPI_convertor
 			   int source,
 			   int tag,
-			   int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+			   int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+			   MPI_Comm *comm,
 			   MPI_Request *request
 			   );
 
@@ -264,7 +265,8 @@ class rempi_recorder_cdc : public rempi_recorder
 		   MPI_Datatype datatype, // The value is assigned in ReMPI_convertor
 		   int source,
 		   int tag,
-		   int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+		   int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+		   MPI_Comm *comm,
 		   MPI_Request *request
 		   );
 

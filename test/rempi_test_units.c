@@ -41,8 +41,8 @@
 #define MPI_Irecv_id     (602)
 #define MPI_Recv_init_id (603)
 
-//#define TEST_MATCHING_FUNC
-#define TEST_PROBE_FUNC
+#define TEST_MATCHING_FUNC
+//#define TEST_PROBE_FUNC
 //#define TEST_ISEND_FUNC
 //#define TEST_INIT_SENDRECV_FUNC
 //define TEST_START_FUNC

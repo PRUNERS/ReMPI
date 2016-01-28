@@ -29,7 +29,6 @@ int rempi_recorder::record_init(int *argc, char ***argv, int rank)
   record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode); //0: recording mode
   rempi_sig_handler_init(rank, record_thread, recording_event_list, &validation_code);
   record_thread->start();
-
   
   return 0;
 }
@@ -60,11 +59,21 @@ int rempi_recorder::record_irecv(
    MPI_Datatype datatype,
    int source,
    int tag,
-   int comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+   int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+   MPI_Comm *comm,
    MPI_Request *request)
 {
-  //kento  msg_manager.add_pending_recv(request, source, tag, comm);
-  return 0;
+  int ret;
+  // char comm_id_char[REMPI_COMM_ID_LENGTH];
+  // int resultlen;
+  // REMPI_DBG("dbug");
+  // ret = PMPI_Irecv(buf, count, datatype, source, tag, *comm, request);
+  // REMPI_DBG("dbug 1");
+  // PMPI_Comm_get_name(*comm, comm_id_char, &resultlen);
+  // REMPI_DBG("dbug 2");
+  // rempi_reqmg_register_recv_request(request, source, tag, (int)comm_id_char[0]);
+  // REMPI_DBG("dbug 3");
+  return ret;
 }
 
 // int rempi_recorder::replay_irecv(
@@ -94,34 +103,7 @@ int rempi_recorder::replay_irecv(
   rempi_proxy_request *proxy_request_info;
   rempi_irecv_inputs *irecv_inputs;
 
-//   if (request_to_irecv_inputs_umap.find(*request) != 
-//       request_to_irecv_inputs_umap.end()) {
-//     /* If this request is posted in irecv before*/
-//     irecv_inputs = request_to_irecv_inputs_umap[*request];
-//     bool same_source = (irecv_inputs->source == source);
-//     bool same_tag    = (irecv_inputs->tag    == tag);
-//     bool same_comm   = (irecv_inputs->comm   == *comm);
-//     if (!same_source || !same_tag || !same_comm) {
-//       REMPI_ERR("Different request(req:%p) in (source, tag, comm): :(%d, %d, %p) != (%d, %d, %p)",
-//        		(*request), irecv_inputs->source, irecv_inputs->tag, irecv_inputs->comm,
-// 		source, tag, *comm);
-
-//       // REMPI_ERR("This MPI_Request is not diactivated. This mainly caused by irecv call "
-//       // 		"with MPI_Request which is not diactivated by MPI_{Wait|Test}{|some|any|all}");
-//     }
-//   } else {
-// #ifdef BGQ
-//     memset(request, request_id, sizeof(MPI_Request));
-//     request_id++;
-//     //    REMPI_DBG("request_id: %lu request: %p", request_id, *request);
-//     //    *request = (MPI_Request)(request_id++);
-// #else
-//     *request = (MPI_Request)rempi_malloc(sizeof(MPI_Request));//((source + 1) * (tag + 1) * (comm_id * 1));
-// #endif
-//     request_to_irecv_inputs_umap[*request] = new rempi_irecv_inputs(buf, count, datatype, source, tag, *comm, *request);
-//   }
-
-
+  
   if (request_to_irecv_inputs_umap.find(*request) != 
       request_to_irecv_inputs_umap.end()) {
     irecv_inputs = request_to_irecv_inputs_umap[*request];

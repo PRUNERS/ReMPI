@@ -32,6 +32,7 @@ extern int rempi_is_test_id;
 #define REMPI_MAX_INPUT_FORMAT_LENGTH (1024 * 128)
 
 #define REMPI_MAX_RECV_TEST_ID (128)
+#define REMPI_COMM_ID_LENGTH (8)
 
 void rempi_set_configuration(int *argc, char ***argv);
 
