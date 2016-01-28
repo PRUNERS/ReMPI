@@ -182,6 +182,7 @@ class rempi_recorder {
 			      int mf_flag_1,
 			      int mf_flag_2);
 
+  virtual int replay_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int comm_id);
 
 
   //TODO: Comm_dup Comm_split
@@ -306,6 +307,8 @@ class rempi_recorder_cdc : public rempi_recorder
 		      int global_test_id,
 		      int mf_flag_1,
 		      int mf_flag_2);
+
+  int replay_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int comm_id);
 
 
   //TODO: Comm_dup Comm_split

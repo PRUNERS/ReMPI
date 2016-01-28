@@ -29,7 +29,7 @@ extern int rempi_is_test_id;
 //#define REMPI_DBG_REPLAY (0)
 //#define REMPI_DBG_ASSERT (-1)
 
-#define REMPI_MAX_INPUT_FORMAT_LENGTH (1024 * 1024 * 1024)
+#define REMPI_MAX_INPUT_FORMAT_LENGTH (1024 * 128)
 
 #define REMPI_MAX_RECV_TEST_ID (128)
 
@@ -38,5 +38,8 @@ void rempi_set_configuration(int *argc, char ***argv);
 /* #ifdef __cplusplus */
 /* } */
 /* #endif */
+
+/*Tentative define*/
+#define REMPI_TEST_ID_PROBE (2475283)
 
 #endif

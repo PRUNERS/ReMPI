@@ -3,12 +3,14 @@
 #include <sys/time.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "rempi_test_util.h"
 
 #define FUNC_NAME_LEN (32)
-#define NUM_TEST_MSG  (32)
-#define TEST_MSG_CHUNK_SIZE  (4)
+//#define NUM_TEST_MSG  (1024)
+#define NUM_TEST_MSG  (4)
+#define TEST_MSG_CHUNK_SIZE  (2)
 
 #define MPI_Isend_id  (101)
 #define MPI_Ibsend_id (102) 
@@ -39,13 +41,11 @@
 #define MPI_Irecv_id     (602)
 #define MPI_Recv_init_id (603)
 
-
-
-#define TEST_MATCHING_FUNC
+//#define TEST_MATCHING_FUNC
 #define TEST_PROBE_FUNC
-#define TEST_ISEND_FUNC
-#define TEST_INIT_SENDRECV_FUNC
-#define TEST_START_FUNC
+//#define TEST_ISEND_FUNC
+//#define TEST_INIT_SENDRECV_FUNC
+//define TEST_START_FUNC
 
 
 #define rempi_test_dbg_print(format, ...) \
@@ -68,7 +68,7 @@ double start, end, overall_end;
 int matching_ids[] = {
   MPI_Test_id,
   MPI_Testany_id,
-  MPI_Testsome_id,
+  MPI_Testsome_id, 
   MPI_Testall_id,
   MPI_Wait_id,
   MPI_Waitany_id,
@@ -78,7 +78,7 @@ int matching_ids[] = {
 
 int probe_ids[] = {
   MPI_Probe_id,
-  MPI_Iprobe_id
+  //  MPI_Iprobe_id
 };
 
 int isend_ids[] = {
@@ -101,6 +101,15 @@ int start_ids[] = {
 };
 
 
+static void rempi_test_randome_sleep()
+{
+  int rand = get_rand(5);
+  if (rand > 3) {
+    usleep(rand * 1000);
+  }
+  return;
+}
+
 void rempi_test_nonblocking_send_with_random_sleep(int isend_type)
 {
   int i;
@@ -108,7 +117,7 @@ void rempi_test_nonblocking_send_with_random_sleep(int isend_type)
   MPI_Status status;
   
   for (i = 0; i < NUM_TEST_MSG; i++) {
-    usleep(1000 * get_rand(5));
+    rempi_test_randome_sleep();
     switch(isend_type) {
     case MPI_Isend_id:
       MPI_Isend(&i, 1, MPI_INT, 0, i, MPI_COMM_WORLD, &request);
@@ -164,13 +173,13 @@ void rempi_test_send_init_with_random_sleep(int send_init_type, int start_type)
     switch(start_type) {
     case MPI_Start_id:
       for (j = 0; j < TEST_MSG_CHUNK_SIZE; j++) {
-	usleep(1000 * get_rand(5));
+	rempi_test_randome_sleep();
 	MPI_Start(&requests[j]);
 	MPI_Wait(&requests[j], &statuses[j]);
       }
       break;
     case MPI_Startall_id:
-      usleep(1000 * get_rand(5));
+      rempi_test_randome_sleep();
       MPI_Startall(TEST_MSG_CHUNK_SIZE, requests);
       MPI_Waitall(TEST_MSG_CHUNK_SIZE, requests, statuses);
       break;
@@ -185,7 +194,7 @@ void rempi_test_mpi_sends_with_random_sleep()
 {
   int i;
   for (i = 0; i < NUM_TEST_MSG; i++) {
-    usleep(1000 * get_rand(5));
+    rempi_test_randome_sleep();
     MPI_Send(&i, 1, MPI_INT, 0, i, MPI_COMM_WORLD);
   }
 }
@@ -281,6 +290,7 @@ void rempi_test_probe(int probe_type)
     }
     MPI_Get_count(&status, MPI_INT, &recv_count);
     MPI_Recv(&recv_val, recv_count, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+    //    MPI_Recv(&recv_val, recv_count, MPI_INT, status.MPI_SOURCE, status.MPI_TAG, MPI_COMM_WORLD, &status);
     //    rempi_test_dbg_print("val %d (source: %d)", recv_val, status.MPI_SOURCE);
   }
 }
@@ -314,6 +324,7 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
   for (i = 0; i < num_sender; i++) {
     MPI_Irecv(&recv_vals[i], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[i]);
   }
+  
 
   switch(matching_type) {
   case MPI_Test_id:

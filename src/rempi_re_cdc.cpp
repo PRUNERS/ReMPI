@@ -10,11 +10,22 @@
 #include "rempi_util.h"
 #include "clmpi.h"
 #include "rempi_recorder.h"
+#include "rempi_request_mg.h"
 
 #define  PNMPI_MODULE_REMPI "rempi"
 //#define MATCHING_ID_TEST
 
 using namespace std;
+
+
+int rempi_re_cdc::re_testany(int count, MPI_Request array_of_requests[], int *index, int *flag, MPI_Status *status){return 0;}
+int rempi_re_cdc::re_testall(int count, MPI_Request array_of_requests[], int *flag, MPI_Status array_of_statuses[]){return 0;}
+int rempi_re_cdc::re_wait(MPI_Request *request, MPI_Status *status){return 0;}
+int rempi_re_cdc::re_waitany(int count, MPI_Request array_of_requests[], int *index, MPI_Status *status){return 0;}
+int rempi_re_cdc::re_waitsome(int incount, MPI_Request array_of_requests[], int *outcount, int array_of_indices[], MPI_Status array_of_statuses[]){return 0;}
+int rempi_re_cdc::re_probe(int source, int tag, MPI_Comm comm, MPI_Status *status){return 0;}
+int rempi_re_cdc::re_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status){return 0;}
+
 
 
 int rempi_re_cdc::init_clmpi()
@@ -26,267 +37,6 @@ int rempi_re_cdc::init_clmpi()
   return MPI_SUCCESS;
 }
 
-
-/*TODO: 
- get_matching_set_id, get_recv_id, get_test_id should be in different source file 
-*/
-class rempi_matching_id 
-{
-public:
-  int source;
-  int tag;
-  int comm_id;
-  rempi_matching_id(int source, int tag, int comm_id)
-    : source(source)
-    , tag(tag)
-    , comm_id(comm_id)
-  {};
-  int has_intersection_in(vector<rempi_matching_id*> *vec) {
-    for (vector<rempi_matching_id*>::const_iterator cit = vec->cbegin(),
-         cit_end = vec->cend();
-	 cit != cit_end;
-	 cit++) {
-      rempi_matching_id *mid = *cit;
-      if (this->has_intersection_with(*mid)) return 1;
-    }
-    return 0;
-  };
-
-  int has_intersection_with(rempi_matching_id &input) {
-    if (this->comm_id != input.comm_id) return 0;
-
-    if (this->source == MPI_ANY_SOURCE) {
-      if (input.tag == MPI_ANY_TAG ||
-	  input.tag == this->tag) {
-	return 1;
-      }
-    } else if (this->tag == MPI_ANY_TAG) {
-      if (input.source == MPI_ANY_SOURCE ||
-	  input.source == this->source) {
-	return 1;
-      }
-    } else {
-      if (this->source == input.source && 
-	  this->tag    == input.tag) {
-	return 1;
-      }
-    }
-    return 0;
-  };
-
-};
-
-
-/*Key: backtrace, Value: id*/
-unordered_map<string, int>recv_id_umap;
-int next_recv_id_to_assign = 0;
-/*Index: recv_id, Value: matchingset_id */
-vector<int> recv_id_to_set_id;
-/*Index: matching_set_id, Value: elements of the matching set*/
-vector<vector<rempi_matching_id*>*> rempi_matching_id_vec_vec;
-/*Index: test_id, Value: set_id */
-unordered_map<int, int> test_id_to_set_id;
-unordered_map<MPI_Request, int>request_to_recv_id_umap;
-
-
-int is_contained(int source, int tag, int comm_id, vector<rempi_matching_id*> *vec) {
-  for (vector<rempi_matching_id*>::const_iterator cit = vec->cbegin(),
-         cit_end = vec->cend();
-       cit != cit_end;
-       cit++) {
-    rempi_matching_id *mid = *cit;
-    if (source  == mid->source  &&
-	tag     == mid->tag     &&
-	comm_id == mid->comm_id) {
-      return 1;
-    }      
-  }
-  return 0;
-}
-
-int get_recv_id()
-{
-  if (!rempi_is_test_id) return 0;
-  string recv_id_string;
-  recv_id_string = rempi_btrace_string();
-  if (recv_id_umap.find(recv_id_string) == recv_id_umap.end()) {
-    recv_id_umap[recv_id_string] = next_recv_id_to_assign;
-    next_recv_id_to_assign++;
-  }
-  return recv_id_umap[recv_id_string];
-}
-
-int add_matching_id(int matching_set_id, int source, int tag, int comm_id)
-{
-  rempi_matching_id *matching_id;
-  vector<rempi_matching_id*> *vec;
-
-  vec = rempi_matching_id_vec_vec[matching_set_id];
-  if (is_contained(source, tag, comm_id, vec)) return 1;
-  matching_id = new rempi_matching_id(source, tag, comm_id);  
-  vec->push_back(matching_id);
-  return 1;  
-}
-
-int get_matching_set_id(MPI_Request *request, int count)
-{
-  int recv_id = -1;
-  int matching_set_id;
-  int tmp_matching_set_id;
-
-  /*Check if matching_set_id is consistent across different requests*/
-  for (int i = 0; i < count; i++) {
-    if (request_to_recv_id_umap.find(request[0]) == request_to_recv_id_umap.end()) {
-      tmp_matching_set_id = -1; /*This request is send request*/
-    } else {
-      recv_id = request_to_recv_id_umap[request[i]];
-      tmp_matching_set_id = recv_id_to_set_id[recv_id];
-    }
-    //   REMPI_DBG("recv_id: %d, set_id: %d", recv_id, matching_set_id);
-
-    if (i == 0) {
-      matching_set_id = tmp_matching_set_id;
-    } else {
-      if (tmp_matching_set_id != matching_set_id) {
-      REMPI_ERR("matching set ids are not consistent across different requests: %d != base:%d",
-		tmp_matching_set_id, matching_set_id);
-      }
-    }
-  }
-  return  matching_set_id;
-}
-
-int matching_set_deregister_request(MPI_Request *request)
-{
-  request_to_recv_id_umap.erase(*request);
-  return 1;
-}
-
-int assign_matching_set_id(int recv_id, int source, int tag, int comm_id)
-{
-  int matching_set_id = 0;
-  rempi_matching_id *new_matching_id;
-  vector<rempi_matching_id*> *new_matching_id_vec;
-  for (vector<vector<rempi_matching_id*>*>::const_iterator cit = rempi_matching_id_vec_vec.cbegin(),
-       cit_end = rempi_matching_id_vec_vec.cend();
-       cit != cit_end;
-       cit++) {
-    vector<rempi_matching_id*> *v = *cit;
-    if(is_contained(source, tag, comm_id, v)) {
-      return matching_set_id;
-    }
-    matching_set_id++;
-  } 
-  /*if does not exist, create one*/
-  new_matching_id  = new rempi_matching_id(source, tag, comm_id);
-  new_matching_id_vec = new vector<rempi_matching_id*>();
-  new_matching_id_vec->push_back(new_matching_id);
-  rempi_matching_id_vec_vec.push_back(new_matching_id_vec);
-  return matching_set_id;
-}
-
-
-int update_matching_set(MPI_Request *request, int source, int tag, int comm_id)
-{
-  if (!rempi_is_test_id) return 0;
-  int matching_set_id = -1;
-  int recv_id = get_recv_id();
-  int size = recv_id_to_set_id.size();
-  if (size == recv_id) {
-    /*If this Irecv called first time 
-        1. get matching set id
-        2. add recv_id with  this matchign set id 
-    */
-    matching_set_id = assign_matching_set_id(recv_id, source, tag, comm_id);
-    recv_id_to_set_id.push_back(matching_set_id);    
-    //    REMPI_DBG("recv_id: %d, set_id: %d, tag: %d", recv_id, matching_set_id, tag);    
-  } else if (size > recv_id) {
-    /*If this Irecv called before*/
-    matching_set_id = recv_id_to_set_id[recv_id];
-    add_matching_id(matching_set_id, source, tag, comm_id);
-
-#if 0
-    /*TODO: Intersection detection among matching sets*/
-    rempi_matching_id *matching_id;
-    vector<rempi_matching_id*> *vec;
-    matching_set_id = recv_id_to_set_id[recv_id];
-    vec = rempi_matching_id_vec_umap[matching_set_id];
-    if (is_contained(source, tag, comm_id, vec)) return matching_set_id;
-
-    matching_id = new rempi_matching_id(source, tag, comm_id);
-    /*Check if there is any intersection with other matching_set before pushing back*/
-    int is_intersection = 0;
-    for (unordered_map<int, vector<rempi_matching_id*>*>::const_iterator cit = rempi_matching_id_vec_umap.cbegin(),
-         cit_end = rempi_matching_id_vec_umap.cend();
-	 cit != cit_end;
-	 cit++) {
-      int mid = cit->first;
-      vector<rempi_matching_id*> *v = cit->second;
-      if(matching_id->has_intersection_in(v)) {
-	REMPI_ERR("matching_id has an unexpected intersection");
-      }
-    }    
-    /*Then, push back*/
-    vec->push_back(matching_id);    
-#endif
-  } else {
-    /* This does not occur because recv_id increase one by one */
-    REMPI_ERR("recv_id_to_set_id (%d) < recv_id (%d)", size, recv_id);
-  }
-  request_to_recv_id_umap[*request] = recv_id;
-  return 1;
-}
-
-#ifdef REVERT1
-int rempi_re_cdc::get_test_id(MPI_Request *request, int count)
-{
-  double s, e;
-  int matching_set_id;
-  if (rempi_is_test_id == 2) {
-    matching_set_id =  get_matching_set_id(request, count);
-  } else if (rempi_is_test_id == 0) {
-    matching_set_id = 0;
-  } else if  (rempi_is_test_id == 1) {
-    string test_id_string;
-    test_id_string = rempi_btrace_string();
-    if (test_ids_map.find(test_id_string) == test_ids_map.end()) {
-      test_ids_map[test_id_string] = next_test_id_to_assign;
-      next_test_id_to_assign++;
-    }
-    matching_set_id = test_ids_map[test_id_string];
-  }
-  return matching_set_id;
-}
-// int rempi_re_cdc::get_test_id(MPI_Request *request, int count)
-// {
-//   if (!rempi_is_test_id) return 0;
-//   string test_id_string;
-//   test_id_string = rempi_btrace_string();
-//   //TODO: get the binary name
-//   //  size_t pos = test_id_string.find("MCBenchmark");
-//   //  test_id_string = test_id_string.substr(pos);
-//   if (test_ids_map.find(test_id_string) == test_ids_map.end()) {
-//     test_ids_map[test_id_string] = next_test_id_to_assign;
-//     //    REMPI_DBGI(0, "global_test_id %d: %s", next_test_id_to_assign, test_id_string.c_str());
-//     next_test_id_to_assign++;
-//   }
-//   return test_ids_map[test_id_string];
-// }
-#else
-int rempi_re_cdc::get_test_id(MPI_Request *requests)
-{
-  if (!rempi_is_test_id) return 0;
-  //TODO: get the binary name
-  //  size_t pos = test_id_string.find("MCBenchmark");
-  //  test_id_string = test_id_string.substr(pos);
-  if (test_ids_map.find(requests) == test_ids_map.end()) {
-    test_ids_map[requests] = next_test_id_to_assign;
-    REMPI_DBGI(0, "global_test_id %d: %s", next_test_id_to_assign, test_id_string.c_str());
-    next_test_id_to_assign++;
-  }
-  return test_ids_map[requests];
-}
-#endif
 
 int rempi_re_cdc::re_init(int *argc, char ***argv)
 {
@@ -396,7 +146,7 @@ int rempi_re_cdc::re_irecv(
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
-    update_matching_set(request, source, tag, (int)comm_id[0]);
+    rempi_reqmg_register_recv_request(request, source, tag, (int)comm_id[0]);
     //TODO: Get Datatype,
     recorder->record_irecv(buf, count, datatype, source, tag, (int)comm_id[0], request);
   } else {
@@ -423,9 +173,9 @@ int rempi_re_cdc::re_test(
   int ret;
   size_t clock;
 #ifdef REVERT1
-  int test_id = get_test_id(request, 1);
+  int test_id = rempi_reqmg_get_test_id(request, 1);
 #else
-  int test_id = get_test_id(request);
+  int test_id = rempi_reqmg_get_test_id(request);
 #endif
 
 
@@ -444,7 +194,7 @@ int rempi_re_cdc::re_test(
     // }
     ret = PMPI_Test(request, flag, status);
     /*If recoding mode, record the test function*/
-    /*TODO: change froi void* to MPI_Request*/
+    /*TODO: change from void* to MPI_Request*/
     if(clock != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
 
 #ifdef MATCHING_ID_TEST
@@ -496,9 +246,9 @@ int rempi_re_cdc::re_testsome(
   size_t *clocks;
   int is_with_next = REMPI_MPI_EVENT_WITH_NEXT;
 #ifdef REVERT1
-  int test_id = get_test_id(array_of_requests, incount);
+  int test_id = rempi_reqmg_get_test_id(array_of_requests, incount);
 #else
-  int test_id = get_test_id(array_of_requests);
+  int test_id = rempi_reqmg_get_test_id(array_of_requests);
 #endif
   
   if (array_of_statuses == NULL) {
@@ -623,19 +373,20 @@ int rempi_re_cdc::re_testsome(
 }
 
 
-int array_of_indices_waitall[16]; 
+
 int rempi_re_cdc::re_waitall(
 			  int incount, 
 			  MPI_Request array_of_requests[],
 			  MPI_Status array_of_statuses[])
 {
+  int array_of_indices_waitall[16]; 
   int ret;
   size_t *clocks;
   int is_with_next = REMPI_MPI_EVENT_WITH_NEXT;
 #ifdef REVERT1
-  int test_id = get_test_id(array_of_requests, incount);
+  int test_id = rempi_reqmg_get_test_id(array_of_requests, incount);
 #else
-  int test_id = get_test_id(array_of_requests);
+  int test_id = rempi_reqmg_get_test_id(array_of_requests);
 #endif
 
   if (array_of_statuses == NULL) {

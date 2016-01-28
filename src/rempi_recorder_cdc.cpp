@@ -1011,6 +1011,15 @@ int rempi_recorder_cdc::replay_testsome(
 }
 
 
+int rempi_recorder_cdc::replay_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int comm_id)
+{
+  REMPI_ERR("Probe/Iprobe is not supported yet");
+  return MPI_SUCCESS;
+}
+
+
+
+
 int rempi_recorder_cdc::record_finalize(void)
 {
 
@@ -1204,6 +1213,21 @@ int rempi_recorder_cdc::REMPI_Send_Testall(int count, MPI_Request *array_of_send
 }
 
 
+/*
+Note:
+ReMPI internally periodically can MPI_Test(send_request). 
+If this MPI_Test call matches, the send_request becomes MPI_REQUEST_NULL.
+But an application have no idead this MPI_Test(send_request) was internally matched or not.
+So if an application calls MPI_Test(send_request), this means MPI_Test(MPI_REQUEST_NULL).
+It results in an MPI error.
+
+Thus, ReMPI call matched MPI_Test, ReMPI set the request to MPI_REQUEST_SEND_NULL.
+The application call MPI_Test, ReMPI set MPI_REQUEST_SEND_NULL to MPI_REQUEST_NULL.
+
+MPI_REQUEST_SEND_NULL: Internally matched, but an application does not know.
+MPI_REQUEST_NULL: an application call the MPI_Test, so an application know it.
+
+*/
 int rempi_recorder_cdc::REMPI_Send_Testsome(int incount, MPI_Request *array_of_send_request_ids, int *outcount, int *array_of_indices, MPI_Status *array_of_statuses)
 {
   int ret = 0;

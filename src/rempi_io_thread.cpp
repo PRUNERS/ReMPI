@@ -74,7 +74,6 @@ void rempi_io_thread::write_record()
     char *encoded_events;
     size_t size;
     double s, e;
-    //    rempi_dbgi(0, "events: %p, size: %lu", encoded_events, size);
 
     /*Get a sequence of events, ...  */
     is_extracted = encoder->extract_encoder_input_format_chunk(*recording_events, *nonencoded_events);
@@ -123,7 +122,6 @@ void rempi_io_thread::read_record()
     bool is_no_more_record;
 
     is_no_more_record = encoder->read_record_file(*input_format);
-
     if (is_no_more_record) {
       /*If replayed all recorded events, ...*/
       replaying_events->close_push();
@@ -131,7 +129,6 @@ void rempi_io_thread::read_record()
     } else {
       encoder->decode(*input_format);
       encoder->insert_encoder_input_format_chunk(*recording_events, *replaying_events, *input_format);
-
       delete input_format;
       input_format = encoder->create_encoder_input_format();
     }

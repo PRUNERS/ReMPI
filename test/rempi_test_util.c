@@ -17,11 +17,13 @@ double get_time(void)
 int init_rand(int seed) 
 {
   srand(seed);
+  return 0;
 }
 
 int init_ndrand() 
 {
   srand((int)get_time());
+  return 0;
 }
 
 int get_rand(int max)

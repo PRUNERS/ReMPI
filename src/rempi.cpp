@@ -55,7 +55,8 @@ rempi_re *rempi_record_replay;
 // }
 
 void init_rempi() {
-  rempi_record_replay = new rempi_re_cdc();
+  //rempi_record_replay = new rempi_re_cdc();
+  rempi_record_replay = new rempi_re();
   return;
 }
 // MPI_Init does all the communicator setup
@@ -66,7 +67,6 @@ _EXTERN_C_ int MPI_Init(int *arg_0, char ***arg_1)
 { 
   int _wrap_py_return_val = 0;
   init_rempi();
-
   _wrap_py_return_val = rempi_record_replay->re_init(arg_0, arg_1);
   return _wrap_py_return_val;
 }
@@ -78,6 +78,20 @@ _EXTERN_C_ int MPI_Init_thread(int *arg_0, char ***arg_1, int arg_2, int *arg_3)
   int _wrap_py_return_val = 0;
   init_rempi();
   _wrap_py_return_val = rempi_record_replay->re_init_thread(arg_0, arg_1, arg_2, arg_3);
+  return _wrap_py_return_val;
+}
+
+
+/* ================== C Wrappers for MPI_Recv ================== */
+_EXTERN_C_ int PMPI_Recv(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Status *arg_6);
+_EXTERN_C_ int MPI_Recv(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Status *arg_6) {
+  int _wrap_py_return_val = 0;
+  {
+    /*TODO: Implementation witouh using MPI_Irecv*/
+    MPI_Request req;
+    _wrap_py_return_val = MPI_Irecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, &req);
+    _wrap_py_return_val = MPI_Wait(&req, arg_6);
+  } 
   return _wrap_py_return_val;
 }
 
@@ -103,6 +117,16 @@ _EXTERN_C_ int MPI_Test(MPI_Request *arg_0, int *arg_1, MPI_Status *arg_2)
   return _wrap_py_return_val;
 }
 
+/* ================== C Wrappers for MPI_Testany ================== */
+_EXTERN_C_ int PMPI_Testany(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_3, MPI_Status *arg_4);
+_EXTERN_C_ int MPI_Testany(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_3, MPI_Status *arg_4) {
+  int _wrap_py_return_val = 0;
+  {  
+
+    _wrap_py_return_val = rempi_record_replay->re_testany(arg_0, arg_1, arg_2, arg_3, arg_4);
+  }    return _wrap_py_return_val;
+}
+
 /* kento================== C Wrappers for MPI_Testsome ================== */
 _EXTERN_C_ int PMPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_3, MPI_Status *arg_4);
 _EXTERN_C_ int MPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_3, MPI_Status *arg_4)
@@ -113,12 +137,43 @@ _EXTERN_C_ int MPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_
   return _wrap_py_return_val;
 }
 
+
+/* ================== C Wrappers for MPI_Testall ================== */
+_EXTERN_C_ int PMPI_Testall(int arg_0, MPI_Request *arg_1, int *arg_2, MPI_Status *arg_3);
+_EXTERN_C_ int MPI_Testall(int arg_0, MPI_Request *arg_1, int *arg_2, MPI_Status *arg_3) {
+  int _wrap_py_return_val = 0;
+  {
+    _wrap_py_return_val = rempi_record_replay->re_testall(arg_0, arg_1, arg_2, arg_3);
+  }    return _wrap_py_return_val;
+}
+
+
+
 /* ================== C Wrappers for MPI_Wait ================== */
 _EXTERN_C_ int PMPI_Wait(MPI_Request *arg_1, MPI_Status *arg_2);
 _EXTERN_C_ int MPI_Wait(MPI_Request *arg_1, MPI_Status *arg_2) {
   int _wrap_py_return_val = 0;
-  _wrap_py_return_val = rempi_record_replay->re_waitall(1, arg_1, arg_2);
+  _wrap_py_return_val = rempi_record_replay->re_wait(arg_1, arg_2);
   return _wrap_py_return_val;
+}
+
+/* ================== C Wrappers for MPI_Waitany ================== */
+_EXTERN_C_ int PMPI_Waitany(int arg_0, MPI_Request *arg_1, int *arg_2, MPI_Status *arg_3);
+_EXTERN_C_ int MPI_Waitany(int arg_0, MPI_Request *arg_1, int *arg_2, MPI_Status *arg_3) {
+  int _wrap_py_return_val = 0;
+  {
+    _wrap_py_return_val = rempi_record_replay->re_waitany(arg_0, arg_1, arg_2, arg_3);
+  } 
+  return _wrap_py_return_val;
+}
+
+/* ================== C Wrappers for MPI_Waitsome ================== */
+_EXTERN_C_ int PMPI_Waitsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_3, MPI_Status *arg_4);
+_EXTERN_C_ int MPI_Waitsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_3, MPI_Status *arg_4) {
+  int _wrap_py_return_val = 0;
+  {
+    _wrap_py_return_val = rempi_record_replay->re_waitsome(arg_0, arg_1, arg_2, arg_3, arg_4);
+  }    return _wrap_py_return_val;
 }
 
 /* ================== C Wrappers for MPI_Waitall ================== */
@@ -129,6 +184,23 @@ _EXTERN_C_ int MPI_Waitall(int arg_0, MPI_Request *arg_1, MPI_Status *arg_2) {
   return _wrap_py_return_val;
 }
 
+/* ================== C Wrappers for MPI_Probe ================== */
+_EXTERN_C_ int PMPI_Probe(int arg_0, int arg_1, MPI_Comm arg_2, MPI_Status *arg_3);
+_EXTERN_C_ int MPI_Probe(int arg_0, int arg_1, MPI_Comm arg_2, MPI_Status *arg_3) {
+  int _wrap_py_return_val = 0;
+  {  
+    _wrap_py_return_val = rempi_record_replay->re_probe(arg_0, arg_1, arg_2, arg_3);
+  }    return _wrap_py_return_val;
+}
+
+/* ================== C Wrappers for MPI_Iprobe ================== */
+_EXTERN_C_ int PMPI_Iprobe(int arg_0, int arg_1, MPI_Comm arg_2, int *flag, MPI_Status *arg_4);
+_EXTERN_C_ int MPI_Iprobe(int arg_0, int arg_1, MPI_Comm arg_2, int *flag, MPI_Status *arg_4) {
+  int _wrap_py_return_val = 0;
+  {   
+    _wrap_py_return_val = rempi_record_replay->re_iprobe(arg_0, arg_1, arg_2, flag, arg_4);
+  }    return _wrap_py_return_val;
+}
 
 /* ================== C Wrappers for MPI_Cancel ================== */
 _EXTERN_C_ int PMPI_Cancel(MPI_Request *arg_0);
@@ -141,12 +213,20 @@ _EXTERN_C_ int MPI_Cancel(MPI_Request *arg_0) {
   }    return _wrap_py_return_val;
 }
 
+/* ================== C Wrappers for MPI_Request_free ================== */
+_EXTERN_C_ int PMPI_Request_free(MPI_Request *arg_0);
+_EXTERN_C_ int MPI_Request_free(MPI_Request *arg_0) {
+  int _wrap_py_return_val = 0;
+  {
+    //    _wrap_py_return_val = PMPI_Request_free(arg_0);
+  }    return _wrap_py_return_val;
+}
+
 /* ================== C Wrappers for MPI_Type_commit ================== */
 _EXTERN_C_ int PMPI_Type_commit(MPI_Datatype *arg_0);
 _EXTERN_C_ int MPI_Type_commit(MPI_Datatype *arg_0) {
   int _wrap_py_return_val = 0;
-  {
-   
+  {   
     _wrap_py_return_val = PMPI_Type_commit(arg_0);
   }    return _wrap_py_return_val;
 }
@@ -226,10 +306,10 @@ _EXTERN_C_ int MPI_Isend(const void *arg_0, int arg_1, MPI_Datatype arg_2, int a
 _EXTERN_C_ int PMPI_Isend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
 _EXTERN_C_ int MPI_Isend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) {
 #endif
-
   int _wrap_py_return_val = 0;
   {
     _wrap_py_return_val = rempi_record_replay->re_isend((void *)arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+
     // int rank;
     //  PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
     //  if (rank == 1) {
