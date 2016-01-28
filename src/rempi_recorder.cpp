@@ -225,6 +225,17 @@ int rempi_recorder::record_test(
 }
 
 
+// int rempi_recorder::record_matching(int incount,
+//                                     MPI_Request array_of_requests[],
+//                                     int *outcount,
+//                                     int array_of_indices[],
+//                                     MPI_Status array_of_statuses[],
+//                                     int global_test_id,
+//                                     int matching_function_type)
+// {
+
+
+// }
 
 int rempi_recorder::replay_test(
 				MPI_Request *request,
