@@ -19,6 +19,7 @@
 #include "rempi_config.h"
 #include "rempi_mem.h"
 #include "clmpi.h"
+#include "rempi_request_mg.h"
 
 #define  PNMPI_MODULE_REMPI "rempi"
 
@@ -212,15 +213,18 @@ int rempi_recorder_cdc::record_irecv(
    int source,
    int tag,
    int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-   MPI_Comm *comm,
+   MPI_Comm comm,
    MPI_Request *request)
 {
+  int ret;
+  // ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);                                                                             
+  // rempi_reqmg_register_recv_request(request, source, tag, comm_id); 
   // int test_id = get_test_id();
   // if (request_to_test_id_umap.find(request) == request_to_test_id_umap.end()) {
   //   request_to_test_id_umap[request] = test_id;
   //   REMPI_DBGI(0, "Map: %p -> %d", request, test_id);
   // }
-  return 0;
+  return ret;
 }
 
 int rempi_recorder_cdc::replay_isend(MPI_Request *request)
@@ -255,7 +259,7 @@ int rempi_recorder_cdc::replay_irecv(
    int source,
    int tag,
    int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-   MPI_Comm *comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+   MPI_Comm comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
    MPI_Request *request)
 {
   int ret;
@@ -268,11 +272,11 @@ int rempi_recorder_cdc::replay_irecv(
     irecv_inputs = request_to_irecv_inputs_umap[*request];
     bool same_source = (irecv_inputs->source == source);
     bool same_tag    = (irecv_inputs->tag    == tag);
-    bool same_comm   = (irecv_inputs->comm   == *comm);
+    bool same_comm   = (irecv_inputs->comm   == comm);
     if (!same_source || !same_tag || !same_comm) {
       REMPI_ERR("Different request(req:%p) in (source, tag, comm): :(%d, %d, %p) != (%d, %d, %p)",
        		(*request), irecv_inputs->source, irecv_inputs->tag, irecv_inputs->comm,
-		source, tag, *comm);
+		source, tag, comm);
 
       // REMPI_ERR("This MPI_Request is not diactivated. This mainly caused by irecv call "
       // 		"with MPI_Request which is not diactivated by MPI_{Wait|Test}{|some|any|all}");
@@ -286,7 +290,7 @@ int rempi_recorder_cdc::replay_irecv(
 #else
     *request = (MPI_Request)rempi_malloc(sizeof(MPI_Request));//((source + 1) * (tag + 1) * (comm_id * 1));
 #endif
-    request_to_irecv_inputs_umap[*request] = new rempi_irecv_inputs(buf, count, datatype, source, tag, *comm, *request);
+    request_to_irecv_inputs_umap[*request] = new rempi_irecv_inputs(buf, count, datatype, source, tag, comm, *request);
   }
 
   irecv_inputs = request_to_irecv_inputs_umap[*request];
@@ -297,7 +301,7 @@ int rempi_recorder_cdc::replay_irecv(
     proxy_request_info = new rempi_proxy_request(count, datatype);
     //    proxy_request = (MPI_Request*)rempi_malloc(sizeof(MPI_Request));
     irecv_inputs->request_proxy_list.push_back(proxy_request_info);
-    ret = PMPI_Irecv(proxy_request_info->buf, count, datatype, source, tag, *comm, &proxy_request_info->request);
+    ret = PMPI_Irecv(proxy_request_info->buf, count, datatype, source, tag, comm, &proxy_request_info->request);
     //    REMPI_DBG("matched_proxy: request: %p", *request);
   } else {
     /*Irecv request with the same (source, tag, comm) was already posted, so simply return MPI_SUCCESS*/

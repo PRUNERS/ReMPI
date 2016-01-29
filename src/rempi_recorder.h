@@ -130,7 +130,7 @@ class rempi_recorder {
 			   int source,
 			   int tag,
 			   int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-			   MPI_Comm *comm,
+			   MPI_Comm comm,
 			   MPI_Request *request
 			   );
 
@@ -143,7 +143,7 @@ class rempi_recorder {
 			   int source,
 			   int tag,
 			   int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-			   MPI_Comm *comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+			   MPI_Comm comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
 			   MPI_Request *request
 			   );
 
@@ -266,7 +266,7 @@ class rempi_recorder_cdc : public rempi_recorder
 		   int source,
 		   int tag,
 		   int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-		   MPI_Comm *comm,
+		   MPI_Comm comm,
 		   MPI_Request *request
 		   );
 
@@ -279,7 +279,7 @@ class rempi_recorder_cdc : public rempi_recorder
 		   int source,
 		   int tag,
 		   int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-		   MPI_Comm *comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+		   MPI_Comm comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
 		   MPI_Request *request
 		   );
 

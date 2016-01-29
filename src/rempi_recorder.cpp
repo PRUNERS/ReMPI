@@ -29,6 +29,7 @@ int rempi_recorder::record_init(int *argc, char ***argv, int rank)
   record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode); //0: recording mode
   rempi_sig_handler_init(rank, record_thread, recording_event_list, &validation_code);
   record_thread->start();
+
   
   return 0;
 }
@@ -60,19 +61,13 @@ int rempi_recorder::record_irecv(
    int source,
    int tag,
    int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-   MPI_Comm *comm,
+   MPI_Comm comm,
    MPI_Request *request)
 {
   int ret;
-  // char comm_id_char[REMPI_COMM_ID_LENGTH];
-  // int resultlen;
-  // REMPI_DBG("dbug");
-  // ret = PMPI_Irecv(buf, count, datatype, source, tag, *comm, request);
-  // REMPI_DBG("dbug 1");
-  // PMPI_Comm_get_name(*comm, comm_id_char, &resultlen);
-  // REMPI_DBG("dbug 2");
-  // rempi_reqmg_register_recv_request(request, source, tag, (int)comm_id_char[0]);
-  // REMPI_DBG("dbug 3");
+  ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);                                                                             
+  rempi_reqmg_register_recv_request(request, source, tag, comm_id); 
+  //kento  msg_manager.add_pending_recv(request, source, tag, comm);
   return ret;
 }
 
@@ -96,20 +91,47 @@ int rempi_recorder::replay_irecv(
    int source,
    int tag,
    int comm_id, // The value is set by MPI_Comm_set_name in ReMPI_convertor
-   MPI_Comm *comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
+   MPI_Comm comm, // The value is set by MPI_Comm_set_name in ReMPI_convertor
    MPI_Request *request)
 {
   int ret;
   rempi_proxy_request *proxy_request_info;
   rempi_irecv_inputs *irecv_inputs;
 
-  
+//   if (request_to_irecv_inputs_umap.find(*request) != 
+//       request_to_irecv_inputs_umap.end()) {
+//     /* If this request is posted in irecv before*/
+//     irecv_inputs = request_to_irecv_inputs_umap[*request];
+//     bool same_source = (irecv_inputs->source == source);
+//     bool same_tag    = (irecv_inputs->tag    == tag);
+//     bool same_comm   = (irecv_inputs->comm   == *comm);
+//     if (!same_source || !same_tag || !same_comm) {
+//       REMPI_ERR("Different request(req:%p) in (source, tag, comm): :(%d, %d, %p) != (%d, %d, %p)",
+//        		(*request), irecv_inputs->source, irecv_inputs->tag, irecv_inputs->comm,
+// 		source, tag, *comm);
+
+//       // REMPI_ERR("This MPI_Request is not diactivated. This mainly caused by irecv call "
+//       // 		"with MPI_Request which is not diactivated by MPI_{Wait|Test}{|some|any|all}");
+//     }
+//   } else {
+// #ifdef BGQ
+//     memset(request, request_id, sizeof(MPI_Request));
+//     request_id++;
+//     //    REMPI_DBG("request_id: %lu request: %p", request_id, *request);
+//     //    *request = (MPI_Request)(request_id++);
+// #else
+//     *request = (MPI_Request)rempi_malloc(sizeof(MPI_Request));//((source + 1) * (tag + 1) * (comm_id * 1));
+// #endif
+//     request_to_irecv_inputs_umap[*request] = new rempi_irecv_inputs(buf, count, datatype, source, tag, *comm, *request);
+//   }
+
+
   if (request_to_irecv_inputs_umap.find(*request) != 
       request_to_irecv_inputs_umap.end()) {
     irecv_inputs = request_to_irecv_inputs_umap[*request];
     REMPI_ERR("Already exist request(req:%p) in (source, tag, comm): new (%d, %d, %p), old (%d, %d, %p)",
 	      (*request), irecv_inputs->source, irecv_inputs->tag, irecv_inputs->comm,
-	      source, tag, *comm);
+	      source, tag, comm);
   } else {
 #ifdef BGQ
     memset(request, request_id, sizeof(MPI_Request));
@@ -119,7 +141,7 @@ int rempi_recorder::replay_irecv(
 #else
     *request = (MPI_Request)rempi_malloc(sizeof(MPI_Request));//((source + 1) * (tag + 1) * (comm_id * 1));
 #endif
-    request_to_irecv_inputs_umap[*request] = new rempi_irecv_inputs(buf, count, datatype, source, tag, *comm, *request);
+    request_to_irecv_inputs_umap[*request] = new rempi_irecv_inputs(buf, count, datatype, source, tag, comm, *request);
   }
 
   //  REMPI_DBG("register use: %p", *request);
@@ -186,43 +208,35 @@ int rempi_recorder::record_test(
     int with_previous,
     int test_id)
 {
-  int event_count = 1;
-  int request_val = -1;
-  int record_comm_id = 0;
-  int record_source = 0;
-  int record_tag = 0;
-  int record_clock = 0;
-
-
-  if (*flag) {
-    /*Query befoer add_matched_recv, because pendding entry is removed when flag == 1*/
-    //kento    record_comm_id = msg_manager.query_pending_comm_id(request);
-    record_source  = source;
-    record_tag     = tag;
-    record_clock   = clock;
-    //kento msg_manager.add_matched_recv(request, source, tag);
-    //REMPI_DBG("%d %d %d %d %d %d %d", event_count, is_testsome, comm_id, *flag, source, tag, clock);
-  } 
-  //TODO: we need to record *request ?
-  recording_event_list->push(new rempi_test_event(event_count, with_previous, record_comm_id, *flag, record_source, record_tag, record_clock, test_id));
-
-  return 0;
-}
-
-
-
-
-int rempi_recorder::record_mf(int incount,
-			      MPI_Request array_of_requests[],
-			      int *outcount,
-			      int array_of_indices[],
-			      MPI_Status array_of_statuses[],
-			      int global_test_id,
-			      int matching_function_type)
-{
   
+  REMPI_ERR("This function was retired");
+  // int event_count = 1;
+  // int request_val = -1;
+  // int record_comm_id = 0;
+  // int record_source = 0;
+  // int record_tag = 0;
+  // int record_clock = 0;
+
+
+  // if (*flag) {
+  //   /*Query befoer add_matched_recv, because pendding entry is removed when flag == 1*/
+  //   //kento    record_comm_id = msg_manager.query_pending_comm_id(request);
+  //   record_source  = source;
+  //   record_tag     = tag;
+  //   record_clock   = clock;
+  //   //kento msg_manager.add_matched_recv(request, source, tag);
+  //   //REMPI_DBG("%d %d %d %d %d %d %d", event_count, is_testsome, comm_id, *flag, source, tag, clock);
+  // } 
+  // //TODO: we need to record *request ?
+  // recording_event_list->push(new rempi_test_event(event_count, with_previous, record_comm_id, *flag, record_source, record_tag, record_clock, test_id));
+
   return 0;
 }
+
+
+
+
+
 
 int rempi_recorder::replay_test(
 				MPI_Request *request,
@@ -404,6 +418,56 @@ int rempi_recorder::replay_test(
 
 //    return 0;
 // }
+
+
+
+int rempi_recorder::record_mf(
+				    int incount,
+				    MPI_Request array_of_requests[],
+				    int *outcount,
+				    int array_of_indices[],
+				    MPI_Status array_of_statuses[],
+				    int global_test_id,
+				    int matching_function_type)
+{
+  int flag;
+  rempi_test_event *test_event;
+  int is_with_next;
+  int matched_count;
+
+
+
+  if  (matching_function_type == REMPI_MPI_WAITANY) {
+    matched_count = 1;
+  } else if ((matching_function_type == REMPI_MPI_TESTALL && *outcount == 1) || 
+	     matching_function_type == REMPI_MPI_WAITALL) {
+    matched_count = incount;
+  } else if (outcount == NULL) {
+    matched_count = incount;
+  } else {
+    matched_count = *outcount;
+  }
+  
+
+  if (matched_count == 0) {
+    flag = 0;
+    test_event = new rempi_test_event(1, REMPI_MPI_EVENT_NOT_WITH_NEXT, 0, 0, 0, 0, 0, global_test_id);
+    recording_event_list->push(test_event);
+  } else {
+    flag = 1;
+    is_with_next = REMPI_MPI_EVENT_WITH_NEXT;
+    for (int i = 0; i < matched_count; i++) {
+      if (i == matched_count - 1) {
+	is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
+      }
+      test_event = new rempi_test_event(1, is_with_next, 0, 1, array_of_statuses[i].MPI_SOURCE, 
+					array_of_statuses[i].MPI_TAG, 0, global_test_id);
+      recording_event_list->push(test_event);
+    }
+  }
+
+  return 0;
+}
 
 
 int rempi_recorder::replay_testsome(

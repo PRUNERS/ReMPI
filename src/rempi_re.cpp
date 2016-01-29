@@ -119,14 +119,15 @@ int rempi_re::re_isend(
   return ret;
 }
 
+
 int rempi_re::re_irecv(
-		       void *buf,
-		       int count,
-		       MPI_Datatype datatype,
-		       int source,
-		       int tag,
-		       MPI_Comm comm,
-		       MPI_Request *request)
+		 void *buf,
+		 int count,
+		 MPI_Datatype datatype,
+		 int source,
+		 int tag,
+		 MPI_Comm comm,
+		 MPI_Request *request)
 {
   int ret;
   char comm_id[REMPI_COMM_ID_LENGTH];
@@ -139,47 +140,16 @@ int rempi_re::re_irecv(
   PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
-    rempi_reqmg_register_recv_request(request, source, tag, (int)comm_id[0]);
-    /*TODO: Really need datatype ??*/
-    recorder->record_irecv(buf, count, datatype, source, tag, (int)comm_id[0], &comm, request);
+    // ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
+    // rempi_reqmg_register_recv_request(request, source, tag, (int)comm_id[0]);
+    recorder->record_irecv(buf, count, datatype, source, tag, (int)comm_id[0], comm, request);
   } else {
     /*TODO: Really need datatype ??*/
-    recorder->replay_irecv(buf, count, datatype, source, tag, (int)comm_id[0], &comm, request);
+    recorder->replay_irecv(buf, count, datatype, source, tag, (int)comm_id[0], comm, request);
   }
 
   return ret;
 }
-
-
-// int rempi_re::re_irecv(
-// 		 void *buf,
-// 		 int count,
-// 		 MPI_Datatype datatype,
-// 		 int source,
-// 		 int tag,
-// 		 MPI_Comm comm,
-// 		 MPI_Request *request)
-// {
-//   int ret;
-//   char comm_id[REMPI_COMM_ID_LENGTH]; 
-//   int resultlen;                       
-
-//   PMPI_Comm_get_name(comm, comm_id, &resultlen);
-  
-//   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-//     REMPI_DBG("test");
-//     ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
-//     rempi_reqmg_register_recv_request(request, source, tag, (int)comm_id[0]);
-//     /*TODO: Really need datatype ??*/
-//     recorder->record_irecv(buf, count, datatype, source, tag, -1, &comm, request);
-//   } else {
-//     /*TODO: Really need datatype ??*/
-//     recorder->replay_irecv(buf, count, datatype, source, tag, -1, &comm, request);
-//   }
-
-//   return ret;
-// }
 
   
 int rempi_re::re_test(
@@ -198,7 +168,8 @@ int rempi_re::re_test(
 
     test_id = rempi_reqmg_get_test_id(request, 1);
     ret = PMPI_Test(request, flag, status);
-    recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, 0, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
+    recorder->record_mf(1, request, flag, NULL, status, test_id, REMPI_MPI_TEST);
+    //    recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, 0, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
   } else {
     int index;
     recorder->replay_testsome(1, request, flag, &index, status,
@@ -219,7 +190,7 @@ int rempi_re::re_testany(int count, MPI_Request array_of_requests[],
 			     PMPI_Testany(count, array_of_requests, index, flag, status));
     test_id = rempi_reqmg_get_test_id(array_of_requests, count);
     ret = PMPI_Testany(count, array_of_requests, index, flag, status);
-    recorder->record_test(&array_of_requests[*index], flag, status->MPI_SOURCE, status->MPI_TAG, 0, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
+    recorder->record_mf(count, array_of_requests, flag, index, status, test_id, REMPI_MPI_TESTANY);
   } else {
     recorder->replay_testsome(count, array_of_requests, flag, index, status, test_id, REMPI_MF_FLAG_1_TEST, REMPI_MF_FLAG_2_ANY);
   }
@@ -251,20 +222,22 @@ int rempi_re::re_testsome(
     test_id = rempi_reqmg_get_test_id(array_of_requests, incount);
     int flag;
     ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
-    if (*outcount == 0) {
-      flag = 0;
-      recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
-    } else {
-      flag = 1;
-      for (int i = 0; i < *outcount; i++) {
-	int index = array_of_indices[i];
-	if (i == *outcount - 1) {
-	  is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
-	}
-	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[i].MPI_SOURCE, 
-			      array_of_statuses[i].MPI_TAG, 0, is_with_next, test_id);
-      }
-    }
+    recorder->record_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, test_id, REMPI_MPI_TESTSOME);
+
+    // if (*outcount == 0) {
+    //   flag = 0;
+    //   recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
+    // } else {
+    //   flag = 1;
+    //   for (int i = 0; i < *outcount; i++) {
+    // 	int index = array_of_indices[i];
+    // 	if (i == *outcount - 1) {
+    // 	  is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
+    // 	}
+    // 	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[i].MPI_SOURCE, 
+    // 			      array_of_statuses[i].MPI_TAG, 0, is_with_next, test_id);
+    //   }
+    // }
   } else {
     recorder->replay_testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, 
 			      test_id, REMPI_MF_FLAG_1_TEST, REMPI_MF_FLAG_2_SOME);
@@ -289,19 +262,20 @@ int rempi_re::re_testall(int count, MPI_Request array_of_requests[],
 
     test_id = rempi_reqmg_get_test_id(array_of_requests, count);
     ret = PMPI_Testall(count, array_of_requests, flag, array_of_statuses);
+    recorder->record_mf(count, array_of_requests, flag, NULL, array_of_statuses, test_id, REMPI_MPI_TESTALL);
 
-    if (*flag == 0) {
-      recorder->record_test(NULL, flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
-      return MPI_SUCCESS;
-    } 
+    // if (*flag == 0) {
+    //   recorder->record_test(NULL, flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
+    //   return MPI_SUCCESS;
+    // } 
 
-    for (int i = 0; i < count; i++) {
-      if (i == count - 1) {
-	is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
-      }
-      recorder->record_test(&array_of_requests[i], flag, array_of_statuses[i].MPI_SOURCE, 
-			    array_of_statuses[i].MPI_TAG, 0, is_with_next, test_id);
-    }
+    // for (int i = 0; i < count; i++) {
+    //   if (i == count - 1) {
+    // 	is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
+    //   }
+    //   recorder->record_test(&array_of_requests[i], flag, array_of_statuses[i].MPI_SOURCE, 
+    // 			    array_of_statuses[i].MPI_TAG, 0, is_with_next, test_id);
+    // }
   } else {
     int outcount;
     //    int a[300];
@@ -332,7 +306,8 @@ int rempi_re::re_wait(
 
     test_id = rempi_reqmg_get_test_id(request, 1);
     ret = PMPI_Wait(request, status);
-    recorder->record_test(request, &flag, status->MPI_SOURCE, status->MPI_TAG, 0, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
+    //    recorder->record_test(request, &flag, status->MPI_SOURCE, status->MPI_TAG, 0, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
+    recorder->record_mf(1, request, NULL, NULL, status, test_id, REMPI_MPI_WAIT);
   } else {
     int index;
     recorder->replay_testsome(1, request, &flag, &index, status,
@@ -358,7 +333,8 @@ int rempi_re::re_waitany(
 			     PMPI_Waitany(count, array_of_requests, index, status));
     test_id = rempi_reqmg_get_test_id(array_of_requests, count);
     ret = PMPI_Waitany(count, array_of_requests, index, status);
-    recorder->record_test(&array_of_requests[*index], &flag, status->MPI_SOURCE, status->MPI_TAG, 0, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
+    recorder->record_mf(count, array_of_requests, NULL, index, status, test_id, REMPI_MPI_WAITANY);
+    //    recorder->record_test(&array_of_requests[*index], &flag, status->MPI_SOURCE, status->MPI_TAG, 0, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
   } else {
     recorder->replay_testsome(count, array_of_requests, &flag, index, status, test_id, REMPI_MF_FLAG_1_WAIT, REMPI_MF_FLAG_2_ANY);
   }
@@ -384,20 +360,21 @@ int rempi_re::re_waitsome(int incount, MPI_Request array_of_requests[],
     test_id = rempi_reqmg_get_test_id(array_of_requests, incount);
     int flag;
     ret = PMPI_Waitsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
-    if (*outcount == 0) {
-      flag = 0;
-      recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
-    } else {
-      flag = 1;
-      for (int i = 0; i < *outcount; i++) {
-	int index = array_of_indices[i];
-	if (i == *outcount - 1) {
-	  is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
-	}
-	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[i].MPI_SOURCE, 
-			      array_of_statuses[i].MPI_TAG, 0, is_with_next, test_id);
-      }
-    }
+    recorder->record_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, test_id, REMPI_MPI_WAITSOME);
+    // if (*outcount == 0) {
+    //   flag = 0;
+    //   recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
+    // } else {
+    //   flag = 1;
+    //   for (int i = 0; i < *outcount; i++) {
+    // 	int index = array_of_indices[i];
+    // 	if (i == *outcount - 1) {
+    // 	  is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
+    // 	}
+    // 	recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[i].MPI_SOURCE, 
+    // 			      array_of_statuses[i].MPI_TAG, 0, is_with_next, test_id);
+    //   }
+    // }
   } else {
     recorder->replay_testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, 
 			      test_id, REMPI_MF_FLAG_1_WAIT, REMPI_MF_FLAG_2_SOME);
@@ -424,12 +401,14 @@ int rempi_re::re_waitall(
     test_id = rempi_reqmg_get_test_id(array_of_requests, incount);
     int flag = 1;
     ret = PMPI_Waitall(incount, array_of_requests, array_of_statuses);
-    for (int i = 0; i < incount; i++) {
-      int index = i;
-      if (i == incount - 1) is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
-      recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[i].MPI_SOURCE, 
-			    array_of_statuses[i].MPI_TAG, 0, is_with_next, test_id);
-    }
+    recorder->record_mf(incount, array_of_requests, NULL, NULL, array_of_statuses, test_id, REMPI_MPI_WAITSOME);
+
+    // for (int i = 0; i < incount; i++) {
+    //   int index = i;
+    //   if (i == incount - 1) is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
+    //   recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[i].MPI_SOURCE, 
+    // 			    array_of_statuses[i].MPI_TAG, 0, is_with_next, test_id);
+    // }
   } else {
     int  outcount;
     recorder->replay_testsome(incount, array_of_requests, &outcount, NULL, array_of_statuses, test_id, 
@@ -457,8 +436,9 @@ int rempi_re::re_probe(int source, int tag, MPI_Comm comm, MPI_Status *status)
     rempi_reqmg_register_recv_request(&req, source, tag, (int)comm_id[0]);
     test_id = rempi_reqmg_get_test_id(&req, 1);
     ret = PMPI_Probe(source, tag, comm, status);
-    flag = 1;
-    recorder->record_test(NULL, &flag, status->MPI_SOURCE, status->MPI_TAG, 0, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
+    recorder->record_mf(1, NULL, NULL, NULL, status, test_id, REMPI_MPI_PROBE);
+    //   flag = 1;
+    //    recorder->record_test(NULL, &flag, status->MPI_SOURCE, status->MPI_TAG, 0, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
   } else {
     recorder->replay_iprobe(source, tag, comm, &flag, status, (int)comm_id[0]);
   }
@@ -480,7 +460,8 @@ int rempi_re::re_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Statu
     rempi_reqmg_register_recv_request(&req, source, tag, (int)comm_id[0]);
     test_id = rempi_reqmg_get_test_id(&req, 1);
     ret = PMPI_Iprobe(source, tag, comm, flag, status);
-    recorder->record_test(NULL, flag, status->MPI_SOURCE, status->MPI_TAG, 0, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
+    recorder->record_mf(1, NULL, NULL, flag, status, test_id, REMPI_MPI_IPROBE);
+    //    recorder->record_test(NULL, flag, status->MPI_SOURCE, status->MPI_TAG, 0, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
   } else {
     recorder->replay_iprobe(source, tag, comm, flag, status, (int)comm_id[0]);
   }

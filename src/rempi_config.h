@@ -30,9 +30,19 @@ extern int rempi_is_test_id;
 //#define REMPI_DBG_ASSERT (-1)
 
 #define REMPI_MAX_INPUT_FORMAT_LENGTH (1024 * 128)
-
 #define REMPI_MAX_RECV_TEST_ID (128)
-#define REMPI_COMM_ID_LENGTH (8)
+
+#define REMPI_MPI_TEST      (0)
+#define REMPI_MPI_TESTANY   (1)
+#define REMPI_MPI_TESTSOME  (2)
+#define REMPI_MPI_TESTALL   (3)
+#define REMPI_MPI_WAIT      (4)
+#define REMPI_MPI_WAITANY   (5)
+#define REMPI_MPI_WAITSOME  (6)
+#define REMPI_MPI_WAITALL   (7)
+#define REMPI_MPI_PROBE     (8)
+#define REMPI_MPI_IPROBE    (9)
+
 
 void rempi_set_configuration(int *argc, char ***argv);
 
