@@ -17,7 +17,21 @@
 #include "rempi_request_mg.h"
 #include "rempi_sig_handler.h"
 
-
+void rempi_recorder::update_validation_code(int outcount, int *array_of_indices, MPI_Status *array_of_statuses)
+{
+  int index = 0;
+  validation_code = rempi_hash(validation_code, outcount);
+  for (int i = 0; i < outcount; i++) {
+    if (array_of_indices != NULL) {
+      index = array_of_indices[i];
+    }
+    //    validation_code = rempi_hash(validation_code, index);
+    validation_code = rempi_hash(validation_code, array_of_statuses[i].MPI_SOURCE);
+    validation_code = rempi_hash(validation_code, array_of_statuses[i].MPI_TAG);
+    //    REMPI_DBG("source: %d, tag: %d", array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG);
+  }  
+  return;  
+}
 
 int rempi_recorder::record_init(int *argc, char ***argv, int rank) 
 {
@@ -26,7 +40,7 @@ int rempi_recorder::record_init(int *argc, char ***argv, int rank)
   id = std::to_string((long long int)rank);
   replaying_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
   recording_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
-  record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode); //0: recording mode
+  record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode, NULL); //0: recording mode
   rempi_sig_handler_init(rank, record_thread, recording_event_list, &validation_code);
   record_thread->start();
 
@@ -41,7 +55,7 @@ int rempi_recorder::replay_init(int *argc, char ***argv, int rank)
   /*recording_event_list is needed for CDC, and when switching from repla mode to recording mode */
   recording_event_list = new rempi_event_list<rempi_event*>(10000000, 100); 
   replaying_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
-  read_record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode); //1: replay mode
+  read_record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode, NULL); //1: replay mode
   read_record_thread->start();
 
   return 0;
@@ -435,8 +449,6 @@ int rempi_recorder::record_mf(
   int is_with_next;
   int matched_count;
 
-
-
   if  (matching_function_type == REMPI_MPI_WAITANY) {
     matched_count = 1;
   } else if ((matching_function_type == REMPI_MPI_TESTALL && *outcount == 1) || 
@@ -447,7 +459,8 @@ int rempi_recorder::record_mf(
   } else {
     matched_count = *outcount;
   }
-  
+
+  update_validation_code(matched_count, array_of_indices, array_of_statuses);
 
   if (matched_count == 0) {
     flag = 0;
@@ -577,6 +590,8 @@ int rempi_recorder::replay_testsome(
     index++;
   }
 
+  update_validation_code(*outcount, array_of_indices, array_of_statuses);
+
   return MPI_SUCCESS;
 }
 
@@ -630,9 +645,8 @@ int rempi_recorder::record_finalize(void)
   } else {
     REMPI_ERR("Unkonw rempi mode: %d", rempi_mode);
   }
-
   record_thread->join();
-
+  REMPI_DBGI(0, "validation code: %u", validation_code);
 
   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   return 0;
@@ -641,6 +655,7 @@ int rempi_recorder::record_finalize(void)
 int rempi_recorder::replay_finalize(void)
 {
   read_record_thread->join();
+  REMPI_DBGI(0, "validation code: %u", validation_code);
   //TODO:
   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   return 0;

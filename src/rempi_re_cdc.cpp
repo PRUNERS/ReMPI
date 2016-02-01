@@ -1,3 +1,6 @@
+#if MPI_VERSION == 3
+#ifndef REMPI_LITE
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -601,5 +604,6 @@ int rempi_re_cdc::re_finalize()
   return ret;
 }
 
+#endif /* REMPI_LITE */
 
-
+#endif

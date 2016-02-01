@@ -1,3 +1,5 @@
+#ifndef REMPI_LITE
+
 #include <stdio.h>
 #include <string.h>
 
@@ -440,9 +442,14 @@ bool rempi_recorder_cdc::progress_send_requests()
     send_request_id = it->first;
     send_request    = it->second;
 #else
-  for (auto &pair_send_req_and_send_req:isend_request_umap) {
-    send_request_id = pair_send_req_and_send_req.first;
-    send_request    = pair_send_req_and_send_req.second;
+  for (unordered_map<MPI_Request, MPI_Request>::iterator it = isend_request_umap.begin(), it_end = isend_request_umap.end();
+       it != it_end;
+       it++) {
+    send_request_id = it->first;
+    send_request    = it->second;
+  // for (auto &pair_send_req_and_send_req:isend_request_umap) {
+  //   send_request_id = pair_send_req_and_send_req.first;
+  //   send_request    = pair_send_req_and_send_req.second;
 #endif  
 
     if (send_request != MPI_REQUEST_SEND_NULL && 
@@ -493,8 +500,13 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
        cit++) {
     irecv_inputs = cit->second;
 #else
-  for (auto &pair_req_and_irecv_inputs: request_to_irecv_inputs_umap) {
-    irecv_inputs = pair_req_and_irecv_inputs.second;
+  for (unordered_map<MPI_Request, rempi_irecv_inputs*>::const_iterator cit = request_to_irecv_inputs_umap.cbegin(),
+	 cit_end = request_to_irecv_inputs_umap.cend();
+       cit != cit_end;
+       cit++) {
+    irecv_inputs = cit->second;
+  // for (auto &pair_req_and_irecv_inputs: request_to_irecv_inputs_umap) {
+  //   irecv_inputs = pair_req_and_irecv_inputs.second;
 #endif
     /* Find out this request belongs to which MF (recv_test_id) */
     if (irecv_inputs->recv_test_id == -1) {
@@ -527,7 +539,12 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 	   it++) {
 	rempi_proxy_request *proxy_request = *it;
 #else
-      for (rempi_proxy_request *proxy_request: irecv_inputs->matched_pending_request_proxy_list) {
+      for (list<rempi_proxy_request*>::iterator it = irecv_inputs->matched_pending_request_proxy_list.begin(),
+      	     it_end = irecv_inputs->matched_pending_request_proxy_list.end();
+      	   it != it_end;
+      	   it++) {
+      	rempi_proxy_request *proxy_request = *it;
+	//	for (rempi_proxy_request *proxy_request: irecv_inputs->matched_pending_request_proxy_list) {
 #endif      
 
 	REMPI_ASSERT(proxy_request->matched_source != -1);
@@ -1289,4 +1306,4 @@ int rempi_recorder_cdc::REMPI_Send_Testsome(int incount, MPI_Request *array_of_s
   return ret;
 }
 
-
+#endif /* MPI_LITE */

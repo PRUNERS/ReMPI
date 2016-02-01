@@ -114,12 +114,15 @@ class rempi_recorder {
   /*TODO: Fix bug in PNMPI fo rmulti-threaded, and remove this outputing*/
   rempi_encoder *mc_encoder;// = NULL;
 
+  unsigned int validation_code; /*integer to check if correctly replayed the reocrded events*/
+  void update_validation_code(int outcount, int *array_of_indices, MPI_Status *array_of_statuses);
  public:
-  int validation_code; /*integer to check if correctly replayed the reocrded events*/
+
 
   rempi_recorder()
     : next_test_id_to_assign(0)
-    , mc_encoder(NULL) {}
+    , mc_encoder(NULL)
+    , validation_code(5371) {}
   
   virtual int record_init(int *argc, char ***argv, int rank);
   virtual int replay_init(int *argc, char ***argv, int rank);
@@ -209,6 +212,7 @@ class rempi_recorder {
 };
 
 
+#ifndef REMPI_LITE
 class rempi_recorder_cdc : public rempi_recorder
 {
  private:
@@ -343,7 +347,7 @@ class rempi_recorder_cdc : public rempi_recorder
 
 };
 
-
+#endif /* REMPI_LITE */
 
 
 #endif

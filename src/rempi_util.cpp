@@ -40,3 +40,8 @@ void rempi_sleep_usec(int usec)
   return;
 }
 
+
+unsigned int rempi_hash(unsigned int original_val, unsigned int new_val) {
+  return ((original_val << 5) + original_val) + new_val;
+}
+

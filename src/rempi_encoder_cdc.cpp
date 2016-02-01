@@ -1,3 +1,5 @@
+#if MPI_VERSION == 3
+
 #include <stdlib.h>
 
 #include <string.h>
@@ -1985,6 +1987,6 @@ void rempi_encoder_cdc::insert_encoder_input_format_chunk(rempi_event_list<rempi
 // }
 
 
-
+#endif
 
 

@@ -7,6 +7,7 @@
 
 #include "rempi_re.h"
 #include "rempi_err.h"
+#include "rempi_type.h"
 
 #ifndef _EXTERN_C_
 #ifdef __cplusplus
@@ -35,6 +36,8 @@ _EXTERN_C_ void pmpi_init_(MPI_Fint *ierr);
 _EXTERN_C_ void pmpi_init__(MPI_Fint *ierr);
 
 #define PNMPI_MODULE_REMPI "rempi"
+
+
 
 rempi_re *rempi_record_replay;
 
@@ -89,8 +92,13 @@ _EXTERN_C_ int MPI_Recv(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, i
   {
     /*TODO: Implementation witouh using MPI_Irecv*/
     MPI_Request req;
-    _wrap_py_return_val = MPI_Irecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, &req);
-    _wrap_py_return_val = MPI_Wait(&req, arg_6);
+
+    //    _wrap_py_return_val = MPI_Irecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, &req);
+    _wrap_py_return_val = rempi_record_replay->re_irecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, &req);
+    REMPI_DBGI(9, "request: %p %p at %s", req, &req, __func__);
+    //    _wrap_py_return_val = MPI_Wait(&req, arg_6);
+    _wrap_py_return_val = rempi_record_replay->re_wait(&req, arg_6);
+
   } 
   return _wrap_py_return_val;
 }
@@ -101,6 +109,7 @@ _EXTERN_C_ int MPI_Irecv(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, 
 { 
   int _wrap_py_return_val = 0;
   _wrap_py_return_val = rempi_record_replay->re_irecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+  REMPI_DBGI(9, "request: %p %p at %s", *arg_6, arg_6, __func__);
 
   // int rank;
   // PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -132,7 +141,6 @@ _EXTERN_C_ int PMPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg
 _EXTERN_C_ int MPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_3, MPI_Status *arg_4)
 { 
   int _wrap_py_return_val = 0;
-  int i;
   _wrap_py_return_val = rempi_record_replay->re_testsome(arg_0, arg_1, arg_2, arg_3, arg_4);
   return _wrap_py_return_val;
 }
@@ -144,6 +152,7 @@ _EXTERN_C_ int MPI_Testall(int arg_0, MPI_Request *arg_1, int *arg_2, MPI_Status
   int _wrap_py_return_val = 0;
   {
     _wrap_py_return_val = rempi_record_replay->re_testall(arg_0, arg_1, arg_2, arg_3);
+    REMPI_DBGI(9, "======= testall: flag: %d", *arg_2);
   }    return _wrap_py_return_val;
 }
 
@@ -299,33 +308,18 @@ _EXTERN_C_ int MPI_Finalize()
 
 
 /* ================== C Wrappers for MPI_Isend ================== */
-#if MPI_VERSION == 3
-_EXTERN_C_ int PMPI_Isend(const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
-_EXTERN_C_ int MPI_Isend(const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) {
-#else
-_EXTERN_C_ int PMPI_Isend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
-_EXTERN_C_ int MPI_Isend(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) {
-#endif
+_EXTERN_C_ int PMPI_Isend(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
+_EXTERN_C_ int MPI_Isend(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) {
   int _wrap_py_return_val = 0;
   {
-    _wrap_py_return_val = rempi_record_replay->re_isend((void *)arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
-
-    // int rank;
-    //  PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    //  if (rank == 1) {
-    //    fprintf(stderr, "rank %d: source: %d, tag: %d, isend request: %p\n", rank, arg_3, arg_4, *arg_6);
-    //  }
+    _wrap_py_return_val = rempi_record_replay->re_isend(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+    REMPI_DBGI(9, "buf: %p, request: %p %p at %s", arg_0, *arg_6, arg_6, __func__);
   }    return _wrap_py_return_val;
 }
 
 /* ================== C Wrappers for MPI_Send ================== */
-#if MPI_VERSION == 3
-_EXTERN_C_ int PMPI_Send(const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5);
-_EXTERN_C_ int MPI_Send(const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5) {
-#else 
-_EXTERN_C_ int PMPI_Send(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5);
-_EXTERN_C_ int MPI_Send(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5) {
-#endif
+_EXTERN_C_ int PMPI_Send(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5);
+_EXTERN_C_ int MPI_Send(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5) {
   int _wrap_py_return_val = 0;
   {
     _wrap_py_return_val = PMPI_Send(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
@@ -340,13 +334,8 @@ _EXTERN_C_ int MPI_Send(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, i
 
 
 /* ================== C Wrappers for MPI_Allreduce ================== */
-#if MPI_VERSION == 3
-_EXTERN_C_ int PMPI_Allreduce(const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5);
-_EXTERN_C_ int MPI_Allreduce(const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
-#else
-_EXTERN_C_ int PMPI_Allreduce(void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5);
-_EXTERN_C_ int MPI_Allreduce(void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
-#endif
+_EXTERN_C_ int PMPI_Allreduce(rempi_mpi_version_void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5);
+_EXTERN_C_ int MPI_Allreduce(rempi_mpi_version_void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
 {
   int _wrap_py_return_val = 0;
   {
@@ -358,8 +347,8 @@ _EXTERN_C_ int MPI_Allreduce(void *arg_0, void *arg_1, int arg_2, MPI_Datatype a
 }
 
 /* ================== C Wrappers for MPI_Reduce ================== */
-_EXTERN_C_ int PMPI_Reduce(const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, int arg_5, MPI_Comm arg_6);
-_EXTERN_C_ int MPI_Reduce(const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, int arg_5, MPI_Comm arg_6)
+_EXTERN_C_ int PMPI_Reduce(rempi_mpi_version_void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, int arg_5, MPI_Comm arg_6);
+_EXTERN_C_ int MPI_Reduce(rempi_mpi_version_void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, int arg_5, MPI_Comm arg_6)
 {
   int _wrap_py_return_val = 0;
   {
@@ -369,8 +358,8 @@ _EXTERN_C_ int MPI_Reduce(const void *arg_0, void *arg_1, int arg_2, MPI_Datatyp
 }
 
 /* ================== C Wrappers for MPI_Scan ================== */
-_EXTERN_C_ int PMPI_Scan(const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5);
-_EXTERN_C_ int MPI_Scan(const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5) {
+_EXTERN_C_ int PMPI_Scan(rempi_mpi_version_void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5);
+_EXTERN_C_ int MPI_Scan(rempi_mpi_version_void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5) {
   int _wrap_py_return_val = 0;
   {
     //    _wrap_py_return_val = PMPI_Scan(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
@@ -380,13 +369,8 @@ _EXTERN_C_ int MPI_Scan(const void *arg_0, void *arg_1, int arg_2, MPI_Datatype 
 }
 
 /* ================== C Wrappers for MPI_Allgather ================== */
-#if MPI_VERSION == 3
-_EXTERN_C_ int PMPI_Allgather(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6);
-_EXTERN_C_ int MPI_Allgather(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6)
-#else 
-_EXTERN_C_ int PMPI_Allgather(void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6);
-_EXTERN_C_ int MPI_Allgather(void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6)
-#endif
+_EXTERN_C_ int PMPI_Allgather(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6);
+_EXTERN_C_ int MPI_Allgather(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6)
  {
   int _wrap_py_return_val = 0;
   { 
@@ -400,8 +384,8 @@ _EXTERN_C_ int MPI_Allgather(void *arg_0, int arg_1, MPI_Datatype arg_2, void *a
 
 
 /* ================== C Wrappers for MPI_Gatherv ================== */
- _EXTERN_C_ int PMPI_Gatherv(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, const int *arg_4, const int *arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8);
- _EXTERN_C_ int MPI_Gatherv(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, const int *arg_4, const int *arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8) {
+ _EXTERN_C_ int PMPI_Gatherv(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, rempi_mpi_version_int *arg_4, rempi_mpi_version_int *arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8);
+ _EXTERN_C_ int MPI_Gatherv(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, rempi_mpi_version_int *arg_4, rempi_mpi_version_int *arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8) {
    int _wrap_py_return_val = 0;
    {
      //     _wrap_py_return_val = PMPI_Gatherv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8);
@@ -410,8 +394,8 @@ _EXTERN_C_ int MPI_Allgather(void *arg_0, int arg_1, MPI_Datatype arg_2, void *a
  }
 
  /* ================== C Wrappers for MPI_Reduce_scatter ================== */
- _EXTERN_C_ int PMPI_Reduce_scatter(const void *arg_0, void *arg_1, const int *arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5);
- _EXTERN_C_ int MPI_Reduce_scatter(const void *arg_0, void *arg_1, const int *arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5) {
+ _EXTERN_C_ int PMPI_Reduce_scatter(rempi_mpi_version_void *arg_0, void *arg_1, rempi_mpi_version_int *arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5);
+ _EXTERN_C_ int MPI_Reduce_scatter(rempi_mpi_version_void *arg_0, void *arg_1, rempi_mpi_version_int *arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5) {
    int _wrap_py_return_val = 0;
    {
      //     _wrap_py_return_val = PMPI_Reduce_scatter(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
@@ -420,8 +404,8 @@ _EXTERN_C_ int MPI_Allgather(void *arg_0, int arg_1, MPI_Datatype arg_2, void *a
  }
 
  /* ================== C Wrappers for MPI_Scatterv ================== */
- _EXTERN_C_ int PMPI_Scatterv(const void *arg_0, const int *arg_1, const int *arg_2, MPI_Datatype arg_3, void *arg_4, int arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8);
- _EXTERN_C_ int MPI_Scatterv(const void *arg_0, const int *arg_1, const int *arg_2, MPI_Datatype arg_3, void *arg_4, int arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8) {
+ _EXTERN_C_ int PMPI_Scatterv(rempi_mpi_version_void *arg_0, rempi_mpi_version_int *arg_1, rempi_mpi_version_int *arg_2, MPI_Datatype arg_3, void *arg_4, int arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8);
+ _EXTERN_C_ int MPI_Scatterv(rempi_mpi_version_void *arg_0, rempi_mpi_version_int *arg_1, rempi_mpi_version_int *arg_2, MPI_Datatype arg_3, void *arg_4, int arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8) {
    int _wrap_py_return_val = 0;
    {
      //     _wrap_py_return_val = PMPI_Scatterv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8);
@@ -430,8 +414,8 @@ _EXTERN_C_ int MPI_Allgather(void *arg_0, int arg_1, MPI_Datatype arg_2, void *a
  }
 
  /* ================== C Wrappers for MPI_Allgatherv ================== */
- _EXTERN_C_ int PMPI_Allgatherv(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, const int *arg_4, const int *arg_5, MPI_Datatype arg_6, MPI_Comm arg_7);
- _EXTERN_C_ int MPI_Allgatherv(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, const int *arg_4, const int *arg_5, MPI_Datatype arg_6, MPI_Comm arg_7) {
+ _EXTERN_C_ int PMPI_Allgatherv(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, rempi_mpi_version_int *arg_4, rempi_mpi_version_int *arg_5, MPI_Datatype arg_6, MPI_Comm arg_7);
+ _EXTERN_C_ int MPI_Allgatherv(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, rempi_mpi_version_int *arg_4, rempi_mpi_version_int *arg_5, MPI_Datatype arg_6, MPI_Comm arg_7) {
    int _wrap_py_return_val = 0;
    {
      //     _wrap_py_return_val = PMPI_Allgatherv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);
@@ -440,8 +424,8 @@ _EXTERN_C_ int MPI_Allgather(void *arg_0, int arg_1, MPI_Datatype arg_2, void *a
  }
 
  /* ================== C Wrappers for MPI_Scatter ================== */
- _EXTERN_C_ int PMPI_Scatter(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7);
- _EXTERN_C_ int MPI_Scatter(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7) {
+ _EXTERN_C_ int PMPI_Scatter(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7);
+ _EXTERN_C_ int MPI_Scatter(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7) {
    int _wrap_py_return_val = 0;
    {
      //     _wrap_py_return_val = PMPI_Scatter(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);
@@ -461,8 +445,8 @@ _EXTERN_C_ int MPI_Bcast(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, 
 }
 
 /* ================== C Wrappers for MPI_Alltoall ================== */
- _EXTERN_C_ int PMPI_Alltoall(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6);
- _EXTERN_C_ int MPI_Alltoall(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6) {
+ _EXTERN_C_ int PMPI_Alltoall(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6);
+ _EXTERN_C_ int MPI_Alltoall(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6) {
    int _wrap_py_return_val = 0;
    {
      //     _wrap_py_return_val = PMPI_Alltoall(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
@@ -471,8 +455,8 @@ _EXTERN_C_ int MPI_Bcast(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, 
  }
 
  /* ================== C Wrappers for MPI_Gather ================== */
- _EXTERN_C_ int PMPI_Gather(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7);
- _EXTERN_C_ int MPI_Gather(const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7) {
+ _EXTERN_C_ int PMPI_Gather(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7);
+ _EXTERN_C_ int MPI_Gather(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7) {
    int _wrap_py_return_val = 0;
    {
      //     _wrap_py_return_val = PMPI_Gather(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);
@@ -494,10 +478,45 @@ _EXTERN_C_ int MPI_Barrier(MPI_Comm arg_0) {
 
 
 
+/* ================== C Wrappers for MPI_Recv_init ================== */
+ _EXTERN_C_ int PMPI_Recv_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
+ _EXTERN_C_ int MPI_Recv_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) {
+   int _wrap_py_return_val = 0;
+   {
+     _wrap_py_return_val = PMPI_Recv_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+     REMPI_DBGI(9, "request: %p at %s", *arg_6, __func__);
+   }    return _wrap_py_return_val;
+ }
 
+/* ================== C Wrappers for MPI_Send_init ================== */
+_EXTERN_C_ int PMPI_Send_init(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
+_EXTERN_C_ int MPI_Send_init(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) {
+  int _wrap_py_return_val = 0;
+  {
+     _wrap_py_return_val = PMPI_Send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+     REMPI_DBGI(9, "request: %p at %s", *arg_6, __func__);
+  }    return _wrap_py_return_val;
+}
 
+/* ================== C Wrappers for MPI_Start ================== */
+_EXTERN_C_ int PMPI_Start(MPI_Request *arg_0);
+_EXTERN_C_ int MPI_Start(MPI_Request *arg_0) {
+  int _wrap_py_return_val = 0;
+  {
+    _wrap_py_return_val = PMPI_Start(arg_0);
+     REMPI_DBGI(9, "request: %p at %s", *arg_0, __func__);
+  }    return _wrap_py_return_val;
+}
 
-
+/* ================== C Wrappers for MPI_Startall ================== */
+ _EXTERN_C_ int PMPI_Startall(int arg_0, MPI_Request *arg_1);
+ _EXTERN_C_ int MPI_Startall(int arg_0, MPI_Request *arg_1) {
+   int _wrap_py_return_val = 0;
+   {
+     _wrap_py_return_val = PMPI_Startall(arg_0, arg_1);
+     REMPI_DBGI(9, "request: %p at %s", *arg_1, __func__);
+   }    return _wrap_py_return_val;
+ }
 
 
 

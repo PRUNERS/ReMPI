@@ -37,7 +37,7 @@ unsigned char *rempi_compression_util<T>::compress_by_zero_one_binary(vector<T> 
   binary = (unsigned char*)malloc(required_size_in_bytes);
   memset(binary, 0, required_size_in_bytes);
   int bin_index = 0;
-  int i;
+  unsigned int i;
   for (i = 0; i < length; i++) {
     binary[bin_index] <<= 1;	
     if (vec[i] > 0) {
@@ -116,7 +116,7 @@ void rempi_compression_util<T>::compress_by_linear_prediction(vector<T> &vec)
     1 1 0 0  -7  7 0 0
   */
   T t0 =0, t1 = 0, t2 = 0;
-  for (int i = 0; i < vec.size(); i++) {
+  for (unsigned int i = 0; i < vec.size(); i++) {
     t0 = vec[i];
     vec[i] =  t0 - 2 * t1 + t2;
     t2 = t1;
@@ -131,7 +131,7 @@ template <class T>
 void rempi_compression_util<T>::decompress_by_linear_prediction(vector<T> &vec)
 {
   T t0 =0, t1 = 0, t2 = 0;
-  for (int i = 0; i < vec.size(); i++) {
+  for (unsigned int i = 0; i < vec.size(); i++) {
     t0 = vec[i];
     vec[i] =  t0 + 2 * t1 - t2;
     t2 = t1;
@@ -209,7 +209,7 @@ size_t rempi_compression_util<T>::compress_by_zlib_vec(vector<char*> &input_vec,
 {
   int ret, flush;
   unsigned have;
-  char* output;
+  //  char* output;
   z_stream strm;
 
   total_size = 0;
@@ -231,7 +231,7 @@ size_t rempi_compression_util<T>::compress_by_zlib_vec(vector<char*> &input_vec,
   // 			  Z_DEFAULT_STRATEGY)
   // 	     );
 
-  for (int i = 0; i < input_size_vec.size(); i++) {
+  for (unsigned int i = 0; i < input_size_vec.size(); i++) {
     strm.next_in =  (unsigned char*)input_vec[i];
     strm.avail_in = input_size_vec[i];
     flush = (i == input_size_vec.size() - 1)? Z_FINISH:Z_NO_FLUSH;
@@ -314,7 +314,7 @@ size_t rempi_compression_util<T>::decompress_by_zlib_vec(vector<char*>  &input_v
   total_size = 0;
   /* decompress until deflate stream ends or end of file */
 
-  for (int i = 0; i < input_vec.size(); i++) {
+  for (unsigned int i = 0; i < input_vec.size(); i++) {
     strm.next_in  = (unsigned char*)input_vec[i];
     strm.avail_in = input_size_vec[i];
     /* run inflate() on input until output buffer not full */

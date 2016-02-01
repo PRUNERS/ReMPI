@@ -1,3 +1,4 @@
+#if MPI_VERSION == 3
 #include <vector>
 #include <algorithm>
 
@@ -67,6 +68,7 @@ vector<rempi_event*> rempi_encoder_zlib::decode(char *serialized_data, size_t *s
   return vec;
 }
 
+#endif
 
 
 

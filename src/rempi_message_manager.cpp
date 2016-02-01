@@ -70,7 +70,7 @@ size_t rempi_message_identifier::compress(size_t source_value, size_t source_bit
   }
 
 #define compress_value(target) \
-  for (int i = 0; i < target ## _bits; i++) { \
+  for (unsigned int i = 0; i < target ## _bits; i++) { \
     compressed_msg_id |= target ## _value & 1; \
     compressed_msg_id << 1; \
     target ## _value >> 1; \

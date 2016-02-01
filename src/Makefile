@@ -12,6 +12,7 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
                 $(SRC_DIR)/rempi_re.cpp \
 	        $(SRC_DIR)/rempi_re_cdc.cpp \
 	        $(SRC_DIR)/rempi_sig_handler.cpp \
+	        $(SRC_DIR)/rempi_status.cpp \
 		$(SRC_DIR)/rempi_recorder_cdc.cpp \
 		$(SRC_DIR)/rempi_recorder.cpp \
 		$(SRC_DIR)/rempi_message_manager.cpp \
@@ -70,20 +71,26 @@ $(rempi_a_LIBS):  $(rempi_OBJS)  $(clmpi_OBJS) #$(rempilite_a_LIBS)
 	ar cr $@ rempi.tmp.o
 	ranlib $@
 
+#$(rempilite_a_LIBS):  $(rempi_OBJS)  $(clmpi_OBJS)
+#	ld    -o $(rempi_o_LIBS) -r $(rempi_OBJS)
+#	ws rempilite.tmp.o 1 $(rempi_o_LIBS) $(clmpi_OBJS)
+#	ar cr $@ rempilite.tmp.o
+#	ranlib $@
+
 $(rempilite_a_LIBS):  $(rempi_OBJS)  $(clmpi_OBJS)
 	ld    -o $(rempi_o_LIBS) -r $(rempi_OBJS)
-	ws rempilite.tmp.o 1 $(rempi_o_LIBS) $(clmpi_OBJS)
-#	ar cr $@ $(rempi_o_LIBS) $(clmpi_OBJS)
-	ar cr $@ rempilite.tmp.o
+	ar cr $@ librempi.o
 	ranlib $@
 
 $(rempi_so_LIBS): $(rempi_a_LIBS) $(rempi_OBJS) #$(rempilite_so_LIBS)
 #	$(CC) -shared -o $@ $(rempi_o_LIBS)  $(clmpi_OBJS)
-	$(CC) -g -shared -o $@ rempi.tmp.o
+	$(CC) $(LDFLAGS) $(LDLIBS) -g -shared -o $@ rempi.tmp.o
+
+#$(rempilite_so_LIBS): $(rempilite_a_LIBS) $(rempi_OBJS)
+#	$(CC) $(LDFLAGS) $(LDLIBS) -g -shared -o $@ rempilite.tmp.o
 
 $(rempilite_so_LIBS): $(rempilite_a_LIBS) $(rempi_OBJS)
-#	$(CC) -shared -o $@ $(rempi_o_LIBS)  $(clmpi_OBJS)
-	$(CC) -g -shared -o $@ rempilite.tmp.o
+	$(CC) $(LDFLAGS) $(LDLIBS) -g -shared -o $@ librempi.o
 
 
 
@@ -92,9 +99,9 @@ $(rcmpi_so_LIBS):  $(SRC_DIR)/rempi_message_manager.o
 
 
 .SUFFIXES: .c .o
-.c.o: 
-	$(CC) $(CFLAGS) $(LDFLAGS) -c -MMD -MP $< 
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ -c $< 
+.c.o:
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $(LDFLAGS) $(LDLIBS) -c -MMD -MP $< 
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $(LDFLAGS) $(LDLIBS) -o $@ -c $< 
 
 install: all
 	@$(MAKE) -C ./external install
@@ -105,8 +112,8 @@ install: all
 
 .SUFFIXES: .cpp .o
 .cpp.o:
-	$(CC) $(CXXFLAGS) $(LDFLAGS) -c -MMD -MP $<
-	$(CC) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $< 
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDES) $(LDFLAGS) $(LDLIBS) -c -MMD -MP $<
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDES) $(LDFLAGS) $(LDLIBS) -o $@ -c $< 
 
 # .SUFFIXES: .cpp .d
 # .cpp.d:

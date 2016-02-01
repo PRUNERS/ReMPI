@@ -1,3 +1,5 @@
+#if MPI_VERSION == 3
+
 #include <vector>
 #include <algorithm>
 
@@ -79,7 +81,7 @@ vector<rempi_event*> rempi_encoder_cdc_row_wise_diff::decode(char *serialized_da
   return vec;
 }
 
-
+#endif
 
 
 

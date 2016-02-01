@@ -1,3 +1,5 @@
+#if MPI_VERSION == 3
+
 #include <string.h>
 
 #include <vector>
@@ -74,6 +76,8 @@ vector<rempi_event*> rempi_encoder_cdc_permutation_diff::decode(char *serialized
   delete mpi_inputs;
   return vec;
 }
+
+#endif
 
 
 

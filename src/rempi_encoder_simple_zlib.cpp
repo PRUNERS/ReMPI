@@ -1,3 +1,5 @@
+#if MPI_VERSION == 3
+
 #include <vector>
 #include <algorithm>
 
@@ -25,6 +27,6 @@ rempi_encoder_input_format* rempi_encoder_simple_zlib::create_encoder_input_form
 }
 
 
-
+#endif
 
 

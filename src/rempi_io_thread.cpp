@@ -11,18 +11,6 @@ using namespace std;
 
 rempi_mutex rempi_io_thread::mtx;
 
-rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_events, 
-				 rempi_event_list<rempi_event*> *replaying_events, 
-				 string id, int mode)
-#ifdef BGQ
-{
-  rempi_io_thread::rempi_io_thread(recording_events, replaying_events, id, mode, NULL);
-}
-#else
-  :rempi_io_thread(recording_events, replaying_events, id, mode, NULL)
-{}
-#endif
-
 
 
 rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_events, 
@@ -32,6 +20,8 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
 :recording_events(recording_events), replaying_events(replaying_events), id(id), mode(mode)
 {
   record_path = rempi_record_dir_path + "/rank_" + id + ".rempi";
+  encoder = NULL;
+#if MPI_VERSION == 3
   if (rempi_encode == 0) {
     encoder = new rempi_encoder(mode);                       //  (1): Simple record (count, flag, rank with_next and clock)
   } else if (rempi_encode == 1) {
@@ -53,16 +43,21 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
   } else {
     REMPI_ERR("No such encode");
   }
+#else 
+  if (rempi_encode == 0) {
+    encoder = new rempi_encoder(mode);                       //  (1): Simple record (count, flag, rank with_next and clock)
+  }  else {
+    REMPI_ERR("No such encoding mode");
+  }
+#endif
 
   if (mc_encoder != NULL) {
     *mc_encoder = encoder;
   }
-
 }
 
 void rempi_io_thread::write_record()
 {
-
   encoder->open_record_file(record_path);
   rempi_encoder_input_format *nonencoded_events;
   nonencoded_events = encoder->create_encoder_input_format();
@@ -183,7 +178,7 @@ void rempi_io_thread::run()
   } else if (mode == 1) {
     read_record();
   } else {
-    REMPI_DBG("Unexpected mode in rempi_io_thread");
+    REMPI_ERR("Unexpected mode in rempi_io_thread: %d", mode);
   }
 }
 

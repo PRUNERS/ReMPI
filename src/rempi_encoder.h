@@ -243,6 +243,7 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
 };
 
 
+#if MPI_VERSION == 3
 class rempi_encoder_cdc : public rempi_encoder
 {
 
@@ -309,8 +310,10 @@ class rempi_encoder_cdc : public rempi_encoder
 
   //  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };
+#endif
 
 
+#if MPI_VERSION == 3
 class rempi_encoder_rep : public rempi_encoder
 {
 
@@ -376,6 +379,7 @@ class rempi_encoder_rep : public rempi_encoder
   //  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };
 
+
 class rempi_encoder_cdc_row_wise_diff : public rempi_encoder_cdc
 {
  protected:
@@ -413,5 +417,6 @@ class rempi_encoder_cdc_permutation_diff : public rempi_encoder_cdc
     /*For only replay*/
     virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };
+#endif /* MPI_VERSION == 3*/
 
 #endif /* __REMPI_ENCODER_H__ */
