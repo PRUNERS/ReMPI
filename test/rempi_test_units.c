@@ -49,7 +49,8 @@
 /* #define TEST_ISEND_FUNC */
 /* #define TEST_INIT_SENDRECV_FUNC */
 /* #define TEST_START_FUNC */
-#define TEST_NULL_STATUS
+/* #define TEST_NULL_STATUS */
+#define TEST_SENDRECV_REQ
 
 
 #define rempi_test_dbg_print(format, ...) \
@@ -358,7 +359,7 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
 	  break;
 	}
       }
-      rempi_test_dbg_print("            SOURCE: %d, TAG: %d, index: %d", status.MPI_SOURCE, status.MPI_TAG, matched_index);
+      //      rempi_test_dbg_print("            SOURCE: %d, TAG: %d, index: %d", status.MPI_SOURCE, status.MPI_TAG, matched_index);
       MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[matched_index]);
     }
     break;
@@ -512,6 +513,39 @@ void rempi_test_null_status(int status_type)
 }
 
 
+#define SENDRECV_REQ_NUM_MSG (4)
+void rempi_test_sendrecv_req()
+{
+  int i;
+  int num_msg = SENDRECV_REQ_NUM_MSG;
+  MPI_Request requests[SENDRECV_REQ_NUM_MSG];
+  MPI_Status  statuses[SENDRECV_REQ_NUM_MSG];
+  int recv_vals[SENDRECV_REQ_NUM_MSG/2];
+  int index = 0;
+  int size;
+  
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  
+  for (i = 0; i < num_msg/2; i++) {
+    int dest = (my_rank + 1 + i) % size;
+    MPI_Isend(&i, 1, MPI_INT, dest, i, MPI_COMM_WORLD, &requests[index]);
+    index++;
+  }
+
+  for (i = 0; i < num_msg/2; i++) {
+    int src = (my_rank - 1 -i + size) % size;
+    MPI_Irecv(&recv_vals[i], 1, MPI_INT, src, i, MPI_COMM_WORLD, &requests[index]);
+    index++;
+  }
+
+  MPI_Waitall(num_msg, requests, statuses);  
+
+  return;
+
+}
+
+
+
 int main(int argc, char *argv[])
 {
   int i, j;
@@ -579,6 +613,11 @@ int main(int argc, char *argv[])
     MPI_Barrier(MPI_COMM_WORLD);
   }
   if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
+
+#if defined(TEST_SENDRECV_REQ)
+  rempi_test_sendrecv_req();
+  MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
 
