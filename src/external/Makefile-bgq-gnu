@@ -1,0 +1,9 @@
+
+all:
+	@$(MAKE) -f Makefile-bgq-gnu -C clmpi all
+
+install:
+	@$(MAKE) -f Makefile-bgq-gnu -C clmpi install
+
+clean:
+	@$(MAKE) -f Makefile-bgq-gnu clean -C clmpi

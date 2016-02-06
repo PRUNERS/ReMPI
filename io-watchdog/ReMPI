@@ -1,0 +1,41 @@
+#!/bin/sh
+
+# This script will email the user and kill the job step.
+prog="io-watchdog: ReMPI"
+
+# check that we have a JOBID and STEPID
+if [ -z "$SLURM_JOBID" -o -z "$SLURM_STEPID" ] ; then
+  echo "$prog: ERROR: Missing \$SLURM_JOBID or \$SLURM_STEPID"
+  # TODO: would like to return 1 here, but that may break io-watchdog processing
+  exit 0
+fi
+
+# if we can just kill the job step, and not the entire job, do that
+jobtype="jobstep"
+jobid=${SLURM_JOBID}.${SLURM_STEPID}
+
+# get the current nodeset, hostname, user, and date
+nodeset=`squeue -s $jobid`
+host=`hostname`
+user=$USER
+date=`date`
+
+# Notify user via email that there is a problem
+subject="$prog: KILL: killed $jobtype# $jobid on $host"
+
+message="Date:	$date
+Job#:	$jobid
+Host:	$host
+squeue info:
+$nodeset
+
+scancel $jobid"
+
+# give some time for the mail to get through
+sleep 10
+echo "$prog: Done"
+
+# now kill
+echo "$prog: Killing $jobtype $jobid"
+scancel $jobid
+echo "$prog: Done"
