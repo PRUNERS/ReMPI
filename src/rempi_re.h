@@ -14,7 +14,6 @@
 #include "rempi_recorder.h"
 #include "clmpi.h"
 
-#define REMPI_COMM_ID_LENGTH (128)
 
 using namespace std;
 
@@ -68,6 +67,11 @@ class rempi_re
    : my_rank(-1)
     {
         recorder = new rempi_recorder();
+    };
+
+  ~rempi_re()
+    {
+      delete recorder;
     };
 
   REMPI_FUNCTIONS

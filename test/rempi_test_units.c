@@ -9,7 +9,8 @@
 
 #define FUNC_NAME_LEN (32)
 //#define NUM_TEST_MSG  (1024)
-#define NUM_TEST_MSG  (10)
+//#define NUM_TEST_MSG  (100000) 
+#define NUM_TEST_MSG  (40) 
 #define TEST_MSG_CHUNK_SIZE  (2)
 
 #define MPI_Isend_id  (101)
@@ -44,12 +45,12 @@
 #define MPI_Status_NULL_id   (701)
 #define MPI_Status_ignore_id (702)
 
-/* #define TEST_MATCHING_FUNC */
-/* #define TEST_PROBE_FUNC */
-/* #define TEST_ISEND_FUNC */
-/* #define TEST_INIT_SENDRECV_FUNC */
-/* #define TEST_START_FUNC */
-/* #define TEST_NULL_STATUS */
+#define TEST_MATCHING_FUNC
+#define TEST_PROBE_FUNC
+#define TEST_ISEND_FUNC
+#define TEST_INIT_SENDRECV_FUNC
+#define TEST_START_FUNC
+#define TEST_NULL_STATUS
 #define TEST_SENDRECV_REQ
 
 
@@ -108,6 +109,17 @@ int start_ids[] = {
 int status_ids[] = {
   MPI_Status_NULL_id,
   MPI_Status_ignore_id
+};
+
+int sendrecv_req_ids[] = {
+  MPI_Test_id,
+  MPI_Testany_id,
+  MPI_Testsome_id,
+  MPI_Testall_id,
+  MPI_Wait_id,
+  MPI_Waitany_id,
+  MPI_Waitsome_id,
+  MPI_Waitall_id
 };
 
 
@@ -328,6 +340,8 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
   MPI_Status status;
   int *matched_indices;
 
+  //  rempi_test_dbg_print("Start Test MPI_test: %d (%d) = %d x %d", matching_type, num_send_msgs, num_sender, NUM_TEST_MSG);
+
   requests   = (MPI_Request*)malloc(sizeof(MPI_Request) * (num_sender));
   statuses   = (MPI_Status*)malloc(sizeof(MPI_Status) * (num_sender));
   recv_vals  = (int*)malloc(sizeof(int) * (num_sender));
@@ -335,6 +349,7 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
   for (i = 0; i < num_sender; i++) {
     MPI_Irecv(&recv_vals[i], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[i]);
   }
+
   
   switch(matching_type) {
   case MPI_Test_id:
@@ -433,6 +448,9 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
       }
     }
     break;
+  default:
+    rempi_test_dbg_print("Invalid matching_type: %d", matching_type);
+    exit(1);    
   };
 
   for (i = 0; i < num_sender; i++) {
@@ -485,6 +503,7 @@ void rempi_test_null_status(int status_type)
     MPI_Irecv(&recv_vals[i], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[i]);
   }
 
+
   recv_msg_count = 0;
   while (recv_msg_count < num_send_msgs) {
     while (1) {
@@ -495,6 +514,7 @@ void rempi_test_null_status(int status_type)
 	break;
       }
     }
+
     for (i = 0; i < matched_count; i++) {
       matched_index = matched_indices[i];
       MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[matched_index]);
@@ -514,31 +534,108 @@ void rempi_test_null_status(int status_type)
 
 
 #define SENDRECV_REQ_NUM_MSG (4)
-void rempi_test_sendrecv_req()
+void rempi_test_sendrecv_req(int matching_type)
 {
   int i;
-  int num_msg = SENDRECV_REQ_NUM_MSG;
+  int num_msgs = SENDRECV_REQ_NUM_MSG;
   MPI_Request requests[SENDRECV_REQ_NUM_MSG];
   MPI_Status  statuses[SENDRECV_REQ_NUM_MSG];
+  int         matched_indices[SENDRECV_REQ_NUM_MSG];
+  MPI_Status  status;
   int recv_vals[SENDRECV_REQ_NUM_MSG/2];
   int index = 0;
   int size;
+  int flag;
+  int matched_index;
+  int matched_count;
+  int recv_msg_count;
   
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   
-  for (i = 0; i < num_msg/2; i++) {
+  for (i = 0; i < num_msgs/2; i++) {
     int dest = (my_rank + 1 + i) % size;
     MPI_Isend(&i, 1, MPI_INT, dest, i, MPI_COMM_WORLD, &requests[index]);
+    statuses[index].MPI_SOURCE = dest;
+    statuses[index].MPI_TAG = i;
     index++;
   }
 
-  for (i = 0; i < num_msg/2; i++) {
+  for (i = 0; i < num_msgs/2; i++) {
     int src = (my_rank - 1 -i + size) % size;
     MPI_Irecv(&recv_vals[i], 1, MPI_INT, src, i, MPI_COMM_WORLD, &requests[index]);
     index++;
   }
 
-  MPI_Waitall(num_msg, requests, statuses);  
+  switch(matching_type) {
+  case MPI_Test_id:
+    for (i = 0; i < num_msgs; i++) {
+      while (1) {
+	MPI_Test(&requests[i], &flag, &status);
+	if (flag==1) {
+	  flag = 0;
+	  break;
+	}
+      }
+    }
+    break;
+  case MPI_Testany_id:
+    for (i = 0; i < num_msgs; i++) {
+      while (1) {
+	MPI_Testany(num_msgs, requests, &matched_index, &flag, &status);
+	if (flag==1) {
+	  flag = 0;
+	  break;
+	}
+      }
+    }
+    break;
+  case MPI_Testsome_id:
+    recv_msg_count = 0;
+    while (recv_msg_count < num_msgs) {
+      while (1) {
+	matched_count = 0;
+	MPI_Testsome(num_msgs, requests, &matched_count, matched_indices, statuses);
+	if (matched_count > 0) {
+	  recv_msg_count += matched_count;
+	  break;
+	}
+      }
+    }
+    break;
+  case MPI_Testall_id:
+    while (1) {
+      flag = 0;
+      MPI_Testall(num_msgs, requests, &flag, statuses);
+      if (flag == 1) {
+	break;
+      }
+    }
+    break;
+  case MPI_Wait_id:
+    for (i = 0; i < num_msgs; i++) {
+      MPI_Wait(&requests[i], &status);
+    }
+    break;
+  case MPI_Waitany_id:
+    for (i = 0; i < num_msgs; i++) {
+      MPI_Waitany(num_msgs, requests, &matched_index, &status);
+    }
+    break;
+  case MPI_Waitsome_id:
+    recv_msg_count = 0;
+    while (recv_msg_count < num_msgs) {
+      MPI_Waitsome(num_msgs, requests, &matched_count, matched_indices, statuses);
+      recv_msg_count += matched_count;
+    }
+    break;
+  case MPI_Waitall_id:
+    MPI_Waitall(num_msgs, requests, statuses);
+    /* for (i = 0; i < num_msgs; i++) { */
+    /*   rempi_test_dbg_print("source: %d, tag: %d", statuses[i].MPI_SOURCE, statuses[i].MPI_TAG); */
+    /* } */
+    break;
+  };
+
 
   return;
 
@@ -606,6 +703,8 @@ int main(int argc, char *argv[])
   if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
 #endif
 
+
+
 #if defined(TEST_NULL_STATUS)
   if (my_rank == 0) fprintf(stdout, "Start testing null status ... "); fflush(stdout);
   for (i = 0; i < sizeof(status_ids)/sizeof(int); i++) {
@@ -616,8 +715,12 @@ int main(int argc, char *argv[])
 #endif
 
 #if defined(TEST_SENDRECV_REQ)
-  rempi_test_sendrecv_req();
-  MPI_Barrier(MPI_COMM_WORLD);
+  if (my_rank == 0) fprintf(stdout, "Start testing sendrecv req ... "); fflush(stdout);
+  for (i = 0; i < sizeof(sendrecv_req_ids)/sizeof(int); i++) {
+    rempi_test_sendrecv_req(sendrecv_req_ids[i]);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+  if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
 #endif
 
 

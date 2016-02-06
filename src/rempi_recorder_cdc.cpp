@@ -417,6 +417,17 @@ int rempi_recorder_cdc::record_mf(int incount,
   return 0;
 }
 
+int rempi_recorder_cdc::rempi_pf(int source,
+				 int tag,
+				 MPI_Comm comm,
+				 int *flag,
+				 MPI_Status *status,
+				 int prove_function_type)
+{
+  REMPI_ERR("not implemented yet");
+  return 0;
+}
+
 int rempi_recorder_cdc::replay_test(
                                 MPI_Request *request,
                                 int *flag,

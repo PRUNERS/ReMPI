@@ -95,7 +95,7 @@ _EXTERN_C_ int MPI_Recv(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, i
 
     //    _wrap_py_return_val = MPI_Irecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, &req);
     _wrap_py_return_val = rempi_record_replay->re_irecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, &req);
-    REMPI_DBGI(9, "request: %p %p at %s", req, &req, __func__);
+    //    REMPI_DBGI(9, "request: %p %p at %s", req, &req, __func__);
     //    _wrap_py_return_val = MPI_Wait(&req, arg_6);
     _wrap_py_return_val = rempi_record_replay->re_wait(&req, arg_6);
 
@@ -109,11 +109,6 @@ _EXTERN_C_ int MPI_Irecv(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, 
 { 
   int _wrap_py_return_val = 0;
   _wrap_py_return_val = rempi_record_replay->re_irecv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
-  REMPI_DBGI(9, "request: %p %p at %s", *arg_6, arg_6, __func__);
-
-  // int rank;
-  // PMPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  //  fprintf(stderr, "rank %d: irecv request: %p\n", rank, *arg_6);
   return _wrap_py_return_val;
 }
 
@@ -152,7 +147,6 @@ _EXTERN_C_ int MPI_Testall(int arg_0, MPI_Request *arg_1, int *arg_2, MPI_Status
   int _wrap_py_return_val = 0;
   {
     _wrap_py_return_val = rempi_record_replay->re_testall(arg_0, arg_1, arg_2, arg_3);
-    REMPI_DBGI(9, "======= testall: flag: %d", *arg_2);
   }    return _wrap_py_return_val;
 }
 
@@ -303,6 +297,7 @@ _EXTERN_C_ int MPI_Finalize()
 { 
   int _wrap_py_return_val = 0;
   _wrap_py_return_val = rempi_record_replay->re_finalize();
+  delete rempi_record_replay;
   return _wrap_py_return_val;
 }
 
@@ -313,7 +308,7 @@ _EXTERN_C_ int MPI_Isend(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype 
   int _wrap_py_return_val = 0;
   {
     _wrap_py_return_val = rempi_record_replay->re_isend(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
-    REMPI_DBGI(9, "buf: %p, request: %p %p at %s", arg_0, *arg_6, arg_6, __func__);
+    //    REMPI_DBG("buf: %p, request: %p %p at %s", arg_0, *arg_6, arg_6, __func__);
   }    return _wrap_py_return_val;
 }
 
@@ -484,7 +479,7 @@ _EXTERN_C_ int MPI_Barrier(MPI_Comm arg_0) {
    int _wrap_py_return_val = 0;
    {
      _wrap_py_return_val = PMPI_Recv_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
-     REMPI_DBGI(9, "request: %p at %s", *arg_6, __func__);
+     //     REMPI_DBGI(9, "request: %p at %s", *arg_6, __func__);
    }    return _wrap_py_return_val;
  }
 
@@ -494,7 +489,7 @@ _EXTERN_C_ int MPI_Send_init(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datat
   int _wrap_py_return_val = 0;
   {
      _wrap_py_return_val = PMPI_Send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
-     REMPI_DBGI(9, "request: %p at %s", *arg_6, __func__);
+     //     REMPI_DBGI(9, "request: %p at %s", *arg_6, __func__);
   }    return _wrap_py_return_val;
 }
 
@@ -504,7 +499,7 @@ _EXTERN_C_ int MPI_Start(MPI_Request *arg_0) {
   int _wrap_py_return_val = 0;
   {
     _wrap_py_return_val = PMPI_Start(arg_0);
-     REMPI_DBGI(9, "request: %p at %s", *arg_0, __func__);
+    //     REMPI_DBGI(9, "request: %p at %s", *arg_0, __func__);
   }    return _wrap_py_return_val;
 }
 
@@ -514,7 +509,7 @@ _EXTERN_C_ int MPI_Start(MPI_Request *arg_0) {
    int _wrap_py_return_val = 0;
    {
      _wrap_py_return_val = PMPI_Startall(arg_0, arg_1);
-     REMPI_DBGI(9, "request: %p at %s", *arg_1, __func__);
+     //     REMPI_DBGI(9, "request: %p at %s", *arg_1, __func__);
    }    return _wrap_py_return_val;
  }
 

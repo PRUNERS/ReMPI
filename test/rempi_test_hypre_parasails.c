@@ -24,6 +24,7 @@ typedef double HYPRE_Real;
 #define hypre_MPI_SOURCE MPI_SOURCE
 #define hypre_MPI_Request MPI_Request
 #define hypre_MPI_Status MPI_Status
+
 #define hypre_MPI_Probe MPI_Probe
 #define hypre_MPI_Wtime MPI_Wtime
 #define hypre_MPI_Allreduce MPI_Allreduce
@@ -35,6 +36,24 @@ typedef double HYPRE_Real;
 #define hypre_MPI_Get_count MPI_Get_count
 #define hypre_MPI_Recv MPI_Recv
 #define hypre_MPI_Waitall MPI_Waitall
+
+
+//#define ENABLE_PRINT_TIME
+#ifdef ENABLE_PRINT_TIME
+double s, e;
+#define PRINT_TIME(func,name)			\
+  do { \
+  s = get_time();				\
+  func;						\
+  e = get_time();					\
+  if (my_rank == 0) rempi_test_dbg_print("func: %s: %f", name, e - s);	\
+  } while(0)
+#else
+#define PRINT_TIME(func,name) \
+  do { \
+    func; \
+  } while(0)
+#endif
 
 
 #define ROW_REQ_TAG        222
@@ -260,7 +279,7 @@ HYPRE_Int FindNumReplies(MPI_Comm comm, HYPRE_Int *replies_list)
 
     replies_list2 = (HYPRE_Int *) malloc(npes * sizeof(HYPRE_Int));
 
-    hypre_MPI_Allreduce(replies_list, replies_list2, npes, HYPRE_MPI_INT, hypre_MPI_SUM, comm);
+    PRINT_TIME(hypre_MPI_Allreduce(replies_list, replies_list2, npes, HYPRE_MPI_INT, hypre_MPI_SUM, comm), "MPI_Allreduce");
     num_replies = replies_list2[mype];
 
     free(replies_list2);
@@ -287,8 +306,8 @@ static void SendRequests(MPI_Comm comm, HYPRE_Int reqlen, HYPRE_Int *reqind,
       
       //      if (my_rank == 63) sleep(1);
 
-      hypre_MPI_Isend(&val, 1, HYPRE_MPI_INT, this_pe, ROW_REQ_TAG,
-		      comm, &request);
+      PRINT_TIME(hypre_MPI_Isend(&val, 1, HYPRE_MPI_INT, this_pe, ROW_REQ_TAG,
+				 comm, &request), "MPI_Isend 0");
       hypre_MPI_Request_free(&request);
       (*num_requests)++;
       
@@ -303,7 +322,7 @@ static void ReceiveRequest(MPI_Comm comm, HYPRE_Int *source, HYPRE_Int **buffer,
 {
     hypre_MPI_Status status;
 
-    hypre_MPI_Probe(hypre_MPI_ANY_SOURCE, ROW_REQ_TAG, comm, &status);
+    PRINT_TIME(hypre_MPI_Probe(hypre_MPI_ANY_SOURCE, ROW_REQ_TAG, comm, &status), "MPI_Probe 0");
     *source = status.hypre_MPI_SOURCE;
     hypre_MPI_Get_count(&status, HYPRE_MPI_INT, count);
 
@@ -315,7 +334,7 @@ static void ReceiveRequest(MPI_Comm comm, HYPRE_Int *source, HYPRE_Int **buffer,
     }
 
 
-    hypre_MPI_Recv(*buffer, *count, HYPRE_MPI_INT, *source, ROW_REQ_TAG, comm, &status);
+    PRINT_TIME(hypre_MPI_Recv(*buffer, *count, HYPRE_MPI_INT, *source, ROW_REQ_TAG, comm, &status), "MPI_Recv 0");
 }
 
 
@@ -327,7 +346,7 @@ static void SendReplyPrunedRows(MPI_Comm comm,  HYPRE_Int dest,
     HYPRE_Int temp;
     HYPRE_Int val = 0;
 
-    hypre_MPI_Isend(&val, 1, HYPRE_MPI_INT, dest, ROW_REPI_TAG, comm, request);
+    PRINT_TIME(hypre_MPI_Isend(&val, 1, HYPRE_MPI_INT, dest, ROW_REPI_TAG, comm, request), "MPI_Isend 1");
 }
 
 
@@ -339,10 +358,10 @@ static void ReceiveReplyPrunedRows(MPI_Comm comm)
     HYPRE_Int val;
 
     /* Don't know the size of reply, so use probe and get count */
-    hypre_MPI_Probe(hypre_MPI_ANY_SOURCE, ROW_REPI_TAG, comm, &status);
+    PRINT_TIME(hypre_MPI_Probe(hypre_MPI_ANY_SOURCE, ROW_REPI_TAG, comm, &status), "MPI_Probe 1");
     source = status.hypre_MPI_SOURCE;
     hypre_MPI_Get_count(&status, HYPRE_MPI_INT, &count);
-    hypre_MPI_Recv(&val, 1, HYPRE_MPI_INT, source, ROW_REPI_TAG, comm, &status);
+    PRINT_TIME(hypre_MPI_Recv(&val, 1, HYPRE_MPI_INT, source, ROW_REPI_TAG, comm, &status), "MPI_Recv 1");
 }
 
 
@@ -351,13 +370,13 @@ static void SendReplyStoredRows(MPI_Comm comm, HYPRE_Int dest,
 {
     HYPRE_Int val;
 
-    hypre_MPI_Isend(&val, 1, HYPRE_MPI_INT, dest, ROW_REPI_TAG,
-        comm, request);
+    PRINT_TIME(hypre_MPI_Isend(&val, 1, HYPRE_MPI_INT, dest, ROW_REPI_TAG,
+			      comm, request), "MPI_Isend 2");
 
     hypre_MPI_Request_free(request);
 
-    hypre_MPI_Isend(&val, 1, HYPRE_MPI_INT, dest, ROW_REPV_TAG,
-        comm, request);
+    PRINT_TIME(hypre_MPI_Isend(&val, 1, HYPRE_MPI_INT, dest, ROW_REPV_TAG,
+			       comm, request), "MPI_Isend 3");
 }
 
 
@@ -368,13 +387,13 @@ static void ReceiveReplyStoredRows(MPI_Comm comm)
     HYPRE_Int val;
 
     /* Don't know the size of reply, so use probe and get count */
-    hypre_MPI_Probe(hypre_MPI_ANY_SOURCE, ROW_REPI_TAG, comm, &status);
+    PRINT_TIME(hypre_MPI_Probe(hypre_MPI_ANY_SOURCE, ROW_REPI_TAG, comm, &status), "MPI_Probe 2");
     source = status.hypre_MPI_SOURCE;
     hypre_MPI_Get_count(&status, HYPRE_MPI_INT, &count);
 
     /* Allocate space in stored rows data structure */
-    hypre_MPI_Recv(&val, 1, HYPRE_MPI_INT, source, ROW_REPI_TAG, comm, &status);
-    hypre_MPI_Recv(&val, 1, HYPRE_MPI_INT, source, ROW_REPV_TAG, comm, &status);
+    PRINT_TIME(hypre_MPI_Recv(&val, 1, HYPRE_MPI_INT, source, ROW_REPI_TAG, comm, &status), "MPI_Recv 2");
+    PRINT_TIME(hypre_MPI_Recv(&val, 1, HYPRE_MPI_INT, source, ROW_REPV_TAG, comm, &status), "MPI_Recv 3");
 }
 
 
@@ -432,7 +451,7 @@ static void ExchangePrunedRows(MPI_Comm comm, HYPRE_Int num_levels)
 	  ReceiveReplyPrunedRows(comm);
         }
 
-        hypre_MPI_Waitall(num_replies, requests, statuses);
+        PRINT_TIME(hypre_MPI_Waitall(num_replies, requests, statuses), "MPI_Waitall 0");
     }
 
     free(buffer);
@@ -489,7 +508,7 @@ static void ExchangeStoredRows(MPI_Comm comm)
       ReceiveReplyStoredRows(comm);
     }
 
-    hypre_MPI_Waitall(num_replies, requests, statuses);
+    PRINT_TIME(hypre_MPI_Waitall(num_replies, requests, statuses), "MPI_Waitall 1");
 
     /* Free all send buffers */
     free(buffer);
@@ -537,8 +556,8 @@ void ParaSailsCreate(MPI_Comm comm, HYPRE_Int beg_row, HYPRE_Int end_row, HYPRE_
   beg_rows = (HYPRE_Int *) malloc(npes * sizeof(HYPRE_Int));
   end_rows = (HYPRE_Int *) malloc(npes * sizeof(HYPRE_Int));
   
-  hypre_MPI_Allgather(&beg_row, 1, HYPRE_MPI_INT, beg_rows, 1, HYPRE_MPI_INT, comm);
-  hypre_MPI_Allgather(&end_row, 1, HYPRE_MPI_INT, end_rows, 1, HYPRE_MPI_INT, comm);
+  PRINT_TIME(hypre_MPI_Allgather(&beg_row, 1, HYPRE_MPI_INT, beg_rows, 1, HYPRE_MPI_INT, comm), "MPI_Allgather 0");
+  PRINT_TIME(hypre_MPI_Allgather(&end_row, 1, HYPRE_MPI_INT, end_rows, 1, HYPRE_MPI_INT, comm), "MPI_Allgather 1");
   
   return;
 }
@@ -597,29 +616,32 @@ int main(int argc, char* argv[])
   int pid = getpid();
   char path[32];
   int fd;
-  /* //  if (my_rank == 0) { */
-  /*   sprintf(path, "parasails-%d.log", pid); */
-  /*   fd = open(path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR); */
-  /*   //  } */
+  if (my_rank == 0) {
+    //    sprintf(path, "parasails-%d.log", pid);
+    sprintf(path, "parasails.log");
+    fd = open(path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+  }
   
   int i;
 
   int print_rank = 0;
-  //  for (i = 0; i < 400 ;i++) {
+  //  for (i = 0; i < 50 ;i++) {
   for (i = 0; ;i++) {
     ParaSailsSetupPattern(0, 1);
     ParaSailsSetupValues(0);
+    //    rempi_test_dbgi_print(0, "loop %d", i);
     if (i % 200 == 0) {
-      if (my_rank == print_rank++ % comm_size) {
+      //      if (my_rank == print_rank++ % comm_size) {
+      if (my_rank == 0) {
 	//	dprintf(fd, "loop %d\n", i);
-	//	write(fd, "loop\n", 5);
+	write(fd, "loop\n", 5);
     	rempi_test_dbg_print("loop %d", i);
       }
     }
   }
-  //  if (my_rank == 0) {
-  //    close(fd);
-    //  }
+  if (my_rank == 0) {
+    close(fd);
+  }
 
   MPI_Finalize();
   return 0;

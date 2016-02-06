@@ -114,8 +114,7 @@ class rempi_encoder_input_format
   /*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*/
   size_t *mc_next_clocks;// = NULL;
   size_t *tmp_mc_next_clocks;
-  /* ======================*/
-  
+  /* ======================*/  
 
   /*vector to write to file*/
   vector<char*>  write_queue_vec;
@@ -123,11 +122,7 @@ class rempi_encoder_input_format
   /**/
   size_t decompressed_size;
 
-  size_t  length();
-  virtual void add(rempi_event *event);
-  virtual void add(rempi_event *event, int test_id);
-  virtual void format();
-  virtual void debug_print();
+
 
   rempi_encoder_input_format()
     : total_length(0)
@@ -135,6 +130,17 @@ class rempi_encoder_input_format
     , mc_recv_ranks(NULL)
     , mc_next_clocks(NULL)
     , tmp_mc_next_clocks(NULL) {}
+
+  ~rempi_encoder_input_format() 
+    {
+      //    this->clear();
+    }
+  
+  size_t  length();
+  virtual void add(rempi_event *event);
+  virtual void add(rempi_event *event, int test_id);
+  virtual void format();
+  virtual void debug_print();  
 
   /*For CDC replay*/
   void clear();
@@ -148,6 +154,7 @@ class rempi_encoder
     size_t clock;
   };
  protected:
+    size_t total_write_size;
     int mode;
     string record_path;
     fstream record_fs;

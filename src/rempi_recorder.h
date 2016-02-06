@@ -8,8 +8,11 @@
 #define REMPI_MF_FLAG_2_SOME   (4)
 #define REMPI_MF_FLAG_2_ALL    (5)
 
+#include <string.h>
+
 #include <vector>
 #include <unordered_set>
+
 
 #include "rempi_mem.h"
 #include "rempi_message_manager.h"
@@ -100,7 +103,7 @@ class rempi_irecv_inputs
   /* void erase_request(MPI_Request* proxy_request); */
 };
 
-
+#define REQUEST_INFO_SIZE (128)
 class rempi_recorder {
  protected:
   rempi_message_manager msg_manager; //TODO: this is not used
@@ -113,16 +116,28 @@ class rempi_recorder {
   rempi_io_thread *record_thread, *read_record_thread;
   /*TODO: Fix bug in PNMPI fo rmulti-threaded, and remove this outputing*/
   rempi_encoder *mc_encoder;// = NULL;
-
   unsigned int validation_code; /*integer to check if correctly replayed the reocrded events*/
   void update_validation_code(int outcount, int *array_of_indices, MPI_Status *array_of_statuses);
+  int request_info[REQUEST_INFO_SIZE];
+  MPI_Status tmp_statuses[REQUEST_INFO_SIZE];
  public:
-
 
   rempi_recorder()
     : next_test_id_to_assign(0)
     , mc_encoder(NULL)
-    , validation_code(5371) {}
+    , validation_code(5371) {
+    memset(request_info, 0, sizeof(int) * REQUEST_INFO_SIZE);
+    memset(tmp_statuses, 0, sizeof(int) * REQUEST_INFO_SIZE);
+    //    request_info = (int*)rempi_malloc(sizeof(int) * REQUEST_INFO_SIZE);
+  }
+  
+  ~rempi_recorder()
+    {
+      delete replaying_event_list;
+      delete recording_event_list;
+      delete record_thread;
+      //      rempi_free(request_info);
+    }
   
   virtual int record_init(int *argc, char ***argv, int rank);
   virtual int replay_init(int *argc, char ***argv, int rank);
@@ -179,6 +194,13 @@ class rempi_recorder {
 			MPI_Status array_of_statuses[],
 			int global_test_id,
 			int matching_function_type);
+
+  virtual int record_pf(int source,
+			int tag,
+			MPI_Comm comm,
+			int *flag,
+			MPI_Status *status,
+			int prove_function_type);
   
   /*TODO: Conmbine replay_test with replay_testsome into replay_mf by mf_flag_1 & mf_flag_2 ??*/
   virtual int replay_test(
@@ -315,6 +337,13 @@ class rempi_recorder_cdc : public rempi_recorder
 		MPI_Status array_of_statuses[],
 		int global_test_id,
 		int matching_function_type);
+
+  int record_pf(int source,
+		int tag,
+		MPI_Comm comm,
+		int *flag,
+		MPI_Status *status,
+		int prove_function_type);
 
   int replay_test(
 		  MPI_Request *request,

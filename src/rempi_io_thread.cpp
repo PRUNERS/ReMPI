@@ -56,10 +56,16 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
   }
 }
 
+
+rempi_io_thread::~rempi_io_thread()
+{
+  delete encoder;
+}
+
 void rempi_io_thread::write_record()
 {
   encoder->open_record_file(record_path);
-  rempi_encoder_input_format *nonencoded_events;
+  rempi_encoder_input_format *nonencoded_events = NULL;
   nonencoded_events = encoder->create_encoder_input_format();
 
   while(1) {
@@ -99,6 +105,9 @@ void rempi_io_thread::write_record()
     /*is_complete = 1 => event are not pushed to the event quene no longer*/
     /*if the events is empty, we can finish recoding*/
     if (recording_events->is_push_closed_() && recording_events->size() == 0) {
+      if (nonencoded_events != NULL) {
+       	delete nonencoded_events;
+      }
       break;
     }
   }

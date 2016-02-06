@@ -68,7 +68,6 @@ public:
           n = next;
       }
       while (n);
-      REMPI_ERR("rempi_spsc_queue is deleted, which is not intended");
   }
 
   size_t rough_size()

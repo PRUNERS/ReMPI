@@ -17,13 +17,19 @@
 
 void rempi_encoder_input_format_test_table::clear()
 {
-  for (int i = 0; i < events_vec.size(); i++) {
+  int size = events_vec.size();
+  for (int i = 0; i < size; i++) {
     delete events_vec[i];
   }
   events_vec.clear();
+
+  epoch_umap.clear();
+  epoch_rank_vec.clear();
+  epoch_clock_vec.clear();
   
   /*With previous*/
   with_previous_vec.clear();
+  with_previous_bool_vec.clear();
   compressed_with_previous_length = 0;
   compressed_with_previous_size   = 0;
   if (compressed_with_previous != NULL) {
@@ -33,12 +39,13 @@ void rempi_encoder_input_format_test_table::clear()
 
   /*Unmatched */
   unmatched_events_id_vec.clear();
+  unmatched_events_count_vec.clear();
+  unmatched_events_umap.clear();
   compressed_unmatched_events_id_size = 0;
   if (compressed_unmatched_events_id  != NULL) {
     free(compressed_unmatched_events_id);
     compressed_unmatched_events_id = NULL;
   }
-  unmatched_events_count_vec.clear();
   compressed_unmatched_events_count_size = 0;
   if (compressed_unmatched_events_count  != NULL) {
     free(compressed_unmatched_events_count);
@@ -46,6 +53,12 @@ void rempi_encoder_input_format_test_table::clear()
   }
 
   /*Matched*/
+  matched_events_id_vec.clear();
+  matched_events_delay_vec.clear();
+  matched_events_square_sizes_vec.clear();
+  matched_events_permutated_indices_vec.clear(); 
+  matched_events_square_sizes_vec_index = 0;
+  replayed_matched_event_index = 0;
   compressed_matched_events_size = 0;
   if (compressed_matched_events != NULL) {
     free(compressed_matched_events);
@@ -112,7 +125,6 @@ void rempi_encoder_input_format::clear()
 
 void rempi_encoder_input_format::debug_print()
 {
-  
   return;
 }
 
@@ -309,7 +321,8 @@ void rempi_encoder::write_record_file(rempi_encoder_input_format &input_format)
   whole_data      = test_table->compressed_matched_events;
   whole_data_size = test_table->compressed_matched_events_size;
   record_fs.write(whole_data, whole_data_size);
-  write_size_vec.push_back(whole_data_size);
+  //  write_size_vec.push_back(whole_data_size);
+  total_write_size += whole_data_size;
 
   /*Free all recorded data*/
   input_format.clear();
@@ -319,10 +332,10 @@ void rempi_encoder::write_record_file(rempi_encoder_input_format &input_format)
 
 void rempi_encoder::close_record_file()
 {
-  size_t total_write_size = 0;
-  for (int i = 0, n = write_size_vec.size(); i < n; i++) {
-    total_write_size += write_size_vec[i];
-  }
+  // size_t total_write_size = 0;
+  // for (int i = 0, n = write_size_vec.size(); i < n; i++) {
+  //   total_write_size += write_size_vec[i];
+  // }
   REMPI_DBG("EVAL Total write size: |%lu|", total_write_size);
   record_fs.close();
 }
