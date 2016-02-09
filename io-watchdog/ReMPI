@@ -31,11 +31,15 @@ $nodeset
 
 scancel $jobid"
 
+#echo "$prog: Emailing $user that $jobtype $jobid will be killed"
+#/bin/mail -s "$subject" $user <<EOF
+#$message
+#EOF
 # give some time for the mail to get through
-sleep 10
+#sleep 10
 echo "$prog: Done"
 
 # now kill
 echo "$prog: Killing $jobtype $jobid"
-scancel $jobid
+scancel -s 12 $jobid
 echo "$prog: Done"

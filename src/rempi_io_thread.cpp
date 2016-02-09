@@ -77,12 +77,14 @@ void rempi_io_thread::write_record()
     double s, e;
 
     /*Get a sequence of events, ...  */
+
     is_extracted = encoder->extract_encoder_input_format_chunk(*recording_events, *nonencoded_events);
 
     if (is_extracted) {
       /*If I get the sequence,... */
       /*... , encode(compress) the seuence*/
       s = rempi_get_time();
+
       encoder->encode(*nonencoded_events);
       /*Then, write to file.*/
       encoder->write_record_file(*nonencoded_events);
@@ -104,6 +106,7 @@ void rempi_io_thread::write_record()
     //    REMPI_DBG(" is_cclosed: %d, size: %d", events->is_push_closed_(), events->size());
     /*is_complete = 1 => event are not pushed to the event quene no longer*/
     /*if the events is empty, we can finish recoding*/
+
     if (recording_events->is_push_closed_() && recording_events->size() == 0) {
       if (nonencoded_events != NULL) {
        	delete nonencoded_events;

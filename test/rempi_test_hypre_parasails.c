@@ -629,7 +629,7 @@ int main(int argc, char* argv[])
   for (i = 0; ;i++) {
     ParaSailsSetupPattern(0, 1);
     ParaSailsSetupValues(0);
-    //    rempi_test_dbgi_print(0, "loop %d", i);
+
     if (i % 200 == 0) {
       //      if (my_rank == print_rank++ % comm_size) {
       if (my_rank == 0) {

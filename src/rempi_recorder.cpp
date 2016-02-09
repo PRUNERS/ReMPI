@@ -460,41 +460,16 @@ int rempi_recorder::record_mf(
   int sendcount, recvcount, nullcount;
   int was_array_of_indices_null = 0;
 
-
-  // if (array_of_indices == NULL) {
-  //   array_of_indices = (int*)rempi_malloc(sizeof(int) * incount);
-  //   was_array_of_indices_null = 1;
-  // }
-  //  rempi_reqmg_get_request_info(incount, array_of_requests, &sendcount, &recvcount, &nullcount, array_of_indices);
   if (incount > REQUEST_INFO_SIZE) {
     REMPI_ERR("incount: %d is larger than buffer", incount);
   }
   
-  //  REMPI_DBGI(3, "1 request[0]: %p, info: %p", array_of_requests[0], request_info);  
   rempi_reqmg_get_request_info(incount, array_of_requests, &sendcount, &recvcount, &nullcount, request_info);
-  //  REMPI_DBGI(3, "2 request[0]: %p, info: %p", array_of_requests[0], request_info);  
-  
-  
 
-  // if (sendcount > 0 && recvcount > 0) {
-  //   if (was_array_of_indices_null)  {
-  //     request_info = array_of_indices;
-  //   } else {
-  //     request_info = (int*)rempi_malloc(sizeof(int) * incount);
-  //     memcpy(request_info, array_of_indices, sizeof(int) * incount);
-  //     memset(array_of_indices, 0, sizeof(int) * incount);
-  //   }
-  //   rempi_reqmg_store_send_statuses(incount, array_of_requests, request_info, array_of_statuses);
-  // }
   rempi_reqmg_store_send_statuses(incount, array_of_requests, request_info, tmp_statuses);
 
-  /* Call MPI matching function */
-  // for (int i = 0; i < incount; i++) {
-  //   REMPI_DBGI(3, "request: %p, incount: %d, sendcount: %d, recvount: %d, nullcount: %d", array_of_requests[i], incount, sendcount, recvcount, nullcount);
-  // }
-
   ret = rempi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, matching_function_type);
-  //  REMPI_DBGI(3, " ... end: index: %d", array_of_indices[0]);
+
   
   if (recvcount == 0) goto end;
   global_test_id = rempi_reqmg_get_test_id(array_of_requests, incount);
@@ -570,17 +545,16 @@ int rempi_recorder::record_pf(int source,
   update_validation_code(1, NULL, status);
 
   if (flag == NULL) {
-    /*rempi_pf = MPI_Probe*/
+    /*MPI_Probe*/
     test_event = new rempi_test_event(1, REMPI_MPI_EVENT_NOT_WITH_NEXT, 0, 1, status->MPI_SOURCE, status->MPI_TAG, 0, global_test_id);
   } else if (*flag == 0) {
+    /*MPI_Iprobe unmatched*/
     test_event = new rempi_test_event(1, REMPI_MPI_EVENT_NOT_WITH_NEXT, 0, 0, 0, 0, 0, global_test_id);
   } else {
+    /*MPI_Iprobe matched*/
     test_event = new rempi_test_event(1, REMPI_MPI_EVENT_NOT_WITH_NEXT, 0, 1, status->MPI_SOURCE, status->MPI_TAG, 0, global_test_id);
   }
   recording_event_list->push(test_event);
-
-
-
   return ret;
 }
 
@@ -603,7 +577,6 @@ int rempi_recorder::replay_testsome(
   int replay_queue_status;
   MPI_Comm comm;
   rempi_irecv_inputs *irecv_inputs;
-
 
   recv_request_count = rempi_reqmg_get_recv_request_count(incount, array_of_requests);
   null_request_count = rempi_reqmg_get_null_request_count(incount, array_of_requests);
@@ -634,6 +607,7 @@ int rempi_recorder::replay_testsome(
       case REMPI_MF_FLAG_2_SOME:
 	return PMPI_Waitsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
       case REMPI_MF_FLAG_2_ALL:
+	*outcount = incount;
 	return PMPI_Waitall(incount, array_of_requests, array_of_statuses);
       }
     } else {

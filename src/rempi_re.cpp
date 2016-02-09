@@ -462,6 +462,9 @@ int rempi_re::re_waitall(
     int  outcount;
     recorder->replay_testsome(incount, array_of_requests, &outcount, NULL, array_of_statuses, test_id, 
 			      REMPI_MF_FLAG_1_WAIT, REMPI_MF_FLAG_2_ALL);
+    if (incount != outcount) {
+      REMPI_ERR("incount: %d != outcount: %d", incount, outcount)
+    }
     REMPI_ASSERT(incount == outcount);
   }
   if (status_flag) rempi_status_free(array_of_statuses);
