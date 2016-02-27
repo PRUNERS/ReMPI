@@ -50,6 +50,8 @@ using namespace std;
   virtual int re_alltoall(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6); \
   virtual int re_gather(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7); \
   virtual int re_barrier(MPI_Comm arg_0); \
+  virtual MPI_Fint re_request_c2f(MPI_Request request); \
+  virtual int re_request_free(MPI_Request *request); \
   virtual int re_finalize(); 
 
 //  virtaul int re_waitsome(int incount, MPI_Request array_of_requests[], int *outcount, int array_of_indices[], MPI_Status array_of_statuses[]); 
@@ -66,7 +68,7 @@ class rempi_re
  rempi_re()
    : my_rank(-1)
     {
-        recorder = new rempi_recorder();
+      recorder = new rempi_recorder();
     };
 
   ~rempi_re()

@@ -37,8 +37,14 @@ typedef double HYPRE_Real;
 #define hypre_MPI_Recv MPI_Recv
 #define hypre_MPI_Waitall MPI_Waitall
 
+//#define MSGLEN_ROW    (10 * 1000 * 1000)
+#define MSGLEN_ROW    (24576)
+#define MSGLEN_STORED (1)
+HYPRE_Int sendrequest_vals[MSGLEN_ROW];
 
 //#define ENABLE_PRINT_TIME
+//#define ENABLE_NOISE
+
 #ifdef ENABLE_PRINT_TIME
 double s, e;
 #define PRINT_TIME(func,name)			\
@@ -52,8 +58,11 @@ double s, e;
 #define PRINT_TIME(func,name) \
   do { \
     func; \
+    do_noise_work(1, get_rand(1000) % 10000 == 0);	\
   } while(0)
 #endif
+
+
 
 
 #define ROW_REQ_TAG        222
@@ -268,6 +277,23 @@ HYPRE_Int dest_list_stored[][TEST_MAX_ROWS] = {
 int my_rank;
 int comm_size;
 
+#define LEN (64)
+float calibration = 1;
+int a[LEN];
+static void do_noise_work(float msec, int bool)
+{
+#ifdef ENABLE_NOISE
+  int i;
+  if (bool) {
+    for (i = 0; i < msec * calibration; i++) {
+      a[i++ % LEN] = 0;
+    }
+  }
+#endif
+  return;
+}
+
+
 HYPRE_Int FindNumReplies(MPI_Comm comm, HYPRE_Int *replies_list)
 {
     HYPRE_Int num_replies;
@@ -288,12 +314,12 @@ HYPRE_Int FindNumReplies(MPI_Comm comm, HYPRE_Int *replies_list)
 }
 
 
-static void SendRequests(MPI_Comm comm, HYPRE_Int reqlen, HYPRE_Int *reqind,
+static void SendRequests(MPI_Comm comm, HYPRE_Int msglen, HYPRE_Int *reqind,
 			 HYPRE_Int *num_requests, HYPRE_Int *replies_list, HYPRE_Int dest_list[][TEST_MAX_ROWS])
 {
     hypre_MPI_Request request;
     HYPRE_Int i, j, this_pe;
-    HYPRE_Int val = 0;
+
 
     *num_requests = 0;
 
@@ -306,7 +332,7 @@ static void SendRequests(MPI_Comm comm, HYPRE_Int reqlen, HYPRE_Int *reqind,
       
       //      if (my_rank == 63) sleep(1);
 
-      PRINT_TIME(hypre_MPI_Isend(&val, 1, HYPRE_MPI_INT, this_pe, ROW_REQ_TAG,
+      PRINT_TIME(hypre_MPI_Isend(&sendrequest_vals, msglen, HYPRE_MPI_INT, this_pe, ROW_REQ_TAG,
 				 comm, &request), "MPI_Isend 0");
       hypre_MPI_Request_free(&request);
       (*num_requests)++;
@@ -429,9 +455,14 @@ static void ExchangePrunedRows(MPI_Comm comm, HYPRE_Int num_levels)
     {
 
         replies_list = (HYPRE_Int *) calloc(npes, sizeof(HYPRE_Int));
-
-        SendRequests(comm, len, ind, &num_requests, replies_list, dest_list_pruned);
-
+	int r = get_rand(1000000);
+	int msglen;
+	if (r % 100000 == 0) {
+	  msglen = MSGLEN_ROW;
+	} else {
+	  msglen = 1;
+	}
+        SendRequests(comm, msglen, ind, &num_requests, replies_list, dest_list_pruned);
 
         num_replies = FindNumReplies(comm, replies_list);
         free(replies_list);
@@ -482,7 +513,7 @@ static void ExchangeStoredRows(MPI_Comm comm)
 
     replies_list = (HYPRE_Int *) calloc(npes, sizeof(HYPRE_Int));
 
-    SendRequests(comm, len, ind, &num_requests, replies_list, dest_list_stored);
+    SendRequests(comm, MSGLEN_STORED, ind, &num_requests, replies_list, dest_list_stored);
 
     num_replies = FindNumReplies(comm, replies_list);
     free(replies_list);
@@ -607,11 +638,34 @@ HYPRE_Int ParaSailsSetupValues(HYPRE_Real filter)
 
 int main(int argc, char* argv[])
 {
-
+  int num_loop = 100000000;
   MPI_Init(&argc, &argv);
   signal(SIGSEGV, SIG_DFL);
   hypre_MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   hypre_MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+
+  if (argc == 2) {
+    num_loop = atoi(argv[1]);
+  } 
+
+#ifdef ENABLE_NOISE
+  int noise_calcount = 100000000;
+  double noise_s = get_time();
+  do_noise_work(noise_calcount, 1);
+  double noise_e = get_time();
+  calibration = noise_calcount / (noise_e - noise_s) / 1000;
+  /* fprintf(stderr, "%d: %f\n", my_rank, noise_e - noise_s); */
+  /* noise_s = get_time(); */
+  /* do_noise_work(150, 1); */
+  /* noise_e = get_time(); */
+  /* fprintf(stderr, "%d: %f\n", my_rank, noise_e - noise_s); */
+  /* noise_s = get_time(); */
+  /* do_noise_work(150, 1); */
+  /* noise_e = get_time(); */
+  /* fprintf(stderr, "%d: %f\n", my_rank, noise_e - noise_s); */
+  /* exit(0); */
+  init_rand(my_rank);
+#endif
 
   int pid = getpid();
   char path[32];
@@ -626,7 +680,7 @@ int main(int argc, char* argv[])
 
   int print_rank = 0;
   //  for (i = 0; i < 50 ;i++) {
-  for (i = 0; ;i++) {
+  for (i = 0; i< num_loop ;i++) {
     ParaSailsSetupPattern(0, 1);
     ParaSailsSetupValues(0);
 

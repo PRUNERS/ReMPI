@@ -122,7 +122,7 @@ static int assign_matching_set_id(int recv_id, int source, int tag, int comm_id)
 
 
 //int rempi_reqmg_update_matching_set(MPI_Request *request, int source, int tag, int comm_id)
-int rempi_reqmg_register_recv_request(MPI_Request *request, int source, int tag, int comm_id)
+static int rempi_reqmg_register_recv_request(MPI_Request *request, int source, int tag, int comm_id)
 {
 
   int matching_set_id = -1;
@@ -183,7 +183,7 @@ int rempi_reqmg_register_recv_request(MPI_Request *request, int source, int tag,
   return 1;
 }
 
-int rempi_reqmg_register_send_request(MPI_Request *request, int dest, int tag, int comm_id)
+static int rempi_reqmg_register_send_request(MPI_Request *request, int dest, int tag, int comm_id)
 {
   //  double s = rempi_get_time();
   request_to_send_id_umap[*request] = dest;
@@ -194,20 +194,67 @@ int rempi_reqmg_register_send_request(MPI_Request *request, int dest, int tag, i
 }
 
 
-int rempi_reqmg_deregister_recv_request(MPI_Request *request)
+static int rempi_reqmg_deregister_recv_request(MPI_Request *request)
 {
   int is_erased;
+  //  REMPI_DBGI(0, "dereg request: %p", *request);
   is_erased = request_to_recv_id_umap.erase(*request);
   REMPI_ASSERT(is_erased == 1);
   return 1;
 }
 
-int rempi_reqmg_deregister_send_request(MPI_Request *request)
+static int rempi_reqmg_deregister_send_request(MPI_Request *request)
 {
   int is_erased;
   is_erased = request_to_send_id_umap.erase(*request);
   REMPI_ASSERT(is_erased == 1);
   return 1;
+}
+
+static int rempi_reqmg_is_record_and_replay(int length, int *request_ifno, int send_count, int recv_count, int null_count, int ignore_count)
+{
+  //  return send_count + recv_count + null_count > 0;
+  if (ignore_count > 0) {
+    if (send_count + recv_count + null_count == 0) {
+      return 0;
+    } else {
+      REMPI_ERR("Ignore requests and send/recv requests are tested by a singe MF: (%d %d %d %d)",
+                send_count, recv_count, null_count, ignore_count);
+    }
+  }
+  return 1;
+}
+
+int rempi_reqmg_register_request(MPI_Request *request, int source, int tag, int comm_id, int request_type)
+{
+  switch(request_type) {
+  case REMPI_SEND_REQUEST:
+    rempi_reqmg_register_send_request(request, source, tag, comm_id);
+    break;
+  case REMPI_RECV_REQUEST:
+    //    REMPI_DBGI(0, "reg request: %p", *request);
+    rempi_reqmg_register_recv_request(request, source, tag, comm_id);
+    break;
+  default:
+    REMPI_ERR("Cannot register MPI_Request: request_type: %d", request_type);
+  }
+  return 0;
+}
+
+int rempi_reqmg_deregister_request(MPI_Request *request, int request_type)
+{
+  switch(request_type) {
+  case REMPI_SEND_REQUEST:
+    rempi_reqmg_deregister_send_request(request);
+    break;
+  case REMPI_RECV_REQUEST:
+    rempi_reqmg_deregister_recv_request(request);
+    break;
+  default:
+    REMPI_DBG("Cannot deregister MPI_Request: request_type: %d", request_type);
+    break;
+  }
+  return 0;
 }
 
 int rempi_reqmg_get_test_id(MPI_Request *request, int incount)
@@ -242,7 +289,7 @@ int rempi_reqmg_get_recv_request_count(int incount, MPI_Request *requests)
   return count;
 }
 
-void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendcount, int *recvcount, int *nullcount, int *request_info)
+void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendcount, int *recvcount, int *nullcount, int *request_info, int *is_record_and_replay)
 {
   unordered_map<MPI_Request, int>::iterator send_endit = request_to_send_id_umap.end();
   unordered_map<MPI_Request, int>::iterator recv_endit = request_to_recv_id_umap.end();
@@ -257,7 +304,7 @@ void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendc
       request_info[i] = REMPI_RECV_REQUEST;
       (*recvcount)++;
     } else if (requests[i] == MPI_REQUEST_NULL) {
-      request_info[i] = REMPI_RECV_REQUEST;
+      request_info[i] = REMPI_NULL_REQUEST;
       (*nullcount)++;
     } else if (requests[i] == NULL) {
       REMPI_ERR("Request is null");
@@ -268,10 +315,31 @@ void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendc
       //      REMPI_ERR("Unknown request: %p index: %d", requests[i], i);
     }
   }
-  //  REMPI_DBG("%d %d %d %d", incount, *sendcount)
   REMPI_ASSERT(incount == *sendcount + *recvcount + *nullcount + ignore);
+  *is_record_and_replay = rempi_reqmg_is_record_and_replay(incount, request_info, *sendcount, *recvcount, *nullcount, ignore);
+  //  REMPI_DBGI(1, "incount:%d, sendcount:%d recvcount:%d nullcount:%d igncount:%d record:%d", incount, *sendcount, *recvcount, *nullcount, ignore, *is_record_and_replay)
   return;
 }
+
+void rempi_reqmg_get_request_type(MPI_Request *request, int *request_type)
+{
+  unordered_map<MPI_Request, int>::iterator send_endit = request_to_send_id_umap.end();
+  unordered_map<MPI_Request, int>::iterator recv_endit = request_to_recv_id_umap.end();
+  if(request_to_send_id_umap.find(*request) != send_endit) {
+    *request_type = REMPI_SEND_REQUEST;
+  } else if(request_to_recv_id_umap.find(*request) != recv_endit) {
+    *request_type = REMPI_RECV_REQUEST;
+  } else if (*request == MPI_REQUEST_NULL) {
+    *request_type = REMPI_NULL_REQUEST;
+  } else if (*request == NULL) {
+    REMPI_ERR("Request is null");
+  } else {
+    *request_type = REMPI_IGNR_REQUEST;
+  }
+  return;
+}
+
+
 
 void rempi_reqmg_store_send_statuses(int incount, MPI_Request *requests, int *request_info, MPI_Status *statuses)
 {
@@ -280,7 +348,7 @@ void rempi_reqmg_store_send_statuses(int incount, MPI_Request *requests, int *re
       //statuses[i].MPI_SOURCE = request_to_send_id_umap[requests[i]];
       //      statuses[i].MPI_SOURCE = request_to_send_id_umap.at(requests[i]);
       statuses[i].MPI_SOURCE = request_to_send_id_umap.at(requests[i]);
-      request_to_send_id_umap.at(requests[i]);
+      //      request_to_send_id_umap.at(requests[i]);
       // for (int j = 0; j < incount; j++) {
       // 	REMPI_DBGI(3, "store reqeust: %p (loop: %d)", requests[j], i);
       // }

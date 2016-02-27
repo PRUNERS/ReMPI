@@ -10,7 +10,7 @@
 #define FUNC_NAME_LEN (32)
 //#define NUM_TEST_MSG  (1024)
 //#define NUM_TEST_MSG  (100000) 
-#define NUM_TEST_MSG  (40) 
+#define NUM_TEST_MSG  (4) 
 #define TEST_MSG_CHUNK_SIZE  (2)
 
 #define MPI_Isend_id  (101)
@@ -89,7 +89,7 @@ int probe_ids[] = {
 
 int isend_ids[] = {
   MPI_Isend_id,
-  //  MPI_Ibsend_id, /*MPI_Ibsend does not work*/
+  //   MPI_Ibsend_id, /*MPI_Ibsend does not work*/
   MPI_Irsend_id,
   MPI_Issend_id
 };
@@ -121,6 +121,7 @@ int sendrecv_req_ids[] = {
   MPI_Waitsome_id,
   MPI_Waitall_id
 };
+
 
 
 static void rempi_test_randome_sleep()
@@ -351,6 +352,7 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
   }
 
   
+  
   switch(matching_type) {
   case MPI_Test_id:
     for (i = 0; i < num_send_msgs; i++) {
@@ -555,14 +557,16 @@ void rempi_test_sendrecv_req(int matching_type)
   for (i = 0; i < num_msgs/2; i++) {
     int dest = (my_rank + 1 + i) % size;
     MPI_Isend(&i, 1, MPI_INT, dest, i, MPI_COMM_WORLD, &requests[index]);
-    statuses[index].MPI_SOURCE = dest;
-    statuses[index].MPI_TAG = i;
+    statuses[index].MPI_SOURCE = -1;
+    statuses[index].MPI_TAG = -1;
     index++;
   }
 
   for (i = 0; i < num_msgs/2; i++) {
     int src = (my_rank - 1 -i + size) % size;
     MPI_Irecv(&recv_vals[i], 1, MPI_INT, src, i, MPI_COMM_WORLD, &requests[index]);
+    statuses[index].MPI_SOURCE = -2;
+    statuses[index].MPI_TAG = -2;
     index++;
   }
 
@@ -597,6 +601,9 @@ void rempi_test_sendrecv_req(int matching_type)
 	MPI_Testsome(num_msgs, requests, &matched_count, matched_indices, statuses);
 	if (matched_count > 0) {
 	  recv_msg_count += matched_count;
+	  /* for (i = 0; i < matched_count; i++) { */
+	  /*   rempi_test_dbg_print("index: %d, rank: %d, tag: %d", matched_indices[i], statuses[i].MPI_SOURCE, statuses[i].MPI_TAG); */
+	  /* } */
 	  break;
 	}
       }
@@ -656,8 +663,10 @@ int main(int argc, char *argv[])
 
   start = MPI_Wtime();
 
+
 #if defined(TEST_MATCHING_FUNC)
   if (my_rank == 0) fprintf(stdout, "Start testing matching functions ... "); fflush(stdout);
+
   for (i = 0; i < sizeof(matching_ids)/ sizeof(int); i++) {
     rempi_test_mpi_send_and_nonblocking_recvs(matching_ids[i]);
     MPI_Barrier(MPI_COMM_WORLD);

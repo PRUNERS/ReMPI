@@ -101,9 +101,6 @@ void rempi_io_thread::write_record()
       usleep(100);
     }
 
-    //    REMPI_DBGI(1, "----> events: %p, size: %lu", encoded_events, size);
-    //    REMPI_DBGI(1, " is_complete_flush: %d, size: %d", is_complete_flush, events->size());
-    //    REMPI_DBG(" is_cclosed: %d, size: %d", events->is_push_closed_(), events->size());
     /*is_complete = 1 => event are not pushed to the event quene no longer*/
     /*if the events is empty, we can finish recoding*/
 
@@ -120,17 +117,18 @@ void rempi_io_thread::write_record()
 
 void rempi_io_thread::read_record()
 {
-  encoder->open_record_file(record_path);
   rempi_encoder_input_format *input_format;
+  bool is_no_more_record;
+
+  encoder->open_record_file(record_path);
   input_format = encoder->create_encoder_input_format();
 
   while(1) {
-    bool is_no_more_record;
-
     is_no_more_record = encoder->read_record_file(*input_format);
     if (is_no_more_record) {
       /*If replayed all recorded events, ...*/
       replaying_events->close_push();
+      delete input_format;
       break;
     } else {
       encoder->decode(*input_format);

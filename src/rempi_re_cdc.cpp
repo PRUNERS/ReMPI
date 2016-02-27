@@ -237,6 +237,20 @@ int rempi_re_cdc::re_cancel(MPI_Request *request)
   return ret;
 }
 
+int rempi_re_cdc::re_request_free(MPI_Request *request)
+{
+  int ret;
+  REMPI_ERR("request_free is not supported");
+  return ret;
+}
+
+MPI_Fint rempi_re_cdc::re_request_c2f(MPI_Request request)
+{
+  MPI_Fint ret;
+  REMPI_ERR("request_c2f is not supported");
+  return ret;
+}
+
 
 int rempi_re_cdc::re_testsome(
 			  int incount, 

@@ -133,7 +133,7 @@ class rempi_encoder_input_format
 
   ~rempi_encoder_input_format() 
     {
-      //    this->clear();
+      this->clear();
     }
   
   size_t  length();
@@ -200,6 +200,7 @@ class rempi_encoder
       , interim_min_clock_in_next_event(NULL) 
       , dequeued_count(NULL)
       , tmp_fd_next_clock(0)
+      , total_write_size(0)
       {}
 
     /*Common for record & replay*/

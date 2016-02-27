@@ -345,6 +345,18 @@ int rempi_recorder_cdc::replay_cancel(MPI_Request *request)
   return ret;
 }
 
+int rempi_recorder_cdc::replay_request_free(MPI_Request *request)
+{
+  REMPI_ERR("Not supported");
+  return (int)0;
+}
+
+MPI_Fint rempi_recorder_cdc::replay_request_c2f(MPI_Request request)
+{
+  REMPI_ERR("Not supported");
+  return (MPI_Fint)0;
+}
+
 
 int rempi_recorder_cdc::record_test(
     MPI_Request *request,

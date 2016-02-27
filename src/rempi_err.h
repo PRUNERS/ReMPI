@@ -51,6 +51,12 @@
 	      ## __VA_ARGS__);
 
 
+#define REMPI_PREPRINT \
+  //  REMPI_DBG("__func__: %s Entered", __func__);
+
+#define REMPI_POSTPRINT \
+  //  REMPI_DBG("__func__: %s Left", __func__);
+
 
 
 void rempi_assert(int b);
