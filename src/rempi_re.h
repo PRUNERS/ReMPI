@@ -21,7 +21,7 @@ using namespace std;
 #define REMPI_FUNCTIONS \
   virtual int re_init(int *argc, char ***argv); \
   virtual int re_init_thread(int *argc, char ***argv, int required, int *provided); \
-  virtual int re_isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request); \
+  virtual int re_isend(mpi_const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request); \
   virtual int re_irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request); \
   virtual int re_cancel(MPI_Request *request); \
   virtual int re_test(MPI_Request *request, int *flag, MPI_Status *status); \
@@ -37,18 +37,18 @@ using namespace std;
   virtual int re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3); \
   virtual int re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2); \
   virtual int re_comm_dup(MPI_Comm arg_0, MPI_Comm *arg_2); \
-  virtual int re_allreduce(rempi_mpi_version_void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5); \
-  virtual int re_reduce(rempi_mpi_version_void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, int arg_5, MPI_Comm arg_6); \
-  virtual int re_scan(rempi_mpi_version_void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5); \
-  virtual int re_allgather(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6); \
-  virtual int re_gatherv(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, rempi_mpi_version_int *arg_4, rempi_mpi_version_int *arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8); \
-  virtual int re_reduce_scatter(rempi_mpi_version_void *arg_0, void *arg_1, rempi_mpi_version_int *arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5); \
-  virtual int re_scatterv(rempi_mpi_version_void *arg_0, rempi_mpi_version_int *arg_1, rempi_mpi_version_int *arg_2, MPI_Datatype arg_3, void *arg_4, int arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8); \
-  virtual int re_allgatherv(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, rempi_mpi_version_int *arg_4, rempi_mpi_version_int *arg_5, MPI_Datatype arg_6, MPI_Comm arg_7); \
-  virtual int re_scatter(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7); \
+  virtual int re_allreduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5); \
+  virtual int re_reduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, int arg_5, MPI_Comm arg_6); \
+  virtual int re_scan(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5); \
+  virtual int re_allgather(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6); \
+  virtual int re_gatherv(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, mpi_const int *arg_4, mpi_const int *arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8); \
+  virtual int re_reduce_scatter(mpi_const void *arg_0, void *arg_1, mpi_const int *arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5); \
+  virtual int re_scatterv(mpi_const void *arg_0, mpi_const int *arg_1, mpi_const int *arg_2, MPI_Datatype arg_3, void *arg_4, int arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8); \
+  virtual int re_allgatherv(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, mpi_const int *arg_4, mpi_const int *arg_5, MPI_Datatype arg_6, MPI_Comm arg_7); \
+  virtual int re_scatter(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7); \
   virtual int re_bcast(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, MPI_Comm arg_4); \
-  virtual int re_alltoall(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6); \
-  virtual int re_gather(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7); \
+  virtual int re_alltoall(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6); \
+  virtual int re_gather(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7); \
   virtual int re_barrier(MPI_Comm arg_0); \
   virtual MPI_Fint re_request_c2f(MPI_Request request); \
   virtual int re_request_free(MPI_Request *request); \

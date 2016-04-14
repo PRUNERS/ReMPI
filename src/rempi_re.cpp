@@ -117,7 +117,7 @@ int rempi_re::re_init_thread(
 }
 
 int rempi_re::re_isend(
-		       void *buf,
+		       mpi_const void *buf,
 		       int count,
 		       MPI_Datatype datatype,
 		       int dest,
@@ -126,11 +126,15 @@ int rempi_re::re_isend(
 		       MPI_Request *request)
 {
   int ret;
+  int resultlen;
+  char comm_id[REMPI_COMM_ID_LENGTH];
+
   if (comm != MPI_COMM_WORLD) {
     REMPI_ERR("Current ReMPI does not multiple communicators");
   }
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
-  rempi_reqmg_register_request(request, dest, tag, comm, REMPI_SEND_REQUEST);
+  PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);  
+  rempi_reqmg_register_request(request, dest, tag, (int)comm_id[0], REMPI_SEND_REQUEST);
   
   // if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
   //   recorder->replay_isend(request);
@@ -603,63 +607,63 @@ int rempi_re::re_comm_dup(MPI_Comm arg_0, MPI_Comm *arg_2)
 
 
 
-int rempi_re::re_allreduce(rempi_mpi_version_void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
+int rempi_re::re_allreduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
 {
   int ret;
   ret = PMPI_Allreduce(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
   return ret;  
 }
 
-int rempi_re::re_reduce(rempi_mpi_version_void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, int arg_5, MPI_Comm arg_6)
+int rempi_re::re_reduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, int arg_5, MPI_Comm arg_6)
 {
   int ret;
   ret = PMPI_Reduce(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
   return ret;
 }
 
-int rempi_re::re_scan(rempi_mpi_version_void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
+int rempi_re::re_scan(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
 {
   int ret;
   ret = PMPI_Scan(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
   return ret; 
 }
 
-int rempi_re::re_allgather(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6)
+int rempi_re::re_allgather(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6)
 {
   int ret;
   ret = PMPI_Allgather(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
   return ret;
 }
 
-int rempi_re::re_gatherv(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, rempi_mpi_version_int *arg_4, rempi_mpi_version_int *arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8)
+int rempi_re::re_gatherv(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, mpi_const int *arg_4, mpi_const int *arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8)
 {
   int ret;
   ret = PMPI_Gatherv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8);
   return ret;
 }
 
-int rempi_re::re_reduce_scatter(rempi_mpi_version_void *arg_0, void *arg_1, rempi_mpi_version_int *arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
+int rempi_re::re_reduce_scatter(mpi_const void *arg_0, void *arg_1, mpi_const int *arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
 {
   int ret;
   ret = PMPI_Reduce_scatter(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
   return ret; 
 }
 
-int rempi_re::re_scatterv(rempi_mpi_version_void *arg_0, rempi_mpi_version_int *arg_1, rempi_mpi_version_int *arg_2, MPI_Datatype arg_3, void *arg_4, int arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8)
+int rempi_re::re_scatterv(mpi_const void *arg_0, mpi_const int *arg_1, mpi_const int *arg_2, MPI_Datatype arg_3, void *arg_4, int arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8)
 {
   int ret;
   ret = PMPI_Scatterv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8);
   return ret;
 }
 
-int rempi_re::re_allgatherv(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, rempi_mpi_version_int *arg_4, rempi_mpi_version_int *arg_5, MPI_Datatype arg_6, MPI_Comm arg_7)
+int rempi_re::re_allgatherv(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, mpi_const int *arg_4, mpi_const int *arg_5, MPI_Datatype arg_6, MPI_Comm arg_7)
 {
   int ret;
   ret = PMPI_Allgatherv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);
   return ret; 
 }
 
-int rempi_re::re_scatter(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7)
+int rempi_re::re_scatter(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7)
 {
   int ret;
   ret = PMPI_Scatter(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);
@@ -673,14 +677,14 @@ int rempi_re::re_bcast(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, MP
   return ret; 
 }
 
-int rempi_re::re_alltoall(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6)
+int rempi_re::re_alltoall(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6)
 {
   int ret;
   ret = PMPI_Alltoall(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
   return ret;
 }
 
-int rempi_re::re_gather(rempi_mpi_version_void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7)
+int rempi_re::re_gather(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7)
 {
   int ret;
   ret = PMPI_Gather(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);

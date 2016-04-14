@@ -1,9 +1,9 @@
+
+#include <mpi.h>
 #if MPI_VERSION == 3
 
 #include <stdlib.h>
-
 #include <string.h>
-#include <mpi.h>
 
 #include <vector>
 #include <algorithm>
@@ -1258,7 +1258,12 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
       != test_table->unmatched_events_umap.end()) {
     rempi_event *unmatched_event;
     int event_count = test_table->unmatched_events_umap[test_table->replayed_matched_event_index];
-    unmatched_event = new rempi_test_event(event_count, 0,0,0,0,0,0,0);
+    unmatched_event = new rempi_test_event(event_count, 0, 
+					   REMPI_MPI_EVENT_INPUT_IGNORE,
+					   REMPI_MPI_EVENT_INPUT_IGNORE,
+					   REMPI_MPI_EVENT_INPUT_IGNORE,
+					   REMPI_MPI_EVENT_INPUT_IGNORE,
+					   REMPI_MPI_EVENT_INPUT_IGNORE);
 #ifdef REMPI_DBG_REPLAY
     REMPI_DBGI(REMPI_DBG_REPLAY, "PQ -> RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)", 
      	        unmatched_event->get_event_counts(),  unmatched_event->get_is_testsome(),  unmatched_event->get_flag(),
@@ -1721,9 +1726,9 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 	if (replay_event_vec[i]->get_source() == replay_event_vec[j]->get_source()) {
 	  REMPI_DBG("==== Special Alart for MCB ===")
 	  for (int k = 0; k < n; k++) {
-	    REMPI_DBG("== Wrong RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): order: %d",
+	    REMPI_DBG("== Wrong RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): order: %d",
 		       replay_event_vec[k]->get_event_counts(), replay_event_vec[k]->get_is_testsome(), replay_event_vec[k]->get_flag(),
-		      replay_event_vec[k]->get_source(), replay_event_vec[k]->get_tag(), replay_event_vec[k]->get_clock(),
+		      replay_event_vec[k]->get_source(), replay_event_vec[k]->get_clock(),
 		      replay_event_vec[k]->clock_order);
 	  }
 	  REMPI_DBG("== Wrong local_min (rank: %d, clock: %lu): count: X, RCQ:%d(test:%d)", 

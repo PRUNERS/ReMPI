@@ -1,10 +1,10 @@
+#include <mpi.h>
+
 #if MPI_VERSION == 3
-#ifndef REMPI_LITE
 
 #include <stdlib.h>
 #include <string.h>
 
-#include <mpi.h>
 
 #include "rempi_re.h"
 #include "rempi_err.h"
@@ -98,13 +98,13 @@ int rempi_re_cdc::re_init_thread(
 }
 
 int rempi_re_cdc::re_isend(
-		       void *buf,
-		       int count,
-		       MPI_Datatype datatype,
-		       int dest,
-		       int tag,
-		       MPI_Comm comm,
-		       MPI_Request *request)
+			   mpi_const void *buf,
+			   int count,
+			   MPI_Datatype datatype,
+			   int dest,
+			   int tag,
+			   MPI_Comm comm,
+			   MPI_Request *request)
 {
   int ret;
 #ifdef REMPI_DBG_REPLAY
@@ -618,6 +618,5 @@ int rempi_re_cdc::re_finalize()
   return ret;
 }
 
-#endif /* REMPI_LITE */
 
 #endif

@@ -555,17 +555,17 @@ int rempi_recorder::record_mf(
 				      REMPI_MPI_EVENT_INPUT_IGNORE, 
 				      REMPI_MPI_EVENT_INPUT_IGNORE, 
 				      global_test_id);
-	if (test_event != NULL) {
-	  REMPI_DBGI(1, "Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
-		     test_event->get_event_counts(),
-		     test_event->get_flag(),
-		     test_event->get_rank(),
-		     test_event->get_with_next(),
-		     test_event->get_index(),
-		     test_event->get_msg_id(),
-		     test_event->get_matching_group_id(),
-		     matching_function_type);
-	}
+	// if (test_event != NULL) {
+	//   REMPI_DBGI(1, "Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
+	// 	     test_event->get_event_counts(),
+	// 	     test_event->get_flag(),
+	// 	     test_event->get_rank(),
+	// 	     test_event->get_with_next(),
+	// 	     test_event->get_index(),
+	// 	     test_event->get_msg_id(),
+	// 	     test_event->get_matching_group_id(),
+	// 	     matching_function_type);
+	// }
     recording_event_list->push(test_event);
   } else {
     flag = 1;
@@ -599,17 +599,17 @@ int rempi_recorder::record_mf(
 					  matched_index, 
 					  REMPI_MPI_EVENT_INPUT_IGNORE,
 					  global_test_id);
-	if (test_event != NULL) {
-	  REMPI_DBGI(1, "Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
-		     test_event->get_event_counts(),
-		     test_event->get_flag(),
-		     test_event->get_rank(),
-		     test_event->get_with_next(),
-		     test_event->get_index(),
-		     test_event->get_msg_id(),
-		     test_event->get_matching_group_id(),
-		     matching_function_type);
-	}
+	// if (test_event != NULL) {
+	//   REMPI_DBGI(1, "Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
+	// 	     test_event->get_event_counts(),
+	// 	     test_event->get_flag(),
+	// 	     test_event->get_rank(),
+	// 	     test_event->get_with_next(),
+	// 	     test_event->get_index(),
+	// 	     test_event->get_msg_id(),
+	// 	     test_event->get_matching_group_id(),
+	// 	     matching_function_type);
+	// }
 	recording_event_list->push(test_event);
       }
     }
@@ -710,15 +710,15 @@ int rempi_recorder::replay_mf(
   while (has_next_event == REMPI_MPI_EVENT_WITH_NEXT) {
     while ((replaying_test_event = replaying_event_list->dequeue_replay(test_id, replay_queue_status)) == NULL);
 
-    REMPI_DBGI(1, "Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
-	       replaying_test_event->get_event_counts(),
-	       replaying_test_event->get_flag(),
-	       replaying_test_event->get_rank(),
-	       replaying_test_event->get_with_next(),
-	       replaying_test_event->get_index(),
-	       replaying_test_event->get_msg_id(),
-	       replaying_test_event->get_matching_group_id(),
-	       matching_function_type);
+    // REMPI_DBGI(1, "Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
+    // 	       replaying_test_event->get_event_counts(),
+    // 	       replaying_test_event->get_flag(),
+    // 	       replaying_test_event->get_rank(),
+    // 	       replaying_test_event->get_with_next(),
+    // 	       replaying_test_event->get_index(),
+    // 	       replaying_test_event->get_msg_id(),
+    // 	       replaying_test_event->get_matching_group_id(),
+    // 	       matching_function_type);
     if (replaying_test_event->get_flag() == 0) {
       /*Unmatched*/
       delete replaying_test_event;
