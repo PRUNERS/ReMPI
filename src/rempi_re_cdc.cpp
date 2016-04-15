@@ -149,7 +149,7 @@ int rempi_re_cdc::re_irecv(
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
-    rempi_reqmg_register_recv_request(request, source, tag, (int)comm_id[0]);
+    rempi_reqmg_register_request(request, source, tag, (int)comm_id[0], REMPI_RECV_REQUEST);
     //TODO: Get Datatype,
     recorder->record_irecv(buf, count, datatype, source, tag, (int)comm_id[0], comm, request);
   } else {
@@ -209,13 +209,14 @@ int rempi_re_cdc::re_test(
 #endif
 
 
-// #ifdef REMPI_DBG_REPLAY
-//   REMPI_DBGI(REMPI_DBG_REPLAY, "  Test: (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
-// 	     1, 0, *flag, status->MPI_SOURCE, status->MPI_TAG, clock, test_id);
-// #endif
-       // REMPI_DBG( "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
-       // 		 1, 0, *flag,
-       // 		  status->MPI_SOURCE, status->MPI_TAG, clock);
+ // #ifdef REMPI_DBG_REPLAY
+ //   REMPI_DBGI(REMPI_DBG_REPLAY, "  Test: (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",
+ // 	     1, 0, *flag, status->MPI_SOURCE, status->MPI_TAG, clock, test_id);
+ // #endif
+
+      // REMPI_DBG( "Record  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
+      //  		 1, 0, *flag,
+      // 		 status->MPI_SOURCE, status->MPI_TAG, clock);
       recorder->record_test(request, flag, status->MPI_SOURCE, status->MPI_TAG, clock, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
 
     }
@@ -454,7 +455,7 @@ int rempi_re_cdc::re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *
 int rempi_re_cdc::re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2)
 {
   int ret;
-  REMPI_DBG("MPI_Comm_create is not implemented yet");
+  ///  REMPI_DBG("MPI_Comm_create is not implemented yet");
   ret = PMPI_Comm_create(arg_0, arg_1, arg_2);
   return ret;
 }
@@ -606,12 +607,14 @@ int rempi_re_cdc::re_finalize()
   int ret;
 
 
-  ret = PMPI_Finalize();
+
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    ret = PMPI_Finalize();
     ret = recorder->record_finalize();
-
   } else {
+    PMPI_Barrier(MPI_COMM_WORLD); // MPI progress for one-sided communication
+    ret = PMPI_Finalize();
     ret = recorder->replay_finalize();
   }
 

@@ -63,7 +63,8 @@ void init_rempi() {
 #ifdef REMPI_LITE
   rempi_record_replay = new rempi_re();
 #else
-  rempi_record_replay = new rempi_re_cdc();
+  //rempi_record_replay = new rempi_re();
+  rempi_record_replay = new rempi_re_cdc(); //TODO: Do not use rempi_re_cdc any more
 #endif  
   return;
 }

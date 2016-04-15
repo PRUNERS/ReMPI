@@ -68,7 +68,10 @@ class rempi_re
  rempi_re()
    : my_rank(-1)
     {
+#ifdef REMPI_LITE
       recorder = new rempi_recorder();
+#else
+#endif
     };
 
   ~rempi_re()

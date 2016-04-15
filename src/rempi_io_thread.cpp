@@ -67,7 +67,6 @@ void rempi_io_thread::write_record()
   encoder->open_record_file(record_path);
   rempi_encoder_input_format *nonencoded_events = NULL;
   nonencoded_events = encoder->create_encoder_input_format();
-
   while(1) {
     /*use "new" to be able to select compression methods depending on specified input value*/
 
@@ -80,18 +79,22 @@ void rempi_io_thread::write_record()
 
     is_extracted = encoder->extract_encoder_input_format_chunk(*recording_events, *nonencoded_events);
 
+
     if (is_extracted) {
       /*If I get the sequence,... */
       /*... , encode(compress) the seuence*/
       s = rempi_get_time();
 
+
       encoder->encode(*nonencoded_events);
+
+
       /*Then, write to file.*/
       encoder->write_record_file(*nonencoded_events);
       e = rempi_get_time();
       //REMPI_DBG(" RATE |%f|%d|%f|" , nonencoded_events->length() / (e - s), nonencoded_events->length(), e - s);
 
-      nonencoded_events->debug_print();
+      //      nonencoded_events->debug_print();
       
       delete nonencoded_events; //TODO: also delete iternal data in this variable
       nonencoded_events = encoder->create_encoder_input_format();

@@ -1,3 +1,6 @@
 [submodule "src/external/clmpi"]
 	path = src/external/clmpi
 	url = git@bitbucket.org:sato5/clmpi.git
+[submodule "test/external/mcb"]
+	path = test/external/mcb
+	url = https://sato5@lc.llnl.gov/stash/scm/prun/rempi-mcbdouble.git

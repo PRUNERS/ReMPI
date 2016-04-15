@@ -34,7 +34,7 @@ void rempi_encoder_input_format_test_table::clear()
   compressed_with_previous_length = 0;
   compressed_with_previous_size   = 0;
   if (compressed_with_previous != NULL) {
-    free(compressed_with_previous);
+    //    free(compressed_with_previous);
     compressed_with_previous = NULL;
   }
 
@@ -44,12 +44,12 @@ void rempi_encoder_input_format_test_table::clear()
   if(!unmatched_events_umap.empty()) unmatched_events_umap.clear();
   compressed_unmatched_events_id_size = 0;
   if (compressed_unmatched_events_id  != NULL) {
-    free(compressed_unmatched_events_id);
+    //free(compressed_unmatched_events_id);
     compressed_unmatched_events_id = NULL;
   }
   compressed_unmatched_events_count_size = 0;
   if (compressed_unmatched_events_count  != NULL) {
-    free(compressed_unmatched_events_count);
+    //    free(compressed_unmatched_events_count);
     compressed_unmatched_events_count = NULL;
   }
 
@@ -62,7 +62,7 @@ void rempi_encoder_input_format_test_table::clear()
   replayed_matched_event_index = 0;
   compressed_matched_events_size = 0;
   if (compressed_matched_events != NULL) {
-    free(compressed_matched_events);
+    //    free(compressed_matched_events);
     compressed_matched_events = NULL;
   }
 
@@ -288,9 +288,9 @@ void rempi_encoder::encode(rempi_encoder_input_format &input_format)
     // }
 
 #ifdef REMPI_DBG_REPLAY
-    REMPI_DBG("Encoded  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)", 
+    REMPI_DBG("Encoded  : (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)", 
 	       encoding_event->get_event_counts(), encoding_event->get_is_testsome(), encoding_event->get_flag(), 
-	       encoding_event->get_source(), encoding_event->get_tag(), encoding_event->get_clock());
+	       encoding_event->get_source(), encoding_event->get_clock());
 #endif 
 
   }
@@ -334,7 +334,7 @@ void rempi_encoder::close_record_file()
   // for (int i = 0, n = write_size_vec.size(); i < n; i++) {
   //   total_write_size += write_size_vec[i];
   // }
-  REMPI_DBG("EVAL Total I/O size: |%lu|", total_write_size);
+  //  REMPI_DBG("EVAL Total I/O size: |%lu|", total_write_size);
   record_fs.close();
 }
 
