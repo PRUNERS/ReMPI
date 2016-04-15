@@ -40,17 +40,17 @@ ReMPI implements Clock Delta Compression (CDC) for compressing records
      * `1`: Replay mode
  * `REMPI_DIR`: Directory path for record files
  * `REMPI_ENCODE`
-   * `0`: Simple recording 
-   * `1`: `0` + record format optimization
-   * `2` and `3`: (Experimental encoding)
-   * `4`: Clock Delta Compression
-   * `5`: Same as `4`
+     * `0`: Simple recording 
+     * `1`: `0` + record format optimization
+     * `2` and `3`: (Experimental encoding)
+     * `4`: Clock Delta Compression
+     * `5`: Same as `4`
  * `REMPI_GZIP`: Enable gzip compression
-   * `0`: Disable zlib
-   * `1`: Enable zlib
+     * `0`: Disable zlib
+     * `1`: Enable zlib
  * `REMPI_TEST_ID`: Enable Matching Function (MF) Identification
-   * `0`: Disable MF Identification
-   * `1`: Enable MF Identification
+     * `0`: Disable MF Identification
+     * `1`: Enable MF Identification
 
 # References
 
@@ -60,19 +60,22 @@ ReMPI implements Clock Delta Compression (CDC) for compressing records
 # Note
 ## Note 1
  * MPI_VERSION == 3 && defined(REMPI_LITE)
-   * Simple ReMPI => librempilite.so
+     * Simple ReMPI => librempilite.so
 
  * MPI_VERSION == 3 && !defined(REMPI_LITE)
-   * Clock + CDC ReMPI => libremp.so
+     * Clock + CDC ReMPI => libremp.so
 
  * MPI_VERSION != 3 && defined(REMPI_LITE)
-   * Simple ReMPI => librempilite.so
+     * Simple ReMPI => librempilite.so
 
  * MPI_VERSION != 3 && !defined(REMPI_LITE)
-   * Clock ReMPI => libremp.so
+     * Clock ReMPI => libremp.so
+
+
 ## Note 2
+
  * Non-piggyback
-   * Simple ReMPI:  defined(REMPI_LITE)
+     * Simple ReMPI:  defined(REMPI_LITE)
  * Piggyback
-   * Clock  ReMPI: !defined(REMPI_LITE)
-   * CDC    ReMPI: !defined(REMPI_LITE) && MPI_VERSION == 3
+     * Clock  ReMPI: !defined(REMPI_LITE)
+     * CDC    ReMPI: !defined(REMPI_LITE) && MPI_VERSION == 3
