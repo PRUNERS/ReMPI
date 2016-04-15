@@ -1,3 +1,9 @@
 [submodule "src/external/clmpi"]
 	path = src/external/clmpi
-	url = git@bitbucket.org:sato5/clmpi.git
+	url = https://sato5@lc.llnl.gov/stash/scm/prun/rempi-clmpi.git
+[submodule "scripts/external/pmpis"]
+	path = scripts/external/pmpis
+	url = https://sato5@lc.llnl.gov/stash/scm/prun/rempi-pmpis.git
+[submodule "test/external/mcb"]
+	path = test/external/mcb
+	url = https://sato5@lc.llnl.gov/stash/scm/prun/rempi-mcbdouble.git
