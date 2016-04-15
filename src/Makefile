@@ -51,7 +51,7 @@ rcmpi_so_LIBS=../lib/librcmpi.so
 
 OBJS = $(rempi_OBJS)
 DEPS = $(rempi_DEPS)
-LIBS = $(rempilite_so_LIBS) $(rempilite_a_LIBS) $(rempi_so_LIBS) $(rempi_a_LIBS) $(rcmpi_so_LIBS)
+LIBS = $(rempilite_so_LIBS) $(rempilite_a_LIBS) $(rempi_so_LIBS) $(rempi_a_LIBS)
 
 #$@: target name
 #$<: first dependent file
@@ -95,8 +95,8 @@ $(rempilite_so_LIBS): $(rempilite_a_LIBS) $(rempi_OBJS)
 
 
 
-$(rcmpi_so_LIBS):  $(SRC_DIR)/rempi_message_manager.o
-	$(CC) -shared -o $(rcmpi_so_LIBS)  $(SRC_DIR)/rempi_message_manager.o
+#$(rcmpi_so_LIBS):  $(SRC_DIR)/rempi_message_manager.o
+#	$(CC) -shared -o $(rcmpi_so_LIBS)  $(SRC_DIR)/rempi_message_manager.o
 
 
 .SUFFIXES: .c .o
