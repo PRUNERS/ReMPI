@@ -1,3 +1,5 @@
+#include <mpi.h>
+
 #if MPI_VERSION == 3
 
 #include <vector>

@@ -67,14 +67,14 @@ $(clmpi_OBJS):
 
 $(rempi_a_LIBS):  $(rempi_OBJS)  $(clmpi_OBJS) #$(rempilite_a_LIBS)
 	ld    -o $(rempi_o_LIBS) -r $(rempi_OBJS)
-	ws rempi.tmp.o 0 $(rempi_o_LIBS) $(clmpi_OBJS)
+	stack_pmpi rempi.tmp.o 0 $(rempi_o_LIBS) $(clmpi_OBJS)
 #	ar cr $@ $(rempi_o_LIBS) $(clmpi_OBJS)
 	ar cr $@ rempi.tmp.o
 	ranlib $@
 
 #$(rempilite_a_LIBS):  $(rempi_OBJS)  $(clmpi_OBJS)
 #	ld    -o $(rempi_o_LIBS) -r $(rempi_OBJS)
-#	ws rempilite.tmp.o 1 $(rempi_o_LIBS) $(clmpi_OBJS)
+#	stack_pmpi rempilite.tmp.o 1 $(rempi_o_LIBS) $(clmpi_OBJS)
 #	ar cr $@ rempilite.tmp.o
 #	ranlib $@
 
