@@ -511,9 +511,6 @@ void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format &
 {
   char *write_buff;
   size_t write_size;
-  //  char  *compressed_buff, *original_buff;
-  //  size_t compressed_size,  original_size;
-
 
   /*=== message count ===*/
   input_format.write_queue_vec.push_back((char*)&test_table->count);
@@ -536,7 +533,7 @@ void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format &
   input_format.write_size_queue_vec.push_back(test_table->epoch_size);
   /*====================================*/
 
-  /*=== Compress with_previous ===*/
+  /*=== Compress with_next ===*/
   compression_util.compress_by_linear_prediction(test_table->with_previous_vec);
   test_table->compressed_with_previous_length = test_table->with_previous_vec.size();
   test_table->compressed_with_previous_size   = test_table->with_previous_vec.size() * sizeof(test_table->with_previous_vec[0]);
@@ -548,7 +545,6 @@ void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format &
   input_format.write_queue_vec.push_back((char*)test_table->compressed_with_previous);
   input_format.write_size_queue_vec.push_back(test_table->compressed_with_previous_size);
   /*====================================*/
-
 
   /*=== Compress unmatched_events ===*/
   /* (1) id */
@@ -657,6 +653,7 @@ void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format &
 void rempi_encoder_cdc::compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table *test_table)
 {
   size_t compressed_size,  original_size;
+  /*Call clock delta compression*/
   test_table->compressed_matched_events = cdc->compress(
 							  test_table->matched_events_ordered_map, 
 							  test_table->events_vec, 
@@ -665,25 +662,8 @@ void rempi_encoder_cdc::compress_matched_events(rempi_encoder_input_format &inpu
 
   input_format.write_queue_vec.push_back((char*)&test_table->compressed_matched_events_size);
   input_format.write_size_queue_vec.push_back(sizeof(test_table->compressed_matched_events_size));
-  //  REMPI_DBGI(3, "matched size---> %lu", test_table->compressed_matched_events_size);
   input_format.write_queue_vec.push_back(test_table->compressed_matched_events);
   input_format.write_size_queue_vec.push_back(test_table->compressed_matched_events_size);
-#if 0
-  {
-    int *a, *b;
-    a  = (int*)test_table->compressed_matched_events;
-    b  = (int*)test_table->compressed_matched_events;
-    b +=  test_table->compressed_matched_events_size /sizeof(int)/  2;
-    for (int i = 0; i < test_table->compressed_matched_events_size / sizeof(int) / 2; i++) {
-      REMPI_DBG("--> %d %d", a[i], b[i]);
-    }
-  }
-#endif
-
-  // compressed_buff = compression_util.compress_by_zlib(original_buff, original_size, compressed_size);
-  // test_table->compressed_matched_events           = (compressed_buff == NULL)? original_buff:compressed_buff;
-  // test_table->compressed_matched_events_size      = (compressed_buff == NULL)? original_size:compressed_size;
-  // REMPI_DBG("  matched(id): %lu bytes (<-zlib- %lu)", test_table->compressed_matched_events_size, original_size);
   return;
 }
 
@@ -711,67 +691,40 @@ bool rempi_encoder_cdc::extract_encoder_input_format_chunk(rempi_event_list<remp
 
   while (1) {
     /*Append events to current check as many as possible*/
-
     if (events.front() == NULL || input_format.length() > REMPI_MAX_INPUT_FORMAT_LENGTH) break;
-    // globally_minimal_clock() does not return big number (interger::max), so true
-    bool is_clock_less_than_gmc = true;//(events.front()->get_clock() < events.get_globally_minimal_clock()); 
-    bool is_unmatched           = (events.front()->get_flag() == 0);
-    //    REMPI_DBGI(0, "========= formating cdc: length %d, %d %d", input_format.length(), is_clock_less_than_gmc, is_unmatched);
-    //REMPI_DBGI(0, "========= formating cdc: clock %lu, gc %lu", events.front()->get_clock(), events.get_globally_minimal_clock());
-    if (is_clock_less_than_gmc || is_unmatched) {
-      event_dequeued = events.pop();
-      input_format.add(event_dequeued);
-      //      event_dequeued->print();
-      //      fprintf(stderr, "\n");
-    } else {
-      break;
-    }
+    event_dequeued = events.pop();
+    input_format.add(event_dequeued);
   }
 
-  //  REMPI_DBG("input_format.length() %d", input_format.length());
-  if (input_format.length() == 0) {
-    return is_ready_for_encoding; /*false*/
-  }
+  if (input_format.length() == 0) return is_ready_for_encoding; /*false*/
+
   if (input_format.length() > REMPI_MAX_INPUT_FORMAT_LENGTH || events.is_push_closed_()) {
     /*If got enough chunck size, OR the end of run*/
     input_format.format();
     is_ready_for_encoding = true;
   }
-
   return is_ready_for_encoding; /*true*/
 }
 
 
 void rempi_encoder_cdc::encode(rempi_encoder_input_format &input_format)
 {
-  //  char  *compressed_buff, *original_buff;
-  //  size_t compressed_size,  original_size;
-
   map<int, rempi_encoder_input_format_test_table*>::iterator test_tables_map_it;
   for (test_tables_map_it  = input_format.test_tables_map.begin();
        test_tables_map_it != input_format.test_tables_map.end();
        test_tables_map_it++) {  
     rempi_encoder_input_format_test_table *test_table;
     test_table = test_tables_map_it->second;
-
     /*#################################################*/
     /*     Encoding Section                            */
     /*#################################################*/
-
-
-    /*=== message count ===*/    /*=== Compress with_previous ===*/     /*=== Compress unmatched_events ===*/
+    /*=== message count ===*/    /*=== Compress with_next  ===*/  /*=== Compress unmatched_events ===*/
     compress_non_matched_events(input_format, test_table);
     /*=======================================*/
-    // REMPI_DBG("before: %p", &test_table);
-    // delete &input_format;
-    // REMPI_DBG("after");
     /*=== Compress matched_events ===*/
     compress_matched_events(input_format, test_table);
     /*=======================================*/
-
-
   }
-
   return;
 }
 
@@ -834,10 +787,7 @@ void rempi_encoder_cdc::encode(rempi_encoder_input_format &input_format)
 // 	    input_format.total_length, input_format.total_length * 8 , total_compressed_size, 
 // 	    input_format.total_length*8, total_compressed_size);
 //   //  REMPI_DBG("TOTAL Original: %d ", total_countb);
-
-
 // }   
-
 
 
 void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_format)
@@ -875,8 +825,6 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
       write_size_vec.push_back(input_format.write_size_queue_vec[i]);
     }
   }
-  // REMPI_DBG("Event count: %d  ->  %lu %lu",
-  //  	     input_format.total_length, total_original_size, total_compressed_size + sizeof(total_compressed_size));
   return;
 }   
 

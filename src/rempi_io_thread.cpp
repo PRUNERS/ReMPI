@@ -33,8 +33,10 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
   } else if (rempi_encode == 4) {
     encoder = new rempi_encoder_cdc(mode);                   //  (5): (3) + edit distance (two values for an only permutated message)
   } else if (rempi_encode == 5) {
+    encoder = new rempi_encoder_cdc(mode);                   //  (5): (3) + edit distance (two values for an only permutated message)
+  } else if (rempi_encode == 6) {
     encoder = new rempi_encoder_cdc_permutation_diff(mode);  //  (6): (3) + edit distance (one value for each message)
-  }  else if (rempi_encode == 6) {
+  }  else if (rempi_encode == 7) {
     if (mode == REMPI_ENV_REMPI_MODE_REPLAY) {
       encoder = new rempi_encoder_rep(mode);                 //  (7): Reproducibile MPI
     } else {
@@ -65,51 +67,36 @@ rempi_io_thread::~rempi_io_thread()
 void rempi_io_thread::write_record()
 {
   encoder->open_record_file(record_path);
-  rempi_encoder_input_format *nonencoded_events = NULL;
-  nonencoded_events = encoder->create_encoder_input_format();
-  while(1) {
-    /*use "new" to be able to select compression methods depending on specified input value*/
+  rempi_encoder_input_format *input_format = NULL;
+  input_format = encoder->create_encoder_input_format();
 
+  while(1) {
     bool is_extracted;
     char *encoded_events;
     size_t size;
     double s, e;
 
     /*Get a sequence of events, ...  */
-
-    is_extracted = encoder->extract_encoder_input_format_chunk(*recording_events, *nonencoded_events);
-
+    is_extracted = encoder->extract_encoder_input_format_chunk(*recording_events, *input_format);
 
     if (is_extracted) {
-      /*If I get the sequence,... */
-      /*... , encode(compress) the seuence*/
+      /*If I get the sequence, encode(compress) the seuence*/
       s = rempi_get_time();
-
-
-      encoder->encode(*nonencoded_events);
-
-
+      encoder->encode(*input_format);
       /*Then, write to file.*/
-      encoder->write_record_file(*nonencoded_events);
+      encoder->write_record_file(*input_format);
       e = rempi_get_time();
-      //REMPI_DBG(" RATE |%f|%d|%f|" , nonencoded_events->length() / (e - s), nonencoded_events->length(), e - s);
-
-      //      nonencoded_events->debug_print();
-      
-      delete nonencoded_events; //TODO: also delete iternal data in this variable
-      nonencoded_events = encoder->create_encoder_input_format();
-      /*TODO: free rempi_encoded_cdc_input_format*/
+      delete input_format; //TODO: also delete iternal data in this variable
+      input_format = encoder->create_encoder_input_format();
     } else {
       /*If not, wait for a while in order to reduce CPU usage.*/
       usleep(100);
     }
 
-    /*is_complete = 1 => event are not pushed to the event quene no longer*/
     /*if the events is empty, we can finish recoding*/
-
     if (recording_events->is_push_closed_() && recording_events->size() == 0) {
-      if (nonencoded_events != NULL) {
-       	delete nonencoded_events;
+      if (input_format != NULL) {
+       	delete input_format;
       }
       break;
     }

@@ -204,7 +204,6 @@ public:
     if (current_shortest_parent != NULL) {
       new_node->row_distance   =  new_node->row    - (current_shortest_parent->row + 1);
       new_node->column_distance = new_node->column - (current_shortest_parent->column + 1);
-
       new_node->shortest_distance = current_shortest_distance + 1;
 
 #if 0
