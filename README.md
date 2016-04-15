@@ -6,7 +6,9 @@ ReMPI is a record-and-replay tool for MPI applications.
 ReMPI implements Clock Delta Compression (CDC) for compressing records
 
 # Quick Start
-* Assuming catalyst system
+
+ * Assuming catalyst system
+
 ## Get source code
 
     git clone --recursive https://sato5@lc.llnl.gov/stash/scm/prun/rempi.git # It requires authentications 7 times
@@ -34,8 +36,8 @@ ReMPI implements Clock Delta Compression (CDC) for compressing records
 # Configuration
 
  * `REMPI_MODE`: Record mode OR Replay mode
-   * `0`: Record mode
-   * `1`: Replay mode
+     * `0`: Record mode
+     * `1`: Replay mode
  * `REMPI_DIR`: Directory path for record files
  * `REMPI_ENCODE`
    * `0`: Simple recording 
