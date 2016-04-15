@@ -67,13 +67,16 @@ public:
 
 };
 
-int rempi_reqmg_register_recv_request(MPI_Request *request, int source, int tag, int comm_id);
-int rempi_reqmg_deregister_recv_request(MPI_Request *request);
-int rempi_reqmg_register_send_request(MPI_Request *request, int source, int tag, int comm_id);
-int rempi_reqmg_deregister_send_request(MPI_Request *request);
+int rempi_reqmg_register_request(MPI_Request *request, int source, int tag, int comm_id, int request_type);
+int rempi_reqmg_deregister_request(MPI_Request *request, int request_type);
+/* int rempi_reqmg_register_recv_request(MPI_Request *request, int source, int tag, int comm_id); */
+/* int rempi_reqmg_deregister_recv_request(MPI_Request *request); */
+/* int rempi_reqmg_register_send_request(MPI_Request *request, int source, int tag, int comm_id); */
+/* int rempi_reqmg_deregister_send_request(MPI_Request *request); */
 
 int rempi_reqmg_get_test_id(MPI_Request *request, int count);
-void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendcount, int *recvcount, int *nullcount, int *request_info);
+void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendcount, int *recvcount, int *nullcount, int *request_info, int *is_record_nad_replay);
+void rempi_reqmg_get_request_type(MPI_Request *request, int *request_type);
 void rempi_reqmg_store_send_statuses(int incount, MPI_Request *requests, int *request_info, MPI_Status *statuses);
 /*TODO: remove the below two functions*/
 int rempi_reqmg_get_recv_request_count(int incount, MPI_Request *requests);

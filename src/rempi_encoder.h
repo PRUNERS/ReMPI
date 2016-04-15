@@ -133,7 +133,7 @@ class rempi_encoder_input_format
 
   ~rempi_encoder_input_format() 
     {
-      //    this->clear();
+      this->clear();
     }
   
   size_t  length();
@@ -200,6 +200,7 @@ class rempi_encoder
       , interim_min_clock_in_next_event(NULL) 
       , dequeued_count(NULL)
       , tmp_fd_next_clock(0)
+      , total_write_size(0)
       {}
 
     /*Common for record & replay*/
@@ -252,10 +253,7 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
 
 #if MPI_VERSION == 3
 class rempi_encoder_cdc : public rempi_encoder
-{
-
-  
-
+{  
   struct frontier_detection_clocks{ /*fd = frontier detection*/
     size_t next_clock;    /*TODO: Remove    next_clock, which is not used any more */
     size_t trigger_clock; /*TODO: Remove trigger_clock, which is not used any more */

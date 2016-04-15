@@ -67,7 +67,6 @@ void rempi_io_thread::write_record()
   encoder->open_record_file(record_path);
   rempi_encoder_input_format *nonencoded_events = NULL;
   nonencoded_events = encoder->create_encoder_input_format();
-
   while(1) {
     /*use "new" to be able to select compression methods depending on specified input value*/
 
@@ -77,19 +76,25 @@ void rempi_io_thread::write_record()
     double s, e;
 
     /*Get a sequence of events, ...  */
+
     is_extracted = encoder->extract_encoder_input_format_chunk(*recording_events, *nonencoded_events);
+
 
     if (is_extracted) {
       /*If I get the sequence,... */
       /*... , encode(compress) the seuence*/
       s = rempi_get_time();
+
+
       encoder->encode(*nonencoded_events);
+
+
       /*Then, write to file.*/
       encoder->write_record_file(*nonencoded_events);
       e = rempi_get_time();
       //REMPI_DBG(" RATE |%f|%d|%f|" , nonencoded_events->length() / (e - s), nonencoded_events->length(), e - s);
 
-      nonencoded_events->debug_print();
+      //      nonencoded_events->debug_print();
       
       delete nonencoded_events; //TODO: also delete iternal data in this variable
       nonencoded_events = encoder->create_encoder_input_format();
@@ -99,11 +104,9 @@ void rempi_io_thread::write_record()
       usleep(100);
     }
 
-    //    REMPI_DBGI(1, "----> events: %p, size: %lu", encoded_events, size);
-    //    REMPI_DBGI(1, " is_complete_flush: %d, size: %d", is_complete_flush, events->size());
-    //    REMPI_DBG(" is_cclosed: %d, size: %d", events->is_push_closed_(), events->size());
     /*is_complete = 1 => event are not pushed to the event quene no longer*/
     /*if the events is empty, we can finish recoding*/
+
     if (recording_events->is_push_closed_() && recording_events->size() == 0) {
       if (nonencoded_events != NULL) {
        	delete nonencoded_events;
@@ -117,17 +120,18 @@ void rempi_io_thread::write_record()
 
 void rempi_io_thread::read_record()
 {
-  encoder->open_record_file(record_path);
   rempi_encoder_input_format *input_format;
+  bool is_no_more_record;
+
+  encoder->open_record_file(record_path);
   input_format = encoder->create_encoder_input_format();
 
   while(1) {
-    bool is_no_more_record;
-
     is_no_more_record = encoder->read_record_file(*input_format);
     if (is_no_more_record) {
       /*If replayed all recorded events, ...*/
       replaying_events->close_push();
+      delete input_format;
       break;
     } else {
       encoder->decode(*input_format);

@@ -11,18 +11,19 @@
 #include <iostream>
 #include <vector>
 
-#define REMPI_MPI_EVENT_INPUT_NUM (8)
-#define REMPI_MPI_EVENT_INPUT_INDEX_EVENT_COUNTS (0)
-#define REMPI_MPI_EVENT_INPUT_INDEX_IS_TESTSOME  (1) /*TODO: IS_TESTSOME => WITH_PREVIOUS*/
-#define REMPI_MPI_EVENT_INPUT_INDEX_COMM_ID      (2)
-#define REMPI_MPI_EVENT_INPUT_INDEX_FLAG         (3)
-#define REMPI_MPI_EVENT_INPUT_INDEX_SOURCE       (4)
-#define REMPI_MPI_EVENT_INPUT_INDEX_TAG          (5)
-#define REMPI_MPI_EVENT_INPUT_INDEX_CLOCK        (6)
-#define REMPI_MPI_EVENT_INPUT_INDEX_TEST_ID      (7)
+// [source, is_testsome], <index>, clock 
+#define REMPI_MPI_EVENT_INPUT_NUM (7)
+#define REMPI_MPI_EVENT_INPUT_INDEX_EVENT_COUNT       (0)
+#define REMPI_MPI_EVENT_INPUT_INDEX_FLAG              (1)
+#define REMPI_MPI_EVENT_INPUT_INDEX_SOURCE            (2)
+#define REMPI_MPI_EVENT_INPUT_INDEX_WITH_NEXT         (3)
+#define REMPI_MPI_EVENT_INPUT_INDEX_INDEX             (4)
+#define REMPI_MPI_EVENT_INPUT_INDEX_MSG_ID            (5)
+#define REMPI_MPI_EVENT_INPUT_INDEX_MATCHING_GROUP_ID (6)
+/* #define REMPI_MPI_EVENT_INPUT_INDEX_COMM_ID      (2) */
+/* #define REMPI_MPI_EVENT_INPUT_INDEX_TAG          (5) */
 
-//#define REMPI_MPI_EVENT_NOT_WITH_PREVIOUS (0)
-//#define REMPI_MPI_EVENT_WITH_PREVIOUS     (1)
+#define REMPI_MPI_EVENT_INPUT_IGNORE (0)
 #define REMPI_MPI_EVENT_NOT_WITH_NEXT (0)
 #define REMPI_MPI_EVENT_WITH_NEXT     (1)
 
@@ -41,7 +42,7 @@ class rempi_event
 
     int clock_order; /*Ordered by clock when CDC compression is used */
     int msg_count; /*Actual message count from sender. This is used in copy_proxy_buf*/
-    vector<long> mpi_inputs;
+    vector<int> mpi_inputs; /*TODO: use array insted of vector*/
 
     rempi_event()
       : clock_order(-1), 
@@ -55,14 +56,24 @@ class rempi_event
     virtual char* serialize(size_t &size);
     
     virtual int get_event_counts();
-    virtual int get_is_testsome();
-    virtual void set_with_next(long);
-    virtual int get_comm_id();
     virtual int get_flag();
     virtual int get_source();
-    virtual int get_tag();
+    virtual int get_is_testsome();
+    virtual void set_with_next(long);
     virtual int get_clock();
     virtual int get_test_id();
+
+    virtual int get_rank();
+    virtual int get_with_next();
+    virtual int get_index();
+    virtual int get_msg_id();
+    virtual int get_matching_group_id();
+
+    //    virtual int get_comm_id();
+
+
+    //    virtual int get_tag();
+
     void print();
 };
 
@@ -76,10 +87,12 @@ class rempi_irecv_event : public rempi_event
 
 class rempi_test_event : public rempi_event
 {
-  public:
-    rempi_test_event(int event_counts, int is_testsome, int request, int flag, int source, int tag);
-    rempi_test_event(int event_counts, int is_testsome, int request, int flag, int source, int tag, int clock);
-    rempi_test_event(int event_counts, int is_testsome, int request, int flag, int source, int tag, int clock, int test_id);
+ public:
+  /* rempi_test_event(int event_counts, int is_testsome, int request, int flag, int source, int tag); */
+  /* rempi_test_event(int event_counts, int is_testsome, int request, int flag, int source, int tag, int clock); */
+  rempi_test_event(int event_count, int flag, int rank, int with_next, int index, int msg_id, int matching_id);
+  /* rempi_test_event(int event_counts, int rank, int with_next, int index, int msg_id, int mid); */
+  /* rempi_test_event(int event_counts, int is_testsome, int request, int flag, int source, int tag, int clock, int test_id); */
 };
 
 #endif /* REMPI_EVENT_H_ */

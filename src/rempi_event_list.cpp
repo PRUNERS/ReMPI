@@ -355,7 +355,7 @@ void rempi_event_list<T>::enqueue_replay(T event, int test_id)
   mtx.unlock();
 
   while (spsc_queue->rough_size() >= max_size) {
-    REMPI_DBG("rempi_event_list exceeded max_size");
+    //    REMPI_DBG("rempi_event_list exceeded max_size");
     usleep(spin_time);
   }
   spsc_queue->enqueue(event);

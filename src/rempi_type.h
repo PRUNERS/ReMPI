@@ -2,12 +2,12 @@
 #define __REMPI_TYPE_H__
 
 #if MPI_VERSION == 1 || MPI_VERSION == 2
-#define rempi_mpi_version_void void
-#define rempi_mpi_version_int  int
+#define mpi_const
 #else
-#define rempi_mpi_version_void const void
-#define rempi_mpi_version_int  const int
+#define mpi_const const
 #endif
 
+//#define rempi_mpi_version_void void
+//#define rempi_mpi_version_int  int
 
 #endif

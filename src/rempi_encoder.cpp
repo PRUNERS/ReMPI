@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <vector>
 
@@ -23,7 +24,7 @@ void rempi_encoder_input_format_test_table::clear()
   }
   events_vec.clear();
 
-  epoch_umap.clear();
+  if (!epoch_umap.empty()) epoch_umap.clear();
   epoch_rank_vec.clear();
   epoch_clock_vec.clear();
   
@@ -33,22 +34,22 @@ void rempi_encoder_input_format_test_table::clear()
   compressed_with_previous_length = 0;
   compressed_with_previous_size   = 0;
   if (compressed_with_previous != NULL) {
-    free(compressed_with_previous);
+    //    free(compressed_with_previous);
     compressed_with_previous = NULL;
   }
 
   /*Unmatched */
   unmatched_events_id_vec.clear();
   unmatched_events_count_vec.clear();
-  unmatched_events_umap.clear();
+  if(!unmatched_events_umap.empty()) unmatched_events_umap.clear();
   compressed_unmatched_events_id_size = 0;
   if (compressed_unmatched_events_id  != NULL) {
-    free(compressed_unmatched_events_id);
+    //free(compressed_unmatched_events_id);
     compressed_unmatched_events_id = NULL;
   }
   compressed_unmatched_events_count_size = 0;
   if (compressed_unmatched_events_count  != NULL) {
-    free(compressed_unmatched_events_count);
+    //    free(compressed_unmatched_events_count);
     compressed_unmatched_events_count = NULL;
   }
 
@@ -61,7 +62,7 @@ void rempi_encoder_input_format_test_table::clear()
   replayed_matched_event_index = 0;
   compressed_matched_events_size = 0;
   if (compressed_matched_events != NULL) {
-    free(compressed_matched_events);
+    //    free(compressed_matched_events);
     compressed_matched_events = NULL;
   }
 
@@ -256,38 +257,44 @@ void rempi_encoder::encode(rempi_encoder_input_format &input_format)
   size_t original_size, compressed_size;
   rempi_event *encoding_event;
   rempi_encoder_input_format_test_table *test_table;
-  size_t *original_buff;
+  int *original_buff, original_buff_offset;
   int recoding_inputs_num = rempi_event::record_num; // count, flag, rank, with_next and clock
 
   test_table = input_format.test_tables_map[0];
 
-  original_size = sizeof(size_t) * recoding_inputs_num * test_table->events_vec.size();
-  original_buff = (size_t*)malloc(original_size);
+  original_size = rempi_event::max_size * test_table->events_vec.size();
+  original_buff = (int*)malloc(original_size);
   for (int i = 0; i < test_table->events_vec.size(); i++) {
-    int encodign_buff_head_index = i * recoding_inputs_num;
+    original_buff_offset = i * rempi_event::record_num;
     encoding_event = test_table->events_vec[i];    
-    original_buff[encodign_buff_head_index + 0] = encoding_event->get_event_counts();
-    original_buff[encodign_buff_head_index + 1] = encoding_event->get_is_testsome();
-    original_buff[encodign_buff_head_index + 2] = encoding_event->get_flag();
-    original_buff[encodign_buff_head_index + 3] = encoding_event->get_source();
-    original_buff[encodign_buff_head_index + 4] = encoding_event->get_clock();
+    memcpy(original_buff + original_buff_offset, &encoding_event->mpi_inputs.front(), rempi_event::max_size);
+
     /*TODO
       Call "delete encoding_event" here to reduce memory footprint.
       Now, encoding_evet is freed by input_format.dealocate
      */ 
 
+    // REMPI_DBGI(1, "Encoded  : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)", 
+    // 	      encoding_event->get_event_counts(), 
+    // 	      encoding_event->get_flag(),
+    // 	      encoding_event->get_rank(),
+    // 	      encoding_event->get_with_next(),
+    // 	      encoding_event->get_index(),
+    // 	      encoding_event->get_msg_id(),
+    // 	      encoding_event->get_matching_group_id());
 
-    // REMPI_DBG("Encoded  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)", 
-    // 	       encoding_event->get_event_counts(), encoding_event->get_is_testsome(), encoding_event->get_flag(), 
-    // 	       encoding_event->get_source(), encoding_event->get_tag(), encoding_event->get_clock());
+    // for (int j = 0; i < rempi_event::record_num; i++) {
+    //   REMPI_DBG("  %d", *(original_buff + original_buff_offset + i));
+    // }
 
 #ifdef REMPI_DBG_REPLAY
-    REMPI_DBG("Encoded  : (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)", 
+    REMPI_DBG("Encoded  : (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)", 
 	       encoding_event->get_event_counts(), encoding_event->get_is_testsome(), encoding_event->get_flag(), 
-	       encoding_event->get_source(), encoding_event->get_tag(), encoding_event->get_clock());
+	       encoding_event->get_source(), encoding_event->get_clock());
 #endif 
 
   }
+
   if (rempi_gzip) {
     test_table->compressed_matched_events      = compression_util.compress_by_zlib((char*)original_buff, original_size, compressed_size);
     test_table->compressed_matched_events_size = compressed_size;
@@ -295,13 +302,6 @@ void rempi_encoder::encode(rempi_encoder_input_format &input_format)
     test_table->compressed_matched_events      = (char*)original_buff;
     test_table->compressed_matched_events_size = original_size;
   }
-  
-  // REMPI_DBG("xOriginal size: count:%5d(matched/unmatched entry) x 4 bytes x 5 = %d bytes,  Compressed size: %lu bytes , %d %lu", 
-  //  	    input_format.total_length, original_size , compressed_size, 
-  // 	    original_size, compressed_size)
-
-  // REMPI_DBG("length: %5d, Size: %lu, %lu", 
-  // 	    input_format.total_length, test_table->compressed_matched_events_size, original_size);
 
   return;
 }
@@ -324,8 +324,6 @@ void rempi_encoder::write_record_file(rempi_encoder_input_format &input_format)
   //  write_size_vec.push_back(whole_data_size);
   total_write_size += whole_data_size;
 
-  /*Free all recorded data*/
-  input_format.clear();
 
   return;
 }
@@ -336,7 +334,7 @@ void rempi_encoder::close_record_file()
   // for (int i = 0, n = write_size_vec.size(); i < n; i++) {
   //   total_write_size += write_size_vec[i];
   // }
-  REMPI_DBG("EVAL Total write size: |%lu|", total_write_size);
+  //  REMPI_DBG("EVAL Total I/O size: |%lu|", total_write_size);
   record_fs.close();
 }
 
@@ -344,7 +342,7 @@ void rempi_encoder::close_record_file()
 bool rempi_encoder::read_record_file(rempi_encoder_input_format &input_format)
 {
   char* decoding_event_sequence;
-  size_t* decoding_event_sequence_int;
+  int* decoding_event_sequence_int;
   rempi_event* decoded_event;
   size_t size;
   bool is_no_more_record = false;
@@ -357,11 +355,11 @@ bool rempi_encoder::read_record_file(rempi_encoder_input_format &input_format)
   record_fs.read(decoding_event_sequence, rempi_event::record_num * rempi_event::record_element_size);
   size = record_fs.gcount();
   if (size == 0) {
-    delete decoding_event_sequence;
+    free(decoding_event_sequence);
     is_no_more_record = true;
     return is_no_more_record;
   }
-  decoding_event_sequence_int = (size_t*)decoding_event_sequence;
+  decoding_event_sequence_int = (int*)decoding_event_sequence;
   
   // for (int i = 0; i < 8; i++) {
   //   fprintf(stderr, "int: %d   ==== ", decoding_event_sequence_int[i]);
@@ -371,23 +369,28 @@ bool rempi_encoder::read_record_file(rempi_encoder_input_format &input_format)
   decoded_event = new rempi_test_event(
 				       (int)decoding_event_sequence_int[0],
 				       (int)decoding_event_sequence_int[1],
-					-1,
 				       (int)decoding_event_sequence_int[2],
 				       (int)decoding_event_sequence_int[3],
-				       -1,
 				       (int)decoding_event_sequence_int[4],
-					0
+				       (int)decoding_event_sequence_int[5],
+				       (int)decoding_event_sequence_int[6]
 					);
 #if 0
-  REMPI_DBG( "Read    ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)", 
-	    (int)decoding_event_sequence_int[0],
-	    (int)decoding_event_sequence_int[1],
-	    (int)decoding_event_sequence_int[2],
-	    (int)decoding_event_sequence_int[3],
-	    (int)decoding_event_sequence_int[4]);
+  REMPI_DBG( "Read    ; (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)", 
+	     (int)decoding_event_sequence_int[0],
+	     (int)decoding_event_sequence_int[1],
+	     (int)decoding_event_sequence_int[2],
+	     (int)decoding_event_sequence_int[3],
+	     (int)decoding_event_sequence_int[4],
+	     (int)decoding_event_sequence_int[5],
+	     (int)decoding_event_sequence_int[6]
+	     );
 #endif
+
+  free(decoding_event_sequence);
   input_format.add(decoded_event, 0);
   is_no_more_record = false;
+  total_write_size += size;
   return is_no_more_record;
 }
 
@@ -472,15 +475,24 @@ void rempi_encoder::insert_encoder_input_format_chunk(rempi_event_list<rempi_eve
   decoded_event = test_table->events_vec[0];
   test_table->events_vec.pop_back();/*events_vec has only one event (pop_back == pop_front)*/
 
-
-  // REMPI_DBG("Decoded ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
-  // 	     decoded_event->get_event_counts(), decoded_event->get_is_testsome(), decoded_event->get_flag(),
-  // 	     decoded_event->get_source(), decoded_event->get_tag(), decoded_event->get_clock());
+  // REMPI_DBGI(0, "Decoded  : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)", 
+  //   	      decoded_event->get_event_counts(), 
+  //   	      decoded_event->get_flag(),
+  //   	      decoded_event->get_rank(),
+  //   	      decoded_event->get_with_next(),
+  //   	      decoded_event->get_index(),
+  //   	      decoded_event->get_msg_id(),
+  //   	      decoded_event->get_matching_group_id());
 
 #ifdef REMPI_DBG_REPLAY
-  REMPI_DBGI(REMPI_DBG_REPLAY, "Decoded ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
-	     decoded_event->get_event_counts(), decoded_event->get_is_testsome(), decoded_event->get_flag(),
-	     decoded_event->get_source(), decoded_event->get_tag(), decoded_event->get_clock());
+    REMPI_DBG("Decoded  : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)", 
+	      decoded_event->get_event_counts(), 
+	      decoded_event->get_flag(),
+	      decoded_event->get_rank(),
+	      decoded_event->get_with_next(),
+	      decoded_event->get_index(),
+	      decoded_event->get_msg_id(),
+	      decoded_event->get_matching_group_id());
 #endif
 
   if (decoded_event->get_flag() == 0) {

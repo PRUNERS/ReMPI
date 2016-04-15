@@ -106,6 +106,7 @@ class rempi_irecv_inputs
 #define REQUEST_INFO_SIZE (128)
 class rempi_recorder {
  protected:
+  void cancel_request(MPI_Request *request);
   rempi_message_manager msg_manager; //TODO: this is not used
   //  unordered_map<string, int> stacktrace_to_test_id_umap;
   int next_test_id_to_assign;// = 0;
@@ -117,17 +118,21 @@ class rempi_recorder {
   /*TODO: Fix bug in PNMPI fo rmulti-threaded, and remove this outputing*/
   rempi_encoder *mc_encoder;// = NULL;
   unsigned int validation_code; /*integer to check if correctly replayed the reocrded events*/
-  void update_validation_code(int outcount, int *array_of_indices, MPI_Status *array_of_statuses);
+  void update_validation_code(int outcount, int *array_of_indices, MPI_Status *array_of_statuses, int* request_info);
   int request_info[REQUEST_INFO_SIZE];
-  MPI_Status tmp_statuses[REQUEST_INFO_SIZE];
+  MPI_Status  tmp_statuses[REQUEST_INFO_SIZE];
+  MPI_Request tmp_requests[REQUEST_INFO_SIZE];
  public:
 
   rempi_recorder()
     : next_test_id_to_assign(0)
+    , record_thread(NULL)
+    , read_record_thread(NULL)
     , mc_encoder(NULL)
     , validation_code(5371) {
     memset(request_info, 0, sizeof(int) * REQUEST_INFO_SIZE);
-    memset(tmp_statuses, 0, sizeof(int) * REQUEST_INFO_SIZE);
+    memset(tmp_statuses, 0, sizeof(MPI_Status) * REQUEST_INFO_SIZE);
+    memset(tmp_requests, 0, sizeof(MPI_Request) * REQUEST_INFO_SIZE);
     //    request_info = (int*)rempi_malloc(sizeof(int) * REQUEST_INFO_SIZE);
   }
   
@@ -135,8 +140,17 @@ class rempi_recorder {
     {
       delete replaying_event_list;
       delete recording_event_list;
-      delete record_thread;
-      //      rempi_free(request_info);
+      if (record_thread != NULL) delete record_thread;
+      if (read_record_thread != NULL) delete read_record_thread;
+      unordered_map<MPI_Request, rempi_irecv_inputs*>::const_iterator request_to_irecv_inputs_umap_it;
+      unordered_map<MPI_Request, rempi_irecv_inputs*>::const_iterator request_to_irecv_inputs_umap_it_end;
+      for (request_to_irecv_inputs_umap_it     = request_to_irecv_inputs_umap.cbegin(),
+	     request_to_irecv_inputs_umap_it_end = request_to_irecv_inputs_umap.cend();
+	   request_to_irecv_inputs_umap_it != request_to_irecv_inputs_umap_it_end;
+	   request_to_irecv_inputs_umap_it++) {
+	rempi_irecv_inputs *irecv_inputs =  request_to_irecv_inputs_umap_it->second;
+	delete irecv_inputs;
+      }
     }
   
   virtual int record_init(int *argc, char ***argv, int rank);
@@ -166,6 +180,8 @@ class rempi_recorder {
 			   );
 
   virtual int replay_cancel(MPI_Request *request);
+  virtual int replay_request_free(MPI_Request *request);
+  virtual MPI_Fint replay_request_c2f(MPI_Request request);
 
   virtual int record_test(
 			  MPI_Request *request,
@@ -201,6 +217,15 @@ class rempi_recorder {
 			int *flag,
 			MPI_Status *status,
 			int prove_function_type);
+
+  virtual int replay_mf(
+			int incount, 
+			MPI_Request array_of_requests[], 
+			int *outcount, 
+			int array_of_indices[], 
+			MPI_Status array_of_statuses[],
+			int global_test_id,
+			int matching_function_type);
   
   /*TODO: Conmbine replay_test with replay_testsome into replay_mf by mf_flag_1 & mf_flag_2 ??*/
   virtual int replay_test(
@@ -310,6 +335,8 @@ class rempi_recorder_cdc : public rempi_recorder
 		   );
 
   int replay_cancel(MPI_Request *request);
+  int replay_request_free(MPI_Request *request);
+  MPI_Fint replay_request_c2f(MPI_Request request);
 
   int record_test(
 		  MPI_Request *request,

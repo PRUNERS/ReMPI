@@ -10,7 +10,7 @@
 #define FUNC_NAME_LEN (32)
 //#define NUM_TEST_MSG  (1024)
 //#define NUM_TEST_MSG  (100000) 
-#define NUM_TEST_MSG  (40) 
+#define NUM_TEST_MSG  (4) 
 #define TEST_MSG_CHUNK_SIZE  (2)
 
 #define MPI_Isend_id  (101)
@@ -54,16 +54,16 @@
 #define TEST_SENDRECV_REQ
 
 
-#define rempi_test_dbg_print(format, ...) \
-  do { \
+#define rempi_test_dbg_print(format, ...)				\
+  do {									\
     fprintf(stderr, "REMPI(test):%3d: " format " (%s:%d)\n", my_rank, ## __VA_ARGS__, __FILE__, __LINE__); \
   } while (0)
 
-#define rempi_test_dbgi_print(rank, format, ...) \
-  do { \
-    if (rank == 0) { \
+#define rempi_test_dbgi_print(rank, format, ...)			\
+  do {									\
+    if (rank == 0) {							\
       fprintf(stderr, "REMPI(test):%3d: " format " (%s:%d)\n", my_rank, ## __VA_ARGS__, __FILE__, __LINE__); \
-    } \
+    }									\
   } while (0)
 
 
@@ -89,16 +89,16 @@ int probe_ids[] = {
 
 int isend_ids[] = {
   MPI_Isend_id,
-  //  MPI_Ibsend_id, /*MPI_Ibsend does not work*/
+  //   MPI_Ibsend_id, /*MPI_Ibsend does not work in MPI*/
   MPI_Irsend_id,
   MPI_Issend_id
 };
 
 int send_init_ids[] = {
   MPI_Send_init_id,
-  //  MPI_Bsend_init_id /*MPI_Bsend_init does not work*/
+  //  MPI_Bsend_init_id /*MPI_Bsend_init does not work in MPI*/
   MPI_Rsend_init_id,
-  //  MPI_Ssend_init_id /*MPI_Ssend_init does not work*/
+  //  MPI_Ssend_init_id /*MPI_Ssend_init does not work in MPI*/
 };
 
 int start_ids[] = {
@@ -121,6 +121,7 @@ int sendrecv_req_ids[] = {
   MPI_Waitsome_id,
   MPI_Waitall_id
 };
+
 
 
 static void rempi_test_randome_sleep()
@@ -351,6 +352,7 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
   }
 
   
+  
   switch(matching_type) {
   case MPI_Test_id:
     for (i = 0; i < num_send_msgs; i++) {
@@ -555,14 +557,16 @@ void rempi_test_sendrecv_req(int matching_type)
   for (i = 0; i < num_msgs/2; i++) {
     int dest = (my_rank + 1 + i) % size;
     MPI_Isend(&i, 1, MPI_INT, dest, i, MPI_COMM_WORLD, &requests[index]);
-    statuses[index].MPI_SOURCE = dest;
-    statuses[index].MPI_TAG = i;
+    statuses[index].MPI_SOURCE = -1;
+    statuses[index].MPI_TAG = -1;
     index++;
   }
 
   for (i = 0; i < num_msgs/2; i++) {
     int src = (my_rank - 1 -i + size) % size;
     MPI_Irecv(&recv_vals[i], 1, MPI_INT, src, i, MPI_COMM_WORLD, &requests[index]);
+    statuses[index].MPI_SOURCE = -2;
+    statuses[index].MPI_TAG = -2;
     index++;
   }
 
@@ -597,6 +601,9 @@ void rempi_test_sendrecv_req(int matching_type)
 	MPI_Testsome(num_msgs, requests, &matched_count, matched_indices, statuses);
 	if (matched_count > 0) {
 	  recv_msg_count += matched_count;
+	  /* for (i = 0; i < matched_count; i++) { */
+	  /*   rempi_test_dbg_print("index: %d, rank: %d, tag: %d", matched_indices[i], statuses[i].MPI_SOURCE, statuses[i].MPI_TAG); */
+	  /* } */
 	  break;
 	}
       }
@@ -646,6 +653,8 @@ void rempi_test_sendrecv_req(int matching_type)
 int main(int argc, char *argv[])
 {
   int i, j;
+  int is_all = 0;
+  char *test_name;
   /* Init */
   MPI_Init(&argc, &argv);
   signal(SIGSEGV, SIG_DFL);
@@ -653,75 +662,98 @@ int main(int argc, char *argv[])
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   
   init_ndrand();
-
   start = MPI_Wtime();
 
-#if defined(TEST_MATCHING_FUNC)
-  if (my_rank == 0) fprintf(stdout, "Start testing matching functions ... "); fflush(stdout);
-  for (i = 0; i < sizeof(matching_ids)/ sizeof(int); i++) {
-    rempi_test_mpi_send_and_nonblocking_recvs(matching_ids[i]);
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-  if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
-#endif
-  
-#if defined(TEST_PROBE_FUNC)
-  if (my_rank == 0) fprintf(stdout, "Start testing probe functions ... "); fflush(stdout);
-  for (i = 0; i < sizeof(probe_ids) / sizeof(int); i++) {
-    rempi_test_probe(probe_ids[i]);
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-  if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
-#endif
-
-#if defined(TEST_ISEND_FUNC)
-  if (my_rank == 0) fprintf(stdout, "Start testing isend functions ... "); fflush(stdout);
-  for (i = 0; i < sizeof(isend_ids) / sizeof(int); i++) {
-    rempi_test_nonblocking_sends(isend_ids[i]);
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-  if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
-#endif
-
-#if defined(TEST_INIT_SENDRECV_FUNC)
-  if (my_rank == 0) fprintf(stdout, "Start testing init send/recv functions ... "); fflush(stdout);
-  for (i = 0; i < sizeof(send_init_ids)/sizeof(int); i++) {
-    rempi_test_init_sendrecv(send_init_ids[i], MPI_Start_id, MPI_Start_id);
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-  if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
-#endif
-
-#if defined(TEST_START_FUNC)
-  if (my_rank == 0) fprintf(stdout, "Start testing start/startall functions ... "); fflush(stdout);
-  for (i = 0; i < sizeof(start_ids)/sizeof(int); i++) {
-    for (j = 0; j < sizeof(start_ids)/sizeof(int); j++) {
-      rempi_test_init_sendrecv(MPI_Send_init_id, start_ids[i], start_ids[j]);
-      MPI_Barrier(MPI_COMM_WORLD);
+  for (i = 0; i < argc; i++) {
+    if (argc == 1) {
+      is_all = 1;
+      test_name = "all";
+    } else {
+      i++;
+      test_name = argv[i];
     }
-  }
-  if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+
+    if (!strcmp(test_name, "matching") || is_all) {
+#if defined(TEST_MATCHING_FUNC)
+      if (my_rank == 0) fprintf(stdout, "Start testing matching functions ... "); fflush(stdout);
+      for (i = 0; i < sizeof(matching_ids)/ sizeof(int); i++) {
+	rempi_test_mpi_send_and_nonblocking_recvs(matching_ids[i]);
+	MPI_Barrier(MPI_COMM_WORLD);
+      }
+      if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
 #endif
+    } 
 
+    if (!strcmp(test_name, "probe")  || is_all) {
+#if defined(TEST_PROBE_FUNC)
+      if (my_rank == 0) fprintf(stdout, "Start testing probe functions ... "); fflush(stdout);
+      for (i = 0; i < sizeof(probe_ids) / sizeof(int); i++) {
+	rempi_test_probe(probe_ids[i]);
+	MPI_Barrier(MPI_COMM_WORLD);
+      }
+      if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
+    } 
 
+    if (!strcmp(test_name, "isend") || is_all) {
+#if defined(TEST_ISEND_FUNC)
+      if (my_rank == 0) fprintf(stdout, "Start testing isend functions ... "); fflush(stdout);
+      for (i = 0; i < sizeof(isend_ids) / sizeof(int); i++) {
+	rempi_test_nonblocking_sends(isend_ids[i]);
+	MPI_Barrier(MPI_COMM_WORLD);
+      }
+      if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
+    } 
+
+    if (!strcmp(test_name, "init_sendrecv") || is_all) {
+#if defined(TEST_INIT_SENDRECV_FUNC)
+      if (my_rank == 0) fprintf(stdout, "Start testing init send/recv functions ... "); fflush(stdout);
+      for (i = 0; i < sizeof(send_init_ids)/sizeof(int); i++) {
+	rempi_test_init_sendrecv(send_init_ids[i], MPI_Start_id, MPI_Start_id);
+	MPI_Barrier(MPI_COMM_WORLD);
+      }
+      if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
+    } 
+
+    if (!strcmp(test_name, "start") || is_all) {
+#if defined(TEST_START_FUNC)
+      if (my_rank == 0) fprintf(stdout, "Start testing start/startall functions ... "); fflush(stdout);
+      for (i = 0; i < sizeof(start_ids)/sizeof(int); i++) {
+	for (j = 0; j < sizeof(start_ids)/sizeof(int); j++) {
+	  rempi_test_init_sendrecv(MPI_Send_init_id, start_ids[i], start_ids[j]);
+	  MPI_Barrier(MPI_COMM_WORLD);
+	}
+      }
+      if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
+    } 
+
+    if (!strcmp(test_name, "null_status") || is_all) {
 
 #if defined(TEST_NULL_STATUS)
-  if (my_rank == 0) fprintf(stdout, "Start testing null status ... "); fflush(stdout);
-  for (i = 0; i < sizeof(status_ids)/sizeof(int); i++) {
-    rempi_test_null_status(status_ids[i]);
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-  if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+      if (my_rank == 0) fprintf(stdout, "Start testing null status ... "); fflush(stdout);
+      for (i = 0; i < sizeof(status_ids)/sizeof(int); i++) {
+	rempi_test_null_status(status_ids[i]);
+	MPI_Barrier(MPI_COMM_WORLD);
+      }
+      if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
 #endif
+    } 
+
+    if (!strcmp(test_name, "sendrecv_req") || is_all) {
 
 #if defined(TEST_SENDRECV_REQ)
-  if (my_rank == 0) fprintf(stdout, "Start testing sendrecv req ... "); fflush(stdout);
-  for (i = 0; i < sizeof(sendrecv_req_ids)/sizeof(int); i++) {
-    rempi_test_sendrecv_req(sendrecv_req_ids[i]);
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-  if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+      if (my_rank == 0) fprintf(stdout, "Start testing sendrecv req ... "); fflush(stdout);
+      for (i = 0; i < sizeof(sendrecv_req_ids)/sizeof(int); i++) {
+	rempi_test_sendrecv_req(sendrecv_req_ids[i]);
+	MPI_Barrier(MPI_COMM_WORLD);
+      }
+      if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
 #endif
+    }
+  }
 
 
   end = MPI_Wtime();

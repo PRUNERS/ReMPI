@@ -41,13 +41,44 @@ class rempi_event_list
       spin_time(spin_time), 
       globally_minimal_clock(0),
       waiting_test_id(-1) {}
-
+  
   ~rempi_event_list() {
     mtx.lock();
     while (events.rough_size()) {
       events.dequeue();
     }
     mtx.unlock();
+
+    unordered_map<int, rempi_spsc_queue<rempi_event*>*>::const_iterator replay_events_it;
+    unordered_map<int, rempi_spsc_queue<rempi_event*>*>::const_iterator replay_events_it_end;
+    for (replay_events_it     = replay_events.cbegin(),
+	   replay_events_it_end = replay_events.cend();
+    	 replay_events_it != replay_events_it_end;
+    	 replay_events_it++) {
+      rempi_spsc_queue<rempi_event*> *spsc_queue = replay_events_it->second;
+      delete spsc_queue;
+    }
+
+    unordered_map<int, rempi_event*>::const_iterator previous_recording_event_umap_it;
+    unordered_map<int, rempi_event*>::const_iterator previous_recording_event_umap_it_end;
+    for (previous_recording_event_umap_it     = previous_recording_event_umap.cbegin(),
+	   previous_recording_event_umap_it_end = previous_recording_event_umap.cend();
+    	 previous_recording_event_umap_it != previous_recording_event_umap_it_end;
+    	 previous_recording_event_umap_it++) {
+      rempi_event *event = previous_recording_event_umap_it->second;
+      delete event;
+    }
+
+    unordered_map<int, rempi_event*>::const_iterator previous_replaying_event_umap_it;
+    unordered_map<int, rempi_event*>::const_iterator previous_replaying_event_umap_it_end;
+    for (previous_replaying_event_umap_it     = previous_replaying_event_umap.cbegin(),
+	   previous_replaying_event_umap_it_end = previous_replaying_event_umap.cend();
+    	 previous_replaying_event_umap_it != previous_replaying_event_umap_it_end;
+    	 previous_replaying_event_umap_it++) {
+      rempi_event *event = previous_replaying_event_umap_it->second;
+      delete event;
+    }
+
   }
   /*TODO: push -> enqueue, pop -> dequeue */
   size_t size();

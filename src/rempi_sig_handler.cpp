@@ -15,7 +15,8 @@ int registered_my_rank;
 
 void rempi_sig_handler_run(int signum)
 {
-
+  
+  REMPI_DBG("Get sigmal");
   if (registered_my_rank == 0) REMPI_PRT("Dumping record file");
   registered_recording_event_list->push_all();
   if (registered_my_rank == 0) REMPI_PRT("Syncing with IO thread");
@@ -24,7 +25,7 @@ void rempi_sig_handler_run(int signum)
   //  PMPI_Finalize();
 
   if (registered_my_rank == 0) REMPI_PRT(" ... done");
-
+  sleep(2);
   exit(0);
   return;
 }
