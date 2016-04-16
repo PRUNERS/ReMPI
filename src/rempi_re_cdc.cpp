@@ -605,10 +605,6 @@ int rempi_re_cdc::re_barrier(MPI_Comm arg_0)
 int rempi_re_cdc::re_finalize()
 {
   int ret;
-
-
-
-
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = PMPI_Finalize();
     ret = recorder->record_finalize();
