@@ -16,7 +16,7 @@
 
     cd rempi
     use openmpi-intel-1.8.4
-    export PATH=/path/to/scripts/external/pmpis/stack_pmpi:$PATH
+    export PATH=/path/to/scripts/external/pmpis/:$PATH
     make
 
 
