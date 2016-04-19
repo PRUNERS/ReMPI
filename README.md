@@ -10,7 +10,13 @@
 
 ## Get source code
 
-    git clone --recursive https://sato5@lc.llnl.gov/stash/scm/prun/rempi.git # It requires authentications 7 times
+    git clone --recursive ssh://git@cz-stash.llnl.gov:7999/prun/rempi.git
+
+OR
+
+    git clone ssh://git@cz-stash.llnl.gov:7999/prun/rempi.git
+    git submodule update --init
+
 
 ## Build ReMPI
 
