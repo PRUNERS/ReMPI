@@ -7,10 +7,10 @@ dir=/l/ssd
 #io_watchdog="--io-watchdog"
 
 
-#librempi="../lib/librempilite.so"
-#bin=./rempi_test_units
-#REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-#exit
+librempi="../lib/librempilite.so"
+bin="./rempi_test_units matching"
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+exit
 
 librempi="../../../../lib/librempilite.so"
 par=`expr 80 \* $num_procs`

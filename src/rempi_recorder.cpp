@@ -512,7 +512,7 @@ int rempi_recorder::record_mf(
 {
   int ret;
   int flag;
-  rempi_test_event *test_event = NULL;
+  rempi_event *test_event = NULL;
   int is_with_next;
   int matched_count;
   int sendcount, recvcount, nullcount;
@@ -554,7 +554,7 @@ int rempi_recorder::record_mf(
 
   if (matched_count == 0) {
     flag = 0;
-    test_event = new rempi_test_event(1, 
+    test_event = rempi_event::create_test_event(1, 
 				      flag, 
 				      REMPI_MPI_EVENT_INPUT_IGNORE, 
 				      REMPI_MPI_EVENT_NOT_WITH_NEXT, 
@@ -598,7 +598,7 @@ int rempi_recorder::record_mf(
       }
 
       if (rank >= 0) {
-	test_event = new rempi_test_event(1, 
+	test_event = rempi_event::create_test_event(1, 
 					  flag,
 					  rank,
 					  is_with_next,
@@ -633,7 +633,7 @@ int rempi_recorder::record_pf(int source,
 				  MPI_Status *status,
 				  int probe_function_type)
 {
-  rempi_test_event *test_event;
+  rempi_event *test_event;
   char comm_id[REMPI_COMM_ID_LENGTH];
   int resultlen;
   int global_test_id;
@@ -664,7 +664,7 @@ int rempi_recorder::record_pf(int source,
     record_flag = 1;
     record_source = status->MPI_SOURCE;
   }
-  test_event = new rempi_test_event(1,
+  test_event = rempi_event::create_test_event(1,
 				    record_flag,
 				    record_source,
 				    REMPI_MPI_EVENT_NOT_WITH_NEXT, 
@@ -755,11 +755,7 @@ int rempi_recorder::replay_mf(
 	REMPI_ASSERT(0);
       }
       rempi_reqmg_deregister_request(&array_of_requests[index], REMPI_SEND_REQUEST);      
-      REMPI_DBGI(0, "Replay send: %p", array_of_requests[index]);
-
       PMPI_Wait(&array_of_requests[index], &array_of_statuses[index]);      
-
-      REMPI_DBGI(0, "Replay send done: %p", array_of_requests[index]);      
     } else if (request_info[index] == REMPI_RECV_REQUEST) {
       irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[index]];
    
@@ -783,11 +779,6 @@ int rempi_recorder::replay_mf(
 		status.MPI_SOURCE,
 		status.MPI_TAG,
 		irecv_inputs->comm, &status);
-
-      if (status.MPI_SOURCE != irecv_inputs->source ||
-	  status.MPI_TAG    != irecv_inputs->tag) {
-	REMPI_DBG("Unexpected message matching");
-      }
 
       // REMPI_DBG( "source: %d(%d), tag: %d (%d), count: %d (id: %d)", 
       // 		 irecv_inputs->source, MPI_ANY_SOURCE, irecv_inputs->tag, MPI_ANY_TAG, irecv_inputs->count, recv_from2++);

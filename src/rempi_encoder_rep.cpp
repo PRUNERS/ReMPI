@@ -1210,7 +1210,7 @@ bool rempi_encoder_rep::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 
     if (replay_event_list.empty()) {
       rempi_event *unmatched_event;
-      unmatched_event = new rempi_test_event(1, // count
+      unmatched_event = rempi_event::create_test_event(1, // count
 					     0, // flag
 					     REMPI_MPI_EVENT_INPUT_IGNORE, // source
 					     REMPI_MPI_EVENT_INPUT_IGNORE, // with_next

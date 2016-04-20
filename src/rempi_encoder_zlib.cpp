@@ -63,7 +63,7 @@ vector<rempi_event*> rempi_encoder_zlib::decode(char *serialized_data, size_t *s
   /*In rempi_envoder, the serialized sequence identicals to one Test event */
   mpi_inputs = (int*)serialized_data;
   vec.push_back(
-    new rempi_test_event(mpi_inputs[0], mpi_inputs[1], mpi_inputs[2], 
+		rempi_event::create_test_event(mpi_inputs[0], mpi_inputs[1], mpi_inputs[2], 
 			 mpi_inputs[3], mpi_inputs[4], mpi_inputs[5], mpi_inputs[6])
   );
   delete mpi_inputs;

@@ -8,14 +8,24 @@
 #ifndef REMPI_EVENT_H_
 #define REMPI_EVENT_H_
 
+#include <mpi.h>
 #include <iostream>
 #include <vector>
+
+#define REMPI_MPI_EVENT_TYPE_RECV (1)
+#define REMPI_MPI_EVENT_TYPE_TEST (2)
+#define REMPI_MPI_EVENT_TYPE_PROB (3)
+
+#define REMPI_MPI_EVENT_RECV_INPUT_NUM (3)
+#define REMPI_MPI_EVENT_RECV_INPUT_INDEX_EVENT_COUNT       (0)
+#define REMPI_MPI_EVENT_RECV_INPUT_INDEX_SOURCE            (1)
+//#define REMPI_MPI_EVENT_RECV_INPUT_INDEX_REQUEST           (2)
 
 // [source, is_testsome], <index>, clock 
 #define REMPI_MPI_EVENT_INPUT_NUM (7)
 #define REMPI_MPI_EVENT_INPUT_INDEX_EVENT_COUNT       (0)
 #define REMPI_MPI_EVENT_INPUT_INDEX_FLAG              (1)
-#define REMPI_MPI_EVENT_INPUT_INDEX_SOURCE            (2)
+#define REMPI_MPI_EVENT_INPUT_INDEX_RANK              (2)
 #define REMPI_MPI_EVENT_INPUT_INDEX_WITH_NEXT         (3)
 #define REMPI_MPI_EVENT_INPUT_INDEX_INDEX             (4)
 #define REMPI_MPI_EVENT_INPUT_INDEX_MSG_ID            (5)
@@ -27,10 +37,13 @@
 #define REMPI_MPI_EVENT_NOT_WITH_NEXT (0)
 #define REMPI_MPI_EVENT_WITH_NEXT     (1)
 
+
+
 using namespace std;
 
 class rempi_event
 {
+
   public:
     static int max_size;
     /*TODO: fix progrems below: 
@@ -42,6 +55,8 @@ class rempi_event
 
     int clock_order; /*Ordered by clock when CDC compression is used */
     int msg_count; /*Actual message count from sender. This is used in copy_proxy_buf*/
+    int event_type; /*Event type receve event or test event */
+    MPI_Request request;
     vector<int> mpi_inputs; /*TODO: use array insted of vector*/
 
     rempi_event()
@@ -69,6 +84,13 @@ class rempi_event
     virtual int get_msg_id();
     virtual int get_matching_group_id();
 
+    virtual MPI_Request get_request();
+
+
+    static rempi_event* create_recv_event(int source, int tag, MPI_Comm comm, MPI_Request *req);
+    static rempi_event* create_test_event(int event_count, int flag, int rank, int with_next, int index, int msg_id, int matching_id);
+
+
     //    virtual int get_comm_id();
 
 
@@ -88,11 +110,7 @@ class rempi_irecv_event : public rempi_event
 class rempi_test_event : public rempi_event
 {
  public:
-  /* rempi_test_event(int event_counts, int is_testsome, int request, int flag, int source, int tag); */
-  /* rempi_test_event(int event_counts, int is_testsome, int request, int flag, int source, int tag, int clock); */
-  rempi_test_event(int event_count, int flag, int rank, int with_next, int index, int msg_id, int matching_id);
-  /* rempi_test_event(int event_counts, int rank, int with_next, int index, int msg_id, int mid); */
-  /* rempi_test_event(int event_counts, int is_testsome, int request, int flag, int source, int tag, int clock, int test_id); */
+  //  rempi_test_event(int event_count, int flag, int rank, int with_next, int index, int msg_id, int matching_id);
 };
 
 #endif /* REMPI_EVENT_H_ */

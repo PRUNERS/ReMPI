@@ -17,6 +17,7 @@ void rempi_event::operator ++(int) {
 
 bool rempi_event::operator ==(rempi_event event)
 {
+  
     if (this->mpi_inputs.size() != event.mpi_inputs.size()) {
       cerr << "something wrong !" << endl;
     }
@@ -43,16 +44,22 @@ rempi_event* rempi_event::pop()
   if (mpi_inputs[0] < 0) {
     REMPI_ERR("Event count < 0 error");
   }
-  event = new rempi_test_event(1, 
-			       mpi_inputs[1], 
-			       mpi_inputs[2], 
-			       mpi_inputs[3], 
-			       mpi_inputs[4], 
-			       mpi_inputs[5],
-			       mpi_inputs[6]);
+  if (this->event_type == REMPI_MPI_EVENT_TYPE_RECV) {
+    REMPI_ERR("This would not happen because different MPI_Request is assigned");
+  } else if (this->event_type == REMPI_MPI_EVENT_TYPE_TEST) {
+    event = rempi_event::create_test_event(1, 
+					   mpi_inputs[1], 
+					   mpi_inputs[2], 
+					   mpi_inputs[3], 
+					   mpi_inputs[4], 
+					   mpi_inputs[5],
+					   mpi_inputs[6]);
+    event->clock_order = clock_order;
+    event->msg_count = msg_count;
+  } else {
+    REMPI_ERR("No such event type: %d", this->event_type);
+  }
 
-  event->clock_order = clock_order;
-  event->msg_count = msg_count;
   return event;
 }
 
@@ -93,12 +100,19 @@ int rempi_event::get_flag()
 
 int rempi_event::get_source()
 {
-  return mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_SOURCE];
+  return mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_RANK];
 }
 
 int rempi_event::get_rank()
 {
-  return mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_SOURCE];
+  if (this->event_type == REMPI_MPI_EVENT_TYPE_RECV) {
+    return mpi_inputs[1];
+  } else if (this->event_type == REMPI_MPI_EVENT_TYPE_TEST) {
+    return mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_RANK];
+  } else {
+    REMPI_ERR("No such event type: %d", event_type);
+  }
+  return -1;
 }
 
 
@@ -124,6 +138,14 @@ void rempi_event::set_with_next(long with_next)
 //   return mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_COMM_ID];
 // }
 
+MPI_Request rempi_event::get_request()
+{
+  if (this->event_type == REMPI_MPI_EVENT_TYPE_RECV) {
+    return this->request;
+  }
+  REMPI_ERR("event_type: %d does not have request", this->event_type);
+  return NULL;
+}
 
 
 // int rempi_event::get_tag()
@@ -157,6 +179,39 @@ int rempi_event::get_matching_group_id()
 }
 
 
+rempi_event* rempi_event::create_recv_event(int source, int tag, MPI_Comm comm, MPI_Request *req)
+{
+  //  vector<int> *inputs;
+  rempi_event* e;
+  e = new rempi_event();
+  //  inputs = rempi_event->mpi_inputs;
+  e->event_type = REMPI_MPI_EVENT_TYPE_RECV;
+  e->mpi_inputs.resize(REMPI_MPI_EVENT_RECV_INPUT_NUM);
+  e->mpi_inputs[REMPI_MPI_EVENT_RECV_INPUT_INDEX_EVENT_COUNT]       = 1;
+  e->mpi_inputs[REMPI_MPI_EVENT_RECV_INPUT_INDEX_SOURCE]            = source;
+  e->request = *req;
+  return e;
+}
+
+rempi_event* rempi_event::create_test_event(int event_count, int flag, int rank, int with_next, int index, int msg_id, int matching_id)
+{
+  //  vector<int> *inputs;
+  rempi_event* e;
+  e = new rempi_event();
+  //  inputs = rempi_event->mpi_inputs;
+  e->event_type = REMPI_MPI_EVENT_TYPE_TEST;
+  e->mpi_inputs.resize(REMPI_MPI_EVENT_INPUT_NUM);
+  e->mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_EVENT_COUNT]       = event_count;
+  e->mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_FLAG]              = flag;
+  e->mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_RANK]            = rank;
+  e->mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_WITH_NEXT]         = with_next;
+  e->mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_INDEX]             = index;
+  e->mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_MSG_ID]            = msg_id;
+  e->mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_MATCHING_GROUP_ID] = matching_id;
+  return e;
+}
+
+
 /*====== child class constructures ======*/
 
 rempi_irecv_event::rempi_irecv_event(int event_counts, int count, int source, int tag, int comm, int request)
@@ -171,18 +226,18 @@ rempi_irecv_event::rempi_irecv_event(int event_counts, int count, int source, in
 }
 
 // [source, flag, is_testsome], <index>, clock
-rempi_test_event::rempi_test_event(int event_count, int flag, int rank, int with_next, int index, int msg_id, int mid)
-{
-  mpi_inputs.resize(REMPI_MPI_EVENT_INPUT_NUM);
-  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_EVENT_COUNT]       = event_count;
-  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_FLAG]              = flag;
-  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_SOURCE]            = rank;
-  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_WITH_NEXT]         = with_next;
-  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_INDEX]             = index;
-  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_MSG_ID]            = msg_id;
-  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_MATCHING_GROUP_ID] = mid;
-  return;
-}
+// rempi_test_event::rempi_test_event(int event_count, int flag, int rank, int with_next, int index, int msg_id, int mid)
+// {
+//   mpi_inputs.resize(REMPI_MPI_EVENT_INPUT_NUM);
+//   mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_EVENT_COUNT]       = event_count;
+//   mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_FLAG]              = flag;
+//   mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_RANK]            = rank;
+//   mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_WITH_NEXT]         = with_next;
+//   mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_INDEX]             = index;
+//   mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_MSG_ID]            = msg_id;
+//   mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_MATCHING_GROUP_ID] = mid;
+//   return;
+// }
 
 // rempi_test_event::rempi_test_event(int event_counts, int is_testsome, int comm_id, int flag, int source, int tag)
 //   : rempi_event()

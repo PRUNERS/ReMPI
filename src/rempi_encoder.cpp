@@ -368,7 +368,7 @@ bool rempi_encoder::read_record_file(rempi_encoder_input_format &input_format)
   // }
   // REMPI_DBG("");
 
-  decoded_event = new rempi_test_event(
+  decoded_event = rempi_event::create_test_event(
 				       (int)decoding_event_sequence_int[0],
 				       (int)decoding_event_sequence_int[1],
 				       (int)decoding_event_sequence_int[2],

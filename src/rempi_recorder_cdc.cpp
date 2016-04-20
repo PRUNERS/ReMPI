@@ -411,7 +411,7 @@ int rempi_recorder_cdc::record_test(
 #endif
 
   //  recording_event_list->push(new rempi_test_event(event_count, with_previous, record_comm_id, *flag, record_source, record_tag, record_clock, test_id));
-  recording_event_list->push(new rempi_test_event(event_count, *flag, record_source,  with_next, record_index, record_msg_id, record_gid));
+  recording_event_list->push(rempi_event::create_test_event(event_count, *flag, record_source,  with_next, record_index, record_msg_id, record_gid));
 
   return 0;
 }
@@ -580,7 +580,7 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 	// 				     proxy_request->matched_tag, 
 	// 				     proxy_request->matched_clock, 
 	// 				     irecv_inputs->recv_test_id);
-	event_pooled =  new rempi_test_event(1, 
+	event_pooled =  rempi_event::create_test_event(1, 
 					     1, // flag=1
 	 				     proxy_request->matched_source, 
 					     REMPI_MPI_EVENT_INPUT_IGNORE, // with_next
@@ -655,7 +655,7 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 
     if (irecv_inputs->recv_test_id != -1) {
       //      event_pooled =  new rempi_test_event(1, -1, -1, 1, status.MPI_SOURCE, status.MPI_TAG, clock, irecv_inputs->recv_test_id);
-      event_pooled =  new rempi_test_event(1, 
+      event_pooled =  rempi_event::create_test_event(1, 
 					   1, 
 					   status.MPI_SOURCE, 
 					   REMPI_MPI_EVENT_INPUT_IGNORE, 
@@ -1011,7 +1011,7 @@ int rempi_recorder_cdc::replay_testsome(
 
 #if REMPI_DBG_REPLAY
 	REMPI_DBGI(REMPI_DBG_REPLAY, "irecv_inputs.source: %d === replaying_events[j].source: %d (MPI_ANY_SOURCE: %d)", 
-		   irecv_inputs->source, replaying_event_vec[j]->get_source(), MPI_ANY_SOURCE);
+		   irecv_inputs->soussrce, replaying_event_vec[j]->get_source(), MPI_ANY_SOURCE);
 #endif
 	/*TODO: if array_of_requests has requests from the same rank, is_source does not work. And it introduces inconsistent replay
 	  Use MPI_Request pointer (is_request) instead of is_source. In MCB, this is OK.*/

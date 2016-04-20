@@ -53,6 +53,8 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
 
 #else 
   if (rempi_encode == 0) {
+    encoder = new rempi_encoder_basic(mode);                 //  (1): Simple record (count, flag, rank with_next and clock)
+  } else if (rempi_encode == 8) {
     encoder = new rempi_encoder(mode);                       //  (1): Simple record (count, flag, rank with_next and clock)
   }  else {
     REMPI_ERR("No such encoding mode");
@@ -75,7 +77,7 @@ void rempi_io_thread::write_record()
   encoder->open_record_file(record_path);
   rempi_encoder_input_format *input_format = NULL;
   input_format = encoder->create_encoder_input_format();
-  
+
   while(1) {
     bool is_extracted;
     char *encoded_events;
@@ -89,7 +91,7 @@ void rempi_io_thread::write_record()
       /*If I get the sequence, encode(compress) the seuence*/
       s = rempi_get_time();
       encoder->encode(*input_format);
-      input_format->debug_print();
+      //input_format->debug_print();
       /*Then, write to file.*/
       encoder->write_record_file(*input_format);
       e = rempi_get_time();

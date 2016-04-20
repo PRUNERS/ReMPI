@@ -250,6 +250,69 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
   virtual void debug_print();
 };
 
+class rempi_encoder_basic : public rempi_encoder
+{
+
+ /* protected: */
+ /*    size_t total_write_size; */
+ /*    int mode; */
+ /*    string record_path; */
+ /*    fstream record_fs; */
+ /*    rempi_compression_util<size_t> compression_util; */
+ /*    list<rempi_event*> matched_event_pool; */
+ /*    bool is_event_pooled(rempi_event* replaying_event); */
+ /*    rempi_event* pop_event_pool(rempi_event* replaying_event); */
+
+
+ /*    /\* === For CDC replay ===*\/ */
+ /*    int    mc_flag;//         = 0; /\*if mc_flag == 1: main thread execute frontier detection*\/ */
+ /*    int    mc_length;//       = 0; */
+ /*    /\*All source ranks in all receive MPI functions*\/ */
+ /*    int    *mc_recv_ranks;//  = NULL;  */
+ /*    /\*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*\/ */
+ /*    size_t *mc_next_clocks;// = NULL; */
+ /*    /\* temporal array until in-flight message checking*\/ */
+ /*    size_t *tmp_mc_next_clocks;   */
+ /*    /\* If no in-flight message, copyed from tmp_mc_next_clocks to solid_ordered_event_list*\/ */
+ /*    unordered_map<int, size_t> solid_mc_next_clocks_umap;  */
+ /*    /\* ======================*\/ */
+
+ /*    vector<size_t> write_size_vec; */
+
+ public:
+    rempi_encoder_basic(int mode);
+
+    /*Common for record & replay*/
+    virtual rempi_encoder_input_format* create_encoder_input_format();
+
+    void open_record_file(string record_path);
+    void close_record_file();
+
+    /*For only record*/
+    virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
+    virtual void encode(rempi_encoder_input_format &input_format);
+    virtual void write_record_file(rempi_encoder_input_format &input_format);
+    /*For only replay*/
+    virtual bool read_record_file(rempi_encoder_input_format &input_format);
+    virtual void decode(rempi_encoder_input_format &input_format);
+    virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
+
+    /*TODO: Due to multi-threaded issues in MPI/PNMPI, we define this function.
+      But we would like to remove this function in future*/
+    virtual void fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock);
+    virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock);
+    virtual void update_fd_next_clock(
+				      int is_waiting_recv,
+				      int num_of_recv_msg_in_next_event,
+				      size_t interim_min_clock_in_next_event,
+				      size_t enqueued_count,
+				      int recv_test_id,
+				      int is_after_recv_event);
+    virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock);
+    virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/
+
+};
+
 
 #if MPI_VERSION == 3 && !defined(REMPI_LITE)
 class rempi_encoder_cdc : public rempi_encoder

@@ -229,11 +229,9 @@ int rempi_reqmg_register_request(MPI_Request *request, int source, int tag, int 
 {
   switch(request_type) {
   case REMPI_SEND_REQUEST:
-    REMPI_DBGI(0, "reg send request: %p", *request);
     rempi_reqmg_register_send_request(request, source, tag, comm_id);
     break;
   case REMPI_RECV_REQUEST:
-    REMPI_DBGI(0, "reg recv request: %p", *request);
     rempi_reqmg_register_recv_request(request, source, tag, comm_id);
     break;
   default:
@@ -299,7 +297,6 @@ void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendc
   for (int i = 0; i < incount; i++) {
     //    REMPI_DBGI(3, "request: %p index: %d, info: %p", requests[i], i, request_info);
     if(request_to_send_id_umap.find(requests[i]) != send_endit) {
-      REMPI_DBGI(0, "request: %p index: %d, Send request", requests[i], i);
       request_info[i] = REMPI_SEND_REQUEST;
       (*sendcount)++;
     } else if(request_to_recv_id_umap.find(requests[i]) != recv_endit) {
