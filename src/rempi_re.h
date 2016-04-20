@@ -68,10 +68,7 @@ class rempi_re
  rempi_re()
    : my_rank(-1)
     {
-#ifdef REMPI_LITE
       recorder = new rempi_recorder();
-#else
-#endif
     };
 
   ~rempi_re()
@@ -83,8 +80,7 @@ class rempi_re
   
 };
 
-#if MPI_VERSION == 3
-#ifndef REMPI_LITE
+#if MPI_VERSION == 3 && !defined(REMPI_LITE)
 
 class rempi_re_cdc : public rempi_re
 {
@@ -110,7 +106,6 @@ class rempi_re_cdc : public rempi_re
   REMPI_FUNCTIONS
 
 };
-#endif
 
 #endif
 

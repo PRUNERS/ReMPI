@@ -8,6 +8,8 @@ using namespace std;
 /* extern "C" { */
 /* #endif */
 
+extern int rempi_lite;
+
 #define REMPI_ENV_NAME_MODE "REMPI_MODE"
 #define REMPI_ENV_REMPI_MODE_RECORD (0)
 #define REMPI_ENV_REMPI_MODE_REPLAY (1)

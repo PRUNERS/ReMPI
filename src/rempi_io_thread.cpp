@@ -21,14 +21,17 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
 {
   record_path = rempi_record_dir_path + "/rank_" + id + ".rempi";
   encoder = NULL;
-#if MPI_VERSION == 3
+#if !defined(REMPI_LITE)
+
   if (rempi_encode == 0) {
     encoder = new rempi_encoder(mode);                       //  (1): Simple record (count, flag, rank with_next and clock)
   } else if (rempi_encode == 1) {
     encoder = new rempi_encoder_simple_zlib(mode);           //  (2): (1) + format change
   } else if (rempi_encode == 2) {
     encoder = new rempi_encoder_zlib(mode);                  //  (3): (2) + distingusishing different test/testsome
-  } else if (rempi_encode == 3) {
+  } 
+#ifdef MPI_VERSION == 3
+  else if (rempi_encode == 3) {
     encoder = new rempi_encoder_cdc_row_wise_diff(mode);     //  (4): (3) + row_wise diff
   } else if (rempi_encode == 4) {
     encoder = new rempi_encoder_cdc(mode);                   //  (5): (3) + edit distance (two values for an only permutated message)
@@ -42,9 +45,12 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
     } else {
       REMPI_ERR("No such option conbination");
     }
-  } else {
+  }
+#endif 
+  else {
     REMPI_ERR("No such encode");
   }
+
 #else 
   if (rempi_encode == 0) {
     encoder = new rempi_encoder(mode);                       //  (1): Simple record (count, flag, rank with_next and clock)
@@ -69,7 +75,7 @@ void rempi_io_thread::write_record()
   encoder->open_record_file(record_path);
   rempi_encoder_input_format *input_format = NULL;
   input_format = encoder->create_encoder_input_format();
-
+  
   while(1) {
     bool is_extracted;
     char *encoded_events;
@@ -83,6 +89,7 @@ void rempi_io_thread::write_record()
       /*If I get the sequence, encode(compress) the seuence*/
       s = rempi_get_time();
       encoder->encode(*input_format);
+      input_format->debug_print();
       /*Then, write to file.*/
       encoder->write_record_file(*input_format);
       e = rempi_get_time();

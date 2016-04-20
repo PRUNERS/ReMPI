@@ -11,8 +11,6 @@ num_procs=$1
 #bin="./rempi_test_units matching"
 #dir=./.rempi
 #dir=/tmp
-
-
 dir=/l/ssd
 
 

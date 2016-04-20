@@ -35,10 +35,13 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 
 rempi_OBJS = 	$(rempi_SRCS:%.cpp=%.o) 
 rempi_DEPS = 	$(rempi_SRCS:%.cpp=%.d) 
-
+rempi_o_TEMP =	./rempi.tmp.o
 rempi_o_LIBS =	./librempi.o 
 rempi_a_LIBS =	../lib/librempi.a 
 rempi_so_LIBS =	../lib/librempi.so	
+
+rempilite_OBJS =$(rempi_SRCS:%.cpp=%_lite.o) 
+rempilite_o_LIBS =	./librempilite.o 
 rempilite_a_LIBS =	../lib/librempilite.a 
 rempilite_so_LIBS =	../lib/librempilite.so	
 
@@ -48,14 +51,14 @@ clmpi_OBJS =  $(CLMPI_DIR)/libclmpi.o
 rcmpi_so_LIBS=../lib/librcmpi.so	
 
 
-
-OBJS = $(rempi_OBJS)
+OBJS = $(rempi_OBJS) $(rempilite_OBJS) $(rempi_o_TEMP)
 DEPS = $(rempi_DEPS)
 LIBS = $(rempilite_so_LIBS) $(rempilite_a_LIBS) $(rempi_so_LIBS) $(rempi_a_LIBS)
 
 #$@: target name
 #$<: first dependent file
 #$^: all indemendent files
+#$*: target name without suffix
 
 
 all:  $(LIBS)
@@ -67,31 +70,24 @@ $(clmpi_OBJS):
 
 $(rempi_a_LIBS):  $(rempi_OBJS)  $(clmpi_OBJS) #$(rempilite_a_LIBS)
 	ld    -o $(rempi_o_LIBS) -r $(rempi_OBJS)
-	stack_pmpi rempi.tmp.o 0 $(rempi_o_LIBS) $(clmpi_OBJS)
-#	ar cr $@ $(rempi_o_LIBS) $(clmpi_OBJS)
-	ar cr $@ rempi.tmp.o
+	stack_pmpi $(rempi_o_TEMP) 0 $(rempi_o_LIBS) $(clmpi_OBJS)
+	ar cr $@ $(rempi_o_TEMP)
 	ranlib $@
 
-#$(rempilite_a_LIBS):  $(rempi_OBJS)  $(clmpi_OBJS)
-#	ld    -o $(rempi_o_LIBS) -r $(rempi_OBJS)
-#	stack_pmpi rempilite.tmp.o 1 $(rempi_o_LIBS) $(clmpi_OBJS)
-#	ar cr $@ rempilite.tmp.o
-#	ranlib $@
-
-$(rempilite_a_LIBS):  $(rempi_OBJS)  $(clmpi_OBJS)
-	ld    -o $(rempi_o_LIBS) -r $(rempi_OBJS)
-	ar cr $@ librempi.o
+$(rempilite_a_LIBS): $(rempi_OBJS)
+	ld    -o $(rempilite_o_LIBS) -r $(rempilite_OBJS)
+	ar cr $@ $(rempilite_o_LIBS)
 	ranlib $@
 
 $(rempi_so_LIBS): $(rempi_a_LIBS) $(rempi_OBJS) #$(rempilite_so_LIBS)
 #	$(CC) -shared -o $@ $(rempi_o_LIBS)  $(clmpi_OBJS)
-	$(CC) $(LDFLAGS) $(LDLIBS) -g -shared -o $@ rempi.tmp.o
+	$(CC) $(LDFLAGS) $(LDLIBS) -g -shared -o $@  $(rempi_o_TEMP)
 
 #$(rempilite_so_LIBS): $(rempilite_a_LIBS) $(rempi_OBJS)
 #	$(CC) $(LDFLAGS) $(LDLIBS) -g -shared -o $@ rempilite.tmp.o
 
-$(rempilite_so_LIBS): $(rempilite_a_LIBS) $(rempi_OBJS)
-	$(CC) $(LDFLAGS) $(LDLIBS) -g -shared -o $@ librempi.o
+$(rempilite_so_LIBS): $(rempilite_a_LIBS) 
+	$(CC) $(LDFLAGS) $(LDLIBS) -g -shared -o $@ $(rempilite_o_LIBS)
 
 
 
@@ -103,6 +99,7 @@ $(rempilite_so_LIBS): $(rempilite_a_LIBS) $(rempi_OBJS)
 .c.o:
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $(LDFLAGS) $(LDLIBS) -c -MMD -MP $< 
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $(LDFLAGS) $(LDLIBS) -o $@ -c $< 
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $(LDFLAGS) $(LDLIBS) _DREMPI_LITE -o $*_lite.o -c $< 
 
 install: all
 	@$(MAKE) -C ./external install
@@ -115,6 +112,7 @@ install: all
 .cpp.o:
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDES) $(LDFLAGS) $(LDLIBS) -c -MMD -MP $<
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDES) $(LDFLAGS) $(LDLIBS) -o $@ -c $< 
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(INCLUDES) $(LDFLAGS) $(LDLIBS) -DREMPI_LITE  -o $*_lite.o -c $< 
 
 # .SUFFIXES: .cpp .d
 # .cpp.d:

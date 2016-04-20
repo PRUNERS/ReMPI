@@ -1,4 +1,6 @@
-#ifndef REMPI_LITE
+#include <mpi.h>
+
+#if MPI_VERSION == 3 && !defined(REMPI_LITE)
 
 #include <stdio.h>
 #include <string.h>
@@ -6,7 +8,7 @@
 #include <unordered_map>
 #include <string>
 
-#include "mpi.h"
+
 
 //#include <iostream>
 #include "rempi_recorder.h"
@@ -269,6 +271,8 @@ int rempi_recorder_cdc::replay_irecv(
   rempi_proxy_request *proxy_request_info;
   rempi_irecv_inputs *irecv_inputs;
 
+
+
   if (request_to_irecv_inputs_umap.find(*request) != 
       request_to_irecv_inputs_umap.end()) {
     /* If this request is posted in irecv before*/
@@ -285,6 +289,7 @@ int rempi_recorder_cdc::replay_irecv(
       // 		"with MPI_Request which is not diactivated by MPI_{Wait|Test}{|some|any|all}");
     }
   } else {
+
 #ifdef BGQ
     static size_t request_id = 847589431;
     memset(request, request_id, sizeof(MPI_Request));
@@ -294,6 +299,8 @@ int rempi_recorder_cdc::replay_irecv(
 #else
     *request = (MPI_Request)rempi_malloc(sizeof(MPI_Request));//((source + 1) * (tag + 1) * (comm_id * 1));
 #endif
+
+
     request_to_irecv_inputs_umap[*request] = new rempi_irecv_inputs(buf, count, datatype, source, tag, comm, *request);
   }
 

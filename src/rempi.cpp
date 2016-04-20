@@ -60,12 +60,18 @@ rempi_re *rempi_record_replay;
 // }
 
 void init_rempi() {
+  if (rempi_encode <= 2 && rempi_lite) {
+    rempi_record_replay = new rempi_re();
+  } else if (rempi_lite) {
+    REMPI_ERR("No such rempi_encode in ReMPI(Lite): %d", rempi_encode);
+  } else {
 #ifdef REMPI_LITE
-  rempi_record_replay = new rempi_re();
+    REMPI_ERR("No such rempi_encode: %d", rempi_encode);
 #else
-  //rempi_record_replay = new rempi_re();
-  rempi_record_replay = new rempi_re_cdc(); //TODO: Do not use rempi_re_cdc any more
+    rempi_record_replay = new rempi_re_cdc(); //TODO: Integrate into rempi_re()
 #endif  
+  }
+
   return;
 }
 // MPI_Init does all the communicator setup
@@ -81,8 +87,8 @@ _EXTERN_C_ int PMPI_Init(int *arg_0, char ***arg_1);
 _EXTERN_C_ int MPI_Init(int *arg_0, char ***arg_1)
 { 
   REMPI_PREPRINT;
-
   int _wrap_py_return_val = 0;
+  rempi_set_configuration(arg_0, arg_1);
   init_rempi();
   signal(SIGSEGV, SIG_DFL);
   _wrap_py_return_val = rempi_record_replay->re_init(arg_0, arg_1);
@@ -97,6 +103,7 @@ _EXTERN_C_ int MPI_Init_thread(int *arg_0, char ***arg_1, int arg_2, int *arg_3)
 { 
   REMPI_PREPRINT;
   int _wrap_py_return_val = 0;
+  rempi_set_configuration(arg_0, arg_1);
   init_rempi();
   signal(SIGSEGV, SIG_DFL);
   _wrap_py_return_val = rempi_record_replay->re_init_thread(arg_0, arg_1, arg_2, arg_3);

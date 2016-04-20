@@ -251,7 +251,7 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
 };
 
 
-#if MPI_VERSION == 3
+#if MPI_VERSION == 3 && !defined(REMPI_LITE)
 class rempi_encoder_cdc : public rempi_encoder
 {  
   struct frontier_detection_clocks{ /*fd = frontier detection*/
@@ -318,7 +318,7 @@ class rempi_encoder_cdc : public rempi_encoder
 #endif
 
 
-#if MPI_VERSION == 3
+#if MPI_VERSION == 3 && !defined(REMPI_LITE)
 class rempi_encoder_rep : public rempi_encoder
 {
 
@@ -422,6 +422,7 @@ class rempi_encoder_cdc_permutation_diff : public rempi_encoder_cdc
     /*For only replay*/
     virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };
+
 #endif /* MPI_VERSION == 3*/
 
 #endif /* __REMPI_ENCODER_H__ */

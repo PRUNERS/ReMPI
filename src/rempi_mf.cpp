@@ -4,9 +4,6 @@
 #include "rempi_config.h"
 #include "rempi_err.h"
 
-
-
-
 int rempi_mf(int incount,
 	     MPI_Request array_of_requests[],
 	     int *outcount,

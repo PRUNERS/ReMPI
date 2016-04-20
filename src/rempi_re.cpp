@@ -57,6 +57,8 @@ do { \
 //   } \
 // } while(0)			\
 
+int send_to0 = 0;
+
 
 int rempi_re::init_after_pmpi_init(int *argc, char ***argv)
 {
@@ -68,7 +70,7 @@ int rempi_re::init_after_pmpi_init(int *argc, char ***argv)
   PMPI_Comm_set_name(MPI_COMM_WORLD, comm_id);
 
   rempi_err_init(my_rank);
-  rempi_set_configuration(argc, argv);
+  //  rempi_set_configuration(argc, argv);
 
   return 0;
 }
@@ -116,6 +118,9 @@ int rempi_re::re_init_thread(
   return ret;
 }
 
+
+#define REMPI_EAGER_LIMIT (64000)
+
 int rempi_re::re_isend(
 		       mpi_const void *buf,
 		       int count,
@@ -129,13 +134,35 @@ int rempi_re::re_isend(
   int resultlen;
   char comm_id[REMPI_COMM_ID_LENGTH];
 
+
   if (comm != MPI_COMM_WORLD) {
     REMPI_ERR("Current ReMPI does not multiple communicators");
   }
+
+#if 0
+  void *new_send_buffer;
+  int msg_size;
+  PMPI_Type_size(datatype, &msg_size);
+  msg_size = msg_size * count;
+  new_send_buffer = malloc(msg_size);
+  if (new_send_buffer == NULL) {
+    REMPI_ERR("malloc failed");
+  }
+  memcpy(new_send_buffer, buf, msg_size);
+
+  ret = PMPI_Isend(new_send_buffer, count, datatype, dest, tag, comm, request);
+  PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);  
+  rempi_reqmg_register_request(request, dest, tag, (int)comm_id[0], REMPI_SEND_REQUEST);
+  REMPI_DBGI(0, "send to %d(%d): %p", dest, tag, *request);
+
+#else
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
   PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);  
   rempi_reqmg_register_request(request, dest, tag, (int)comm_id[0], REMPI_SEND_REQUEST);
-  
+
+
+  REMPI_DBG("send to %d(%d): %p", dest, tag, *request);
+#endif
   // if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
   //   recorder->replay_isend(request);
   // }

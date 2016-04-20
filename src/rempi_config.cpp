@@ -9,6 +9,7 @@
 
 using namespace std;
 
+int rempi_lite;
 int rempi_mode = 0;
 string rempi_record_dir_path = ".";
 int rempi_encode;
@@ -19,6 +20,12 @@ void rempi_set_configuration(int *argc, char ***argv)
 {
   char* env;
   int env_int;
+
+#ifdef REMPI_LITE
+  rempi_lite = 1;
+#else
+  rempi_lite = 0;
+#endif
 
   if (NULL == (env = getenv(REMPI_ENV_NAME_MODE))) {
     rempi_dbgi(0, "getenv failed: Please specify REMPI_MODE (%s:%s:%d)", __FILE__, __func__, __LINE__);
