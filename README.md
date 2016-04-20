@@ -23,6 +23,7 @@ OR
     cd rempi
     use openmpi-intel-1.8.4
     export PATH=/path/to/scripts/external/pmpis/:$PATH
+    # Edit PREFIX to /path/to/rempi in Makefile.config
     make
 
 
