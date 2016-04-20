@@ -86,11 +86,14 @@ int rempi_recorder::record_irecv(
    MPI_Comm comm,
    MPI_Request *request)
 {
+  rempi_event *e;
   int ret;
-  double s, e;
   ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
   //  s =rempi_get_time();
   rempi_reqmg_register_request(request, source, tag, comm_id, REMPI_RECV_REQUEST); 
+
+  e = rempi_event::create_recv_event(source, tag, NULL, request);
+  recording_event_list->push(e);
   //  e = rempi_get_time();
   //  REMPI_DBGI(0, "recv time: %f", e - s);
   //kento  msg_manager.add_pending_recv(request, source, tag, comm);

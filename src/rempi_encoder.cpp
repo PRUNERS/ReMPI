@@ -275,14 +275,14 @@ void rempi_encoder::encode(rempi_encoder_input_format &input_format)
       Now, encoding_evet is freed by input_format.dealocate
      */ 
 
-    REMPI_DBG("Encoded  : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)", 
-    	      encoding_event->get_event_counts(), 
-    	      encoding_event->get_flag(),
-    	      encoding_event->get_rank(),
-    	      encoding_event->get_with_next(),
-    	      encoding_event->get_index(),
-    	      encoding_event->get_msg_id(),
-    	      encoding_event->get_matching_group_id());
+    // REMPI_DBG("Encoded  : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)", 
+    // 	      encoding_event->get_event_counts(), 
+    // 	      encoding_event->get_flag(),
+    // 	      encoding_event->get_rank(),
+    // 	      encoding_event->get_with_next(),
+    // 	      encoding_event->get_index(),
+    // 	      encoding_event->get_msg_id(),
+    // 	      encoding_event->get_matching_group_id());
 
     // for (int j = 0; i < rempi_event::record_num; i++) {
     //   REMPI_DBG("  %d", *(original_buff + original_buff_offset + i));
