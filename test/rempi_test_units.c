@@ -216,6 +216,7 @@ void rempi_test_send_init_with_random_sleep(int send_init_type, int start_type)
 void rempi_test_mpi_sends_with_random_sleep()
 {
   int i;
+
   for (i = 0; i < NUM_TEST_MSG; i++) {
     //    rempi_test_randome_sleep();
     MPI_Send(&i, 1, MPI_INT, 0, my_rank, MPI_COMM_WORLD);
@@ -652,7 +653,7 @@ void rempi_test_sendrecv_req(int matching_type)
 
 int main(int argc, char *argv[])
 {
-  int i, j;
+  int i, j, k;
   int is_all = 0;
   char *test_name;
   /* Init */
@@ -664,13 +665,12 @@ int main(int argc, char *argv[])
   init_ndrand();
   start = MPI_Wtime();
 
-  for (i = 0; i < argc; i++) {
+  for (k = 0; k < argc; k++) {
     if (argc == 1) {
       is_all = 1;
       test_name = "all";
     } else {
-      i++;
-      test_name = argv[i];
+      test_name = argv[k];
     }
 
     if (!strcmp(test_name, "matching") || is_all) {

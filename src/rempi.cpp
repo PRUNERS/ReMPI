@@ -60,7 +60,7 @@ rempi_re *rempi_record_replay;
 // }
 
 void init_rempi() {
-  if (rempi_encode <= 2 && rempi_lite) {
+  if ((rempi_encode == 0  || rempi_encode == 8) && rempi_lite) {
     rempi_record_replay = new rempi_re();
   } else if (rempi_lite) {
     REMPI_ERR("No such rempi_encode in ReMPI(Lite): %d", rempi_encode);
@@ -265,8 +265,6 @@ _EXTERN_C_ int MPI_Cancel(MPI_Request *arg_0) {
   REMPI_PREPRINT;
   int _wrap_py_return_val = 0;
   {
-    /*Message pooling is needed, and arg_0 is not used internal. so ignore this cancel*/
-    //    REMPI_ERR("MPI_Cancel called");
     _wrap_py_return_val = rempi_record_replay->re_cancel(arg_0);
   }    
   REMPI_POSTPRINT;

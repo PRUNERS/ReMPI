@@ -108,11 +108,9 @@ class rempi_recorder {
  protected:
   void cancel_request(MPI_Request *request);
   rempi_message_manager msg_manager; //TODO: this is not used
-  //  unordered_map<string, int> stacktrace_to_test_id_umap;
   int next_test_id_to_assign;// = 0;
   unordered_map<MPI_Request, rempi_irecv_inputs*> request_to_irecv_inputs_umap; 
-  //  list<rempi_proxy_request*> proxy_request_pool_list;
-  //unordered_map<MPI_Request*, int> request_to_test_id_umap;
+  unordered_map<MPI_Request, rempi_event*> request_to_recv_event_umap;
   rempi_event_list<rempi_event*> *recording_event_list, *replaying_event_list;
   rempi_io_thread *record_thread, *read_record_thread;
   /*TODO: Fix bug in PNMPI fo rmulti-threaded, and remove this outputing*/
@@ -179,6 +177,7 @@ class rempi_recorder {
 			   MPI_Request *request
 			   );
 
+  virtual int record_cancel(MPI_Request *request);
   virtual int replay_cancel(MPI_Request *request);
   virtual int replay_request_free(MPI_Request *request);
   virtual MPI_Fint replay_request_c2f(MPI_Request request);
@@ -334,6 +333,7 @@ class rempi_recorder_cdc : public rempi_recorder
 		   MPI_Request *request
 		   );
 
+  int record_cancel(MPI_Request *request);
   int replay_cancel(MPI_Request *request);
   int replay_request_free(MPI_Request *request);
   MPI_Fint replay_request_c2f(MPI_Request request);

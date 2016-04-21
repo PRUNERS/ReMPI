@@ -199,7 +199,9 @@ static int rempi_reqmg_deregister_recv_request(MPI_Request *request)
   int is_erased;
   //  REMPI_DBGI(0, "dereg request: %p", *request);
   is_erased = request_to_recv_id_umap.erase(*request);
-  REMPI_ASSERT(is_erased == 1);
+  if (is_erased != 1) {
+    REMPI_ERR("Request %p cannnot be deregistered", *request);
+  }
   return 1;
 }
 
@@ -207,7 +209,9 @@ static int rempi_reqmg_deregister_send_request(MPI_Request *request)
 {
   int is_erased;
   is_erased = request_to_send_id_umap.erase(*request);
-  REMPI_ASSERT(is_erased == 1);
+  if (is_erased != 1) {
+    REMPI_ERR("Request %p cannnot be deregistered", *request);
+  }
   return 1;
 }
 
@@ -295,7 +299,6 @@ void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendc
   int ignore;
   *sendcount = *recvcount = *nullcount = ignore = 0;
   for (int i = 0; i < incount; i++) {
-    //    REMPI_DBGI(3, "request: %p index: %d, info: %p", requests[i], i, request_info);
     if(request_to_send_id_umap.find(requests[i]) != send_endit) {
       request_info[i] = REMPI_SEND_REQUEST;
       (*sendcount)++;
@@ -308,11 +311,13 @@ void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendc
     } else if (requests[i] == NULL) {
       REMPI_ERR("Request is null");
     } else {
-      request_info[i] = REMPI_IGNR_REQUEST;
+      /*For unsupported MF, such as MPI_Recv_init, MPI_start and then */
+      request_info[i] = REMPI_IGNR_REQUEST; 
       ignore++;
       //      REMPI_DBG("Unknown request: %p index: %d", requests[i], i);
       //      REMPI_ERR("Unknown request: %p index: %d", requests[i], i);
     }
+    //    REMPI_DBG("request: %p index: %d, info: %d", requests[i], i, request_info[i]);
   }
   REMPI_ASSERT(incount == *sendcount + *recvcount + *nullcount + ignore);
   *is_record_and_replay = rempi_reqmg_is_record_and_replay(incount, request_info, *sendcount, *recvcount, *nullcount, ignore);

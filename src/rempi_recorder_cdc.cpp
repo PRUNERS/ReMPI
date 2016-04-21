@@ -326,6 +326,12 @@ int rempi_recorder_cdc::replay_irecv(
   return ret;
 }
 
+int rempi_recorder_cdc::record_cancel(MPI_Request *request)
+{
+  return -1;
+}
+
+
 int rempi_recorder_cdc::replay_cancel(MPI_Request *request)
 {
   int ret;

@@ -400,13 +400,7 @@ int rempi_re::re_cancel(MPI_Request *request)
 {
   int ret;
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    int request_type;
-    rempi_reqmg_get_request_type(request, &request_type);
-    if (request_type == REMPI_RECV_REQUEST ||
-	request_type == REMPI_SEND_REQUEST) {
-      rempi_reqmg_deregister_request(request, request_type);
-    }
-    ret = PMPI_Cancel(request);
+    ret = recorder->record_cancel(request);
   } else {
     ret = recorder->replay_cancel(request);
   }
@@ -562,7 +556,6 @@ int rempi_re::re_barrier(MPI_Comm arg_0)
   ret = PMPI_Barrier(arg_0);
   return ret;  
 }
-
 
 int rempi_re::re_finalize()
 {
