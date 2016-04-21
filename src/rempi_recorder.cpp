@@ -35,7 +35,11 @@ void rempi_recorder::update_validation_code(int outcount, int *array_of_indices,
 	validation_code = rempi_hash(validation_code, array_of_statuses[i].MPI_SOURCE);
 	validation_code = rempi_hash(validation_code, array_of_statuses[i].MPI_TAG);
       }
-    }
+    } 
+    // else {
+    //   validation_code = rempi_hash(validation_code, array_of_statuses[i].MPI_SOURCE);
+    //   validation_code = rempi_hash(validation_code, array_of_statuses[i].MPI_TAG);
+    // }
     //    REMPI_DBG("val: index: %d, source: %d, tag: %d", index, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG);
   }
   return;  
@@ -706,7 +710,7 @@ int rempi_recorder::record_pf(int source,
   /* Call MPI matching function */
   ret = rempi_pf(source, tag, comm, flag, status, probe_function_type);
 
-  update_validation_code(1, NULL, status, NULL);
+
 
 
   if (flag == NULL) {
@@ -730,6 +734,7 @@ int rempi_recorder::record_pf(int source,
 				    REMPI_MPI_EVENT_INPUT_IGNORE,
 				    global_test_id);
   recording_event_list->push(test_event);
+  update_validation_code(record_flag, NULL, status, NULL);
   return ret;
 }
 
@@ -1028,6 +1033,7 @@ int rempi_recorder::replay_iprobe(int source, int tag, MPI_Comm comm, int *flag,
     //           replaying_test_event->get_matching_group_id());
     if (replaying_test_event->get_flag() == 0) {
       /*Unmatched*/
+      update_validation_code(0, NULL, NULL, NULL);
       delete replaying_test_event;
       return MPI_SUCCESS;
     }

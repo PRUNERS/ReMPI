@@ -73,13 +73,13 @@ double start, end, overall_end;
 
 int matching_ids[] = {
   MPI_Test_id,
-  /* MPI_Testany_id, */
-  /* MPI_Testsome_id, */
-  /* MPI_Testall_id, */
-  /* MPI_Wait_id, */
-  /* MPI_Waitany_id, */
-  /* MPI_Waitsome_id, */
-  /* MPI_Waitall_id */
+  MPI_Testany_id,
+  MPI_Testsome_id,
+  MPI_Testall_id,
+  MPI_Wait_id,
+  MPI_Waitany_id,
+  MPI_Waitsome_id,
+  MPI_Waitall_id
 };
 
 int probe_ids[] = {
@@ -653,7 +653,7 @@ void rempi_test_sendrecv_req(int matching_type)
 
 int main(int argc, char *argv[])
 {
-  int i, j;
+  int i, j, k;
   int is_all = 0;
   char *test_name;
   /* Init */
@@ -665,13 +665,12 @@ int main(int argc, char *argv[])
   init_ndrand();
   start = MPI_Wtime();
 
-  for (i = 0; i < argc; i++) {
+  for (k = 0; k < argc; k++) {
     if (argc == 1) {
       is_all = 1;
       test_name = "all";
     } else {
-      i++;
-      test_name = argv[i];
+      test_name = argv[k];
     }
 
     if (!strcmp(test_name, "matching") || is_all) {
