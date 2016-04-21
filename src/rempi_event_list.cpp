@@ -131,7 +131,6 @@ T rempi_event_list<T>::dequeue_replay(int test_id, int &status)
   rempi_spsc_queue<rempi_event*> *spsc_queue;
   bool is_queue_empty;
   
-  //  REMPI_DBGI(0, "called dequeue_replay: %d", test_id);
   
   if (previous_replaying_event_umap.find(test_id) == previous_replaying_event_umap.end()) {
     previous_replaying_event_umap[test_id] = NULL;
@@ -143,7 +142,6 @@ T rempi_event_list<T>::dequeue_replay(int test_id, int &status)
       }
     }
   }
-  
   /*Did io thread create the replay_events(test_id) spsc_queue instance for decoding ?*/
   mtx.lock();
   if (replay_events.find(test_id) == replay_events.end()) {
@@ -180,7 +178,20 @@ T rempi_event_list<T>::dequeue_replay(int test_id, int &status)
     }
   }
 
-  /*From here, previous_replaying_event has "event instance" at least*/
+  // REMPI_DBG("DQN   : (count: %d, type: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)",
+  // 	    previous_replaying_event_umap[test_id]->get_event_counts(),
+  // 	    previous_replaying_event_umap[test_id]->get_type(),
+  // 	    previous_replaying_event_umap[test_id]->get_flag(),
+  // 	    previous_replaying_event_umap[test_id]->get_rank(),
+  // 	    previous_replaying_event_umap[test_id]->get_with_next(),
+  // 	    previous_replaying_event_umap[test_id]->get_index(),
+  // 	    previous_replaying_event_umap[test_id]->get_msg_id(),
+  // 	    previous_replaying_event_umap[test_id]->get_matching_group_id());
+	    
+
+
+  /*From here, previous_replaying_event has "event instance" at least*/  
+  //  REMPI_DBG("get previous: %p", previous_replaying_event_umap[test_id]);
   event = previous_replaying_event_umap[test_id]->pop();
 
 // #ifdef REMPI_DBG_REPLAY
