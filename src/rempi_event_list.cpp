@@ -181,7 +181,6 @@ T rempi_event_list<T>::dequeue_replay(int test_id, int &status)
   }
 
   /*From here, previous_replaying_event has "event instance" at least*/
-
   event = previous_replaying_event_umap[test_id]->pop();
 
 // #ifdef REMPI_DBG_REPLAY

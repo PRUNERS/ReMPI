@@ -73,13 +73,13 @@ double start, end, overall_end;
 
 int matching_ids[] = {
   MPI_Test_id,
-  MPI_Testany_id,
-  MPI_Testsome_id,
-  MPI_Testall_id,
-  MPI_Wait_id,
-  MPI_Waitany_id,
-  MPI_Waitsome_id,
-  MPI_Waitall_id
+  /* MPI_Testany_id, */
+  /* MPI_Testsome_id, */
+  /* MPI_Testall_id, */
+  /* MPI_Wait_id, */
+  /* MPI_Waitany_id, */
+  /* MPI_Waitsome_id, */
+  /* MPI_Waitall_id */
 };
 
 int probe_ids[] = {
@@ -216,6 +216,7 @@ void rempi_test_send_init_with_random_sleep(int send_init_type, int start_type)
 void rempi_test_mpi_sends_with_random_sleep()
 {
   int i;
+
   for (i = 0; i < NUM_TEST_MSG; i++) {
     //    rempi_test_randome_sleep();
     MPI_Send(&i, 1, MPI_INT, 0, my_rank, MPI_COMM_WORLD);

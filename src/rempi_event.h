@@ -16,20 +16,19 @@
 #define REMPI_MPI_EVENT_TYPE_TEST (2)
 #define REMPI_MPI_EVENT_TYPE_PROB (3)
 
-#define REMPI_MPI_EVENT_RECV_INPUT_NUM (2)
-#define REMPI_MPI_EVENT_RECV_INPUT_INDEX_EVENT_COUNT       (0)
-#define REMPI_MPI_EVENT_RECV_INPUT_INDEX_SOURCE            (1)
-//#define REMPI_MPI_EVENT_RECV_INPUT_INDEX_REQUEST           (2)
+#define REMPI_MPI_EVENT_RANK_CANCELED (MPI_ANY_SOURCE - 1)
+
 
 // [source, is_testsome], <index>, clock 
-#define REMPI_MPI_EVENT_INPUT_NUM (7)
+#define REMPI_MPI_EVENT_INPUT_NUM (8)
 #define REMPI_MPI_EVENT_INPUT_INDEX_EVENT_COUNT       (0)
-#define REMPI_MPI_EVENT_INPUT_INDEX_FLAG              (1)
-#define REMPI_MPI_EVENT_INPUT_INDEX_RANK              (2)
-#define REMPI_MPI_EVENT_INPUT_INDEX_WITH_NEXT         (3)
-#define REMPI_MPI_EVENT_INPUT_INDEX_INDEX             (4)
-#define REMPI_MPI_EVENT_INPUT_INDEX_MSG_ID            (5)
-#define REMPI_MPI_EVENT_INPUT_INDEX_MATCHING_GROUP_ID (6)
+#define REMPI_MPI_EVENT_INPUT_INDEX_TYPE              (1)
+#define REMPI_MPI_EVENT_INPUT_INDEX_FLAG              (2)
+#define REMPI_MPI_EVENT_INPUT_INDEX_RANK              (3)
+#define REMPI_MPI_EVENT_INPUT_INDEX_WITH_NEXT         (4)
+#define REMPI_MPI_EVENT_INPUT_INDEX_INDEX             (5)
+#define REMPI_MPI_EVENT_INPUT_INDEX_MSG_ID            (6)
+#define REMPI_MPI_EVENT_INPUT_INDEX_MATCHING_GROUP_ID (7)
 /* #define REMPI_MPI_EVENT_INPUT_INDEX_COMM_ID      (2) */
 /* #define REMPI_MPI_EVENT_INPUT_INDEX_TAG          (5) */
 
@@ -54,13 +53,14 @@ class rempi_event
 
     int clock_order; /*Ordered by clock when CDC compression is used */
     int msg_count; /*Actual message count from sender. This is used in copy_proxy_buf*/
-    int event_type; /*Event type receve event or test event */
+
     MPI_Request request;
     vector<int> mpi_inputs; /*TODO: use array insted of vector*/
 
     rempi_event()
-      : clock_order(-1), 
-        msg_count(-1) {}
+      : clock_order(-1)
+      , msg_count(-1)
+      , request(NULL) {}
 
     virtual void operator ++(int);
     virtual bool operator ==(rempi_event event);
@@ -77,7 +77,9 @@ class rempi_event
     virtual int get_clock();
     virtual int get_test_id();
 
+    virtual int get_type();
     virtual int get_rank();
+    virtual void set_rank(int rank);
     virtual int get_with_next();
     virtual int get_index();
     virtual int get_msg_id();
