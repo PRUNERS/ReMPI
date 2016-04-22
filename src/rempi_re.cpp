@@ -15,7 +15,7 @@
 #include "rempi_util.h"
 #include "rempi_recorder.h"
 #include "rempi_request_mg.h"
-
+#include "rempi_sig_handler.h"
 
 using namespace std;
 
@@ -81,7 +81,12 @@ int rempi_re::re_init(int *argc, char ***argv)
   //  int provided;
 
   /*Init CLMPI*/
+
+  // rempi_sig_handler_init_test();
+  // REMPI_DBG("test");
+  // sleep(1100);
   ret = PMPI_Init(argc, argv);
+
   /*Init from configuration and for valiables for errors*/
   init_after_pmpi_init(argc, argv);
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {

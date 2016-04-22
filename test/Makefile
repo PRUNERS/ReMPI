@@ -30,6 +30,11 @@ rempi_test_units_OBJS =  $(rempi_test_units_SRCS:%.c=%.o)
 rempi_test_units_DEPS =  $(rempi_test_units_SRCS:%.c=%.d)
 rempi_test_units_PROGRAM = rempi_test_units
 
+rempi_test_crash_SRCS = rempi_test_crash.c rempi_test_util.c
+rempi_test_crash_OBJS =  $(rempi_test_crash_SRCS:%.c=%.o)
+rempi_test_crash_DEPS =  $(rempi_test_crash_SRCS:%.c=%.d)
+rempi_test_crash_PROGRAM = rempi_test_crash
+
 rempi_test_hypre_parasails_SRCS = rempi_test_hypre_parasails.c rempi_test_util.c
 rempi_test_hypre_parasails_OBJS =  $(rempi_test_hypre_parasails_SRCS:%.c=%.o)
 rempi_test_hypre_parasails_DEPS =  $(rempi_test_hypre_parasails_SRCS:%.c=%.d)
@@ -59,6 +64,7 @@ PROGRAMS= $(rempi_test_master_worker_PROGRAM) \
 	  $(rempi_test_neighbor-tree_PROGRAM) \
 	  $(rempi_test_hypre_parasails_PROGRAM) \
 	  $(rempi_test_units_PROGRAM) \
+	  $(rempi_test_crash_PROGRAM) \
 	  $(rempi_test_neighbor-collective_PROGRAM) 
 
 OBJS= $(rempi_test_master_worker_OBJS) \
@@ -68,6 +74,7 @@ OBJS= $(rempi_test_master_worker_OBJS) \
       $(rempi_test_neighbor-tree_OBJS) \
       $(rempi_test_hypre_parasails_OBJS) \
       $(rempi_test_units_OBJS) \
+      $(rempi_test_crash_OBJS) \
       $(rempi_test_neighbor-collective_OBJS) 
 
 DEPS= $(rempi_test_master_worker_DEPS) \
@@ -77,6 +84,7 @@ DEPS= $(rempi_test_master_worker_DEPS) \
       $(rempi_test_neighbor-tree_DEPS) \
       $(rempi_test_hypre_parasails_DEPS) \
       $(rempi_test_units_DEPS) \
+      $(rempi_test_crash_DEPS) \
       $(rempi_test_neighbor-collective_DEPS) 
 
 
@@ -113,6 +121,9 @@ $(rempi_test_neighbor-tree_PROGRAM): $(rempi_test_neighbor-tree_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 $(rempi_test_units_PROGRAM): $(rempi_test_units_OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+
+$(rempi_test_crash_PROGRAM): $(rempi_test_crash_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 $(rempi_test_hypre_parasails_PROGRAM): $(rempi_test_hypre_parasails_OBJS)

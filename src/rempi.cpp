@@ -10,6 +10,7 @@
 #include "rempi_err.h"
 #include "rempi_type.h"
 #include "rempi_config.h"
+#include "rempi_sig_handler.h"
 
 #ifndef _EXTERN_C_
 #ifdef __cplusplus
@@ -757,7 +758,7 @@ _EXTERN_C_ int MPI_Abort(MPI_Comm arg_0, int arg_1) {
   REMPI_PREPRINT;
   int _wrap_py_return_val = 0;
   {
-    REMPI_ASSERT(0);
+    rempi_sig_handler_run(0);
     _wrap_py_return_val = PMPI_Abort(arg_0, arg_1);
   }    
   REMPI_POSTPRINT;

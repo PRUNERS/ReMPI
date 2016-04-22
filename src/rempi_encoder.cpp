@@ -224,11 +224,12 @@ bool rempi_encoder::extract_encoder_input_format_chunk(rempi_event_list<rempi_ev
   rempi_event *event_dequeued;
   bool is_ready_for_encoding = false;
 
+
   while (1) {
     /*Append events to current check as many as possible*/
     if (events.front() == NULL) break;
     event_dequeued = events.pop();
-    //    REMPI_DBG("event: source: %d", event_dequeued->get_source());
+    //REMPI_DBG("event: source: %d", event_dequeued->get_source());
     input_format.add(event_dequeued);
   }
 

@@ -7,5 +7,9 @@
 void rempi_sig_handler_init(int rank, rempi_io_thread *record_thread, rempi_event_list<rempi_event*> *recording_event_list, unsigned int *validation_code);
 void rempi_sig_handler_run(int signum);
 
+void rempi_sig_handler_run_test(int signum);
+void rempi_sig_handler_init_test();
+
+
 #endif
 

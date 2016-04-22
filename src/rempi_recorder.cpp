@@ -55,7 +55,7 @@ int rempi_recorder::record_init(int *argc, char ***argv, int rank)
   record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode, NULL); //0: recording mode
   rempi_sig_handler_init(rank, record_thread, recording_event_list, &validation_code);
   record_thread->start();
-  
+
   
   return 0;
 }

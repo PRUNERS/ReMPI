@@ -37,9 +37,19 @@ scancel $jobid"
 #EOF
 # give some time for the mail to get through
 #sleep 10
-echo "$prog: Done"
+#echo "$prog: Done"
+
+trap "" 12
 
 # now kill
 echo "$prog: Killing $jobtype $jobid"
 scancel -s 12 $jobid
+sleep 5
+echo "$prog: Killing $jobtype $jobid"
+scancel -s 12 $jobid
+sleep 5
+echo "$prog: Killing $jobtype $jobid"
+scancel -s 12 $jobid
+sleep 5
+
 echo "$prog: Done"

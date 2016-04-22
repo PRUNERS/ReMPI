@@ -81,12 +81,16 @@ bool rempi_encoder_basic::extract_encoder_input_format_chunk(rempi_event_list<re
   rempi_event *event_dequeued;
   bool is_ready_for_encoding = false;
 
+
   while (1) {
     /*Append events to current check as many as possible*/
     if (events.front() == NULL) break;
     event_dequeued = events.pop();
     if (event_dequeued->get_type() == REMPI_MPI_EVENT_TYPE_RECV) {
-      while(event_dequeued->get_rank() == MPI_ANY_SOURCE);
+      while(event_dequeued->get_rank() == MPI_ANY_SOURCE) {
+	if (events.is_push_closed_()) break;
+	usleep(1);
+      }
     }
     //    REMPI_DBG("event: source: %d (type: %d): %p", event_dequeued->get_source(), event_dequeued->get_type(), event_dequeued->request);
     input_format.add(event_dequeued);
@@ -98,6 +102,7 @@ bool rempi_encoder_basic::extract_encoder_input_format_chunk(rempi_event_list<re
   }
 
 
+
   //  REMPI_DBG("length: %d (%d)", input_format.length(), REMPI_MAX_INPUT_FORMAT_LENGTH);
   if (input_format.length() > rempi_max_event_length || events.is_push_closed_()) {
     /*If got enough chunck size, OR the end of run*/
@@ -106,12 +111,16 @@ bool rempi_encoder_basic::extract_encoder_input_format_chunk(rempi_event_list<re
       if (events.front() == NULL) break;
       event_dequeued = events.pop();
       if (event_dequeued->get_type() == REMPI_MPI_EVENT_TYPE_RECV) {
-	while(event_dequeued->get_rank() == MPI_ANY_SOURCE);
+	while(event_dequeued->get_rank() == MPI_ANY_SOURCE) {
+	  if (events.is_push_closed_()) break;
+	  usleep(1);
+	}
       }
       input_format.add(event_dequeued);
     }
     input_format.format();
     is_ready_for_encoding = true;
+
   }
   return is_ready_for_encoding; /*true*/
 }
