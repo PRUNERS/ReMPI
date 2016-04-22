@@ -74,6 +74,19 @@ void init_rempi() {
 
   return;
 }
+
+static void print_configuration()
+{
+  REMPI_DBGI(0, "========== ReMPI Configuration ==========");
+  REMPI_DBGI(0, "%16s:  %d", REMPI_ENV_NAME_MODE, rempi_mode);
+  REMPI_DBGI(0, "%16s:  %s", REMPI_ENV_NAME_DIR,  rempi_record_dir_path.c_str());
+  REMPI_DBGI(0, "%16s:  %d", REMPI_ENV_NAME_ENCODE, rempi_encode);
+  REMPI_DBGI(0, "%16s:  %d", REMPI_ENV_NAME_GZIP,  rempi_gzip);
+  REMPI_DBGI(0, "%16s:  %d", REMPI_ENV_NAME_TEST_ID, rempi_is_test_id);
+  REMPI_DBGI(0, "%16s:  %d", REMPI_ENV_NAME_MAX_EVENT_LENGTH, rempi_max_event_length);
+  REMPI_DBGI(0, "==========================================");
+}
+
 // MPI_Init does all the communicator setup
 //
 
@@ -92,6 +105,7 @@ _EXTERN_C_ int MPI_Init(int *arg_0, char ***arg_1)
   init_rempi();
   signal(SIGSEGV, SIG_DFL);
   _wrap_py_return_val = rempi_record_replay->re_init(arg_0, arg_1);
+  print_configuration();
   signal(SIGSEGV, SIG_DFL);
   REMPI_POSTPRINT;  
   return _wrap_py_return_val;
@@ -107,6 +121,7 @@ _EXTERN_C_ int MPI_Init_thread(int *arg_0, char ***arg_1, int arg_2, int *arg_3)
   init_rempi();
   signal(SIGSEGV, SIG_DFL);
   _wrap_py_return_val = rempi_record_replay->re_init_thread(arg_0, arg_1, arg_2, arg_3);
+  print_configuration();
   signal(SIGSEGV, SIG_DFL);
   REMPI_POSTPRINT;
   return _wrap_py_return_val;

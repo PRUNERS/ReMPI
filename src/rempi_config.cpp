@@ -15,6 +15,7 @@ string rempi_record_dir_path = ".";
 int rempi_encode;
 int rempi_gzip;
 int rempi_is_test_id;
+int rempi_max_event_length;
 
 void rempi_set_configuration(int *argc, char ***argv)
 {
@@ -28,7 +29,7 @@ void rempi_set_configuration(int *argc, char ***argv)
 #endif
 
   if (NULL == (env = getenv(REMPI_ENV_NAME_MODE))) {
-    rempi_dbgi(0, "getenv failed: Please specify REMPI_MODE (%s:%s:%d)", __FILE__, __func__, __LINE__);
+    rempi_dbg("getenv failed: Please specify REMPI_MODE (%s:%s:%d)", __FILE__, __func__, __LINE__);
     exit(0);
   }
   env_int = atoi(env);
@@ -37,7 +38,7 @@ void rempi_set_configuration(int *argc, char ***argv)
   } else if (env_int == 1) {
     rempi_mode = 1;
   } else {
-    rempi_dbgi(0, "Invalid value for REMPI_MODE: %s (%s:%s:%d)", env, __FILE__, __func__, __LINE__);
+    rempi_dbg("Invalid value for REMPI_MODE: %s (%s:%s:%d)", env, __FILE__, __func__, __LINE__);
     exit(0);
   }
 
@@ -49,7 +50,7 @@ void rempi_set_configuration(int *argc, char ***argv)
   }
 
   if (NULL == (env = getenv(REMPI_ENV_NAME_ENCODE))) {
-    rempi_dbgi(0, "getenv failed: Please specify REMPI_ENCODE (%s:%s:%d)", __FILE__, __func__, __LINE__);
+    rempi_dbg("getenv failed: Please specify REMPI_ENCODE (%s:%s:%d)", __FILE__, __func__, __LINE__);
     exit(0);
   } else {
     env_int = atoi(env);
@@ -57,7 +58,7 @@ void rempi_set_configuration(int *argc, char ***argv)
    }
 
   if (NULL == (env = getenv(REMPI_ENV_NAME_GZIP))) {
-    rempi_dbgi(0, "getenv failed: Please specify REMPI_GZIP (%s:%s:%d)", __FILE__, __func__, __LINE__);
+    rempi_dbg("getenv failed: Please specify REMPI_GZIP (%s:%s:%d)", __FILE__, __func__, __LINE__);
     exit(0);
   } else {
     env_int = atoi(env);
@@ -65,23 +66,24 @@ void rempi_set_configuration(int *argc, char ***argv)
   }
 
   if (NULL == (env = getenv(REMPI_ENV_NAME_TEST_ID))) {
-    rempi_dbgi(0, "getenv failed: Please specify REMPI_TEST_ID (%s:%s:%d)", __FILE__, __func__, __LINE__);
+    rempi_dbg("getenv failed: Please specify REMPI_TEST_ID (%s:%s:%d)", __FILE__, __func__, __LINE__);
     exit(0);
   } else {
     env_int = atoi(env);
     rempi_is_test_id = env_int;
   }
 
-  if (rempi_mode == 1 && rempi_is_test_id == 1) {
-    REMPI_DBGI(0, "REMPI_MODE=1 & REMPI_IS_TEST_IS=1 is not supported yet");
+  if (NULL == (env = getenv(REMPI_ENV_NAME_MAX_EVENT_LENGTH))) {
+    rempi_max_event_length = REMPI_DEFAULT_MAX_EVENT_LENGTH;
+  } else {
+    env_int = atoi(env);
+    rempi_max_event_length = env_int;
   }
 
+  if (rempi_mode == 1 && rempi_is_test_id == 1) {
+    REMPI_DBG("REMPI_MODE=1 & REMPI_IS_TEST_IS=1 is not supported yet");
+  }
 
-  REMPI_DBGI(0, "mode  :  %d", rempi_mode);
-  REMPI_DBGI(0, "dir   :  %s", rempi_record_dir_path.c_str());
-  REMPI_DBGI(0, "encode:  %d", rempi_encode);
-  REMPI_DBGI(0, "gzip  :  %d", rempi_gzip);
-  REMPI_DBGI(0, "testid:  %d", rempi_is_test_id);
 
   return;
 }

@@ -691,14 +691,14 @@ bool rempi_encoder_cdc::extract_encoder_input_format_chunk(rempi_event_list<remp
 
   while (1) {
     /*Append events to current check as many as possible*/
-    if (events.front() == NULL || input_format.length() > REMPI_MAX_INPUT_FORMAT_LENGTH) break;
+    if (events.front() == NULL || input_format.length() > rempi_max_event_length) break;
     event_dequeued = events.pop();
     input_format.add(event_dequeued);
   }
 
   if (input_format.length() == 0) return is_ready_for_encoding; /*false*/
 
-  if (input_format.length() > REMPI_MAX_INPUT_FORMAT_LENGTH || events.is_push_closed_()) {
+  if (input_format.length() > rempi_max_event_length || events.is_push_closed_()) {
     /*If got enough chunck size, OR the end of run*/
     input_format.format();
     is_ready_for_encoding = true;

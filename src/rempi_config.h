@@ -28,10 +28,15 @@ extern int rempi_gzip;
 #define REMPI_ENV_NAME_TEST_ID "REMPI_TEST_ID"
 extern int rempi_is_test_id;
 
+#define REMPI_ENV_NAME_MAX_EVENT_LENGTH "REMPI_MAX"
+#define REMPI_DEFAULT_MAX_EVENT_LENGTH (1024 * 128)
+extern int rempi_max_event_length;
+
+
 //#define REMPI_DBG_REPLAY (0)
 //#define REMPI_DBG_ASSERT (-1)
 
-#define REMPI_MAX_INPUT_FORMAT_LENGTH (1024 * 128)
+
 #define REMPI_MAX_RECV_TEST_ID (128)
 #define REMPI_COMM_ID_LENGTH (128) /*TODO: If this size is 16, memory overwrite related weird bug happens*/
 

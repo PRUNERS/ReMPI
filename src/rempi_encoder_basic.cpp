@@ -98,7 +98,8 @@ bool rempi_encoder_basic::extract_encoder_input_format_chunk(rempi_event_list<re
   }
 
 
-  if (input_format.length() > REMPI_MAX_INPUT_FORMAT_LENGTH || events.is_push_closed_()) {
+  //  REMPI_DBG("length: %d (%d)", input_format.length(), REMPI_MAX_INPUT_FORMAT_LENGTH);
+  if (input_format.length() > rempi_max_event_length || events.is_push_closed_()) {
     /*If got enough chunck size, OR the end of run*/
     while (1) {
       /*Append events to current check as many as possible*/
@@ -161,6 +162,8 @@ void rempi_encoder_basic::encode(rempi_encoder_input_format &input_format)
 #endif 
 
   }
+
+
 
   if (rempi_gzip) {
 #if 1
