@@ -13,6 +13,8 @@ rempi_event_list<rempi_event*> *registered_recording_event_list;
 unsigned int *registered_validation_code;
 int registered_my_rank;
 
+sighandler_t rempi_sig_handler_sigsegv_default;
+
 static void rempi_sig_handler_ignore(int signum)
 {
   return;
@@ -24,7 +26,7 @@ void rempi_sig_handler_run(int signum)
     REMPI_ERR("failed");
   }
 
-  REMPI_DBG("Get sigmal");
+  REMPI_DBG("Get sigmal: %d", signum);
   REMPI_PRT("Dumping record file");
   registered_recording_event_list->push_all();
   REMPI_PRT("Syncing with IO thread");
@@ -37,7 +39,10 @@ void rempi_sig_handler_run(int signum)
   //   REMPI_DBG(" Valication: %lu", *registered_validation_code);
   // }
   sleep(1);
-  if (signum != 0) {
+  if (signum == SIGSEGV) {
+    rempi_sig_handler_sigsegv_default(SIGSEGV);  
+  } else {
+    REMPI_DBG("exit ...");
     exit(1);
   }
   return;
@@ -50,7 +55,13 @@ void rempi_sig_handler_init(int rank, rempi_io_thread *record_thread, rempi_even
   registered_record_thread = record_thread;
   registered_recording_event_list = recording_event_list;
   registered_validation_code = validation_code;
-  signal(12, rempi_sig_handler_run);
+  if (signal(12, rempi_sig_handler_run) == SIG_ERR) {
+    REMPI_ERR("signal failed 12");
+  }
+  rempi_sig_handler_sigsegv_default = signal(SIGSEGV, rempi_sig_handler_run);
+  if (rempi_sig_handler_sigsegv_default == SIG_ERR) {
+    REMPI_ERR("signal failed %d", SIGSEGV);
+  }
   return;
 }
 

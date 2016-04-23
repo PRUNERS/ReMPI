@@ -106,8 +106,8 @@ _EXTERN_C_ int MPI_Init(int *arg_0, char ***arg_1)
   init_rempi();
   signal(SIGSEGV, SIG_DFL);
   _wrap_py_return_val = rempi_record_replay->re_init(arg_0, arg_1);
+  //signal(SIGSEGV, SIG_DFL);
   print_configuration();
-  signal(SIGSEGV, SIG_DFL);
   REMPI_POSTPRINT;  
   return _wrap_py_return_val;
 }
@@ -123,7 +123,7 @@ _EXTERN_C_ int MPI_Init_thread(int *arg_0, char ***arg_1, int arg_2, int *arg_3)
   signal(SIGSEGV, SIG_DFL);
   _wrap_py_return_val = rempi_record_replay->re_init_thread(arg_0, arg_1, arg_2, arg_3);
   print_configuration();
-  signal(SIGSEGV, SIG_DFL);
+  //  signal(SIGSEGV, SIG_DFL); 
   REMPI_POSTPRINT;
   return _wrap_py_return_val;
 }
@@ -758,8 +758,13 @@ _EXTERN_C_ int MPI_Abort(MPI_Comm arg_0, int arg_1) {
   REMPI_PREPRINT;
   int _wrap_py_return_val = 0;
   {
-    rempi_sig_handler_run(0);
-    _wrap_py_return_val = PMPI_Abort(arg_0, arg_1);
+    if (rempi_mode == 0) {
+      rempi_sig_handler_run(12);
+    } else {
+      _wrap_py_return_val = PMPI_Abort(arg_0, arg_1);
+    }
+    //
+    //    _wrap_py_return_val = PMPI_Abort(arg_0, arg_1);
   }    
   REMPI_POSTPRINT;
   return _wrap_py_return_val;

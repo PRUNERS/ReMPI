@@ -10,7 +10,15 @@ mkdir ${dir}
 
 librempi="../lib/librempilite.so"
 
-bin="./rempi_test_crash 0 1 10000 2 0"
+bin="./rempi_test_msg_race 0 2 10000 2 0"
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 REMPI_MAX=16 LD_PRELOAD=${librempi} srun --io-watchdog=conf=.io-watchdogrc -n ${num_procs} ${bin}
+exit
+
+bin="./rempi_test_msg_race 0 3 10000 2 0"
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 REMPI_MAX=16 LD_PRELOAD=${librempi} srun --io-watchdog=conf=.io-watchdogrc -n ${num_procs} ${bin}
+exit
+
+bin="./rempi_test_msg_race 0 1 10000 2 0"
 REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 REMPI_MAX=16 LD_PRELOAD=${librempi} srun --io-watchdog=conf=.io-watchdogrc -n ${num_procs} ${bin}
 exit
 
