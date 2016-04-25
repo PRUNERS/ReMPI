@@ -303,6 +303,7 @@ bool rempi_encoder_basic::read_record_file(rempi_encoder_input_format &input_for
     }
     free(input_format.write_queue_vec[i]);
   }
+  free(decoding_event_sequence);
   total_write_size += record_size;
   is_no_more_record = false;
   return is_no_more_record;

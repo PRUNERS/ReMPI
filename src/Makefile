@@ -83,13 +83,14 @@ $(rempilite_a_LIBS): $(rempi_OBJS)
 $(rempi_so_LIBS): $(rempi_a_LIBS) $(rempi_OBJS) #$(rempilite_so_LIBS)
 #	$(CC) -shared -o $@ $(rempi_o_LIBS)  $(clmpi_OBJS)
 	$(CC) $(LDFLAGS) $(LDLIBS) -g -shared -o $@  $(rempi_o_TEMP)
+	rm $(rempi_o_TEMP) $(rempi_o_LIBS)
 
 #$(rempilite_so_LIBS): $(rempilite_a_LIBS) $(rempi_OBJS)
 #	$(CC) $(LDFLAGS) $(LDLIBS) -g -shared -o $@ rempilite.tmp.o
 
 $(rempilite_so_LIBS): $(rempilite_a_LIBS) 
 	$(CC) $(LDFLAGS) $(LDLIBS) -g -shared -o $@ $(rempilite_o_LIBS)
-
+	rm $(rempilite_o_LIBS)
 
 
 #$(rcmpi_so_LIBS):  $(SRC_DIR)/rempi_message_manager.o
