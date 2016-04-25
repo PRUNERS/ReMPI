@@ -1,0 +1,7 @@
+search ../io-watchdog
+timeout = 1s
+actions = ReMPI # kill
+
+#search /usr/local/tools/io-watchdog/actions
+#timeout = 3s
+#actions = STAT kill
