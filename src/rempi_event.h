@@ -62,6 +62,12 @@ class rempi_event
       , msg_count(-1)
       , request(NULL) {}
 
+    ~rempi_event()
+      {
+	mpi_inputs.clear();
+      }
+     
+
     virtual void operator ++(int);
     virtual bool operator ==(rempi_event event);
     virtual void push(rempi_event* event);

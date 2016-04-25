@@ -143,11 +143,7 @@ void rempi_encoder_basic::encode(rempi_encoder_input_format &input_format)
     original_buff_offset = i * rempi_event::record_num;
     encoding_event = test_table->events_vec[i];    
     memcpy(original_buff + original_buff_offset, &encoding_event->mpi_inputs.front(), rempi_event::max_size);
-
-    /*TODO
-      Call "delete encoding_event" here to reduce memory footprint.
-      Now, encoding_evet is freed by input_format.dealocate
-     */ 
+    delete encoding_event;
 
     // REMPI_DBG("Encoded  : (count: %d, type: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)", 
     // 	      encoding_event->get_event_counts(), 
@@ -185,10 +181,11 @@ void rempi_encoder_basic::encode(rempi_encoder_input_format &input_format)
                                           compressed_write_queue_vec, compressed_write_size_queue_vec, total_compressed_size);
     test_table->compressed_matched_events      = compressed_write_queue_vec[0];
     test_table->compressed_matched_events_size = compressed_write_size_queue_vec[0];
-
+    free(original_buff);
 #else
     test_table->compressed_matched_events      = compression_util.compress_by_zlib((char*)original_buff, original_size, compressed_size);
     test_table->compressed_matched_events_size = compressed_size;
+    free(original_buff);
 #endif
   } else {
     test_table->compressed_matched_events      = (char*)original_buff;
@@ -214,7 +211,7 @@ void rempi_encoder_basic::write_record_file(rempi_encoder_input_format &input_fo
   record_fs.write((char*)&whole_data_size, sizeof(size_t));
   record_fs.write(whole_data, whole_data_size);
   total_write_size += whole_data_size;
-
+  free(whole_data);
 
   return;
 }

@@ -700,18 +700,16 @@ int rempi_recorder::record_pf(int source,
   int resultlen;
   int global_test_id;
   int ret;
-  MPI_Request dummy_req;
+  MPI_Request dummy_req = NULL;
   int record_flag, record_source;
   PMPI_Comm_get_name(comm, comm_id, &resultlen);
   /*TODO: Interface for NULL request. For now, use dummy_req*/
   rempi_reqmg_register_request(&dummy_req, source, tag, (int)comm_id[0], REMPI_RECV_REQUEST);
   global_test_id = rempi_reqmg_get_test_id(&dummy_req, 1);
+  rempi_reqmg_deregister_request(&dummy_req, REMPI_RECV_REQUEST);
 
   /* Call MPI matching function */
   ret = rempi_pf(source, tag, comm, flag, status, probe_function_type);
-
-
-
 
   if (flag == NULL) {
     /*MPI_Probe*/
@@ -1012,11 +1010,12 @@ int rempi_recorder::replay_iprobe(int source, int tag, MPI_Comm comm, int *flag,
   int test_id;
   int replay_queue_status;
 
-  MPI_Request req = NULL;
+  MPI_Request dummy_req = NULL;
 
+  rempi_reqmg_register_request(&dummy_req, source, tag, comm_id, REMPI_RECV_REQUEST);
+  test_id = rempi_reqmg_get_test_id(&dummy_req, 1);
+  rempi_reqmg_deregister_request(&dummy_req, REMPI_RECV_REQUEST);
 
-  rempi_reqmg_register_request(&req, source, tag, comm_id, REMPI_RECV_REQUEST);
-  test_id = rempi_reqmg_get_test_id(&req, 1);
 
 
   /*Matched*/
