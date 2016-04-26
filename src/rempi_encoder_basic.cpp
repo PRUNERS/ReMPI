@@ -255,6 +255,7 @@ bool rempi_encoder_basic::read_record_file(rempi_encoder_input_format &input_for
     compression_util.decompress_by_zlib_vec(compressed_payload_vec, compressed_payload_size_vec,
                                             input_format.write_queue_vec, input_format.write_size_queue_vec, decompressed_size);
     input_format.decompressed_size = decompressed_size;
+    free(decoding_event_sequence);
   } else {
     input_format.write_queue_vec.push_back(decoding_event_sequence);
     input_format.write_size_queue_vec.push_back(record_size);
@@ -287,7 +288,7 @@ bool rempi_encoder_basic::read_record_file(rempi_encoder_input_format &input_for
 	REMPI_ERR("No such event type: %d", type);
       }
 #if 0
-  REMPI_DBG("Read   : (count: %d, type: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)",
+      REMPI_DBGI(0, "Read   : (count: %d, type: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)",
             decoded_event->get_event_counts(),
             decoded_event->get_type(),
             decoded_event->get_flag(),
@@ -303,7 +304,7 @@ bool rempi_encoder_basic::read_record_file(rempi_encoder_input_format &input_for
     }
     free(input_format.write_queue_vec[i]);
   }
-  free(decoding_event_sequence);
+
   total_write_size += record_size;
   is_no_more_record = false;
   return is_no_more_record;

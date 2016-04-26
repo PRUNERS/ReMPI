@@ -12,7 +12,7 @@ int rempi_event::record_num = REMPI_MPI_EVENT_INPUT_NUM;
 int rempi_event::record_element_size = sizeof(int);
 
 void rempi_event::operator ++(int) {
-  mpi_inputs[0]++;
+  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_EVENT_COUNT]++;
 }
 
 bool rempi_event::operator ==(rempi_event event)
@@ -44,25 +44,34 @@ rempi_event* rempi_event::pop()
 {
   rempi_event *event;
   /*TODO: Implement as a replacement of operator++*/
-  mpi_inputs[0]--;
+
   /*XXX: Assuming the all recorded event is Test. 
     so return rempi_event_test, but this is resonable assumption*/
-  if (mpi_inputs[0] < 0) {
+  if (mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_EVENT_COUNT] < 0) {
     REMPI_ERR("Event count < 0 error");
   }
   if (this->get_type() == REMPI_MPI_EVENT_TYPE_RECV) {
-    return this;
+    if (this->get_event_counts() != 1){
+      REMPI_ERR("Recv event has more than one: %d", this->get_event_counts());
+    }
+    event = this;
   } else if (this->get_type() == REMPI_MPI_EVENT_TYPE_TEST) {
     /*TODO: if size = 1, then return this*/
-    event = rempi_event::create_test_event(1, 
-					   this->get_flag(),
-					   this->get_rank(), 
-					   this->get_with_next(), 
-					   this->get_index(), 
-					   this->get_msg_id(),
-					   this->get_matching_group_id());
-    event->clock_order = clock_order;
-    event->msg_count = msg_count;
+    if (this->get_event_counts() == 1){
+      event = this;
+    } else {
+      event = rempi_event::create_test_event(1, 
+					     this->get_flag(),
+					     this->get_rank(), 
+					     this->get_with_next(), 
+					     this->get_index(), 
+					     this->get_msg_id(),
+					     this->get_matching_group_id());
+      event->clock_order = clock_order;
+      event->msg_count = msg_count;
+      mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_EVENT_COUNT]--;
+    }
+
   } else {
     REMPI_ERR("No such event type: %d", this->get_type());
   }
@@ -72,7 +81,7 @@ rempi_event* rempi_event::pop()
 
 int rempi_event::size()
 {
-  return mpi_inputs[0];
+  return mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_EVENT_COUNT];
 }
 
 char* rempi_event::serialize(size_t &size)

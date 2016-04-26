@@ -1219,9 +1219,9 @@ bool rempi_encoder_rep::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 					     test_id // gid
 					     );
 #ifdef REMPI_DBG_REPLAY
-      REMPI_DBGI(REMPI_DBG_REPLAY, "PQ -> RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)", 
+      REMPI_DBGI(REMPI_DBG_REPLAY, "PQ -> RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)", 
 		 unmatched_event->get_event_counts(),  unmatched_event->get_is_testsome(),  unmatched_event->get_flag(),
-		 unmatched_event->get_source(),  unmatched_event->get_tag(),  unmatched_event->get_clock());
+		 unmatched_event->get_source(),  unmatched_event->get_clock());
 #endif
       replay_event_list.push_back(unmatched_event);
     }
@@ -1325,9 +1325,9 @@ bool rempi_encoder_rep::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
   
 #ifdef REMPI_DBG_REPLAY
   for (int i = 0, n = replay_event_vec.size(); i < n; i++) {
-    REMPI_DBGI(REMPI_DBG_REPLAY, "Final   RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d)",
+    REMPI_DBGI(REMPI_DBG_REPLAY, "Final   RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)",
 	       replay_event_vec[i]->get_event_counts(), replay_event_vec[i]->get_is_testsome(), replay_event_vec[i]->get_flag(),
-	       replay_event_vec[i]->get_source(), replay_event_vec[i]->get_tag(), replay_event_vec[i]->get_clock());
+	       replay_event_vec[i]->get_source(), replay_event_vec[i]->get_clock());
   }
 #ifdef REMPI_DBG_REPLAY
   REMPI_DBGI(REMPI_DBG_REPLAY, "LIST Queue Update: Local_min (rank: %d, clock: %lu): test_id: %d",
@@ -1497,9 +1497,9 @@ void rempi_encoder_rep::insert_encoder_input_format_chunk(rempi_event_list<rempi
 #endif
 
 #ifdef REMPI_DBG_REPLAY
-      REMPI_DBGI(REMPI_DBG_REPLAY, "RPQv -> RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d) recv_test_id: %d",
+      REMPI_DBGI(REMPI_DBG_REPLAY, "RPQv -> RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) recv_test_id: %d",
 		 e->get_event_counts(), e->get_is_testsome(), e->get_flag(),
-		 e->get_source(),       e->get_tag(),         e->get_clock(), test_id);
+		 e->get_source(),      e->get_clock(), test_id);
 #endif
       replaying_events.enqueue_replay(e, test_id);
     }

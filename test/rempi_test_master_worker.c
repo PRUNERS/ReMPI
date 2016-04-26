@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     int i;
     for (i = 0; i < NUM_MEG_PER_RANK; i++) {
       /*Emulate two wave of MPI_Send, so that rank=0 can poll MPI_Test to wait the MPI_Send waves*/
-      usleep(100);
+      //      usleep(100);
       MPI_Send(&rank, 1, MPI_INT, 0, i, MPI_COMM_WORLD); 
       //      fprintf(stderr, "send\n");
     }

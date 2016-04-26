@@ -6,7 +6,7 @@ num_procs=$2
 dir=.rempi
 mkdir ${dir}
 #io_watchdog="--io-watchdog"
-memcheck="memcheck  --xml-file=/tmp/unit.cab687.0.mc"
+#memcheck="memcheck  --xml-file=/tmp/unit.cab687.0.mc"
 
 
 librempi="../lib/librempilite.so"

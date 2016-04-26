@@ -693,6 +693,9 @@ bool rempi_encoder_cdc::extract_encoder_input_format_chunk(rempi_event_list<remp
     /*Append events to current check as many as possible*/
     if (events.front() == NULL || input_format.length() > rempi_max_event_length) break;
     event_dequeued = events.pop();
+    // REMPI_DBGI(0, "EXT ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)", 
+    //  	        event_dequeued->get_event_counts(),  event_dequeued->get_is_testsome(),  event_dequeued->get_flag(),
+    // 	        event_dequeued->get_source(), event_dequeued->get_clock());
     input_format.add(event_dequeued);
   }
 
@@ -838,6 +841,8 @@ bool rempi_encoder_cdc::read_record_file(rempi_encoder_input_format &input_forma
   vector<size_t>  decompressed_payload_size_vec;
   size_t decompressed_size, read_size;
   bool is_no_more_record; 
+
+
 
   record_fs.read((char*)&chunk_size, sizeof(chunk_size));
   read_size = record_fs.gcount();
@@ -1285,6 +1290,8 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 					   REMPI_MPI_EVENT_INPUT_IGNORE,
 					   REMPI_MPI_EVENT_INPUT_IGNORE,
 					   REMPI_MPI_EVENT_INPUT_IGNORE);
+
+
 #ifdef REMPI_DBG_REPLAY
     REMPI_DBGI(REMPI_DBG_REPLAY, "PQ -> RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)", 
      	        unmatched_event->get_event_counts(),  unmatched_event->get_is_testsome(),  unmatched_event->get_flag(),
@@ -1979,6 +1986,10 @@ void rempi_encoder_cdc::insert_encoder_input_format_chunk(rempi_event_list<rempi
 #else
     for (rempi_event *e: replay_event_list) {
 #endif
+
+      // REMPI_DBGI(0, "RPQv -> RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) recv_test_id: %d",
+      // 		 e->get_event_counts(), e->get_with_next(), e->get_flag(),
+      // 		 e->get_source(), e->get_clock(), test_id);
 
 #ifdef REMPI_DBG_REPLAY
       REMPI_DBGI(REMPI_DBG_REPLAY, "RPQv -> RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) recv_test_id: %d",
