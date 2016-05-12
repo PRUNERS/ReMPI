@@ -96,12 +96,14 @@ int rempi_recorder::record_irecv(
   //  s =rempi_get_time();
   rempi_reqmg_register_request(request, source, tag, comm_id, REMPI_RECV_REQUEST); 
 
+  //  if (source == MPI_ANY_SOURCE) {
   e = rempi_event::create_recv_event(MPI_ANY_SOURCE, tag, NULL, request);
   recording_event_list->push(e);
   if (request_to_recv_event_umap.find(*request) != request_to_recv_event_umap.end()) {
     REMPI_ERR("Recv event of request(%p) already exists", *request);
   }
   request_to_recv_event_umap[*request] = e;
+  //  }
   //  REMPI_DBG("Added: %p", *request);
   //  e = rempi_get_time();
   //  REMPI_DBGI(0, "recv time: %f", e - s);
@@ -217,10 +219,13 @@ int rempi_recorder::record_cancel(MPI_Request *request)
   }
   ret = PMPI_Cancel(request);
 
-  request_to_recv_event_umap.at(*request)->set_rank(REMPI_MPI_EVENT_RANK_CANCELED);
-  if (request_to_recv_event_umap.erase(*request) == 0) {
-    REMPI_ERR("Recv event of request(%p) does not exist", *request);
-  }
+  //  if (request_to_recv_event_umap.find(*request) != 
+  //      request_to_recv_event_umap.end()) {
+    request_to_recv_event_umap.at(*request)->set_rank(REMPI_MPI_EVENT_RANK_CANCELED);
+    if (request_to_recv_event_umap.erase(*request) == 0) {
+      REMPI_ERR("Recv event of request(%p) does not exist", *request);
+         }
+    //  }
   return ret;
 }
 
@@ -655,8 +660,11 @@ int rempi_recorder::record_mf(
 	rank = array_of_statuses[i].MPI_SOURCE;
 	rempi_reqmg_deregister_request(&tmp_requests[matched_index], REMPI_RECV_REQUEST);
 	//	REMPI_DBG("update: %p", tmp_requests[matched_index]);
-	request_to_recv_event_umap.at(tmp_requests[matched_index])->set_rank(rank);
-	request_to_recv_event_umap.erase(tmp_requests[matched_index]);
+	//	if (request_to_recv_event_umap.find(tmp_requests[matched_index]) != 
+	//	    request_to_recv_event_umap.end()) {
+	  request_to_recv_event_umap.at(tmp_requests[matched_index])->set_rank(rank);
+	  request_to_recv_event_umap.erase(tmp_requests[matched_index]);
+	  //	}
       }
 
       if (rank >= 0) {

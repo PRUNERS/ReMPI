@@ -167,7 +167,6 @@ int main(int argc, char *argv[])
 
   /* Init */
   MPI_Init(&argc, &argv);
-  signal(SIGSEGV, SIG_DFL);
   start = MPI_Wtime();
   overall_start = get_time();
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -197,12 +196,6 @@ int main(int argc, char *argv[])
 #ifdef USE_BIN_REDUCTION
     bin_reduction_start();
 #endif
-
-#ifdef USE_WAITALL
-    waitall_start();
-#endif
-    
-    dbg_printf("test");
 
     /* ======================== */
     /* 2.  neighbor exchange    */

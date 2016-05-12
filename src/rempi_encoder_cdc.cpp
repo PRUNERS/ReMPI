@@ -726,6 +726,7 @@ void rempi_encoder_cdc::encode(rempi_encoder_input_format &input_format)
     /*=======================================*/
     /*=== Compress matched_events ===*/
     compress_matched_events(input_format, test_table);
+    REMPI_DBG("# of permutated messages: %d, # of messages: %lu, %d", test_table->compressed_matched_events_size/sizeof(int)/2, test_table->count);
     /*=======================================*/
   }
   return;
