@@ -508,9 +508,10 @@ _EXTERN_C_ int MPI_Allreduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_
   REMPI_PREPRINT;
   int _wrap_py_return_val = 0;
   {
-    //    fprintf(stderr, "======= %s =======\n", __func__);
+    //fprintf(stderr, "======= %s =======\n", __func__);
     //    _wrap_py_return_val = PMPI_Allreduce(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
     _wrap_py_return_val = rempi_record_replay->re_allreduce(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
+    REMPI_DBGI(0, "MPI_Allreduce");
     //    fprintf(stderr, "======= %s end =======\n", __func__);
   }    
   REMPI_POSTPRINT;
@@ -821,6 +822,8 @@ _EXTERN_C_ int MPI_Errhandler_set(MPI_Comm arg_0, MPI_Errhandler arg_1) {
   return _wrap_py_return_val;
 }
 
+#if PMPI_Request_c2f != MPI_Fint && MPI_Request_c2f != MPI_Fint
+
 /* ================== C Wrappers for MPI_Errhandler_set ================== */
 _EXTERN_C_ MPI_Fint PMPI_Request_c2f(MPI_Request request);
 _EXTERN_C_ MPI_Fint MPI_Request_c2f(MPI_Request request)
@@ -834,3 +837,4 @@ _EXTERN_C_ MPI_Fint MPI_Request_c2f(MPI_Request request)
   return _wrap_py_return_val;
 }
 
+#endif

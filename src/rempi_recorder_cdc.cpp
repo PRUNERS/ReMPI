@@ -547,9 +547,11 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
     } else if (irecv_inputs->recv_test_id != recv_test_id) {
       for (int i = 0; i < incount; i++) {
 	if (irecv_inputs->request == array_of_requests[i]) {
-	  REMPI_ERR("A MPI request is used in different MFs: "
-	  	    "this request used for recv_test_id: %d first, but this is recv_test_id: %d",
-	  	    irecv_inputs->recv_test_id, recv_test_id);
+	  // NOTE: comment out because MPI requests can be tested in different MF
+	  // REMPI_ERR("A MPI request is used in different MFs: "
+	  // 	    "this request used for recv_test_id: %d first, but this is recv_test_id: %d (tag: %d)",
+	  // 	    irecv_inputs->recv_test_id, recv_test_id,
+	  // 	    irecv_inputs->tag);
 	}
       }
     } 
@@ -595,10 +597,12 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 					     irecv_inputs->recv_test_id);  // gid
 
 	event_pooled->msg_count = proxy_request->matched_count;
+#if 0
 	if (compare3(event_pooled->get_source(), event_pooled->get_clock(), global_local_min_id_rank, global_local_min_id_clock)) {
 	  REMPI_ERR("Enqueueing an event whose <source: %d, clock: %lu> is smaller than global_local_min <source: %d, clock: %lu>",
-		    event_pooled->get_source(), event_pooled->get_clock(), global_local_min_id_rank, global_local_min_id_clock);
+	  	    event_pooled->get_source(), event_pooled->get_clock(), global_local_min_id_rank, global_local_min_id_clock);
 	}
+#endif
 	recording_event_list->enqueue_replay(event_pooled, irecv_inputs->recv_test_id);
 #ifdef REMPI_DBG_REPLAY	  
       REMPI_DBGI(REMPI_DBG_REPLAY, "A->RCQ  : (count: %d, with_next: %d, flag: %d, source: %d,  clock: %d, msg_count: %d %p): recv_test_id: %d",
@@ -621,8 +625,8 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
     /* ================================================= */
     
     if (irecv_inputs->matched_pending_request_proxy_list.size() > 0) {
-      has_pending_msg = true;
-      REMPI_DBG("has_pending: %d", has_pending_msg);
+      //      has_pending_msg = true;
+      //      REMPI_DBG("pending message: %d", irecv_inputs->recv_test_id);
     }
     
     /* =================================================
@@ -654,10 +658,13 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 	       status.MPI_SOURCE, status.MPI_TAG, clock, irecv_inputs->recv_test_id, 
 	       request_to_irecv_inputs_umap.size());
 #endif
+
+#if 0
     if (compare3(status.MPI_SOURCE, clock, global_local_min_id_rank, global_local_min_id_clock)) {
       REMPI_ERR("Received an event whose <source: %d, tag: %d, clock: %lu> is smaller than global_local_min <source: %d, clock: %lu>",
 		status.MPI_SOURCE, status.MPI_TAG, clock, global_local_min_id_rank, global_local_min_id_clock);
     }
+#endif
 
     if (irecv_inputs->recv_test_id != -1) {
       //      event_pooled =  new rempi_test_event(1, -1, -1, 1, status.MPI_SOURCE, status.MPI_TAG, clock, irecv_inputs->recv_test_id);
@@ -670,10 +677,12 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 					   irecv_inputs->recv_test_id);
 
       PMPI_Get_count(&status, irecv_inputs->datatype, &(event_pooled->msg_count));
+#if 0
       if (compare3(status.MPI_SOURCE, clock, global_local_min_id_rank, global_local_min_id_clock)) {
 	REMPI_ERR("Enqueueing an event whose <source: %d, clock: %lu> is smaller than global_local_min <source: %d, clock: %lu>",
 		  status.MPI_SOURCE, clock, global_local_min_id_rank, global_local_min_id_clock);
       }
+#endif
       recording_event_list->enqueue_replay(event_pooled, irecv_inputs->recv_test_id);
 
 #ifdef REMPI_DBG_REPLAY	  
@@ -854,7 +863,7 @@ int rempi_recorder_cdc::replay_testsome(
        This function needs to be called before PMPI_Test. 
        If flag=0, we can make sure there are no in-flight messages, and 
        local_min_id is really minimal. */
-    if (interval++ % 2 == 0) {
+    if (interval++ % 10 == 0) {
       stra = MPI_Wtime();
       mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
       counta++;
@@ -869,6 +878,7 @@ int rempi_recorder_cdc::replay_testsome(
        if a send operation is completed, we can increment clock */
     progress_send_requests();
     /*progress for recv*/
+    
     has_pending_msg = progress_recv_requests(recv_test_id, incount, array_of_requests, 
 					     mc_encoder->global_local_min_id.rank, 
 					     mc_encoder->global_local_min_id.clock);
@@ -884,7 +894,7 @@ int rempi_recorder_cdc::replay_testsome(
     /* TODO: multiple communicators */
     PMPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &iprobe_flag_int, MPI_STATUS_IGNORE);
     if (iprobe_flag_int) iprobe_flag = true;
-    //    REMPI_DBG("has_pending_msg: %d, iprobe_flag: %d", has_pending_msg, iprobe_flag_int);
+
     has_pending_msg = has_pending_msg || iprobe_flag;
 #if 0
     if (iprobe_flag_int) {
@@ -901,9 +911,10 @@ int rempi_recorder_cdc::replay_testsome(
     /* ======================================================== */
     /* Frontier detection: Step 2                               */
     /* ======================================================== */
+
     if (!has_pending_msg) {
       int is_updated = 0;
-      //      REMPI_DBGI(REMPI_DBG_REPLAY, " ==== update start");
+      //REMPI_DBGI(REMPI_DBG_REPLAY, " ==== update start");
       is_updated = mc_encoder->update_local_min_id(min_recv_rank, min_next_clock);
       if (is_updated) {
 	counta_update++;
@@ -946,7 +957,7 @@ int rempi_recorder_cdc::replay_testsome(
 
     while ((replaying_event = replaying_event_list->dequeue_replay(recv_test_id, event_list_status)) != NULL) {
 #ifdef REMPI_DBG_REPLAY
-      REMPI_DBGI(REMPI_DBG_REPLAY, "RPQ->A  : (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) recv_test_id",
+      REMPI_DBGI(REMPI_DBG_REPLAY, "RPQ->A  : (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) recv_test_id: %d",
 		 replaying_event->get_event_counts(), replaying_event->get_is_testsome(), replaying_event->get_flag(),
 		 replaying_event->get_source(), replaying_event->get_clock(), recv_test_id);
 #endif
@@ -1133,12 +1144,12 @@ int rempi_recorder_cdc::replay_finalize(void)
 
   //TODO:
   //fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
-#if 0
+#if 1
   if (counta == 0) {
-    REMPI_DBG("Get: %f (count: %lu, is_pending:%lu, is_updated:%lu, single: %f), waiting: %f (count: %lu, single: %f)", 
+    REMPI_DBGI(0, "Get: %f (count: %lu, is_pending:%lu, is_updated:%lu, single: %f), waiting: %f (count: %lu, single: %f)", 
 	      dura, counta, counta_pending, counta_update, -1, durb, countb, dura/countb);
   } else {
-    REMPI_DBG("Get: %f (count: %lu, is_pending:%lu, is_updated:%lu, single: %f), waiting: %f (count: %lu, single: %f)", 
+    REMPI_DBGI(0, "Get: %f (count: %lu, is_pending:%lu, is_updated:%lu, single: %f), waiting: %f (count: %lu, single: %f)", 
 	      dura, counta, counta_pending, counta_update, dura/counta, durb, countb, dura/countb);
   }
 #endif

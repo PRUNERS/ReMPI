@@ -26,7 +26,6 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 		$(SRC_DIR)/rempi_encoder_cdc.cpp \
 		$(SRC_DIR)/rempi_encoder_cdc_row_wise_diff.cpp \
 		$(SRC_DIR)/rempi_encoder_cdc_permutation_diff.cpp \
-		$(SRC_DIR)/rempi_encoder_rep.cpp \
 		$(SRC_DIR)/rempi_encoder_zlib.cpp \
 		$(SRC_DIR)/rempi_encoder_simple_zlib.cpp \
 		$(SRC_DIR)/rempi_thread.cpp \
@@ -101,7 +100,7 @@ $(rempilite_so_LIBS): $(rempilite_a_LIBS)
 .c.o:
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $(LDFLAGS) $(LDLIBS) -c -MMD -MP $< 
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $(LDFLAGS) $(LDLIBS) -o $@ -c $< 
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $(LDFLAGS) $(LDLIBS) _DREMPI_LITE -o $*_lite.o -c $< 
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(INCLUDES) $(LDFLAGS) $(LDLIBS) -DREMPI_LITE -o $*_lite.o -c $< 
 
 install: all
 	@$(MAKE) -C ./external install

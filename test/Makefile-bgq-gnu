@@ -11,7 +11,7 @@ rempi_test_isendrecv_DEPS =  $(rempi_test_isendrecv_SRCS:%.c=%.d)
 rempi_test_isendrecv_PROGRAM = rempi_test_isendrecv
 
 rempi_test_neighbor_SRCS = rempi_test_neighbor.c rempi_test_util.c
-rempi_test_neighbor_OBJS =  $(rempi_test_neighbor_SRCS:%.c=%.o) /g/g90/sato5/opt/opt-bgq/lib/librempi.a /usr/local/tools/zlib-1.2.6/lib/libz.a
+rempi_test_neighbor_OBJS =  $(rempi_test_neighbor_SRCS:%.c=%.o) ../lib/librempi.a /usr/local/tools/zlib-1.2.6/lib/libz.a
 rempi_test_neighbor_DEPS =  $(rempi_test_neighbor_SRCS:%.c=%.d)
 rempi_test_neighbor_PROGRAM = rempi_test_neighbor
 
@@ -20,10 +20,10 @@ rempi_test_neighbor-send_OBJS =  $(rempi_test_neighbor-send_SRCS:%.c=%.o)
 rempi_test_neighbor-send_DEPS =  $(rempi_test_neighbor-send_SRCS:%.c=%.d)
 rempi_test_neighbor-send_PROGRAM = rempi_test_neighbor-send
 
-rempi_test_neighbor-tree_SRCS = rempi_test_neighbor-tree.c rempi_test_util.c
-rempi_test_neighbor-tree_OBJS =  $(rempi_test_neighbor-tree_SRCS:%.c=%.o)
-rempi_test_neighbor-tree_DEPS =  $(rempi_test_neighbor-tree_SRCS:%.c=%.d)
-rempi_test_neighbor-tree_PROGRAM = rempi_test_neighbor-tree
+rempi_test_mini_mcb_SRCS = rempi_test_mini_mcb.c rempi_test_util.c
+rempi_test_mini_mcb_OBJS =  $(rempi_test_mini_mcb_SRCS:%.c=%.o)
+rempi_test_mini_mcb_DEPS =  $(rempi_test_mini_mcb_SRCS:%.c=%.d)
+rempi_test_mini_mcb_PROGRAM = rempi_test_mini_mcb
 
 rempi_test_neighbor-collective_SRCS = rempi_test_neighbor-collective.c rempi_test_util.c
 rempi_test_neighbor-collective_OBJS =  $(rempi_test_neighbor-collective_SRCS:%.c=%.o)
@@ -45,21 +45,21 @@ PROGRAMS= $(rempi_test_master_worker_PROGRAM) \
 	  $(rempi_test_isendrecv_PROGRAM) \
 	  $(rempi_test_neighbor_PROGRAM) \
 	  $(rempi_test_neighbor-send_PROGRAM) \
-	  $(rempi_test_neighbor-tree_PROGRAM) \
+	  $(rempi_test_mini_mcb_PROGRAM) \
 	  $(rempi_test_neighbor-collective_PROGRAM) \
 	  $(rempi_test_clmpi_PROGRAM) 
 OBJS= $(rempi_test_master_worker_OBJS) \
       $(rempi_test_isendrecv_OBJS) \
       $(rempi_test_neighbor_OBJS) \
       $(rempi_test_neighbor-send_OBJS) \
-      $(rempi_test_neighbor-tree_OBJS) \
+      $(rempi_test_mini_mcb_OBJS) \
       $(rempi_test_neighbor-collective_OBJS) \
       $(rempi_test_clmpi_OBJS)
 DEPS= $(rempi_test_master_worker_DEPS) \
       $(rempi_test_isendrecv_DEPS) \
       $(rempi_test_neighbor_DEPS) \
       $(rempi_test_neighbor-send_DEPS) \
-      $(rempi_test_neighbor-tree_DEPS) \
+      $(rempi_test_mini_mcb_DEPS) \
       $(rempi_test_neighbor-collective_DEPS) \
       $(rempi_test_clmpi_DEPS)
 
@@ -92,7 +92,7 @@ $(rempi_test_neighbor-send_PROGRAM): $(rempi_test_neighbor-send_OBJS)
 $(rempi_test_neighbor-collective_PROGRAM): $(rempi_test_neighbor-collective_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
-$(rempi_test_neighbor-tree_PROGRAM): $(rempi_test_neighbor-tree_OBJS)
+$(rempi_test_mini_mcb_PROGRAM): $(rempi_test_mini_mcb_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 $(rempi_test_clmpi_PROGRAM): $(rempi_test_clmpi_OBJS)

@@ -429,10 +429,15 @@ int rempi_re::re_request_free(MPI_Request *request)
   return ret;
 }
 
+
+
+#if PMPI_Request_c2f != MPI_Fint && MPI_Request_c2f != MPI_Fint
 extern "C" MPI_Fint PMPI_Request_c2f(MPI_Request request);
+#endif
 MPI_Fint rempi_re::re_request_c2f(MPI_Request request)
 {
   MPI_Fint ret;
+
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     int request_type;
     rempi_reqmg_get_request_type(&request, &request_type);
@@ -446,6 +451,9 @@ MPI_Fint rempi_re::re_request_c2f(MPI_Request request)
   }
   return ret;
 }
+
+
+
 
 int rempi_re::re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3)
 {

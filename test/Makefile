@@ -20,10 +20,10 @@ rempi_test_neighbor-send_OBJS =  $(rempi_test_neighbor-send_SRCS:%.c=%.o)
 rempi_test_neighbor-send_DEPS =  $(rempi_test_neighbor-send_SRCS:%.c=%.d)
 rempi_test_neighbor-send_PROGRAM = rempi_test_neighbor-send
 
-rempi_test_neighbor-tree_SRCS = rempi_test_neighbor-tree.c rempi_test_util.c
-rempi_test_neighbor-tree_OBJS =  $(rempi_test_neighbor-tree_SRCS:%.c=%.o)
-rempi_test_neighbor-tree_DEPS =  $(rempi_test_neighbor-tree_SRCS:%.c=%.d)
-rempi_test_neighbor-tree_PROGRAM = rempi_test_neighbor-tree
+rempi_test_mini_mcb_SRCS = rempi_test_mini_mcb.c rempi_test_util.c
+rempi_test_mini_mcb_OBJS =  $(rempi_test_mini_mcb_SRCS:%.c=%.o)
+rempi_test_mini_mcb_DEPS =  $(rempi_test_mini_mcb_SRCS:%.c=%.d)
+rempi_test_mini_mcb_PROGRAM = rempi_test_mini_mcb
 
 rempi_test_units_SRCS = rempi_test_units.c rempi_test_util.c
 rempi_test_units_OBJS =  $(rempi_test_units_SRCS:%.c=%.o)
@@ -45,12 +45,10 @@ rempi_test_neighbor-collective_OBJS =  $(rempi_test_neighbor-collective_SRCS:%.c
 rempi_test_neighbor-collective_DEPS =  $(rempi_test_neighbor-collective_SRCS:%.c=%.d)
 rempi_test_neighbor-collective_PROGRAM = rempi_test_neighbor-collective
 
-
-
-# rempi_test_clmpi_SRCS = rempi_test_clmpi.c rempi_test_util.c
-# rempi_test_clmpi_OBJS =  $(rempi_test_clmpi_SRCS:%.c=%.o)
-# rempi_test_clmpi_DEPS =  $(rempi_test_clmpi_SRCS:%.c=%.d)
-# rempi_test_clmpi_PROGRAM = rempi_test_clmpi
+rempi_test_clmpi_SRCS = rempi_test_clmpi.c rempi_test_util.c
+rempi_test_clmpi_OBJS =  $(rempi_test_clmpi_SRCS:%.c=%.o)
+rempi_test_clmpi_DEPS =  $(rempi_test_clmpi_SRCS:%.c=%.d)
+rempi_test_clmpi_PROGRAM = rempi_test_clmpi
 
 rempi_test_compress_SRCS = rempi_test_compress.cpp rempi_test_util.c ../src/rempi_compression_utilcpp
 rempi_test_compress_OBJS = rempi_test_compress.o rempi_test_util.o
@@ -58,35 +56,18 @@ rempi_test_compress_DEPS = rempi_test_compress.d rempi_test_util.d
 rempi_test_compress_PROGRAM = rempi_test_compress
 
 PROGRAMS= $(rempi_test_master_worker_PROGRAM) \
-	  $(rempi_test_isendrecv_PROGRAM) \
-	  $(rempi_test_neighbor_PROGRAM) \
-	  $(rempi_test_neighbor-send_PROGRAM) \
-	  $(rempi_test_neighbor-tree_PROGRAM) \
+	  $(rempi_test_mini_mcb_PROGRAM) \
 	  $(rempi_test_hypre_parasails_PROGRAM) \
 	  $(rempi_test_units_PROGRAM) \
-	  $(rempi_test_msg_race_PROGRAM) \
-	  $(rempi_test_neighbor-collective_PROGRAM) 
+	  $(rempi_test_msg_race_PROGRAM) 
 
 OBJS= $(rempi_test_master_worker_OBJS) \
-      $(rempi_test_isendrecv_OBJS) \
-      $(rempi_test_neighbor_OBJS) \
-      $(rempi_test_neighbor-send_OBJS) \
-      $(rempi_test_neighbor-tree_OBJS) \
+      $(rempi_test_mini_mcb_OBJS) \
       $(rempi_test_hypre_parasails_OBJS) \
       $(rempi_test_units_OBJS) \
-      $(rempi_test_msg_race_OBJS) \
-      $(rempi_test_neighbor-collective_OBJS) 
+      $(rempi_test_msg_race_OBJS) 
 
-DEPS= $(rempi_test_master_worker_DEPS) \
-      $(rempi_test_isendrecv_DEPS) \
-      $(rempi_test_neighbor_DEPS) \
-      $(rempi_test_neighbor-send_DEPS) \
-      $(rempi_test_neighbor-tree_DEPS) \
-      $(rempi_test_hypre_parasails_DEPS) \
-      $(rempi_test_units_DEPS) \
-      $(rempi_test_msg_race_DEPS) \
-      $(rempi_test_neighbor-collective_DEPS) 
-
+DEPS= $(OBJS:%.o=%.d) 
 
 #$@: target name
 #$<: first dependent file
@@ -117,7 +98,7 @@ $(rempi_test_neighbor-send_PROGRAM): $(rempi_test_neighbor-send_OBJS)
 $(rempi_test_neighbor-collective_PROGRAM): $(rempi_test_neighbor-collective_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
-$(rempi_test_neighbor-tree_PROGRAM): $(rempi_test_neighbor-tree_OBJS)
+$(rempi_test_mini_mcb_PROGRAM): $(rempi_test_mini_mcb_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 $(rempi_test_units_PROGRAM): $(rempi_test_units_OBJS)

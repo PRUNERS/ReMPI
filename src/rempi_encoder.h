@@ -42,9 +42,9 @@ class rempi_encoder_input_format_test_table
   /*Used for CDC*/
   int count;// = 0;
 
-  unordered_map<size_t, size_t>      epoch_umap;
-  vector<size_t>                  epoch_rank_vec;  /*ranks creating this epoch line in this test_table*/
-  vector<size_t>                  epoch_clock_vec; /*each value of epoch line of ranks in  epoch_rank_vec*/
+  unordered_map<size_t, size_t>      epoch_umap;   /*To keep track of current frontier line on replay*/
+  vector<size_t>                  epoch_rank_vec;  /*ranks creating this epoch line in this test_table from record file*/
+  vector<size_t>                  epoch_clock_vec; /*each value of epoch line of ranks in  epoch_rank_vec from record file*/
   size_t                       epoch_size; /*each size of epoch_{rank|clock}_vec. so epoch_size x 2 is total size of epoch*/
 
 
@@ -123,7 +123,6 @@ class rempi_encoder_input_format
   size_t decompressed_size;
 
 
-
   rempi_encoder_input_format()
     : total_length(0)
     , mc_length(-1)
@@ -149,11 +148,11 @@ class rempi_encoder_input_format
 
 class rempi_encoder
 {  
+ protected:
   struct local_minimal_id {
     int rank;
     size_t clock;
   };
- protected:
     size_t total_write_size;
     int mode;
     string record_path;
@@ -245,6 +244,7 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
   //  bool compare(rempi_event *event1, rempi_event *event2);
 
  public:
+
   virtual void add(rempi_event *event);
   virtual void format();
   virtual void debug_print();
@@ -319,7 +319,7 @@ class rempi_encoder_cdc : public rempi_encoder
 {  
   struct frontier_detection_clocks{ /*fd = frontier detection*/
     size_t next_clock;    /*TODO: Remove    next_clock, which is not used any more */
-    size_t trigger_clock; /*TODO: Remove trigger_clock, which is not used any more */
+    //    size_t trigger_clock; /*TODO: Remove trigger_clock, which is not used any more */
   };
 
  private:
@@ -353,6 +353,7 @@ class rempi_encoder_cdc : public rempi_encoder
 
 
   rempi_encoder_cdc(int mode);
+  ~rempi_encoder_cdc();
   /*For common*/
   virtual rempi_encoder_input_format* create_encoder_input_format();
   void write_record_file(rempi_encoder_input_format &input_format);
