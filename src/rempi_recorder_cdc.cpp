@@ -650,6 +650,7 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
       REMPI_DBG("pending message: %d", irecv_inputs->recv_test_id);
     }
     
+
     /* =================================================
        2. Check if this request have matched.
        ================================================= */
