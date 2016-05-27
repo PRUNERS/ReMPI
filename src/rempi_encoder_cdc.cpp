@@ -382,16 +382,20 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
 //     REMPI_DBGI(REMPI_DBG_REPLAY, "Before recved: rank: %d clock:%lu, my next clock: %lu", mc_recv_ranks[i], mc_next_clocks[i], fd_clocks->next_clock);
 //   }
 // #endif
+
+
   /*Only after MPI_Win_flush_local_all, the retrived values by PMPI_Get become visible*/
   /* We call PMPI_Win_flush_local_all first to sync with the previous PMPI_Get,
        then post the next PMPI_Get(), which is synced by the next fetch_and_update_local_min_id() call.
      In this way, we mimic asynchronously fetch and update. */
-  //  PMPI_Win_flush_local_all(mpi_fd_clock_win);
-  /* --------------------- */
-
   //  double s = rempi_get_time();
   PMPI_Win_flush_local_all(mpi_fd_clock_win);
   //  double e = rempi_get_time();  if (e - s > 0.001) REMPI_DBGI(0, "flush time: %f", e - s);
+  /* --------------------- */
+
+
+  PMPI_Win_flush_local_all(mpi_fd_clock_win);
+
   for (i = 0; i < mc_length; ++i) {
     PMPI_Get(&mc_next_clocks[i], sizeof(size_t), MPI_BYTE, mc_recv_ranks[i], 0, sizeof(size_t), MPI_BYTE, mpi_fd_clock_win);
   }
@@ -399,9 +403,9 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
 
 
 #ifdef REMPI_DBG_REPLAY
-  //  for (int i = 0; i < mc_length; ++i) {
-  //    REMPI_DBGI(REMPI_DBG_REPLAY, "After recved: rank: %d clock:%lu", mc_recv_ranks[i], mc_next_clocks[i]);
-  //  }
+  for (int i = 0; i < mc_length; ++i) {
+    REMPI_DBGI(REMPI_DBG_REPLAY, "After recved: rank: %d clock:%lu", mc_recv_ranks[i], mc_next_clocks[i]);
+  }
 #endif
 
 
@@ -731,7 +735,7 @@ void rempi_encoder_cdc::encode(rempi_encoder_input_format &input_format)
     /*=======================================*/
     /*=== Compress matched_events ===*/
     compress_matched_events(input_format, test_table);
-    REMPI_DBG("# of permutated messages: %d, # of messages: %lu (%d)", test_table->compressed_matched_events_size/sizeof(int)/2, test_table->count, test_tables_map_it->first);
+    //    REMPI_DBG("# of permutated messages: %d, # of messages: %lu (%d)", test_table->compressed_matched_events_size/sizeof(int)/2, test_table->count, test_tables_map_it->first);
     /*=======================================*/
   }
   return;
@@ -1972,10 +1976,7 @@ void rempi_encoder_cdc::insert_encoder_input_format_chunk(rempi_event_list<rempi
 
     } else {
       sleep_counter--;
-      REMPI_DBG("sleep null: %d", sleep_counter);
       if (sleep_counter <= 0) {
-	REMPI_DBG("sleep");
-	usleep(1);
 	sleep_counter = input_format.test_tables_map.size();
       }      
     }

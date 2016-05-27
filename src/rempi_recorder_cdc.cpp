@@ -250,6 +250,15 @@ int rempi_recorder_cdc::replay_isend(MPI_Request *request)
   *request = (MPI_Request)send_request_id;
 #endif
 
+  {
+    size_t sent_clock;
+    PNMPIMOD_get_local_clock(&sent_clock);
+    sent_clock--;
+    if (sent_clock < ((rempi_encoder_cdc*)mc_encoder)->fd_clocks->next_clock) {
+      REMPI_ERR("Exposting next clock (%lu) is bigger than accturally sent clock (%lu)", ((rempi_encoder_cdc*)mc_encoder)->fd_clocks->next_clock, sent_clock);
+    }
+  }
+
   send_request_id++;
 
   return ret;
@@ -625,6 +634,18 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
     /* ================================================= */
     
     if (irecv_inputs->matched_pending_request_proxy_list.size() > 0) {
+      /* When decoding thread computes my exporsing next_clock,
+          1. Retrive sender next clocks (= A) MPI_Get 
+	  2. Then, estimate the minimum clock to send
+	  3. Update exposing next_clock (= C)
+        sender next clocks are minimul clocks (= A) that will be sent
+	If messages exist in matched_pending_request_proxy_list, 
+	a clock of the message (= B) is smaller than A, i.e, B < A.
+	If we computes my exposing next_clock based on A when matched_pending_request_proxy_list.size() > 0,
+	the computed exposing next_clock, C will be bigger than correct value of C.
+	So we set has_pending_msg = true here, to avoid sender next clocks (= A) are updated, 
+	and to keep A less than B.	
+      */
       //      has_pending_msg = true;
       //      REMPI_DBG("pending message: %d", irecv_inputs->recv_test_id);
     }
@@ -936,15 +957,15 @@ int rempi_recorder_cdc::replay_testsome(
       /* ===== NOTE ================================================================================================
 	 If num_of_recv_msg_in_next_event > 0 (Condition A), this means CDC now trying to replay recv event next. 
 	 So if replaying_events_list->dequeue_replay does not return enough replay events (Condition B), this means 
-	 this main thread deuque "recv" events next
+	 this main thread will dequeue "recv" events next
 	 -- Main thread --
 	 Get  : num_of_recv_msg_in_next_event & interim_min_clock_in_next_event
-	 Test : Any in Replay_queue ?
-	 if (Test is false) Update : fd_next_clock
+	 Test_A : Any in Replay_queue ?
+	 if (Test_A is false) Update : fd_next_clock
 	 -----------------
 	 -- CDC thread --
-	 Test : Is replaying matched events ?
-	 if (Test is true) Update: num_of_recv_msg_in_next_event & interim_min_clock_in_next_event
+	 Test_B : Is replaying matched events ?
+	 if (Test_B is true) Update: num_of_recv_msg_in_next_event & interim_min_clock_in_next_event
 	 if (Replaying events) : num_of_recv_msg_in_next_event = 0
 	 Update: Replay_queue
 	 -------------------
@@ -1000,7 +1021,7 @@ int rempi_recorder_cdc::replay_testsome(
     if (replaying_event_vec.front()->get_flag() == 0) { /*if unmatched event*/
       rempi_event *e = replaying_event_vec.front();
       *outcount = 0;
-      // REMPI_DBGI(0, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): recv_test_id: %d",
+      // REMPI_DBG("= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): recv_test_id: %d",
       // 		 e ->get_event_counts(), e ->get_is_testsome(), e ->get_flag(),
       // 		 e ->get_source(), e ->get_clock(), recv_test_id);
 #ifdef REMPI_DBG_REPLAY      
@@ -1028,7 +1049,7 @@ int rempi_recorder_cdc::replay_testsome(
 
 #if REMPI_DBG_REPLAY
 	REMPI_DBGI(REMPI_DBG_REPLAY, "irecv_inputs.source: %d === replaying_events[j].source: %d (MPI_ANY_SOURCE: %d)", 
-		   irecv_inputs->soussrce, replaying_event_vec[j]->get_source(), MPI_ANY_SOURCE);
+		   irecv_inputs->source, replaying_event_vec[j]->get_source(), MPI_ANY_SOURCE);
 #endif
 	/*TODO: if array_of_requests has requests from the same rank, is_source does not work. And it introduces inconsistent replay
 	  Use MPI_Request pointer (is_request) instead of is_source. In MCB, this is OK.*/
@@ -1091,7 +1112,7 @@ int rempi_recorder_cdc::replay_testsome(
   }
 
     for (int j = 0; j < replaying_event_vec.size(); j++) {
-      // REMPI_DBGI(0, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): recv_test_id: %d ",
+      // REMPI_DBG( "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): recv_test_id: %d ",
       // 		 replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
       // 		 replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), recv_test_id);
 #ifdef REMPI_DBG_REPLAY

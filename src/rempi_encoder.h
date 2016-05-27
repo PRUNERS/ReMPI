@@ -329,7 +329,7 @@ class rempi_encoder_cdc : public rempi_encoder
   PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
   PNMPIMOD_get_local_clock_t clmpi_get_local_sent_clock;
 
-  struct frontier_detection_clocks *fd_clocks;// = NULL;
+
 
   /* ============================== */
 
@@ -351,6 +351,7 @@ class rempi_encoder_cdc : public rempi_encoder
 
  public:
 
+  struct frontier_detection_clocks *fd_clocks;// = NULL;
 
   rempi_encoder_cdc(int mode);
   ~rempi_encoder_cdc();
