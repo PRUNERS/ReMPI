@@ -1979,6 +1979,7 @@ void rempi_encoder_cdc::insert_encoder_input_format_chunk(rempi_event_list<rempi
       if (sleep_counter <= 0) {
 	usleep(1);
 	sleep_counter = input_format.test_tables_map.size();
+
       }      
     }
 

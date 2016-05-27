@@ -69,7 +69,7 @@ void init_rempi() {
 #ifdef REMPI_LITE
     REMPI_ERR("No such rempi_encode: %d", rempi_encode);
 #else
-    rempi_record_replay = new rempi_re_cdc(); //TODO: Integrate into rempi_re()
+    rempi_record_replay = new rempi_re_cdc();
 #endif  
   }
 

@@ -647,7 +647,7 @@ bool rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 	and to keep A less than B.	
       */
       has_pending_msg = true;
-      //      REMPI_DBG("pending message: %d", irecv_inputs->recv_test_id);
+      REMPI_DBG("pending message: %d", irecv_inputs->recv_test_id);
     }
     
     /* =================================================
