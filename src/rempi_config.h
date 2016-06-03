@@ -34,7 +34,7 @@ extern int rempi_max_event_length;
 
 
 
-//#define REMPI_DBG_REPLAY (0)
+#define REMPI_DBG_REPLAY (0)
 //#define REMPI_DBG_ASSERT (-1)
 
 

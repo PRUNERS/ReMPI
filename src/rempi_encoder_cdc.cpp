@@ -393,9 +393,6 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
   //  double e = rempi_get_time();  if (e - s > 0.001) REMPI_DBGI(0, "flush time: %f", e - s);
   /* --------------------- */
 
-
-  PMPI_Win_flush_local_all(mpi_fd_clock_win);
-
   for (i = 0; i < mc_length; ++i) {
     PMPI_Get(&mc_next_clocks[i], sizeof(size_t), MPI_BYTE, mc_recv_ranks[i], 0, sizeof(size_t), MPI_BYTE, mpi_fd_clock_win);
   }
@@ -409,7 +406,8 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
 #endif
 
 
-  /*mc_next_clocks can change later, so copy to tmp_mc_next_clocks */
+  /* mc_next_clocks can change later, so copy to tmp_mc_next_clocks */
+  /* TODO: memcpy to for a[i] = b[i] ? */
   memcpy(tmp_mc_next_clocks, mc_next_clocks, sizeof(size_t) * mc_length);
 
   *min_recv_rank  = mc_recv_ranks[0];
@@ -453,7 +451,6 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
     int    tmp_rank  =  test_table->epoch_rank_vec[i];
     size_t tmp_clock =  this->solid_mc_next_clocks_umap[tmp_rank];
 
-
     /* =========== added for set_fd_clock_state ============ */
     if (tmp_clock == PNMPI_MODULE_CLMPI_COLLECTIVE) { 
     /*If this rank is in MPI_Collective, I skip this*/
@@ -480,12 +477,49 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
 }
 
 /*TODO: change func name to update_solid_mc*/
-int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_clock)
+int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_clock, unordered_set<int> *update_source_set)
 {
-  for (int i = 0; i < mc_length; i++) {
-    solid_mc_next_clocks_umap[mc_recv_ranks[i]] = tmp_mc_next_clocks[i];
+#ifdef REMPI_DBG_REPLAY
+  int is_updated = 0;
+#endif
+
+  if (update_source_set == NULL) {
+    /* update all mc_next_clock */
+    for (int i = 0; i < mc_length; i++) {
+#ifdef REMPI_DBG_REPLAY
+      if (solid_mc_next_clocks_umap[mc_recv_ranks[i]] != tmp_mc_next_clocks[i]) {
+	is_updated = 1;
+      }
+#endif
+      solid_mc_next_clocks_umap[mc_recv_ranks[i]] = tmp_mc_next_clocks[i];
+    }
+  } else {
+    /* update only specified rank's mc_next_clocks*/
+    for (int i = 0; i < mc_length; i++) {
+      if (update_source_set->find(mc_recv_ranks[i]) == update_source_set->end()) {
+#ifdef REMPI_DBG_REPLAY
+	if (solid_mc_next_clocks_umap[mc_recv_ranks[i]] != tmp_mc_next_clocks[i]) {
+	  is_updated = 1;
+	}
+#endif
+	solid_mc_next_clocks_umap[mc_recv_ranks[i]] = tmp_mc_next_clocks[i];
+      }
+    }
   }
+
+#ifdef REMPI_DBG_REPLAY
+  if (is_updated) {
+    REMPI_DBGI(REMPI_DBG_REPLAY, "FD_CLOCK update");
+    for (int i = 0; i < mc_length; i++) {
+      REMPI_DBGI(REMPI_DBG_REPLAY, "       FD_CLOCK (rank: %d, clock:%lu)", 
+		 mc_recv_ranks[i],
+		 solid_mc_next_clocks_umap[mc_recv_ranks[i]]
+		 );
+    }
+  }
+#endif
   //  memcpy(solid_mc_next_clocks, tmp_mc_next_clocks, sizeof(size_t) * mc_length);  
+  
 
   int    last_local_min_id_rank  = global_local_min_id.rank;
   size_t last_local_min_id_clock = global_local_min_id.clock;
@@ -1158,7 +1192,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     REMPI_ERR("The number of test_id exceeded the limit");
   }
   
-  //  input_format.debug_print();
+  input_format.debug_print();
   //  exit(0);
   return;
 }
@@ -1367,12 +1401,13 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
       test_table->pending_event_count_umap[event->get_source()]++; /*TODO: this umap is not used*/
       test_table->current_epoch_line_umap[event->get_source()] = event->get_clock();
 #ifdef REMPI_DBG_REPLAY
-      REMPI_DBGI(REMPI_DBG_REPLAY, "RCQ -> PQ ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): list size: %d",
+      REMPI_DBGI(REMPI_DBG_REPLAY, "RCQ -> OEL ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): list size: %d (test_id: %d)",
 		 event_vec[i]->get_event_counts(), event_vec[i]->get_is_testsome(), event_vec[i]->get_flag(),
 		 event_vec[i]->get_source(),  event_vec[i]->get_clock(), 
-		 test_table->ordered_event_list.size());
+		 test_table->ordered_event_list.size(), test_id);
       is_ordered_event_list_updated = true;
 #endif
+
     }
     event_vec.clear();
   }
@@ -1448,10 +1483,11 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 	rempi_event *event = test_table->ordered_event_list.front();
 	if (test_table->solid_ordered_event_list.size() > 0) {
 	  if (!compare(test_table->solid_ordered_event_list.back(), event)) {
-	    REMPI_ERR("Enqueuing an event (rank: %d, clock:%lu) which is smaller than (rank: %d, clock: %lu)",
+	    REMPI_ERR("Enqueuing an event (rank: %d, clock:%lu) which is smaller than (rank: %d, clock: %lu) (test_id: %d)",
 		      event->get_source(), event->get_clock(),
 		      test_table->solid_ordered_event_list.back()->get_source(),
-		      test_table->solid_ordered_event_list.back()->get_clock());
+		      test_table->solid_ordered_event_list.back()->get_clock(),
+		      test_id);
 	  }
 	}
 	test_table->      ordered_event_list.pop_front();
@@ -1671,7 +1707,10 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
       size_t local_clock_dbg;
       clmpi_get_local_sent_clock(&local_clock_dbg);
       REMPI_DBGI(REMPI_DBG_REPLAY, "INTRM update: local_clock: %lu", local_clock_dbg);
-      for (rempi_event *replaying_event: replay_event_vec) {
+      for(vector<rempi_event*>::iterator it = replay_event_vec.begin(), it_end = replay_event_vec.end();
+	  it != it_end; it++) {
+	rempi_event *replaying_event = *it;
+	//      for (rempi_event *replaying_event: replay_event_vec) {
 	if (replaying_event == NULL) {
 	  if (cit == cit_end) {
 	    replaying_clock = local_min_id_clock;
@@ -1841,10 +1880,19 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 #ifdef REMPI_DBG_REPLAY
   REMPI_DBGI(REMPI_DBG_REPLAY, "LIST Queue Update: Local_min (rank: %d, clock: %lu): test_id: %d",
 	     local_min_id_rank, local_min_id_clock, test_id);
-  for (rempi_event *e: test_table->ordered_event_list) {
+  for (list<rempi_event*>::iterator it = test_table->ordered_event_list.begin(), 
+	 it_end = test_table->ordered_event_list.end();
+       it != it_end; it++) {
+    //  for (rempi_event *e: test_table->ordered_event_list) {
+    rempi_event *e = *it;
     REMPI_DBGI(REMPI_DBG_REPLAY, "       list (rank: %d, clock: %lu)", e->get_source(), e->get_clock());
   }
-  for (rempi_event *e: test_table->solid_ordered_event_list) {
+  for (list<rempi_event*>::iterator it = test_table->solid_ordered_event_list.begin(), 
+	 it_end = test_table->solid_ordered_event_list.end();
+       it != it_end; it++) {
+    //  for (rempi_event *e: test_table->solid_ordered_event_list) {
+    rempi_event *e = *it;
+
     REMPI_DBGI(REMPI_DBG_REPLAY, "      slist (rank: %d, clock: %lu, order: %lu)", e->get_source(), e->get_clock(), e->clock_order);
   }
 #endif   
@@ -1893,7 +1941,9 @@ void rempi_encoder_cdc::update_fd_next_clock(
     //    next_clock += 1; //next_clock += num_of_recv_msg_in_next_event; => this is wrong, must be +1
   } else {
     //    next_clock = sent_clock + 1;
-    if (is_after_reve_event) {
+    if (is_after_reve_event) { 
+      /* is_after_recv_event is always 0. 
+	 So this routine will not be executed  */
       clmpi_get_local_clock(&local_clock);
     } else {
       clmpi_get_local_sent_clock(&local_clock);
@@ -1905,9 +1955,9 @@ void rempi_encoder_cdc::update_fd_next_clock(
 
 #ifdef REMPI_DBG_REPLAY  
   if (fd_clocks->next_clock < next_clock) {
-    // REMPI_DBGI(REMPI_DBG_REPLAY, "NEXT Clock Update(%lu): from %d to %d:  (local_min (rank: %d, clock: %lu), local: %d num: %d): is_waiting_recv: %d, is_after_recv_event: %d", MPI_Wtime(),
-    // 	       fd_clocks->next_clock, next_clock, global_local_min_id.rank, global_local_min_id.clock, 
-    // 	       clock, num_of_recv_msg_in_next_event, is_waiting_recv, is_after_reve_event);
+    REMPI_DBGI(REMPI_DBG_REPLAY, "NEXT Clock Update: from %lu to %lu:  (min.rank: %d, min.clock: %lu): is_waiting_recv: %d, is_after_recv_event: %d, recv_test_id: %d", 
+	       fd_clocks->next_clock, next_clock, global_local_min_id.rank, global_local_min_id.clock, 
+    	       is_waiting_recv, is_after_reve_event, recv_test_id);
   }
 #endif
 

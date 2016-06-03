@@ -518,7 +518,7 @@ void rempi_encoder::fetch_local_min_id(int *min_recv_rank, size_t *min_next_cloc
   return;
 }
 
-int rempi_encoder::update_local_min_id(int min_recv_rank, size_t min_next_clock)
+int rempi_encoder::update_local_min_id(int min_recv_rank, size_t min_next_clock, unordered_set<int> *update_sources_set)
 {    
   //  REMPI_ERR("please remove this REMPI_ERR later");
   return 0;

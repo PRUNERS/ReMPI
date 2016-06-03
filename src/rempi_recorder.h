@@ -279,6 +279,8 @@ class rempi_recorder_cdc : public rempi_recorder
 
   size_t send_request_id;
   unordered_map<MPI_Request, MPI_Request> isend_request_umap;
+  /* To detect  which next_clock(or from which rank) should be updated at update_local_min_id */
+  unordered_set<int> pending_message_source_set; 
 
   PNMPIMOD_get_local_sent_clock_t clmpi_get_local_sent_clock;
 
@@ -297,7 +299,8 @@ class rempi_recorder_cdc : public rempi_recorder
 			      int incount,
 			      MPI_Request array_of_requests[],
 			      int global_local_min_id_rank,
-			      size_t global_local_min_id_clock);
+			      size_t global_local_min_id_clock,
+			      unordered_set<int> &pending_message_sources);
 
 
 
