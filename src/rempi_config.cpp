@@ -80,9 +80,9 @@ void rempi_set_configuration(int *argc, char ***argv)
     rempi_max_event_length = env_int;
   }
 
-  if (rempi_mode == 1 && rempi_is_test_id == 1) {
-    REMPI_DBG("REMPI_MODE=1 & REMPI_IS_TEST_IS=1 is not supported yet");
-  }
+  // if (rempi_mode == 1 && rempi_is_test_id == 1) {
+  //   REMPI_DBG("REMPI_MODE=1 & REMPI_IS_TEST_IS=1 is not supported yet");
+  // }
 
 
   return;

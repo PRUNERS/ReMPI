@@ -174,7 +174,8 @@ class rempi_encoder
     /* temporal array until in-flight message checking*/
     size_t *tmp_mc_next_clocks;  
     /* If no in-flight message, copyed from tmp_mc_next_clocks to solid_ordered_event_list*/
-    unordered_map<int, size_t> solid_mc_next_clocks_umap; 
+    vector<unordered_map<int, size_t>*> solid_mc_next_clocks_umap_vec; 
+    //    unordered_map<int, size_t> solid_mc_next_clocks_umap; 
     /* ======================*/
 
     vector<size_t> write_size_vec;
@@ -221,7 +222,7 @@ class rempi_encoder
     /*TODO: Due to multi-threaded issues in MPI/PNMPI, we define this function.
       But we would like to remove this function in future*/
     virtual void fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock);
-    virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock, unordered_set<int> *update_sources_set);
+    virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock, unordered_set<int> *update_sources_set, int no_pending_recv_message, int recv_test_id);
     virtual void update_fd_next_clock(
 				      int is_waiting_recv,
 				      int num_of_recv_msg_in_next_event,
@@ -229,7 +230,10 @@ class rempi_encoder
 				      size_t enqueued_count,
 				      int recv_test_id,
 				      int is_after_recv_event);
-    virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock);
+    virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
+				      int *local_min_id_rank, 
+				      size_t *local_min_id_clock,
+				      int recv_test_id);
     virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/
 
     
@@ -301,7 +305,7 @@ class rempi_encoder_basic : public rempi_encoder
     /*TODO: Due to multi-threaded issues in MPI/PNMPI, we define this function.
       But we would like to remove this function in future*/
     virtual void fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock);
-    virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock, unordered_set<int> *update_sources_set);
+    virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock, unordered_set<int> *update_sources_set, int no_pending_recv_message, int recv_test_id);
     virtual void update_fd_next_clock(
 				      int is_waiting_recv,
 				      int num_of_recv_msg_in_next_event,
@@ -309,7 +313,10 @@ class rempi_encoder_basic : public rempi_encoder
 				      size_t enqueued_count,
 				      int recv_test_id,
 				      int is_after_recv_event);
-    virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock);
+    virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
+				      int *local_min_id_rank, 
+				      size_t *local_min_id_clock,
+				      int recv_test_id);
     virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/
 
 };
@@ -368,7 +375,7 @@ class rempi_encoder_cdc : public rempi_encoder
   virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
   virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
-  virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock, unordered_set<int> *update_sources_set);
+  virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock, unordered_set<int> *update_sources_set, int no_pending_recv_message, int recv_test_id);
   virtual void update_fd_next_clock(
 				    int is_waiting_recv,
 				    int num_of_recv_msg_in_next_event,
@@ -376,7 +383,10 @@ class rempi_encoder_cdc : public rempi_encoder
 				    size_t enqueued_count,
 				    int recv_test_id, 
 				    int is_after_recv_event);
-  virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock);
+  virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
+				    int *local_min_id_rank, 
+				    size_t *local_min_id_clock,
+				    int recv_test_id);
   virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/
 
   //  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
@@ -436,7 +446,7 @@ class rempi_encoder_rep : public rempi_encoder
   virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
   virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
-  virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock, unordered_set<int> *update_sources_set);
+  virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock, unordered_set<int> *update_sources_set, int no_pending_recv_message, int recv_test_id);
   virtual void update_fd_next_clock(
 				    int is_waiting_recv,
 				    int num_of_recv_msg_in_next_event,
@@ -444,7 +454,10 @@ class rempi_encoder_rep : public rempi_encoder
 				    size_t enqueued_count,
 				    int recv_test_id, 
 				    int is_after_recv_event);
-  virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock);
+  virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
+				    int *local_min_id_rank, 
+				    size_t *local_min_id_clock,
+				    int recv_test_id);
   virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/
 
   //  virtual vector<rempi_event*> decode(char *serialized, size_t *size);

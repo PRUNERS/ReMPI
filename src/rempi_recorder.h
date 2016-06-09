@@ -295,7 +295,7 @@ class rempi_recorder_cdc : public rempi_recorder
 
   bool progress_send_requests();
   
-  bool progress_recv_requests(int global_test_id,
+  int progress_recv_requests(int global_test_id,
 			      int incount,
 			      MPI_Request array_of_requests[],
 			      int global_local_min_id_rank,

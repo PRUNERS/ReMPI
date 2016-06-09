@@ -243,7 +243,10 @@ size_t rempi_compression_util<T>::compress_by_zlib_vec(vector<char*> &input_vec,
       out =  (unsigned char*)malloc(ZLIB_CHUNK);
       strm.next_out = out;
       ret = deflate(&strm, flush);    /* no bad return value */
-      assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
+      if (ret == Z_STREAM_ERROR) {
+	REMPI_ERR("Z_STREAM_ERROR: next_in: %p, avail_in: %lu, next_out: %p (out: %p), avail_out: %lu, flush: %d",
+		  strm.next_in, strm.avail_in, strm.next_out, out, strm.avail_out, flush)
+      }
       have = ZLIB_CHUNK - strm.avail_out;
       if (have > 0) {
 	output_vec.push_back((char*)out);

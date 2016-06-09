@@ -21,14 +21,38 @@
 using namespace std;
 
 
-int rempi_re_cdc::re_testany(int count, MPI_Request array_of_requests[], int *index, int *flag, MPI_Status *status){return 0;}
-int rempi_re_cdc::re_testall(int count, MPI_Request array_of_requests[], int *flag, MPI_Status array_of_statuses[]){return 0;}
-int rempi_re_cdc::re_wait(MPI_Request *request, MPI_Status *status){return 0;}
-int rempi_re_cdc::re_waitany(int count, MPI_Request array_of_requests[], int *index, MPI_Status *status){return 0;}
-int rempi_re_cdc::re_waitsome(int incount, MPI_Request array_of_requests[], int *outcount, int array_of_indices[], MPI_Status array_of_statuses[]){return 0;}
-int rempi_re_cdc::re_probe(int source, int tag, MPI_Comm comm, MPI_Status *status){return 0;}
-int rempi_re_cdc::re_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status){return 0;}
+int rempi_re_cdc::re_testany(int count, MPI_Request array_of_requests[], int *index, int *flag, MPI_Status *status){
+  REMPI_ERR("%s is not supported yet", __func__);
+  return 0;
+}
+int rempi_re_cdc::re_testall(int count, MPI_Request array_of_requests[], int *flag, MPI_Status array_of_statuses[]){
+  REMPI_ERR("%s is not supported yet", __func__);
+  return 0;
+}
+int rempi_re_cdc::re_wait(MPI_Request *request, MPI_Status *status){
+  REMPI_ERR("%s is not supported yet", __func__);
+  return 0;
+}
 
+int rempi_re_cdc::re_waitany(int count, MPI_Request array_of_requests[], int *index, MPI_Status *status){
+  REMPI_ERR("%s is not supported yet", __func__);
+  return 0;
+}
+
+int rempi_re_cdc::re_waitsome(int incount, MPI_Request array_of_requests[], int *outcount, int array_of_indices[], MPI_Status array_of_statuses[]){
+  REMPI_ERR("%s is not supported yet", __func__);
+  return 0;
+}
+
+int rempi_re_cdc::re_probe(int source, int tag, MPI_Comm comm, MPI_Status *status){
+  REMPI_ERR("%s is not supported yet", __func__);
+  return 0;
+}
+
+int rempi_re_cdc::re_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status){
+  REMPI_ERR("%s is not supported yet", __func__);
+  return 0;
+}
 
 
 int rempi_re_cdc::init_clmpi()
@@ -207,6 +231,12 @@ int rempi_re_cdc::re_test(
 	request_to_recv_id_umap.erase(*request);
       }
 #endif
+
+      // if (flag){
+      // 	REMPI_DBGI(0, "  Test: (count: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d (time: %f)",
+      // 		   1, 0, *flag, status->MPI_SOURCE, status->MPI_TAG, clock, test_id,
+      // 		   PMPI_Wtime());
+      // }
 
 
  // #ifdef REMPI_DBG_REPLAY

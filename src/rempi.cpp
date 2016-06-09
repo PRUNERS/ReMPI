@@ -511,7 +511,7 @@ _EXTERN_C_ int MPI_Allreduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_
     //fprintf(stderr, "======= %s =======\n", __func__);
     //    _wrap_py_return_val = PMPI_Allreduce(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
     _wrap_py_return_val = rempi_record_replay->re_allreduce(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
-    REMPI_DBGI(0, "MPI_Allreduce");
+    REMPI_DBGI(0, "%s", __func__);
     //    fprintf(stderr, "======= %s end =======\n", __func__);
   }    
   REMPI_POSTPRINT;

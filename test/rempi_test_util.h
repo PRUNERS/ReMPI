@@ -16,7 +16,6 @@
 
 
 
-
 double get_time(void);
 int init_rand(int seed);
 int init_ndrand();
