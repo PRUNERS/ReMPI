@@ -483,8 +483,9 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
 /*
   If update_source_set is NULL OR has_pending_recv_message = 0, update mc_next_clocks of all ranks
  */
-int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_clock, unordered_set<int> *pending_message_source_set, 
-					   int has_pending_recv_message, int recv_test_id)
+int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_clock, int has_probed_message, 
+					   unordered_set<int> *pending_message_source_set, 
+					   unordered_map<int, size_t> *recv_message_source_umap, int recv_test_id)
 {
   unordered_map<int, size_t> *solid_mc_next_clocks_umap;
 #ifdef REMPI_DBG_REPLAY
@@ -1353,7 +1354,7 @@ void rempi_encoder_cdc::cdc_prepare_decode_indices(
 }
 
 
-static int first = 0;
+  static int first = 1, first2=1;
 
 bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &recording_events, vector<rempi_event*> &event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> &replay_event_list, int test_id)
 {
@@ -1404,6 +1405,7 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 
   /* ===== replaying events is matched event from here =======*/
   this->compute_local_min_id(test_table, &local_min_id_rank, &local_min_id_clock, test_id);
+  //  REMPI_DBGI(0, "<%d, %lu> size: %lu", local_min_id_rank, local_min_id_clock, test_table->ordered_event_list.size());
   
  /* ====== Note: condition for relay =========================*/
   /*
@@ -1450,6 +1452,15 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
       /*2. update pending_msg_count_umap, epoch_line_umap */
       test_table->pending_event_count_umap[event->get_source()]++; /*TODO: this umap is not used*/
       test_table->current_epoch_line_umap[event->get_source()] = event->get_clock();
+
+      if (first2) {
+	REMPI_DBGI(0, "RCQ -> OEL ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): list size: %d (test_id: %d)",
+		   event_vec[i]->get_event_counts(), event_vec[i]->get_is_testsome(), event_vec[i]->get_flag(),
+		   event_vec[i]->get_source(),  event_vec[i]->get_clock(), 
+		   test_table->ordered_event_list.size(), test_id);
+	first2=0;
+      }
+
 #ifdef REMPI_DBG_REPLAY
       REMPI_DBGI(REMPI_DBG_REPLAY, "RCQ -> OEL ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): list size: %d (test_id: %d)",
 		 event_vec[i]->get_event_counts(), event_vec[i]->get_is_testsome(), event_vec[i]->get_flag(),
@@ -1542,11 +1553,11 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> &reco
 	}
 	test_table->      ordered_event_list.pop_front();
 	test_table->solid_ordered_event_list.push_back(event);
-	if (first == 0) {
+	if (first) {
 	  REMPI_DBGI(0, "Put msg: source: %d, clock: %d (time: %f) %d %lu", 
 		     event->get_source(), event->get_clock(), PMPI_Wtime(),
 		     local_min_id_rank, local_min_id_clock);
-	  first = 1;
+	  first = 0;
 	}
 	event->clock_order = next_clock_order++;
       }

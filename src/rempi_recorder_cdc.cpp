@@ -509,7 +509,8 @@ int rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 					       MPI_Request array_of_requests[], 
 					       int global_local_min_id_rank, 
 					       size_t global_local_min_id_clock,
-					       unordered_set<int> &pending_message_sources_set)
+					       unordered_set<int> *pending_message_sources_set,
+					       unordered_map<int, size_t> *recv_message_source_umap)
 {
   int flag;
   rempi_proxy_request *proxy_request;
@@ -618,7 +619,7 @@ int rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 	 So we set has_pending_msg = true here, to avoid sender next clocks (= A) are updated, 
 	 and to keep A less than B.	
       */
-      pending_message_sources_set.insert(irecv_inputs->source);
+      pending_message_sources_set->insert(irecv_inputs->source);
     }
     
     
@@ -644,6 +645,7 @@ int rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
     if(!flag) continue;
     /*If flag == 1*/
     has_recv_msg = 1;
+    recv_message_source_umap->insert(make_pair(status.MPI_SOURCE, clock));
 
 
     // REMPI_DBGI(0, "A->     : (source: %d, tag: %d,  clock: %d): current recv_test_id: %d, size: %d (time: %f)",
@@ -880,10 +882,12 @@ int rempi_recorder_cdc::replay_testsome(
     /*progress for recv*/
 
     this->pending_message_source_set.clear();    
+    this->recv_message_source_umap.clear();    
     has_recv_msg = progress_recv_requests(recv_test_id, incount, array_of_requests, 
-					     mc_encoder->global_local_min_id.rank, 
-					     mc_encoder->global_local_min_id.clock,
-					     this->pending_message_source_set);
+					  mc_encoder->global_local_min_id.rank, 
+					  mc_encoder->global_local_min_id.clock,
+					  &(this->pending_message_source_set),
+					  &(this->recv_message_source_umap));
 
     
     // #ifdef REMPI_DBG_REPLAY
@@ -904,8 +908,8 @@ int rempi_recorder_cdc::replay_testsome(
     if (!has_recv_msg) {
       int is_updated = 0;
       //REMPI_DBGI(REMPI_DBG_REPLAY, " ==== update start");
-      is_updated = mc_encoder->update_local_min_id(min_recv_rank, min_next_clock, &(this->pending_message_source_set), 
-						   -1, recv_test_id);
+      is_updated = mc_encoder->update_local_min_id(min_recv_rank, min_next_clock, iprobe_flag_int, &(this->pending_message_source_set), 
+						   &(this->recv_message_source_umap), recv_test_id);
       if (is_updated) {
 	counta_update++;
       }
@@ -1161,7 +1165,7 @@ void rempi_recorder_cdc::fetch_and_update_local_min_id()
   mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
   counta++;
   dura += MPI_Wtime() - stra;
-  is_updated = mc_encoder->update_local_min_id(min_recv_rank, min_next_clock, NULL, 0, -1);  
+  is_updated = mc_encoder->update_local_min_id(min_recv_rank, min_next_clock, -1, NULL, NULL, -1);  
   if (is_updated) {
     counta_update++;
   }

@@ -54,17 +54,13 @@ int main(int argc, char *argv[])
 	  MPI_Irecv(&res, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &request);
 	  flag = 0;
 	}
+	if (sum == 0) {
+	  rempi_test_dbg_print("First MPI_Test Call: %f", MPI_Wtime());
+	}
 	MPI_Test(&request, &flag, &status);
 	if (sum == 0) {
 	  rempi_test_dbg_print("First MPI_Test Done: %f", MPI_Wtime());
 	}
-	//      fprintf(stderr, "flag 1: %d (%d %d)\n", flag, status.MPI_SOURCE, status.MPI_TAG);
-	//      MPI_Test(&request, &flag, &status);
-	//      fprintf(stderr, "flag 3: %d (%d %d)\n", flag, status.MPI_SOURCE, status.MPI_TAG);
-	/* MPI_Wait(&request, &status); */
-	/* fprintf(stderr, "wait       (%d %d)\n",  status.MPI_SOURCE, status.MPI_TAG); */
-	/* MPI_Wait(&request, &status); */
-	/* fprintf(stderr, "wait       (%d %d)\n",  status.MPI_SOURCE, status.MPI_TAG); */
 
 	if (flag == 1) { 
 	  //	  rempi_test_dbg_print("** Slave ID: %d ** (time: %f)", status.MPI_SOURCE, MPI_Wtime());
