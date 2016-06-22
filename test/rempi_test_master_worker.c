@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (flag == 1) { 
-	  //	  rempi_test_dbg_print("** Slave ID: %d ** (time: %f)", status.MPI_SOURCE, MPI_Wtime());
+	  //rempi_test_dbg_print("** Slave ID: %d ** (time: %f)", status.MPI_SOURCE, MPI_Wtime());
 	  if (sum == 0) {
 	    rempi_test_dbg_print("First Matched: %f", MPI_Wtime());
 	  }

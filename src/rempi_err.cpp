@@ -4,12 +4,14 @@
 #include <execinfo.h>
 #include <unistd.h>
 #include <assert.h>
-
 #include <pthread.h>
 
 #include <string>
+#include <queue>
 
 #include "rempi_err.h"
+#include "rempi_mem.h"
+#include "rempi_config.h"
 
 #define DEBUG_STDOUT stderr
 
@@ -19,6 +21,8 @@ using namespace std;
 
 int rempi_my_rank = -1;
 char hostname[256];
+
+queue<char*> rempi_log_q;
 
 
 void rempi_err_init(int r) {
@@ -43,6 +47,9 @@ void rempi_assert(int b)
 void rempi_err(const char* fmt, ...)
 {
   va_list argp;
+#ifdef REMPI_DBG_LOG
+  rempi_dbg_log_print();
+#endif
   fprintf(stderr, "REMPI: ** ERROR ** :%s:%3d: ", hostname, rempi_my_rank);
   va_start(argp, fmt);
   vfprintf(stderr, fmt, argp);
@@ -98,15 +105,47 @@ void rempi_print(const char* fmt, ...) {
   return;
 }
 
+void rempi_dbg_log_print()
+{
+  pthread_mutex_lock (&print_mutex);
+  fprintf(stdout, "REMPI:DEBUG:%s:%3d: Debug log dumping ... \n", hostname, rempi_my_rank);
+  fflush(stdout);
+  while (!rempi_log_q.empty()) {
+    char* log = rempi_log_q.front();
+    fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%3d: %s\n", hostname, rempi_my_rank, log);
+    rempi_log_q.pop();
+    free(log);
+  }
+  pthread_mutex_unlock (&print_mutex);
+}
+
 void rempi_dbgi(int r, const char* fmt, ...) {
   if (rempi_my_rank != r && -1 != r) return;
-  pthread_mutex_lock (&print_mutex);
   va_list argp;
+  pthread_mutex_lock (&print_mutex);
+
+#ifdef REMPI_DBG_LOG
+  char *log;
+  if (rempi_log_q.size() > REMPI_DBG_LOG_BUF_LENGTH) {
+    log = rempi_log_q.front();
+    rempi_log_q.pop();
+  } else {
+    log = (char*)rempi_malloc(REMPI_DBG_LOG_BUF_SIZE);
+  }
+
+  va_start(argp, fmt);
+  vsnprintf(log, REMPI_DBG_LOG_BUF_SIZE, fmt, argp);
+  //  sprintf(log, "%s\0", log);
+  va_end(argp);
+  rempi_log_q.push(log);
+
+#else
   fprintf(DEBUG_STDOUT, "REMPI:DEBUG:%s:%3d: ", hostname, rempi_my_rank);
   va_start(argp, fmt);
   vfprintf(DEBUG_STDOUT, fmt, argp);
   va_end(argp);
   fprintf(DEBUG_STDOUT, "\n");
+#endif
   pthread_mutex_unlock (&print_mutex);
 }
 

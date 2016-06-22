@@ -639,7 +639,9 @@ int rempi_re_cdc::re_finalize()
     ret = PMPI_Finalize();
     ret = recorder->record_finalize();
   } else {
-    PMPI_Barrier(MPI_COMM_WORLD); // MPI progress for one-sided communication
+    collective_sync_clock(MPI_COMM_WORLD);
+    ret = PMPI_Barrier(MPI_COMM_WORLD);
+    //re_barrier(MPI_COMM_WORLD); // MPI progress for one-sided communication
     ret = PMPI_Finalize();
     ret = recorder->replay_finalize();
   }

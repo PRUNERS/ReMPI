@@ -506,7 +506,9 @@ void rempi_encoder_basic::fetch_local_min_id(int *min_recv_rank, size_t *min_nex
 
 int rempi_encoder_basic::update_local_min_id(int min_recv_rank, size_t min_next_clock, int has_probed_message,
 					     unordered_set<int> *update_sources_set, 
-					     unordered_map<int, size_t> *recv_message_source_umap, int recv_test_id)
+					     unordered_map<int, size_t> *recv_message_source_umap, 
+					     unordered_map<int, size_t> *recv_clock_umap,
+					     int recv_test_id)
 {    
   //  REMPI_ERR("please remove this REMPI_ERR later");
   return 0;

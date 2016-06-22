@@ -933,10 +933,8 @@ void rempi_encoder_rep::cdc_prepare_decode_indices(
 
 
 
-bool rempi_encoder_rep::cdc_decode_ordering(rempi_event_list<rempi_event*> &recording_events, vector<rempi_event*> &event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> &replay_event_list, int test_id)
+bool rempi_encoder_rep::cdc_decode_ordering(rempi_event_list<rempi_event*> &recording_events, vector<rempi_event*> &event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> &replay_event_list, int test_id, int local_min_id_rank, size_t local_min_id_clock)
 {
-  int    local_min_id_rank  = -1;
-  size_t local_min_id_clock =  0;
   vector<rempi_event*> replay_event_vec;
 #ifdef REMPI_DBG_REPLAY
   bool is_ordered_event_list_updated = false;

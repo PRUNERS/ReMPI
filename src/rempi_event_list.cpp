@@ -331,7 +331,7 @@ T rempi_event_list<T>::front_replay(int test_id)
 }
 
 template <class T>
-void rempi_event_list<T>::enqueue_replay(T event, int test_id)
+void rempi_event_list<T>::enqueue_replay(rempi_event *event, int test_id)
 {
 
   rempi_spsc_queue<rempi_event*> *spsc_queue;
@@ -341,6 +341,15 @@ void rempi_event_list<T>::enqueue_replay(T event, int test_id)
   }
 
   spsc_queue = replay_events[test_id];
+#if 0
+  if (rank_to_last_enqueued_clock_umap.find(event->get_source()) != 
+      rank_to_last_enqueued_clock_umap.end()) {
+    if (rank_to_last_enqueued_clock_umap[event->get_source()] > event->get_clock()) {
+      REMPI_DBG("Noooo !!");
+    }
+  }
+  rank_to_last_enqueued_clock_umap[event->get_source()] = event->get_clock();
+#endif
   mtx.unlock();
 
   while (spsc_queue->rough_size() >= max_size) {
@@ -364,6 +373,20 @@ size_t rempi_event_list<T>::size_replay(int test_id)
   spsc_queue = replay_events[test_id];
   mtx.unlock();
   return spsc_queue->rough_size();
+}
+
+template <class T>
+size_t rempi_event_list<T>::get_last_enqueued_clock(int rank) 
+{        
+#if 0
+  if (rank_to_last_enqueued_clock_umap.find(rank) == 
+      rank_to_last_enqueued_clock_umap.end()) {
+    return 0;
+  }
+  return rank_to_last_enqueued_clock_umap.at(rank);
+#endif
+  REMPI_ERR("%s is not supported", __func__);
+  return 0;
 }
 
 template <class T>

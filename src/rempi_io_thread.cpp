@@ -139,8 +139,7 @@ void rempi_io_thread::read_record()
   }
 
 #ifdef REMPI_DBG_REPLAY
-  //  REMPI_DBGI(REMPI_DBG_REPLAY,"end ======");
-  REMPI_DBG("end ====== (CDC thread)");
+  REMPI_DBGI(REMPI_DBG_REPLAY, "end ====== (CDC thread)");
 #endif
 
   encoder->close_record_file();

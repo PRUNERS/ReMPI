@@ -20,6 +20,8 @@ class rempi_event_list
  private:
   rempi_spsc_queue<T> events; /* TODO: conbine events and replay_events into single unordered_map*/
   unordered_map<int, rempi_spsc_queue<T>*> replay_events;
+  /*To memorize the last clock values of each rank*/
+  unordered_map<int, size_t> rank_to_last_enqueued_clock_umap;
   /*TODO: change from preivous_event to previous_recording_event*/
   rempi_event *previous_recording_event;
   unordered_map<int, rempi_event*> previous_recording_event_umap;
@@ -93,8 +95,9 @@ class rempi_event_list
 
   T     front_replay(int test_id);
   T    dequeue_replay(int test_id, int &status);
-  void enqueue_replay(T event, int test_id);
+  void enqueue_replay(rempi_event *event, int test_id);
   size_t size_replay(int test_id);
+  size_t get_last_enqueued_clock(int rank);
 		
   size_t get_globally_minimal_clock();
   void   set_globally_minimal_clock(size_t gmc);

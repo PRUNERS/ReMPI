@@ -286,6 +286,11 @@ class rempi_recorder_cdc : public rempi_recorder
   unordered_set<int> pending_message_source_set; 
   /* Map for memorizing recieved messages with clock */
   unordered_map<int, size_t> recv_message_source_umap; 
+  /* Map for memorizing recieved clock */
+  unordered_map<int, size_t> recv_clock_umap_1;
+  unordered_map<int, size_t> recv_clock_umap_2;
+  unordered_map<int, size_t> *recv_clock_umap_p_1;
+  unordered_map<int, size_t> *recv_clock_umap_p_2;
 
   PNMPIMOD_get_local_sent_clock_t clmpi_get_local_sent_clock;
 
@@ -306,15 +311,19 @@ class rempi_recorder_cdc : public rempi_recorder
 			     int global_local_min_id_rank,
 			     size_t global_local_min_id_clock,
 			     unordered_set<int> *pending_message_sources,
-			     unordered_map<int, size_t> *recv_message_source_umap);
+			     unordered_map<int, size_t> *recv_message_source_umap,
+			     unordered_map<int, size_t> *recv_clock_umap);
 
 
 
  public:
-   rempi_recorder_cdc()
-     : rempi_recorder()
-     , next_recv_test_id_to_assign(0)
-     , send_request_id(100) {}
+  rempi_recorder_cdc()
+    : rempi_recorder()
+    , next_recv_test_id_to_assign(0)
+    , send_request_id(100)
+    , recv_clock_umap_p_1(&recv_clock_umap_1)
+    , recv_clock_umap_p_2(&recv_clock_umap_2)
+    {}
 
   int record_init(int *argc, char ***argv, int rank);
   int replay_init(int *argc, char ***argv, int rank);
