@@ -17,6 +17,7 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 		$(SRC_DIR)/rempi_recorder_cdc.cpp \
 		$(SRC_DIR)/rempi_recorder.cpp \
 		$(SRC_DIR)/rempi_message_manager.cpp \
+		$(SRC_DIR)/rempi_cp.cpp \
 		$(SRC_DIR)/rempi_request_mg.cpp \
 		$(SRC_DIR)/rempi_event_list.cpp \
 	     	$(SRC_DIR)/rempi_event.cpp \
