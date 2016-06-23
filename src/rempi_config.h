@@ -41,6 +41,7 @@ extern int rempi_max_event_length;
 #define REMPI_DBG_LOG_BUF_LENGTH (1024 * 1)
 
 #define CP_DBG
+#define RS_DBG
 
 //#define REMPI_DBG_ASSERT (-1)
 

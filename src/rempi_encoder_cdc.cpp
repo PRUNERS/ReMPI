@@ -1966,7 +1966,12 @@ static int first = 1, first2=1;
   */
   //  if (recording_events.size_replay(test_id) == 0 && local_min_id_clock != PNMPI_MODULE_CLMPI_COLLECTIVE) {
   if (local_min_id_clock != PNMPI_MODULE_CLMPI_COLLECTIVE) {
+#ifdef RS_DBG
+    clmpi_get_local_clock(&tmp_interim_min_clock);
+#else
     clmpi_get_local_sent_clock(&tmp_interim_min_clock);
+#endif
+
     /*local_sent_clock is sent clock value, so the local_clock is local_sent_clock + 1*/
     //    tmp_interim_min_clock++;
 #ifdef BGQ
@@ -2004,7 +2009,13 @@ static int first = 1, first2=1;
       cit     = test_table->ordered_event_list.cbegin();
       cit_end = test_table->ordered_event_list.cend();
       size_t local_clock_dbg;
+#ifdef RS_DBG
+      clmpi_get_local_clock(&local_clock_dbg);
+#else
       clmpi_get_local_sent_clock(&local_clock_dbg);
+#endif
+
+
       REMPI_DBGI(REMPI_DBG_REPLAY, "INTRM update: local_clock: %lu", local_clock_dbg);
       for(vector<rempi_event*>::iterator it = replay_event_vec.begin(), it_end = replay_event_vec.end();
 	  it != it_end; it++) {
@@ -2862,9 +2873,14 @@ void rempi_encoder_cdc::update_fd_next_clock(
 	 So this routine will not be executed  */
       clmpi_get_local_clock(&local_clock);
     } else {
-      clmpi_get_local_sent_clock(&local_clock);
+
+#ifdef RS_DBG
+      clmpi_get_local_clock(&local_clock);
+#else
       /*local_sent_clock is literary sent clock, so next clock must be over the sent clock, i.e., local_sent_clock + 1 at least*/
+      clmpi_get_local_sent_clock(&local_clock);
       local_clock++;
+#endif
     }
     next_clock = local_clock;
   }

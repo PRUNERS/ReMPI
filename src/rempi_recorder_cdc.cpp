@@ -901,7 +901,11 @@ int rempi_recorder_cdc::replay_testsome(
     strb = MPI_Wtime();
     /*progress for send: 
       if a send operation is completed, we can increment clock */
+#ifndef RS_DBG
     progress_send_requests();
+#endif
+
+
     /*progress for recv*/
 
     this->pending_message_source_set.clear();    
@@ -1016,11 +1020,20 @@ int rempi_recorder_cdc::replay_testsome(
       //      clmpi_get_local_clock(&tmp_clock);
       //      clmpi_get_local_sent_clock(&tmp_sent_clock);
       bool is_next_event_recv = num_of_recv_msg_in_next_event > 0;
+
+#ifdef RS_DBG
+      if (is_next_event_recv) {
+	mc_encoder->update_fd_next_clock(1, num_of_recv_msg_in_next_event, interim_min_clock_in_next_event, 
+					 recording_event_list->get_enqueue_count(recv_test_id), recv_test_id, 0);
+      }
+#else
       clmpi_get_num_of_incomplete_sending_msg(&num_of_incomplete_msg);
       if (is_next_event_recv && num_of_incomplete_msg == 0) { /*checking Condition A*/
 	mc_encoder->update_fd_next_clock(1, num_of_recv_msg_in_next_event, interim_min_clock_in_next_event, 
 					 recording_event_list->get_enqueue_count(recv_test_id), recv_test_id, 0);
       }
+#endif
+
     }
 
     countb += 1;
@@ -1395,7 +1408,7 @@ int rempi_recorder_cdc::REMPI_Send_Testsome(int incount, MPI_Request *array_of_s
 	isend_request_umap.erase(array_of_send_request_ids[i]);
 #ifdef REMPI_DBG_REPLAY
 	size_t sent_clock;
-	clmpi_get_local_sent_clock(&sent_clock);
+	//	clmpi_get_local_sent_clock(&sent_clock);
 	REMPI_DBGI(REMPI_DBG_REPLAY, " Send completed: sent_clock: %lu", sent_clock);
 #endif
 	//	REMPI_DBG("erase registered request: %p", array_of_send_request_ids[i]);

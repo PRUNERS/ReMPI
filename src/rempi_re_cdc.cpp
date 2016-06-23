@@ -144,7 +144,6 @@ int rempi_re_cdc::re_isend(
     rempi_cp_record_send(dest, 0);
   }
 
-
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
