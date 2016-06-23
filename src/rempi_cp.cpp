@@ -8,6 +8,10 @@
 
 #include "mpi.h"
 #include "rempi_cp.h"
+#include "rempi_err.h"
+#include "rempi_config.h"
+#include "rempi_mem.h"
+#include "clmpi.h"
 
 #define REMPI_RI_GATHER_TAG (1512)
 #define REMPI_RI_SCATTER_TAG (1513)
@@ -21,17 +25,18 @@ static MPI_Win rempi_cp_win;
 static int rempi_is_initialized = 0;
 
 static struct rempi_cp_prop_clock *rempi_cp_gather_pc;
+static size_t rempi_cp_scatter_clock = 0;
 static struct rempi_cp_prop_clock *rempi_cp_scatter_pc;
 
 
 static int rempi_pred_rank_count;
 static int *rempi_pred_ranks, *rempi_pred_indices;
-unordered_map<int, int> rempi_pred_ranks_indices;
+unordered_map<int, int> rempi_pred_ranks_indices_umap;
 static size_t *rempi_recv_counts;
 
 static int rempi_succ_rank_count;
 static int *rempi_succ_ranks, *rempi_succ_indices;
-unordered_map<int, int> rempi_succ_ranks_indices;
+unordered_map<int, int> rempi_succ_ranks_indices_umap;
 
 
 
@@ -123,7 +128,9 @@ static void rempi_cp_remote_indexing(int input_length, int* input_pred_ranks, in
   int sum = 0;
   MPI_Request *recv_requests, *send_requests;
 
-  PMPI_Pcontrol(0);
+
+  PNMPIMOD_clock_control(0);
+
 
   /* Step 1 */
   PMPI_Comm_size(MPI_COMM_WORLD, &comm_world_size);
@@ -150,8 +157,8 @@ static void rempi_cp_remote_indexing(int input_length, int* input_pred_ranks, in
   for (int i = 0; i < succ_rank_count; i++) {
     PMPI_Irecv(&succ_ranks[i], 1, MPI_INT, MPI_ANY_SOURCE, REMPI_RI_GATHER_TAG, MPI_COMM_WORLD, &recv_requests[i]);
   }
-  MPI_Waitall(input_length, send_requests, MPI_STATUSES_IGNORE);
-  MPI_Waitall(succ_rank_count, recv_requests, MPI_STATUSES_IGNORE);
+  PMPI_Waitall(input_length, send_requests, MPI_STATUSES_IGNORE);
+  PMPI_Waitall(succ_rank_count, recv_requests, MPI_STATUSES_IGNORE);
 
   /* Step 3: The indices are determied in order of source ranks, i.e., succ_ranks values. */
   qsort(succ_ranks, succ_rank_count, sizeof(int), compare);
@@ -166,14 +173,14 @@ static void rempi_cp_remote_indexing(int input_length, int* input_pred_ranks, in
   for (int i = 0; i < input_length; i++) {
     PMPI_Irecv(&output_pred_indices[i], 1, MPI_INT, input_pred_ranks[i], REMPI_RI_SCATTER_TAG, MPI_COMM_WORLD, &send_requests[i]);
   }
-  MPI_Waitall(succ_rank_count, recv_requests, MPI_STATUSES_IGNORE);
-  MPI_Waitall(input_length, send_requests, MPI_STATUSES_IGNORE);
+  PMPI_Waitall(succ_rank_count, recv_requests, MPI_STATUSES_IGNORE);
+  PMPI_Waitall(input_length, send_requests, MPI_STATUSES_IGNORE);
 
 
   /* Step 5: Results are already in output_pred_indices */
   //  print_array2(input_length, output_pred_indices, input_pred_ranks);
 
-  PMPI_Pcontrol(1);
+  PNMPIMOD_clock_control(1);
 
   /* Return results */
   *output_succ_rank_count = succ_rank_count;
@@ -190,6 +197,8 @@ static void rempi_cp_remote_indexing(int input_length, int* input_pred_ranks, in
 void rempi_cp_init(int input_length, int* input_pred_ranks)
 {
   int ret;
+
+
 
   PMPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   PMPI_Comm_size(MPI_COMM_WORLD, &comm_size);
@@ -216,11 +225,12 @@ void rempi_cp_init(int input_length, int* input_pred_ranks)
   /* Init pred_rank to index*/
   rempi_recv_counts = (size_t*)malloc(sizeof(size_t) * rempi_pred_rank_count);
   for (int i = 0; i < rempi_pred_rank_count; i++) {
-    rempi_pred_ranks_indices[rempi_pred_ranks[i]] = i;
+    //    REMPI_DBGI(0, "rempi_pred_ranks[%d] = %d", rempi_pred_ranks[i] = i);
+    rempi_pred_ranks_indices_umap[rempi_pred_ranks[i]] = i;
     rempi_recv_counts[i] = 0;
   }
   for (int i = 0; i < rempi_succ_rank_count; i++) {
-    rempi_succ_ranks_indices[rempi_succ_ranks[i]] = i;
+    rempi_succ_ranks_indices_umap[rempi_succ_ranks[i]] = i;
   }
 
   rempi_is_initialized = 1;
@@ -262,38 +272,83 @@ int rempi_cp_has_in_flight_msgs(int source_rank)
 {
   int index;
   int has;
-  index = rempi_pred_ranks_indices[source_rank];
+  index = rempi_pred_ranks_indices_umap.at(source_rank);
   if (rempi_cp_gather_pc[index].send_count <= rempi_recv_counts[index]) {
-    has = 1;
-  } else {
+    /* rempi_recv_counts may be incremented before updated rempi_cp_gather_pc[index].send_count 
+     so I use "<=" instead of "==" */
     has = 0;
+  } else {
+    // REMPI_DBG("Rank %d (send_count: %d) ==> Rank %d (recv_count: %d)",
+    // 	      source_rank, rempi_cp_gather_pc[index].send_count, 
+    // 	      my_rank, rempi_recv_counts[index]
+    // 	      );
+    has = 1;
   }
   return has;
 }
 
-void rempi_cp_record_recv(int rank, size_t clock)
+void rempi_cp_record_recv(int source_rank, size_t clock)
 {
   int index;
-  index = rempi_pred_ranks_indices[rank];
-  rempi_recv_counts[index]++;
-  return;
-}
-
-void rempi_cp_set_next_clock(int clock)
-{
-  for (int i = 0; i < rempi_succ_rank_count; i++) {
-    rempi_cp_scatter_pc[i].next_clock = clock;
+  if (rempi_pred_ranks_indices_umap.find(source_rank) == 
+      rempi_pred_ranks_indices_umap.end()) {
+    REMPI_ERR("Rank %d does not exist", source_rank);
   }
+  index = rempi_pred_ranks_indices_umap.at(source_rank);
+  rempi_recv_counts[index]++;
   return;
 }
 
 void rempi_cp_record_send(int dest_rank, size_t clock)
 {
   int index;
-  index = rempi_succ_ranks_indices[dest_rank];
+  if (rempi_succ_ranks_indices_umap.find(dest_rank) == 
+      rempi_succ_ranks_indices_umap.end()) {
+    REMPI_ERR("Rank %d does not exist", dest_rank);
+  }
+  index = rempi_succ_ranks_indices_umap.at(dest_rank);
   rempi_cp_scatter_pc[index].send_count++;
   return;
 }
+
+
+
+void rempi_cp_set_scatter_clock(size_t clock)
+{
+  rempi_cp_scatter_clock = clock;
+  for (int i = 0; i < rempi_succ_rank_count; i++) {
+    rempi_cp_scatter_pc[i].clock = clock;
+  }
+  return;
+}
+
+size_t rempi_cp_get_scatter_clock(void)
+{
+  return rempi_cp_scatter_clock;
+}
+
+size_t rempi_cp_get_gather_clock(int source_rank)
+{
+  int index;
+  if (rempi_pred_ranks_indices_umap.find(source_rank) == 
+      rempi_pred_ranks_indices_umap.end()) {
+    REMPI_ERR("Rank %d does not exist", source_rank);
+  }
+  index = rempi_pred_ranks_indices_umap.at(source_rank);
+  return rempi_cp_gather_pc[index].clock;
+}
+
+size_t rempi_cp_get_gather_send_count(int source_rank)
+{
+  int index;
+  if (rempi_pred_ranks_indices_umap.find(source_rank) == 
+      rempi_pred_ranks_indices_umap.end()) {
+    REMPI_ERR("Rank %d does not exist", source_rank);
+  }
+  index = rempi_pred_ranks_indices_umap.at(source_rank);
+  return rempi_cp_gather_pc[index].send_count;
+}
+
 
 
 

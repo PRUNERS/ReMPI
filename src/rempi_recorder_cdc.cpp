@@ -24,6 +24,7 @@
 #include "rempi_mem.h"
 #include "clmpi.h"
 #include "rempi_request_mg.h"
+#include "rempi_cp.h"
 
 #define  PNMPI_MODULE_REMPI "rempi"
 
@@ -207,6 +208,7 @@ int rempi_recorder_cdc::replay_init(int *argc, char ***argv, int rank)
   read_record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode, &mc_encoder); //1: replay mode
   //  REMPI_DBG("io thread is not runnig");
   read_record_thread->start();
+  ((rempi_encoder_cdc*)mc_encoder)->init_cp();
   return 0;
 }
 
@@ -250,14 +252,25 @@ int rempi_recorder_cdc::replay_isend(MPI_Request *request)
   *request = (MPI_Request)send_request_id;
 #endif
 
+
   {
     size_t sent_clock;
     PNMPIMOD_get_local_clock(&sent_clock);
     sent_clock--;
+#ifdef CP_DBG
+    if (sent_clock < rempi_cp_get_scatter_clock()) {
+	REMPI_DBG("Exposting next clock (%lu) is bigger than accturally sent clock (%lu)", rempi_cp_get_scatter_clock(), sent_clock);
+    }
+#else
     if (sent_clock < ((rempi_encoder_cdc*)mc_encoder)->fd_clocks->next_clock) {
       REMPI_DBG("Exposting next clock (%lu) is bigger than accturally sent clock (%lu)", ((rempi_encoder_cdc*)mc_encoder)->fd_clocks->next_clock, sent_clock);
     }
+#endif
   }
+
+
+
+
 
   send_request_id++;
 
@@ -647,10 +660,12 @@ int rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 #endif
     PMPI_Test(&proxy_request->request, &flag, &status);
     clmpi_clock_control(1);
+
     
     if(!flag) continue;
     /*If flag == 1*/
     has_recv_msg = 1;
+    rempi_cp_record_recv(status.MPI_SOURCE, 0);
     recv_message_source_umap->insert(make_pair(status.MPI_SOURCE, 0));
 
 
@@ -1193,14 +1208,17 @@ void rempi_recorder_cdc::fetch_and_update_local_min_id()
   int min_recv_rank;
   size_t  min_next_clock;
   int is_updated;
+  
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
 
-  stra = MPI_Wtime();
-  mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
-  counta++;
-  dura += MPI_Wtime() - stra;
-  is_updated = mc_encoder->update_local_min_id(min_recv_rank, min_next_clock, -1, NULL, NULL, NULL, -1);  
-  if (is_updated) {
-    counta_update++;
+    stra = MPI_Wtime();
+    mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
+    counta++;
+    dura += MPI_Wtime() - stra;
+    is_updated = mc_encoder->update_local_min_id(min_recv_rank, min_next_clock, -1, NULL, NULL, NULL, -1);  
+    if (is_updated) {
+      counta_update++;
+    }
   }
   return;
 }

@@ -3,7 +3,7 @@
 
 struct rempi_cp_prop_clock
 {
-  size_t next_clock;
+  size_t clock;
   size_t send_count;
 };
 
@@ -19,5 +19,12 @@ void rempi_cp_finalize();
 void rempi_cp_record_send(int dest_rank, size_t clock);
 void rempi_cp_record_recv(int rank, size_t clock);
 int  rempi_cp_has_in_flight_msgs(int source_rank);
-void rempi_cp_set_next_clock(int clock);
+
+size_t rempi_cp_get_gather_clock(int source_rank);
+size_t rempi_cp_get_gather_send_count(int source_rank);
+void   rempi_cp_set_scatter_clock(size_t clock);
+size_t rempi_cp_get_scatter_clock(void);
+
+
+
 

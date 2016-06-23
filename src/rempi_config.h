@@ -34,9 +34,9 @@ extern int rempi_max_event_length;
 
 
 
-#define REMPI_DBG_REPLAY (-1)
+//#define REMPI_DBG_REPLAY (-1)
 
-#define REMPI_DBG_LOG
+//#define REMPI_DBG_LOG
 #define REMPI_DBG_LOG_BUF_SIZE (512)
 #define REMPI_DBG_LOG_BUF_LENGTH (1024 * 1)
 

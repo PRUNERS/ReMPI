@@ -14,6 +14,7 @@
 #include "clmpi.h"
 #include "rempi_recorder.h"
 #include "rempi_request_mg.h"
+#include "rempi_cp.h"
 
 #define  PNMPI_MODULE_REMPI "rempi"
 //#define MATCHING_ID_TEST
@@ -138,7 +139,13 @@ int rempi_re_cdc::re_isend(
   if (comm != MPI_COMM_WORLD) {
     REMPI_ERR("Current ReMPI does not multiple communicators");
   }
+
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
+    rempi_cp_record_send(dest, 0);
+  }
+
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
+
   if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
     recorder->replay_isend(request);
   }
