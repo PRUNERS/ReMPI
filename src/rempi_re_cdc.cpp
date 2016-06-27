@@ -642,12 +642,12 @@ int rempi_re_cdc::re_barrier(MPI_Comm arg_0)
 int rempi_re_cdc::re_finalize()
 {
   int ret;
+  collective_sync_clock(MPI_COMM_WORLD);
+  ret = PMPI_Barrier(MPI_COMM_WORLD);
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = PMPI_Finalize();
     ret = recorder->record_finalize();
   } else {
-    collective_sync_clock(MPI_COMM_WORLD);
-    ret = PMPI_Barrier(MPI_COMM_WORLD);
     //re_barrier(MPI_COMM_WORLD); // MPI progress for one-sided communication
     ret = PMPI_Finalize();
     ret = recorder->replay_finalize();

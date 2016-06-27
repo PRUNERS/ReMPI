@@ -45,6 +45,8 @@ extern int rempi_max_event_length;
 
 //#define REMPI_DBG_ASSERT (-1)
 
+//#define REMPI_MULTI_THREAD
+
 
 #define REMPI_MAX_RECV_TEST_ID (128)
 #define REMPI_COMM_ID_LENGTH (128) /*TODO: If this size is 16, memory overwrite related weird bug happens*/

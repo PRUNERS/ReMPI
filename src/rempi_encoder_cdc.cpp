@@ -19,6 +19,14 @@
 #include "rempi_cp.h"
 
 
+#define REMPI_DECODE_STATUS_OPEN         (0)
+#define REMPI_DECODE_STATUS_CREATE_READ  (1)
+#define REMPI_DECODE_STATUS_DECODE  (2)
+#define REMPI_DECODE_STATUS_INSERT  (3)
+#define REMPI_DECODE_STATUS_CLOSE   (4)
+#define REMPI_DECODE_STATUS_COMPLETE   (5)
+
+
 /* ==================================== */
 /* CLASS rempi_encoder_cdc_input_format_test_table */
 
@@ -299,11 +307,15 @@ void rempi_encoder_cdc_input_format::debug_print()
 /* ==================================== */
 
 
+
 rempi_encoder_cdc::rempi_encoder_cdc(int mode)
   : rempi_encoder(mode)
 #ifndef CP_DBG
   , fd_clocks(NULL)
 #endif
+  , decoding_input_format(NULL)
+  , decoding_state(REMPI_DECODE_STATUS_OPEN)
+  , finished_testsome_count(0)
 {
   /* === Create CDC object  === */
   cdc = new rempi_clock_delta_compression(1);
@@ -362,7 +374,10 @@ rempi_encoder_cdc::~rempi_encoder_cdc()
 
 void rempi_encoder_cdc::init_cp()
 {
-  while (mc_length == -1) {
+#ifndef REMPI_MULTI_THREAD
+  this->progress_decoding(NULL, NULL, -1);
+#endif
+  while (this->mc_length == -1) {
     usleep(1);
   }
 #ifdef CP_DBG  
@@ -1130,8 +1145,83 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
       write_size_vec.push_back(input_format.write_size_queue_vec[i]);
     }
   }
+
   return;
 }   
+
+
+
+int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id) 
+{
+  bool is_all_finished = 0;
+  bool is_epoch_finished = 0;
+  int suspend_progress = 0;
+  int has_new_event;
+  bool is_no_more_record;
+
+  progress_decoding_mtx.lock();
+  while(!suspend_progress) {
+    switch (decoding_state) {
+    case REMPI_DECODE_STATUS_OPEN:
+      this->open_record_file(record_path);
+      decoding_state = REMPI_DECODE_STATUS_CREATE_READ;
+      break;
+    case REMPI_DECODE_STATUS_CREATE_READ:
+      decoding_input_format = this->create_encoder_input_format();
+      is_no_more_record = this->read_record_file(*decoding_input_format);
+      decoding_state = (is_no_more_record)? REMPI_DECODE_STATUS_CLOSE:REMPI_DECODE_STATUS_DECODE;
+      break;
+    case REMPI_DECODE_STATUS_DECODE:
+      this->decode(*decoding_input_format);
+      decoding_state = REMPI_DECODE_STATUS_INSERT;
+      break;
+    case REMPI_DECODE_STATUS_INSERT:
+      if (recording_events != NULL && replaying_events != NULL && recv_test_id >= 0)  {
+		if (recv_test_id >= 0) {
+	  insert_encoder_input_format_chunk_recv_test_id(recording_events, replaying_events, decoding_input_format, 
+							 &is_epoch_finished, &has_new_event, recv_test_id);
+	} else {
+	  for (int rtid = 0, n = decoding_input_format->test_tables_map.size();
+	       rtid < n; rtid++) {
+	    insert_encoder_input_format_chunk_recv_test_id(recording_events, replaying_events, decoding_input_format, 
+							   &is_epoch_finished, &has_new_event, rtid);
+	  }
+	}
+	
+	if (is_epoch_finished) {
+	  delete decoding_input_format;
+	  decoding_input_format = NULL;
+	  decoding_state = REMPI_DECODE_STATUS_CREATE_READ;
+	} else {
+	  suspend_progress = 1;
+	}
+      } else {
+	suspend_progress = 1;
+      }
+      break;
+    case REMPI_DECODE_STATUS_CLOSE:
+      replaying_events->close_push();
+      delete decoding_input_format;
+      decoding_input_format = NULL;
+      this->close_record_file();
+      decoding_state = REMPI_DECODE_STATUS_COMPLETE;
+      is_all_finished = 1;
+      suspend_progress = 1;
+      break;
+    case REMPI_DECODE_STATUS_COMPLETE:
+      //      REMPI_ERR("No more events to replay");
+      is_all_finished = 1;
+      suspend_progress = 1;
+      break;
+    }
+  }
+  progress_decoding_mtx.unlock();
+
+  //  if (has_new_event == 0 && recv_test_id == -1) usleep(1);
+
+  return is_all_finished;
+
+}
 
 bool rempi_encoder_cdc::read_record_file(rempi_encoder_input_format &input_format)
 {
@@ -1150,6 +1240,9 @@ bool rempi_encoder_cdc::read_record_file(rempi_encoder_input_format &input_forma
   read_size = record_fs.gcount();
   if (read_size == 0) {
     is_no_more_record = true;
+    /*If this rank does not have any record, mc_length cannot be initialization. 
+     The rank cannnot run init_cp. So adding mc_length = 0 */
+    this->mc_length = 0; 
     return is_no_more_record;
   }
 
@@ -1219,6 +1312,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
   //TODO: this is redundant memcopy => remove this overhead
   decompressed_record = (char*)rempi_malloc(input_format.decompressed_size);
   decoding_address = decompressed_record;
+
 
 
   //  size_t sum = 0;
@@ -1472,6 +1566,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
   if (test_id > REMPI_MAX_RECV_TEST_ID) {
     REMPI_ERR("The number of test_id exceeded the limit");
   }
+
   
   //  input_format.debug_print();
   //  exit(0);
@@ -2928,122 +3023,105 @@ void rempi_encoder_cdc::set_fd_clock_state(int flag)
 }
 
 
+ void rempi_encoder_cdc::insert_encoder_input_format_chunk_recv_test_id(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, rempi_encoder_input_format *input_format, bool *is_epoch_finished, int *has_new_event, int recv_test_id)
+{
+  bool is_finished;
+  int local_min_id_rank = -1;
+  size_t local_min_id_clock = 0;
+  int sleep_counter = input_format->test_tables_map.size(); 
+  *has_new_event = 0;
+  *is_epoch_finished = false;
+
+  if (matched_events_vec_umap.find(recv_test_id) == matched_events_vec_umap.end()) {
+    matched_events_vec_umap[recv_test_id]  = new vector<rempi_event*>();
+  }
+
+  if (matched_events_vec_umap[recv_test_id] == NULL) {
+    /*cdc_decode_ordering returns true, and Nothing to relay any more for this vectors*/
+    return ;
+  }
+
+
+  this->compute_local_min_id(input_format->test_tables_map.at(recv_test_id), &local_min_id_rank, &local_min_id_clock, recv_test_id);
+  while (recording_events->front_replay(recv_test_id) != NULL) {      
+    /*If a message(event) arrives,  */
+    rempi_event *matched_event;
+    int event_list_status;
+    matched_event = recording_events->dequeue_replay(recv_test_id, event_list_status);
+    matched_events_vec_umap[recv_test_id]->push_back(matched_event);
+
+#ifdef REMPI_DBG_REPLAY
+    //    REMPI_DBGI(REMPI_DBG_REPLAY, "===== checkpoint recv_test_id: %d: %lu", recv_test_id, matched_events_vec_umap[recv_test_id]->size());
+#endif
+
+  } 
+
+  if (matched_events_vec_umap[recv_test_id]->size() != 0) *has_new_event = 1;
+
+  /*Permutate "*matched_events_vec_umap"
+    based on "input_format->test_tables_map", then
+    output the replayed event into "replay_event_list"*/
+  is_finished = cdc_decode_ordering(*recording_events, *matched_events_vec_umap[recv_test_id], input_format->test_tables_map[recv_test_id], replay_event_list, recv_test_id, local_min_id_rank, local_min_id_clock);
+  if (is_finished) {
+    delete matched_events_vec_umap[recv_test_id];
+    matched_events_vec_umap[recv_test_id] = NULL;
+    finished_testsome_count++;
+    if (finished_testsome_count == input_format->test_tables_map.size()) {
+      finished_testsome_count = 0;
+      *is_epoch_finished = true;
+    }
+  }
+
+  for (list<rempi_event*>::iterator it = replay_event_list.begin(),
+	 it_end = replay_event_list.end();
+       it != it_end;
+       it++) {
+    rempi_event *e = *it;
+
+    // REMPI_DBGI(0, "RPQv -> RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) recv_recv_test_id: %d",
+    // 		 e->get_event_counts(), e->get_with_next(), e->get_flag(),
+    // 		 e->get_source(), e->get_clock(), recv_test_id);
+
+#ifdef REMPI_DBG_REPLAY
+    REMPI_DBGI(REMPI_DBG_REPLAY, "RPQv -> RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) recv_recv_test_id: %d",
+	       e->get_event_counts(), e->get_is_testsome(), e->get_flag(),
+	       e->get_source(), e->get_clock(), recv_test_id);
+#endif
+    replaying_events->enqueue_replay(e, recv_test_id);
+  }
+  replay_event_list.clear();
+
+  return;
+}
 
 void rempi_encoder_cdc::insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format)
 {
-  // for (map<int, rempi_encoder_input_format_test_table*>::iterator test_table_it = input_format.test_table_map.begin();
-  //      test_table_it != input_format.test_table.end(); test_table_it++) {
-  //   int test_id = test_table_it->first;
-  //   rempi_encoder_input_format_test_table *test_table = test_table->second;
-  // }
-  unordered_map<int, vector<rempi_event*>*> matched_events_vec_umap;
-  list<rempi_event*> replay_event_list;
   bool is_finished = false;
   int finished_testsome_count  = 0;
-  int local_min_id_rank = -1;
-  size_t local_min_id_clock = 0;
+  int has_new_event;
+  int sleep_counter = input_format.test_tables_map.size(); 
 
-
-
-  for (int i = 0, n = input_format.test_tables_map.size(); i < n; i++) {
-    matched_events_vec_umap[i] = new vector<rempi_event*>();
-    /*recorded events are pushed into this vector, and permutated, and outputed*/
-  }
 
   /*all of recording_events queue (# is sleep_counter), this thread sleeps a little*/
-  int sleep_counter = input_format.test_tables_map.size(); 
+
   for (int recv_test_id = 0, n = input_format.test_tables_map.size(); 
        finished_testsome_count < n; 
        recv_test_id = ++recv_test_id % n) {
-
-    /*TODO: For now, periodically update next_clock here. 
-        this function call is not neseccory to be here, better location may exist */
-    //    update_fd_next_clock(0); => Kento moved to a line just after clmpi_sync_clock in rempi_recorder_cdc
-    if (matched_events_vec_umap[recv_test_id] == NULL) {
-      /*cdc_decode_ordering returns true, and Nothing to relay any more for this vectors*/
-      continue;
-    }
-
-#if 1
-    this->compute_local_min_id(input_format.test_tables_map.at(recv_test_id), &local_min_id_rank, &local_min_id_clock, recv_test_id);
-    while (recording_events.front_replay(recv_test_id) != NULL) {      
-      /*If a message(event) arrives,  */
-      rempi_event *matched_event;
-      int event_list_status;
-      matched_event = recording_events.dequeue_replay(recv_test_id, event_list_status);
-      matched_events_vec_umap[recv_test_id]->push_back(matched_event);
-
-#ifdef REMPI_DBG_REPLAY
-      //    REMPI_DBGI(REMPI_DBG_REPLAY, "===== checkpoint recv_test_id: %d: %lu", recv_test_id, matched_events_vec_umap[recv_test_id]->size());
-#endif
-
-    } 
-
-    if (matched_events_vec_umap[recv_test_id]->size() == 0) {
-      sleep_counter--;
-      if (sleep_counter <= 0) {
-	usleep(1);
-	sleep_counter = input_format.test_tables_map.size();
-      }      
-    }
-#else
-    if (recording_events.front_replay(recv_test_id) != NULL) {      
-      /*If a message(event) arrives,  */
-      rempi_event *matched_event;
-      int event_list_status;
-      matched_event = recording_events.dequeue_replay(recv_test_id, event_list_status);
-      matched_events_vec_umap[recv_test_id]->push_back(matched_event);
-
-#ifdef REMPI_DBG_REPLAY
-      //    REMPI_DBGI(REMPI_DBG_REPLAY, "===== checkpoint recv_test_id: %d: %lu", recv_test_id, matched_events_vec_umap[recv_test_id]->size());
-#endif
-
-    } else {
-      sleep_counter--;
-      if (sleep_counter <= 0) {
-	usleep(1);
-	sleep_counter = input_format.test_tables_map.size();
-      }      
-    }
-
-#endif
-
-
-    /*Permutate "*matched_events_vec_umap"
-      based on "input_format.test_tables_map", then
-      output the replayed event into "replay_event_list"*/
-
-    is_finished = cdc_decode_ordering(recording_events, *matched_events_vec_umap[recv_test_id], input_format.test_tables_map[recv_test_id], replay_event_list, recv_test_id, local_min_id_rank, local_min_id_clock);
-
+    
+    insert_encoder_input_format_chunk_recv_test_id(&recording_events, &replaying_events, &input_format, &is_finished, &has_new_event, recv_test_id);
     if (is_finished) {
       finished_testsome_count++;
       is_finished = false;
-      delete matched_events_vec_umap[recv_test_id];
-      matched_events_vec_umap[recv_test_id] = NULL;
     }
 
-#ifdef BGQ
-    for (list<rempi_event*>::iterator it = replay_event_list.begin(),
-	   it_end = replay_event_list.end();
-	 it != it_end;
-	 it++) {
-      rempi_event *e = *it;
-#else
-    for (rempi_event *e: replay_event_list) {
-#endif
-
-      // REMPI_DBGI(0, "RPQv -> RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) recv_recv_test_id: %d",
-      // 		 e->get_event_counts(), e->get_with_next(), e->get_flag(),
-      // 		 e->get_source(), e->get_clock(), recv_test_id);
-
-#ifdef REMPI_DBG_REPLAY
-      REMPI_DBGI(REMPI_DBG_REPLAY, "RPQv -> RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) recv_recv_test_id: %d",
-		 e->get_event_counts(), e->get_is_testsome(), e->get_flag(),
-		 e->get_source(), e->get_clock(), recv_test_id);
-#endif
-      replaying_events.enqueue_replay(e, recv_test_id);
+    if (!has_new_event) {
+      sleep_counter--;
+      if (sleep_counter <= 0) {
+	usleep(1);
+	sleep_counter = input_format.test_tables_map.size();
+      }      
     }
-    replay_event_list.clear();
+
   }
 
 #ifdef REMPI_DBG_REPLAY  

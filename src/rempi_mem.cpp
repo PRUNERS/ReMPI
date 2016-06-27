@@ -14,7 +14,8 @@ void* rempi_malloc(size_t size)
 {
   void* addr;
   if ((addr = malloc(size)) == NULL) {
-    rempi_err("Memory allocation returned NULL (%s:%s:%d)",  __FILE__, __func__, __LINE__);
+    REMPI_DBG("Memory allocation returned NULL (%s:%s:%d)",  __FILE__, __func__, __LINE__);
+    REMPI_ASSERT(0);
   }
   total_alloc_count++;
 

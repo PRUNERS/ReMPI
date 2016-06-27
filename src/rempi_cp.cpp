@@ -145,11 +145,10 @@ static void rempi_cp_remote_indexing(int input_length, int* input_pred_ranks, in
   PMPI_Allreduce(remote_rank_flags, succ_rank_counts, comm_world_size, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
 
-
   /* Step 2 */
   succ_ranks = remote_rank_flags; /* Reusing buffer */
   succ_rank_count = succ_rank_counts[my_rank];
-  send_requests = (MPI_Request*) malloc(sizeof(MPI_Request) * input_length);
+  send_requests = (input_length > 0)? (MPI_Request*) malloc(sizeof(MPI_Request) * input_length):NULL;
   for (int i = 0; i < input_length; i++) {
     PMPI_Isend(&my_rank, 1, MPI_INT, input_pred_ranks[i], REMPI_RI_GATHER_TAG, MPI_COMM_WORLD, &send_requests[i]);
   }
@@ -205,27 +204,27 @@ void rempi_cp_init(int input_length, int* input_pred_ranks)
 
   rempi_pred_rank_count = input_length;
   rempi_pred_ranks      = input_pred_ranks;
-  rempi_pred_indices    = (int*)malloc(sizeof(int) * input_length);
+  rempi_pred_indices    = (input_length > 0)? (int*)malloc(sizeof(int) * input_length):NULL;
+
+
   rempi_cp_remote_indexing(input_length, input_pred_ranks, rempi_pred_indices, 
 			   &rempi_succ_rank_count, &rempi_succ_ranks, &rempi_succ_indices);
 
-
   /* == Init Window for one-sided communication for clock propagation == */
   PMPI_Comm_dup(MPI_COMM_WORLD, &rempi_cp_comm);
+
   ret = PMPI_Win_allocate(sizeof(struct rempi_cp_prop_clock) * rempi_succ_rank_count, sizeof(struct rempi_cp_prop_clock), MPI_INFO_NULL, rempi_cp_comm, &rempi_cp_scatter_pc, &rempi_cp_win);
   if (ret != MPI_SUCCESS) {
     fprintf(stderr, "PMPI_Win_allocate failed\n");
   }
   memset(rempi_cp_scatter_pc, 0, sizeof(struct rempi_cp_prop_clock) * rempi_succ_rank_count);
   PMPI_Win_lock_all(MPI_MODE_NOCHECK, rempi_cp_win);
-
   /* Init gather buffer */
   rempi_cp_gather_pc = (struct rempi_cp_prop_clock*)malloc(sizeof(struct rempi_cp_prop_clock) * rempi_pred_rank_count);
-
   /* Init pred_rank to index*/
   rempi_recv_counts = (size_t*)malloc(sizeof(size_t) * rempi_pred_rank_count);
   for (int i = 0; i < rempi_pred_rank_count; i++) {
-    //    REMPI_DBGI(0, "rempi_pred_ranks[%d] = %d", rempi_pred_ranks[i] = i);
+    //    REMPI_DBGI(0, "rempi_pred_ranks[%d] = %d", rempi_pred_ranks[i], i);
     rempi_pred_ranks_indices_umap[rempi_pred_ranks[i]] = i;
     rempi_recv_counts[i] = 0;
   }
@@ -234,6 +233,8 @@ void rempi_cp_init(int input_length, int* input_pred_ranks)
   }
 
   rempi_is_initialized = 1;
+
+
   return;
 }
 

@@ -12,6 +12,7 @@
 #include "rempi_compression_util.h"
 #include "rempi_clock_delta_compression.h"
 #include "rempi_config.h"
+#include "rempi_mutex.h"
 
 /*In CDC, rempi_endoers needs to fetch and update next_clocks, 
 so CLMPI and PNMPI module need to be included*/
@@ -110,7 +111,6 @@ class rempi_encoder_input_format
   map<int, rempi_encoder_input_format_test_table*> test_tables_map;  
 
   /* === For CDC replay ===*/
-
   int    mc_length;//       = -1;
   /*All source ranks in all receive MPI functions*/
   int    *mc_recv_ranks;//  = NULL;
@@ -170,6 +170,7 @@ class rempi_encoder
     bool is_event_pooled(rempi_event* replaying_event);
     rempi_event* pop_event_pool(rempi_event* replaying_event);
 
+    rempi_mutex progress_decoding_mtx;
 
     /* === For CDC replay ===*/
     int    mc_length;//       = 0;
@@ -221,6 +222,7 @@ class rempi_encoder
 
     void open_record_file(string record_path);
     void close_record_file();
+    void set_record_path(string record_path);
 
     /*For only record*/
     virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
@@ -229,6 +231,7 @@ class rempi_encoder
     /*For only replay*/
     virtual bool read_record_file(rempi_encoder_input_format &input_format);
     virtual void decode(rempi_encoder_input_format &input_format);
+    virtual int progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id);
     virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
     /*TODO: Due to multi-threaded issues in MPI/PNMPI, we define this function.
@@ -355,6 +358,13 @@ class rempi_encoder_cdc : public rempi_encoder
   PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
   PNMPIMOD_get_local_clock_t clmpi_get_local_sent_clock;
 
+  int decoding_state;
+  int finished_testsome_count;
+  unordered_map<int, vector<rempi_event*>*> matched_events_vec_umap;
+  list<rempi_event*> replay_event_list;
+  rempi_encoder_input_format *decoding_input_format;
+  
+
 
 
   /* ============================== */
@@ -395,6 +405,9 @@ class rempi_encoder_cdc : public rempi_encoder
   /*For only replay*/
   virtual bool read_record_file(rempi_encoder_input_format &input_format);
   virtual void decode(rempi_encoder_input_format &input_format);
+
+  virtual int progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id);
+  void insert_encoder_input_format_chunk_recv_test_id(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, rempi_encoder_input_format *input_format, bool *is_finished, int *has_new_event, int recv_test_id);
   virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
   virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
@@ -469,6 +482,8 @@ class rempi_encoder_rep : public rempi_encoder
   /*For only replay*/
   virtual bool read_record_file(rempi_encoder_input_format &input_format);
   virtual void decode(rempi_encoder_input_format &input_format);
+  
+
   virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
   virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);

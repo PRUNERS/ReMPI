@@ -168,8 +168,18 @@ rempi_event* rempi_encoder::pop_event_pool(rempi_event* replaying_event)
   return NULL;
 }
 
+void rempi_encoder::set_record_path(string path)
+{
+  this->record_path = path;
+  return;
+}
+
+
+int ct = 0;
 void rempi_encoder::open_record_file(string record_path)
 {
+
+  //  REMPI_DBG("open: %s ||%d", record_path.c_str(), ct++);
   if (mode == REMPI_ENV_REMPI_MODE_RECORD) {
     record_fs.open(record_path.c_str(), ios::out);
   } else if (mode == REMPI_ENV_REMPI_MODE_REPLAY) {
@@ -179,9 +189,11 @@ void rempi_encoder::open_record_file(string record_path)
   }
 
   if(!record_fs.is_open()) {
+    REMPI_ASSERT(0);
     REMPI_ERR("Record file open failed: %s", record_path.c_str());
   }
-
+  
+  return;
 }
 
 rempi_encoder_input_format* rempi_encoder::create_encoder_input_format()
@@ -468,6 +480,13 @@ void rempi_encoder::decode(rempi_encoder_input_format &input_format)
 //   delete matched_replaying_event;
 //   return;    
 // }
+
+
+int rempi_encoder::progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id)
+{
+  REMPI_ERR("Not supported");
+  return -1;
+}
 
 /*vector to event_list*/
 void rempi_encoder::insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format)

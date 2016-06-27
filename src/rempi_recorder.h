@@ -271,6 +271,8 @@ class rempi_recorder_cdc : public rempi_recorder
   int next_recv_test_id_to_assign; // = 0;
   int init_clmpi();
 
+  int progress_decode();
+
   PNMPIMOD_register_recv_clocks_t clmpi_register_recv_clocks;
   PNMPIMOD_clock_control_t clmpi_clock_control;
   PNMPIMOD_get_local_clock_t clmpi_get_local_clock;

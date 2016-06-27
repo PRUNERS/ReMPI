@@ -117,34 +117,47 @@ void rempi_io_thread::write_record()
 
 void rempi_io_thread::read_record()
 {
-  rempi_encoder_input_format *input_format;
-  bool is_no_more_record;
+  int is_all_finished = 0;
 
-  encoder->open_record_file(record_path);
-  input_format = encoder->create_encoder_input_format();
-
-  while(1) {
-    is_no_more_record = encoder->read_record_file(*input_format);
-    if (is_no_more_record) {
-      /*If replayed all recorded events, ...*/
-      replaying_events->close_push();
-      delete input_format;
-      break;
-    } else {
-      encoder->decode(*input_format);
-      encoder->insert_encoder_input_format_chunk(*recording_events, *replaying_events, *input_format);
-      delete input_format;
-      input_format = encoder->create_encoder_input_format();
-    }
+  while(!is_all_finished) {
+    is_all_finished = encoder->progress_decoding(recording_events, replaying_events, -1);
   }
 
-#ifdef REMPI_DBG_REPLAY
-  REMPI_DBGI(REMPI_DBG_REPLAY, "end ====== (CDC thread)");
-#endif
-
-  encoder->close_record_file();
   return;
 }
+
+
+// void rempi_io_thread::read_record()
+// {
+//   rempi_encoder_input_format *input_format;
+//   bool is_no_more_record;
+
+
+//   encoder->open_record_file(record_path);
+//   input_format = encoder->create_encoder_input_format();
+
+//   while(1) {
+//     is_no_more_record = encoder->read_record_file(*input_format);
+//     if (is_no_more_record) {
+//       /*If replayed all recorded events, ...*/
+//       replaying_events->close_push();
+//       delete input_format;
+//       break;
+//     } else {
+//       encoder->decode(*input_format);
+//       encoder->insert_encoder_input_format_chunk(*recording_events, *replaying_events, *input_format);
+//       delete input_format;
+//       input_format = encoder->create_encoder_input_format();
+//     }
+//   }
+
+// #ifdef REMPI_DBG_REPLAY
+//   REMPI_DBGI(REMPI_DBG_REPLAY, "end ====== (CDC thread)");
+// #endif
+
+//   encoder->close_record_file();
+//   return;
+// }
 
 // void rempi_io_thread::read_record()
 // {

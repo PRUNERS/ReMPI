@@ -207,7 +207,13 @@ int rempi_recorder_cdc::replay_init(int *argc, char ***argv, int rank)
   replaying_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
   read_record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode, &mc_encoder); //1: replay mode
   //  REMPI_DBG("io thread is not runnig");
+  mc_encoder->set_record_path(rempi_record_dir_path + "/rank_" + id + ".rempi");
+
+#ifdef REMPI_MULTI_THREAD
   read_record_thread->start();
+#endif
+
+
   ((rempi_encoder_cdc*)mc_encoder)->init_cp();
   return 0;
 }
@@ -516,6 +522,12 @@ bool rempi_recorder_cdc::progress_send_requests()
 }
 
 
+int rempi_recorder_cdc::progress_decode()
+{
+  return 0;
+}
+
+
 /*Test all recv requests, and if matched, put the events to the queue*/
 int rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 					       int incount,
@@ -778,7 +790,7 @@ int rempi_recorder_cdc::replay_testsome(
 
 
 #ifdef REMPI_DBG_REPLAY
-  //  REMPI_DBGI(REMPI_DBG_REPLAY, "testsome call: original test_id %d", global_test_id);
+  //REMPI_DBGI(REMPI_DBG_REPLAY, "testsome call: original test_id %d", global_test_id);
 #endif
 
 #ifdef REMPI_DBG_REPLAY	  
@@ -999,6 +1011,15 @@ int rempi_recorder_cdc::replay_testsome(
       interim_min_clock_in_next_event = mc_encoder->interim_min_clock_in_next_event[recv_test_id];
     }
 
+
+#ifndef REMPI_MULTI_THREAD
+    mc_encoder->progress_decoding(recording_event_list, replaying_event_list, recv_test_id);
+#endif
+
+    
+    
+
+
     while ((replaying_event = replaying_event_list->dequeue_replay(recv_test_id, event_list_status)) != NULL) {
 #ifdef REMPI_DBG_REPLAY
       REMPI_DBGI(REMPI_DBG_REPLAY, "RPQ->A  : (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) recv_test_id: %d",
@@ -1134,7 +1155,7 @@ int rempi_recorder_cdc::replay_testsome(
 
 
   if (*outcount != replaying_event_vec.size()) {
-    REMPI_DBG(" ==== tete 6.0 : replayng matching count is %d, but found  %d messages", replaying_event_vec.size(), *outcount);
+    REMPI_DBG("===== Replayng matching count is %d, but found  %d messages", replaying_event_vec.size(), *outcount);
     for (int j = 0; j < replaying_event_vec.size(); j++) {
       REMPI_DBG(" = Wrong: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): recv_test_id: %d ",
 		replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
@@ -1147,6 +1168,7 @@ int rempi_recorder_cdc::replay_testsome(
     // REMPI_DBGI(0, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): recv_test_id: %d ",
     // 		 replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
     // 		 replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), recv_test_id);
+    //    REMPI_DBGI(0, "Time overhead: %f", rempi_get_time() - replaying_event_vec[j]->ts);
 #ifdef REMPI_DBG_REPLAY
     REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): recv_test_id: %d ",
 	       replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
@@ -1193,7 +1215,9 @@ int rempi_recorder_cdc::record_finalize(void)
 
 int rempi_recorder_cdc::replay_finalize(void)
 {
+#ifdef REMPI_MULTI_THREAD
   read_record_thread->join();
+#endif
 
   //TODO:
   //fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);

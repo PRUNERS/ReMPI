@@ -56,6 +56,7 @@ class rempi_event
 
     MPI_Request request;
     vector<int> mpi_inputs; /*TODO: use array insted of vector*/
+    double ts;
 
     rempi_event()
       : clock_order(-1)

@@ -20,7 +20,7 @@ pthread_mutex_t print_mutex;
 using namespace std;
 
 int rempi_my_rank = -1;
-char hostname[256];
+static char hostname[256];
 
 queue<char*> rempi_log_q;
 
