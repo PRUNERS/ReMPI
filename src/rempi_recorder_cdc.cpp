@@ -1012,7 +1012,7 @@ int rempi_recorder_cdc::replay_testsome(
     }
 
 
-#ifndef REMPI_MULTI_THREAD
+#ifdef REMPI_MAIN_THREAD_PROGRESS
     mc_encoder->progress_decoding(recording_event_list, replaying_event_list, recv_test_id);
 #endif
 

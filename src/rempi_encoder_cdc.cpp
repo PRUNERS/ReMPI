@@ -1152,7 +1152,7 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
 
 
 
-#if 1
+#if 0
 int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id) 
 {
   bool is_all_finished = 0;
@@ -1284,7 +1284,7 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
   }
   progress_decoding_mtx.unlock();
 
-  //  if (has_new_event == 0 && recv_test_id == -1) usleep(1);
+  if (has_new_event == 0 && recv_test_id == -1) usleep(1);
 
   return is_all_finished;
 
