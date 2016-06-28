@@ -900,7 +900,7 @@ int rempi_recorder_cdc::replay_testsome(
        This function needs to be called before PMPI_Test. 
        If flag=0, we can make sure there are no in-flight messages, and 
        local_min_id is really minimal. */
-    if (interval++ % 10 == 0) {
+    if (interval++ % 1 == 0) {
       stra = MPI_Wtime();
       mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
       counta++;
