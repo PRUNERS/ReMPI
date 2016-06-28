@@ -612,7 +612,8 @@ int rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 	}
 #endif
 	recording_event_list->enqueue_replay(event_pooled, irecv_inputs->recv_test_id);
-	recv_clock_umap->insert(make_pair(event_pooled->get_source(), event_pooled->get_clock()));
+	/* next recv message is "receved clock + 1" => event_pooled->get_clock() + 1 */
+	recv_clock_umap->insert(make_pair(event_pooled->get_source(), event_pooled->get_clock() + 1));
 #ifdef REMPI_DBG_REPLAY	  
 	REMPI_DBGI(REMPI_DBG_REPLAY, "A->RCQ  : (count: %d, with_next: %d, flag: %d, source: %d,  clock: %d, msg_count: %d %p): recv_test_id: %d",
 		   event_pooled->get_event_counts(), event_pooled->get_is_testsome(), event_pooled->get_flag(),
@@ -900,7 +901,7 @@ int rempi_recorder_cdc::replay_testsome(
        This function needs to be called before PMPI_Test. 
        If flag=0, we can make sure there are no in-flight messages, and 
        local_min_id is really minimal. */
-    if (interval++ % 1 == 0) {
+    if (interval++ % 10 == 0) {
       stra = MPI_Wtime();
       mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
       counta++;

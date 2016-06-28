@@ -605,22 +605,6 @@ int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_cl
 
 #ifdef CP_DBG
 	if (rempi_cp_has_in_flight_msgs(mc_recv_ranks[j])) {
-	  /* recv_clock_umap will be null so I comment out this routine for now 
-	     TODO: put rec_clock_umap in pending-message_source_set == NULL
-	   */
-	  
-// 	  if (recv_clock_umap->find(mc_recv_ranks[j]) != recv_clock_umap->end()) {
-// 	    size_t last_clock = recv_clock_umap->at((mc_recv_ranks[j]));
-// 	    //	      size_t last_clock = recv_message_source_umap->at((mc_recv_ranks[j]));
-// 	    if (last_clock > solid_mc_next_clocks_umap->at(mc_recv_ranks[j])) {
-// #ifdef REMPI_DBG_REPLAY	
-// 	      is_updated = 1;
-// 	      REMPI_DBGI(REMPI_DBG_REPLAY, "update FD_CLOCK (rank: %d, clock: %lu, test_id: %d): pending or same id", mc_recv_ranks[j], last_clock, id);
-// #endif	    
-// 	      solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = last_clock;
-// 	    }
-// 	  }
-
 
 	} else {
 	  solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = rempi_cp_get_gather_clock(mc_recv_ranks[j]);
@@ -643,30 +627,6 @@ int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_cl
 	 we cannnot update anything.
 	 TODO: only update ranks with which MPI_probe probed
        */
-
-//       for (int i = 0, size = solid_mc_next_clocks_umap_vec.size(); i < size; i++) {
-// 	solid_mc_next_clocks_umap = solid_mc_next_clocks_umap_vec[i];
-// 	for (int j = 0; j < mc_length; j++) {
-// 	  if (recv_message_source_umap->find(mc_recv_ranks[j]) != recv_message_source_umap->end() && 
-// 	      recv_clock_umap->find(mc_recv_ranks[j]) != recv_clock_umap->end()) {
-// 	    // size_t last_clock;
-// 	    // try {
-// 	    //   last_clock = recv_clock_umap->at((mc_recv_ranks[j]));
-// 	    // } 
-// 	    // catch (std::exception& oor) {
-// 	    //   REMPI_DBG("here");
-// 	    // }
-// 	    size_t last_clock = recv_clock_umap->at((mc_recv_ranks[j]));
-// 	    //	    size_t last_clock = recording_events->get_last_enqueued_clock((mc_recv_ranks[j]));
-// 	    if (last_clock > solid_mc_next_clocks_umap->at(mc_recv_ranks[j])) {
-// #ifdef REMPI_DBG_REPLAY	
-// 	      is_updated = 1;
-// #endif	    
-// 	      solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = last_clock;
-// 	    }
-// 	  }
-// 	}
-//       }       
     } else {
 
       for (int id = 0, size = solid_mc_next_clocks_umap_vec.size(); id < size; id++) {
@@ -674,15 +634,7 @@ int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_cl
 	for (int j = 0; j < mc_length; j++) {
 	  if (pending_message_source_set->find(mc_recv_ranks[j]) != pending_message_source_set->end() && id != recv_test_id) {
 	    if (recv_clock_umap->find(mc_recv_ranks[j]) != recv_clock_umap->end()) {
-	    // size_t last_clock;
-	    // try {
-	    //   last_clock = recv_clock_umap->at((mc_recv_ranks[j]));
-	    // } 
-	    // catch (std::exception& oor) {
-	    //   REMPI_DBG("here");
-	    // }
 	    size_t last_clock = recv_clock_umap->at((mc_recv_ranks[j]));
-	      //	      size_t last_clock = recv_message_source_umap->at((mc_recv_ranks[j]));
 	      if (last_clock > solid_mc_next_clocks_umap->at(mc_recv_ranks[j])) {
 #ifdef REMPI_DBG_REPLAY	
 	      is_updated = 1;
@@ -697,15 +649,7 @@ int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_cl
 	      So only update with recv_clock. 
 	    */
 	    if (recv_clock_umap->find(mc_recv_ranks[j]) != recv_clock_umap->end()) {
-	      //	    size_t last_clock;
-	      // try {
-	      //   last_clock = recv_clock_umap->at((mc_recv_ranks[j]));
-	      // } 
-	      // catch (std::exception& oor) {
-	      //   REMPI_DBG("here");
-	      // }
 	      size_t last_clock = recv_clock_umap->at((mc_recv_ranks[j]));
-	      //	    size_t last_clock = recv_message_source_umap->at((mc_recv_ranks[j]));
 	      if (last_clock > solid_mc_next_clocks_umap->at(mc_recv_ranks[j])) {
 #ifdef REMPI_DBG_REPLAY	
 		is_updated = 1;
