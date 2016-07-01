@@ -22,7 +22,6 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
   record_path = rempi_record_dir_path + "/rank_" + id + ".rempi";
   encoder = NULL;
 #if !defined(REMPI_LITE)
-
   if (rempi_encode == 0) {
     encoder = new rempi_encoder(mode);                       //  (1): Simple record (count, flag, rank with_next and clock)
   } else if (rempi_encode == 1) {
@@ -73,6 +72,8 @@ rempi_io_thread::~rempi_io_thread()
   delete encoder;
 }
 
+
+int count = 0;
 void rempi_io_thread::write_record()
 {
   encoder->open_record_file(record_path);
@@ -95,6 +96,7 @@ void rempi_io_thread::write_record()
       //input_format->debug_print();
       /*Then, write to file.*/
       encoder->write_record_file(*input_format);
+      REMPI_DBG("write record: %d", count++);
       e = rempi_get_time();
       delete input_format; //TODO: also delete iternal data in this variable
       input_format = encoder->create_encoder_input_format();

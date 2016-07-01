@@ -11,7 +11,8 @@
 
 #define windowBits 15
 #define GZIP_ENCODING 16
-#define ZLIB_CHUNK (16 * 1014 * 1024)
+//#define ZLIB_CHUNK (16 * 1014 * 1024)
+#define ZLIB_CHUNK (1 * 1024)
 
 #define CALL_ZLIB(x) {                                                  \
     int status;								\

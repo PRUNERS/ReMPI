@@ -10,7 +10,8 @@ struct rempi_cp_prop_clock
 #endif
 
 
-void rempi_cp_init(int input_length, int* input_pred_ranks);
+//void rempi_cp_init(int input_length, int* input_pred_ranks);
+void rempi_cp_init(const char* record_path);
 int  rempi_cp_initialized();
 void rempi_cp_gather_clocks();
 void rempi_cp_finalize();

@@ -44,10 +44,14 @@ class rempi_encoder_input_format_test_table
 
   /*Used for CDC*/
   int count;// = 0;
+  
+  static unordered_set<int> all_epoch_rank_uset; /* Union of epoch_rank_vec across different epochs */
+
 
   unordered_map<size_t, size_t>      epoch_umap;   /*To keep track of current frontier line on replay*/
   vector<size_t>                  epoch_rank_vec;  /*ranks creating this epoch line in this test_table from record file*/
   vector<size_t>                  epoch_clock_vec; /*each value of epoch line of ranks in  epoch_rank_vec from record file*/
+  unordered_map<int, size_t>      epoch_line_umap;  /*Map rank to last clock in the epoch */
   size_t                       epoch_size; /*each size of epoch_{rank|clock}_vec. so epoch_size x 2 is total size of epoch*/
 
 
@@ -98,13 +102,16 @@ class rempi_encoder_input_format_test_table
   unordered_map<int, int> pending_event_count_umap; /*rank->pending_counts*/
   unordered_map<int, int> current_epoch_line_umap;  /* rank->max clock of this rank*/
   //  rempi_event*                       min_clock_event_in_current_epoch = NULL;
-  
+
+  int within_epoch(rempi_event *e);  
   void clear();
 };
 
 class rempi_encoder_input_format
 {
  public:
+  rempi_event *last_added_event;
+
   size_t total_length;// = 0;
   
   /*Used for CDC*/  
@@ -157,6 +164,7 @@ class rempi_encoder_input_format
 class rempi_encoder
 {  
  protected:
+  static const size_t all_epoch_rank_separator = 0;
   struct local_minimal_id {
     int rank;
     size_t clock;
@@ -221,7 +229,7 @@ class rempi_encoder
     virtual rempi_encoder_input_format* create_encoder_input_format();
 
     void open_record_file(string record_path);
-    void close_record_file();
+    virtual void close_record_file();
     void set_record_path(string record_path);
 
     /*For only record*/
@@ -353,6 +361,7 @@ class rempi_encoder_cdc : public rempi_encoder
 
  private:
   /* === For frontier detection === */
+
   MPI_Comm mpi_fd_clock_comm;
   MPI_Win mpi_fd_clock_win;
   PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
@@ -360,7 +369,7 @@ class rempi_encoder_cdc : public rempi_encoder
 
   int decoding_state;
   int finished_testsome_count;
-  unordered_map<int, vector<rempi_event*>*> matched_events_vec_umap;
+  unordered_map<int, list<rempi_event*>*> matched_events_list_umap;
   list<rempi_event*> replay_event_list;
   rempi_encoder_input_format *decoding_input_format;
   
@@ -369,13 +378,14 @@ class rempi_encoder_cdc : public rempi_encoder
 
   /* ============================== */
 
+  void init_recv_ranks(char* path);
   void cdc_prepare_decode_indices(
 				  size_t matched_event_count,
 				  vector<size_t> &matched_events_id_vec,
 				  vector<size_t> &matched_events_delay_vec,
 				  vector<int> &matched_events_square_sizes,
 				  vector<int> &matched_events_permutated_indices);
-  bool cdc_decode_ordering(rempi_event_list<rempi_event*> &recording_events, vector<rempi_event*> &event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> &replay_event_list, int test_id, int local_min_id_rank, size_t local_min_id_clock);
+  bool cdc_decode_ordering(rempi_event_list<rempi_event*> *recording_events, list<rempi_event*> *event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> *replay_event_list, int test_id, int local_min_id_rank, size_t local_min_id_clock);
 
 
  protected:
@@ -394,7 +404,7 @@ class rempi_encoder_cdc : public rempi_encoder
   rempi_encoder_cdc(int mode);
   ~rempi_encoder_cdc();
 
-  void init_cp();
+  void init_cp(const char* record_path);
 
   /*For common*/
   virtual rempi_encoder_input_format* create_encoder_input_format();
@@ -426,7 +436,8 @@ class rempi_encoder_cdc : public rempi_encoder
 				    int *local_min_id_rank, 
 				    size_t *local_min_id_clock,
 				    int recv_test_id);
-  virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/
+  virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/    
+  void close_record_file();
 
   //  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };
@@ -459,7 +470,7 @@ class rempi_encoder_rep : public rempi_encoder
 				  vector<size_t> &matched_events_delay_vec,
 				  vector<int> &matched_events_square_sizes,
 				  vector<int> &matched_events_permutated_indices);
-  bool cdc_decode_ordering(rempi_event_list<rempi_event*> &recording_events, vector<rempi_event*> &event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> &replay_event_list, int test_id, int local_min_id_rank, size_t local_min_id_clock);
+  bool cdc_decode_ordering(rempi_event_list<rempi_event*> *recording_events, list<rempi_event*> *event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> *replay_event_list, int test_id, int local_min_id_rank, size_t local_min_id_clock);
 
 
  protected:

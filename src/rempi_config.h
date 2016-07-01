@@ -16,7 +16,7 @@ extern int rempi_lite;
 extern int rempi_mode;
 
 #define REMPI_ENV_NAME_DIR "REMPI_DIR"
-#define REMPI_MAX_LENGTH_RECORD_DIR_PATH (256)
+#define REMPI_MAX_LENGTH_RECORD_DIR_PATH (4096)
 extern string rempi_record_dir_path;
 
 #define REMPI_ENV_NAME_ENCODE "REMPI_ENCODE"
@@ -33,7 +33,6 @@ extern int rempi_is_test_id;
 extern int rempi_max_event_length;
 
 
-
 //#define REMPI_DBG_REPLAY (-1)
 
 //#define REMPI_DBG_LOG
@@ -45,8 +44,11 @@ extern int rempi_max_event_length;
 
 //#define REMPI_DBG_ASSERT (-1)
 
+
 //#define REMPI_MULTI_THREAD
+#ifndef  REMPI_MULTI_THREAD
 #define REMPI_MAIN_THREAD_PROGRESS
+#endif
 
 
 #define REMPI_MAX_RECV_TEST_ID (128)

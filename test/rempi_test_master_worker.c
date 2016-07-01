@@ -8,9 +8,10 @@
 
 #include "rempi_test_util.h"
 
-#define NUM_MEG_PER_RANK (10)
+#define NUM_MEG_PER_RANK (100)
 #define MAX_HASH (1000000)
 int my_rank;
+
 
 
 int main(int argc, char *argv[])

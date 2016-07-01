@@ -3,6 +3,11 @@
 #include <sys/time.h>
 #include <string.h>
 #include <signal.h>
+#include <sys/types.h> 
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <unordered_map>
 
@@ -29,12 +34,12 @@ static size_t rempi_cp_scatter_clock = 0;
 static struct rempi_cp_prop_clock *rempi_cp_scatter_pc;
 
 
-static int rempi_pred_rank_count;
+static size_t rempi_pred_rank_count;
 static int *rempi_pred_ranks, *rempi_pred_indices;
 unordered_map<int, int> rempi_pred_ranks_indices_umap;
 static size_t *rempi_recv_counts;
 
-static int rempi_succ_rank_count;
+static size_t rempi_succ_rank_count;
 static int *rempi_succ_ranks, *rempi_succ_indices;
 unordered_map<int, int> rempi_succ_ranks_indices_umap;
 
@@ -117,7 +122,7 @@ static int compare(const void *val1, const void *val2)
 /*TODO: 
  COMM_WORLD => REMPI_COMM_WORLD */
 static void rempi_cp_remote_indexing(int input_length, int* input_pred_ranks, int* output_pred_indices, 
-				     int* output_succ_rank_count, int** output_succ_ranks, int** output_succ_indices)
+				     size_t* output_succ_rank_count, int** output_succ_ranks, int** output_succ_indices)
 {
   int comm_world_size;
   int *remote_rank_flags; 
@@ -193,21 +198,62 @@ static void rempi_cp_remote_indexing(int input_length, int* input_pred_ranks, in
   return;
 }
 
-void rempi_cp_init(int input_length, int* input_pred_ranks)
+static void rempi_cp_init_pred_ranks(const char* path)
+{
+  int fd;
+  size_t chunk_size = 1;
+  size_t count = 1;
+
+  fd = open(path, O_RDONLY);
+  while(chunk_size != 0 && count != 0) {
+    count = read(fd, &chunk_size, sizeof(size_t));
+    lseek(fd, chunk_size, SEEK_CUR);
+  }
+
+  //  sleep(my_rank);
+  //  REMPI_DBG("separator: %d", chunk_size);
+  if (chunk_size == 0) {
+    count = read(fd, &rempi_pred_rank_count, sizeof(size_t));
+    //    REMPI_DBG("rank_count: %d, read_count: %lu", rempi_pred_rank_count, count);
+    if (rempi_pred_rank_count > 0) {
+      rempi_pred_ranks = (int*)rempi_malloc(rempi_pred_rank_count * sizeof(int));
+      count = read(fd, rempi_pred_ranks, rempi_pred_rank_count * sizeof(int));
+      if (count != rempi_pred_rank_count * sizeof(int)) {
+	REMPI_ERR("Incocnsistent size to actual data size");
+      }
+    }
+  }  
+
+  // int a, b;
+  // count = read(fd, &a, sizeof(int));
+  // REMPI_DBG("rest size: %lu %d", count, a);
+  // count = read(fd, &b, sizeof(int));
+  // REMPI_DBG("rest size: %lu %d", count, b);
+
+  close(fd);
+
+
+  return;
+}
+
+//void rempi_cp_init(int input_length, int* input_pred_ranks)
+void rempi_cp_init(const char* path)
 {
   int ret;
+  
+
 
 
 
   PMPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   PMPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
-  rempi_pred_rank_count = input_length;
-  rempi_pred_ranks      = input_pred_ranks;
-  rempi_pred_indices    = (input_length > 0)? (int*)malloc(sizeof(int) * input_length):NULL;
+
+  rempi_cp_init_pred_ranks(path);
+  rempi_pred_indices    = (rempi_pred_rank_count > 0)? (int*)malloc(sizeof(int) * rempi_pred_rank_count):NULL;
 
 
-  rempi_cp_remote_indexing(input_length, input_pred_ranks, rempi_pred_indices, 
+  rempi_cp_remote_indexing(rempi_pred_rank_count, rempi_pred_ranks, rempi_pred_indices, 
 			   &rempi_succ_rank_count, &rempi_succ_ranks, &rempi_succ_indices);
 
   /* == Init Window for one-sided communication for clock propagation == */
@@ -228,6 +274,7 @@ void rempi_cp_init(int input_length, int* input_pred_ranks)
     rempi_pred_ranks_indices_umap[rempi_pred_ranks[i]] = i;
     rempi_recv_counts[i] = 0;
   }
+
   for (int i = 0; i < rempi_succ_rank_count; i++) {
     rempi_succ_ranks_indices_umap[rempi_succ_ranks[i]] = i;
   }
@@ -261,9 +308,11 @@ void rempi_cp_gather_clocks()
     }
   }
 
-  if ((ret = PMPI_Win_flush_local_all(rempi_cp_win)) != MPI_SUCCESS) {
-    //    REMPI_DBG("PMPI_Win_flush_local_all failed");
-    fprintf(stderr, "PMPI_Win_flush_local_all failed\n");
+  if (rempi_pred_rank_count > 0) {
+    if ((ret = PMPI_Win_flush_local_all(rempi_cp_win)) != MPI_SUCCESS) {
+      //    REMPI_DBG("PMPI_Win_flush_local_all failed");
+      fprintf(stderr, "PMPI_Win_flush_local_all failed\n");
+    }
   }
 
   return;
@@ -305,7 +354,13 @@ void rempi_cp_record_send(int dest_rank, size_t clock)
   int index;
   if (rempi_succ_ranks_indices_umap.find(dest_rank) == 
       rempi_succ_ranks_indices_umap.end()) {
-    REMPI_ERR("Rank %d does not exist", dest_rank);
+
+    for (unordered_map<int, int>::iterator it = rempi_succ_ranks_indices_umap.begin(),
+    	   it_end = rempi_succ_ranks_indices_umap.end();
+         it != it_end; it++) {
+      REMPI_DBG("Succ rank: %d", *it);
+    }
+    REMPI_ERR("Rank %d does not exist in Succ map: size: %lu", dest_rank, rempi_succ_ranks_indices_umap.size());
   }
   index = rempi_succ_ranks_indices_umap.at(dest_rank);
   rempi_cp_scatter_pc[index].send_count++;

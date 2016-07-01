@@ -232,7 +232,7 @@ rempi_event* rempi_event::create_test_event(int event_count, int flag, int rank,
   e->mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_INDEX]             = index;
   e->mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_MSG_ID]            = msg_id;
   e->mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_MATCHING_GROUP_ID] = matching_id;
-  e->ts = rempi_get_time();
+  //  e->ts = rempi_get_time();
   return e;
 }
 
