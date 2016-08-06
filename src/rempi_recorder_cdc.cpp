@@ -442,8 +442,8 @@ int rempi_recorder_cdc::record_test(
     record_gid    = test_id;
   }
 #ifdef REMPI_DBG_REPLAY
-  REMPI_DBGI(REMPI_DBG_REPLAY, "= Record: (count: %d, with_next: %d, flag: %d, source: %d, tag: %d clock: %d): test_id: %d",
-   	     event_count, with_next, *flag, record_source, tag, record_msg_id, record_gid);
+   REMPI_DBGI(REMPI_DBG_REPLAY, "= Record: (count: %d, with_next: %d, flag: %d, source: %d, tag: %d clock: %d): test_id: %d",
+    	     event_count, with_next, *flag, record_source, tag, record_msg_id, record_gid);
 #endif
 
   //  recording_event_list->push(new rempi_test_event(event_count, with_previous, record_comm_id, *flag, record_source, record_tag, record_clock, test_id));

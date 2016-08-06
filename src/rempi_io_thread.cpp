@@ -29,7 +29,7 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
   } else if (rempi_encode == 2) {
     encoder = new rempi_encoder_zlib(mode);                  //  (3): (2) + distingusishing different test/testsome
   } 
-#ifdef MPI_VERSION == 3
+#if MPI_VERSION == 3
   else if (rempi_encode == 3) {
     encoder = new rempi_encoder_cdc_row_wise_diff(mode);     //  (4): (3) + row_wise diff
   } else if (rempi_encode == 4) {
@@ -96,7 +96,6 @@ void rempi_io_thread::write_record()
       //input_format->debug_print();
       /*Then, write to file.*/
       encoder->write_record_file(*input_format);
-      REMPI_DBG("write record: %d", count++);
       e = rempi_get_time();
       delete input_format; //TODO: also delete iternal data in this variable
       input_format = encoder->create_encoder_input_format();
@@ -129,37 +128,37 @@ void rempi_io_thread::read_record()
 }
 
 
-// void rempi_io_thread::read_record()
-// {
-//   rempi_encoder_input_format *input_format;
-//   bool is_no_more_record;
+void rempi_io_thread::read_record_lite()
+{
+  rempi_encoder_input_format *input_format;
+  bool is_no_more_record;
 
 
-//   encoder->open_record_file(record_path);
-//   input_format = encoder->create_encoder_input_format();
+  encoder->open_record_file(record_path);
+  input_format = encoder->create_encoder_input_format();
 
-//   while(1) {
-//     is_no_more_record = encoder->read_record_file(*input_format);
-//     if (is_no_more_record) {
-//       /*If replayed all recorded events, ...*/
-//       replaying_events->close_push();
-//       delete input_format;
-//       break;
-//     } else {
-//       encoder->decode(*input_format);
-//       encoder->insert_encoder_input_format_chunk(*recording_events, *replaying_events, *input_format);
-//       delete input_format;
-//       input_format = encoder->create_encoder_input_format();
-//     }
-//   }
+  while(1) {
+    is_no_more_record = encoder->read_record_file(*input_format);
+    if (is_no_more_record) {
+      /*If replayed all recorded events, ...*/
+      replaying_events->close_push();
+      delete input_format;
+      break;
+    } else {
+      encoder->decode(*input_format);
+      encoder->insert_encoder_input_format_chunk(*recording_events, *replaying_events, *input_format);
+      delete input_format;
+      input_format = encoder->create_encoder_input_format();
+    }
+  }
 
-// #ifdef REMPI_DBG_REPLAY
-//   REMPI_DBGI(REMPI_DBG_REPLAY, "end ====== (CDC thread)");
-// #endif
+#ifdef REMPI_DBG_REPLAY
+  REMPI_DBGI(REMPI_DBG_REPLAY, "end ====== (CDC thread)");
+#endif
 
-//   encoder->close_record_file();
-//   return;
-// }
+  encoder->close_record_file();
+  return;
+}
 
 // void rempi_io_thread::read_record()
 // {
@@ -200,7 +199,12 @@ void rempi_io_thread::run()
   if (mode == 0) {
     write_record();
   } else if (mode == 1) {
-    read_record();
+    if (rempi_encode == 0) {
+      read_record_lite();
+    } else {
+      read_record();
+    }
+
   } else {
     REMPI_ERR("Unexpected mode in rempi_io_thread: %d", mode);
   }

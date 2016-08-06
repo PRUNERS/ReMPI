@@ -33,7 +33,7 @@ extern int rempi_is_test_id;
 extern int rempi_max_event_length;
 
 
-//#define REMPI_DBG_REPLAY (-1)
+//#define REMPI_DBG_REPLAY (0)
 
 //#define REMPI_DBG_LOG
 #define REMPI_DBG_LOG_BUF_SIZE (512)
@@ -45,10 +45,8 @@ extern int rempi_max_event_length;
 //#define REMPI_DBG_ASSERT (-1)
 
 
-//#define REMPI_MULTI_THREAD
-#ifndef  REMPI_MULTI_THREAD
-#define REMPI_MAIN_THREAD_PROGRESS
-#endif
+#define REMPI_MULTI_THREAD
+//#define REMPI_MAIN_THREAD_PROGRESS
 
 
 #define REMPI_MAX_RECV_TEST_ID (128)

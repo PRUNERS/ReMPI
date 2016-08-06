@@ -484,7 +484,7 @@ void rempi_encoder::decode(rempi_encoder_input_format &input_format)
 
 int rempi_encoder::progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id)
 {
-  REMPI_ERR("Not supported");
+  //  REMPI_ERR("Not supported");
   return -1;
 }
 

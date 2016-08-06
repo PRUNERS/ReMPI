@@ -22,27 +22,59 @@
 using namespace std;
 
 
-int rempi_re_cdc::re_testany(int count, MPI_Request array_of_requests[], int *index, int *flag, MPI_Status *status){
-  REMPI_ERR("%s is not supported yet", __func__);
-  return 0;
+int rempi_re_cdc::re_testany(int count, MPI_Request array_of_requests[], int *index, int *flag, MPI_Status *status) {
+  for (int i = 0; i < count; i++) {
+    re_test(&array_of_requests[i], flag, status);
+    if (*flag) {
+      *index = i;
+      break;
+    }
+  }
+  return MPI_SUCCESS;
 }
-int rempi_re_cdc::re_testall(int count, MPI_Request array_of_requests[], int *flag, MPI_Status array_of_statuses[]){
-  REMPI_ERR("%s is not supported yet", __func__);
-  return 0;
+int rempi_re_cdc::re_testall(int count, MPI_Request array_of_requests[], int *flag, MPI_Status array_of_statuses[])
+{
+  int local_flag = 0;
+  int matched_count = 0;
+  for (int i = 0; i < count; i++) {
+    if (array_of_requests[i] != MPI_REQUEST_NULL) {
+      re_test(&array_of_requests[i], &local_flag, &array_of_statuses[i]);
+    } else {
+      local_flag = 1;
+    }
+    if (local_flag) {
+      matched_count++;
+      local_flag = 0;
+    }
+  }
+
+  *flag = (matched_count == count)? 1:0;
+  return MPI_SUCCESS;
 }
 int rempi_re_cdc::re_wait(MPI_Request *request, MPI_Status *status){
-  REMPI_ERR("%s is not supported yet", __func__);
-  return 0;
+  int flag = 0;
+  while(!flag) {
+    re_test(request, &flag, status);
+  }
+  return MPI_SUCCESS;
 }
 
-int rempi_re_cdc::re_waitany(int count, MPI_Request array_of_requests[], int *index, MPI_Status *status){
-  REMPI_ERR("%s is not supported yet", __func__);
-  return 0;
+int rempi_re_cdc::re_waitany(int count, MPI_Request array_of_requests[], int *index, MPI_Status *status)
+{
+  int flag = 0;
+  while(!flag) {
+    re_testany(count, array_of_requests, index, &flag, status);
+  }
+  return MPI_SUCCESS;
 }
 
-int rempi_re_cdc::re_waitsome(int incount, MPI_Request array_of_requests[], int *outcount, int array_of_indices[], MPI_Status array_of_statuses[]){
-  REMPI_ERR("%s is not supported yet", __func__);
-  return 0;
+int rempi_re_cdc::re_waitsome(int incount, MPI_Request array_of_requests[], int *outcount, int array_of_indices[], MPI_Status array_of_statuses[])
+{
+  *outcount = 0;
+  while(*outcount == 0) {
+    re_testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
+  }
+  return MPI_SUCCESS;
 }
 
 int rempi_re_cdc::re_probe(int source, int tag, MPI_Comm comm, MPI_Status *status){

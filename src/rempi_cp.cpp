@@ -358,7 +358,7 @@ void rempi_cp_record_send(int dest_rank, size_t clock)
     for (unordered_map<int, int>::iterator it = rempi_succ_ranks_indices_umap.begin(),
     	   it_end = rempi_succ_ranks_indices_umap.end();
          it != it_end; it++) {
-      REMPI_DBG("Succ rank: %d", *it);
+      REMPI_DBG("Succ rank: %d", it->first);
     }
     REMPI_ERR("Rank %d does not exist in Succ map: size: %lu", dest_rank, rempi_succ_ranks_indices_umap.size());
   }

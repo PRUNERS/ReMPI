@@ -40,15 +40,17 @@ static void on_message_race(int safe, int loop_id)
   switch(safe) {
   case 0:
     rempi_test_dbg_print("Wrong matching detected shoulde not occur");
-    exit(0);
+    exit(1);
     break;
   case 1:
-    /*Do nothing to hang this */
+    /* Do nothing to hang this */
     break;
   case 2:
+    /* Abort */
     MPI_Abort(MPI_COMM_WORLD, 0);
     break;
   case 3:
+    /* Segmentation fault */
     *a = 1;    
     break;
   default:

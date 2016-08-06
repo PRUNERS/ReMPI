@@ -28,6 +28,7 @@ class rempi_io_thread : public rempi_thread
 		virtual void run();
 		void write_record();
 		void read_record();
+		void read_record_lite();
 	public:
 
                 rempi_io_thread(rempi_event_list<rempi_event*> *recording_events, 

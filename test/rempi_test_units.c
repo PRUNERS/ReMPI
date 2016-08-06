@@ -73,7 +73,8 @@ double start, end, overall_end;
 
 int matching_ids[] = {
   MPI_Test_id,
-  MPI_Testany_id,
+  MPI_Test_id,
+  //  MPI_Testany_id,
   MPI_Testsome_id,
   MPI_Testall_id,
   MPI_Wait_id,
@@ -322,6 +323,8 @@ void rempi_test_probe(int probe_type)
 
 void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
 {
+
+
   int i, j;
   if (my_rank != 0) {
     rempi_test_mpi_sends_with_random_sleep();
@@ -342,7 +345,7 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
   MPI_Status status;
   int *matched_indices;
 
-  //  rempi_test_dbg_print("Start Test MPI_test: %d (%d) = %d x %d", matching_type, num_send_msgs, num_sender, NUM_TEST_MSG);
+  rempi_test_dbg_print("Rank %d: Start Test MPI_test: %d (%d) = %d x %d", my_rank, matching_type, num_send_msgs, num_sender, NUM_TEST_MSG);
 
   requests   = (MPI_Request*)malloc(sizeof(MPI_Request) * (num_sender));
   statuses   = (MPI_Status*)malloc(sizeof(MPI_Status) * (num_sender));
@@ -352,7 +355,7 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
     MPI_Irecv(&recv_vals[i], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[i]);
   }
 
-  
+
   
   switch(matching_type) {
   case MPI_Test_id:
@@ -377,7 +380,6 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
 	  break;
 	}
       }
-      //      rempi_test_dbg_print("            SOURCE: %d, TAG: %d, index: %d", status.MPI_SOURCE, status.MPI_TAG, matched_index);
       MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[matched_index]);
     }
     break;
@@ -419,6 +421,7 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
   case MPI_Wait_id:
     for (i = 0; i < num_send_msgs; i++) {
       MPI_Wait(&requests[request_index], &status);
+
       MPI_Irecv(&recv_vals[request_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[request_index]);
       request_index = (request_index + 1) % num_sender;
     }
@@ -661,6 +664,8 @@ int main(int argc, char *argv[])
   signal(SIGSEGV, SIG_DFL);
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+
   
   init_ndrand();
   start = MPI_Wtime();

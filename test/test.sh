@@ -18,7 +18,7 @@ bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticl
 cd ./external/mcb/run-decks/
 make cleanc
 librempi="../../../../lib/librempi.so"
-REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 REMPI_MAX=500 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 REMPI_MAX=500000 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
 cd -
 exit
 
