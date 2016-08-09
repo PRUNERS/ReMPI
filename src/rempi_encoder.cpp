@@ -119,9 +119,9 @@ void rempi_encoder_input_format::clear()
     test_table->clear();
     delete test_table;
   }
-  for (int i = 0, n = write_queue_vec.size(); i < n; i++) {
-    free(write_queue_vec[i]);
-  }
+  // for (int i = 0, n = write_queue_vec.size(); i < n; i++) {
+  //   free(write_queue_vec[i]);
+  // }
   write_queue_vec.clear();
   write_size_queue_vec.clear();
   return;
