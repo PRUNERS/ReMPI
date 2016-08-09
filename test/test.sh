@@ -9,7 +9,13 @@ num_procs=$2
 dir=${prefix}/test/.rempi
 mkdir ${dir}
 #io_watchdog="--io-watchdog"
-#memcheck="memcheck  --xml-file=/tmp/unit.cab687.0.mc"
+#memcheck="memcheck --xml-file=/tmp/rempi.mc"
+memcheck="memcheck"
+
+bin="./rempi_test_mini_mcb 50 0 100"
+librempi="../lib/librempi.so"
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 REMPI_MAX=16 LD_PRELOAD=${librempi} srun -n ${num_procs} ${memcheck} ${bin}
+exit
 
 
 par=1000
@@ -17,9 +23,12 @@ bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticl
 cd ./external/mcb/run-decks/
 make cleanc
 librempi="../../../../lib/librempi.so"
-REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 REMPI_MAX=50 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 REMPI_MAX=16 LD_PRELOAD=${librempi} srun -n ${num_procs} ${memcheck} ${bin}
 cd -
 exit
+
+
+
 
 bin="./rempi_test_units matching"
 librempi="../lib/librempi.so"
@@ -30,10 +39,7 @@ exit
 
 
 
-bin="./rempi_test_mini_mcb 5 0 10"
-librempi="../lib/librempi.so"
-REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 REMPI_MAX=50 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-exit
+
 
 
 

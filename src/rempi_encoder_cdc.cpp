@@ -786,10 +786,10 @@ int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_cl
   if (last_local_min_id_rank  != global_local_min_id.rank ||
       last_local_min_id_clock != global_local_min_id.clock) {
 #ifdef REMPI_DBG_REPLAY
-    REMPI_DBGI(REMPI_DBG_REPLAY, "GLLC Clock Update: (rank: %d, clock:%lu) -> (rank:%d, clock:%lu)",
-	       last_local_min_id_rank, last_local_min_id_clock,
-	       min_recv_rank, min_next_clock
-	       );
+    // REMPI_DBGI(REMPI_DBG_REPLAY, "GLLC Clock Update: (rank: %d, clock:%lu) -> (rank:%d, clock:%lu)",
+    // 	       last_local_min_id_rank, last_local_min_id_clock,
+    // 	       min_recv_rank, min_next_clock
+    // 	       );
 #endif
     return 1;
   }
@@ -1042,6 +1042,9 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
     vector<size_t> compressed_write_size_queue_vec;
     compression_util.compress_by_zlib_vec(input_format.write_queue_vec, input_format.write_size_queue_vec,
 					  compressed_write_queue_vec, compressed_write_size_queue_vec, total_compressed_size);
+    if (total_compressed_size == all_epoch_rank_separator) {
+      REMPI_ERR("total_compressed_size is same as separator: %d", all_epoch_rank_separator);
+    }
     record_fs.write((char*)&total_compressed_size, sizeof(total_compressed_size));
     write_size_vec.push_back(sizeof(total_compressed_size));
     for (int i = 0; i < compressed_write_queue_vec.size(); i++) {
@@ -1144,7 +1147,7 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
   progress_decoding_mtx.lock();
   while(!suspend_progress) {
     if (decoding_state != decoding_state_old) {
-      REMPI_DBGI(3, "state: %d => %d (recv_test_id: %d)", decoding_state_old, decoding_state, recv_test_id);
+      REMPI_DBG("state: %d => %d (recv_test_id: %d)", decoding_state_old, decoding_state, recv_test_id);
     }
     decoding_state_old = decoding_state;
     switch (decoding_state) {
@@ -1156,10 +1159,12 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
       decoding_input_format = this->create_encoder_input_format();
       is_no_more_record = this->read_record_file(*decoding_input_format);
       decoding_state = (is_no_more_record)? REMPI_DECODE_STATUS_CLOSE:REMPI_DECODE_STATUS_DECODE;
+      suspend_progress = 1; /*TODO: find out why out_of_range crash happens if I remove "suspend_progress=1 here "*/
       break;
     case REMPI_DECODE_STATUS_DECODE: //2
       this->decode(*decoding_input_format);
       decoding_state = REMPI_DECODE_STATUS_INSERT;
+      suspend_progress = 1;
       //      REMPI_DBG("decoded !!");
       break;
     case REMPI_DECODE_STATUS_INSERT: //3
@@ -1195,10 +1200,10 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
       decoding_state = REMPI_DECODE_STATUS_COMPLETE;
       is_all_finished = 1;
       suspend_progress = 1;
+      REMPI_DBG("No more event");
       break;
     case REMPI_DECODE_STATUS_COMPLETE: //5
-      //REMPI_ERR("No more events to replay");
-      REMPI_DBG("no more event");
+      REMPI_DBG("Again, No more event");
       is_all_finished = 1;
       suspend_progress = 1;
       break;

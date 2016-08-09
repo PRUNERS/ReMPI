@@ -12,9 +12,9 @@
 #define windowBits 15
 #define GZIP_ENCODING 16
 #ifdef REMPI_LITE
-#define ZLIB_CHUNK (16 * 1014 * 1024)
+#define ZLIB_CHUNK (1 *  1024)
 #else
-#define ZLIB_CHUNK (1 * 1024 * 1024)
+#define ZLIB_CHUNK (1 *  1024)
 #endif
 
 #define CALL_ZLIB(x) {                                                  \
