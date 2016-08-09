@@ -111,6 +111,7 @@ class rempi_encoder_input_format
 {
  public:
   rempi_event *last_added_event;
+  char* decompressed_record_char;
 
   size_t total_length;// = 0;
   
@@ -372,8 +373,6 @@ class rempi_encoder_cdc : public rempi_encoder
   unordered_map<int, list<rempi_event*>*> matched_events_list_umap;
   list<rempi_event*> replay_event_list;
   rempi_encoder_input_format *decoding_input_format;
-  
-
 
 
   /* ============================== */

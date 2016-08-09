@@ -102,6 +102,10 @@ class rempi_re_cdc : public rempi_re
   rempi_re_cdc() {
     recorder = new rempi_recorder_cdc();
   };
+
+  ~rempi_re_cdc() {
+    free(recorder);
+  }
   
   REMPI_FUNCTIONS
 

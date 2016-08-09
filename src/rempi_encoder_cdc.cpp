@@ -392,6 +392,9 @@ rempi_encoder_cdc::rempi_encoder_cdc(int mode)
 
 rempi_encoder_cdc::~rempi_encoder_cdc()
 {
+  for (int i = 0, n = solid_mc_next_clocks_umap_vec.size(); i < n ; i++) {
+    free(solid_mc_next_clocks_umap_vec[i]);
+  }
   return;
 }
 
@@ -609,9 +612,7 @@ int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_cl
 					   int recv_test_id)
 {
   unordered_map<int, size_t> *solid_mc_next_clocks_umap;
-#ifdef REMPI_DBG_REPLAY
   int is_updated = 0;
-#endif
 
 #if 1
   if (pending_message_source_set == NULL) {
@@ -775,25 +776,25 @@ int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_cl
   //  memcpy(solid_mc_next_clocks, tmp_mc_next_clocks, sizeof(size_t) * mc_length);  
   
 
-  int    last_local_min_id_rank  = global_local_min_id.rank;
-  size_t last_local_min_id_clock = global_local_min_id.clock;
+//   int    last_local_min_id_rank  = global_local_min_id.rank;
+//   size_t last_local_min_id_clock = global_local_min_id.clock;
 
 
-  global_local_min_id.rank  = min_recv_rank;
-  global_local_min_id.clock = min_next_clock;
+//   global_local_min_id.rank  = min_recv_rank;
+//   global_local_min_id.clock = min_next_clock;
 
 
-  if (last_local_min_id_rank  != global_local_min_id.rank ||
-      last_local_min_id_clock != global_local_min_id.clock) {
-#ifdef REMPI_DBG_REPLAY
-    // REMPI_DBGI(REMPI_DBG_REPLAY, "GLLC Clock Update: (rank: %d, clock:%lu) -> (rank:%d, clock:%lu)",
-    // 	       last_local_min_id_rank, last_local_min_id_clock,
-    // 	       min_recv_rank, min_next_clock
-    // 	       );
-#endif
-    return 1;
-  }
-  return 0;
+//   if (last_local_min_id_rank  != global_local_min_id.rank ||
+//       last_local_min_id_clock != global_local_min_id.clock) {
+// #ifdef REMPI_DBG_REPLAY
+//     // REMPI_DBGI(REMPI_DBG_REPLAY, "GLLC Clock Update: (rank: %d, clock:%lu) -> (rank:%d, clock:%lu)",
+//     // 	       last_local_min_id_rank, last_local_min_id_clock,
+//     // 	       min_recv_rank, min_next_clock
+//     // 	       );
+// #endif
+//     return 1;
+//   }
+  return is_updated;
 }
 
 
@@ -1140,7 +1141,7 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
   bool is_all_finished = 0;
   bool is_epoch_finished = 0;
   int suspend_progress = 0;
-  int has_new_event;
+  int has_new_event = 0;
   bool is_no_more_record;
 
 
@@ -1309,6 +1310,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
   //TODO: this is redundant memcopy => remove this overhead
   decompressed_record = (char*)rempi_malloc(input_format.decompressed_size);
   decoding_address = decompressed_record;
+  input_format.decompressed_record_char = decoding_address;
 
 
 
@@ -1319,6 +1321,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
    */
   for (int i = 0; i < input_format.write_queue_vec.size(); i++) {
     memcpy(decompressed_record, input_format.write_queue_vec[i], input_format.write_size_queue_vec[i]);
+    free(input_format.write_queue_vec[i]);
     decompressed_record += input_format.write_size_queue_vec[i];
     //    sum += input_format.write_size_queue_vec[i];
   }
@@ -1522,6 +1525,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     for (int i = 0, size = solid_mc_next_clocks_umap_vec.size();
     	 i < size;
     	 i++){
+      if (solid_mc_next_clocks_umap_vec[i] != NULL) continue;
       unordered_map<int, size_t> *umap = new unordered_map<int, size_t>();
       for (unordered_set<int>::const_iterator cit = mc_recv_ranks_uset.cbegin(),
     	     cit_end = mc_recv_ranks_uset.cend();
@@ -2182,7 +2186,7 @@ N      CDC events flow:
     and are added to replay_event_vec*/
   if (added_count != outcount) {
     /*If all replaying is not present, i.e., need more messages to replay, 
-      then, revoke(clear) this incomplete replay_event_vec  */
+      then, revoke(clear~) this incomplete replay_event_vec  */
     replay_event_vec.clear();
 #ifdef REMPI_DBG_REPLAY
     //    REMPI_DBGI(REMPI_DBG_REPLAY, "abort !! outcount: %d, but added_count: %d", outcount, added_count);
