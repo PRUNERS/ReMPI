@@ -124,6 +124,7 @@ void rempi_io_thread::read_record()
     is_all_finished = encoder->progress_decoding(recording_events, replaying_events, -1);
   }
 
+
   return;
 }
 
@@ -151,6 +152,7 @@ void rempi_io_thread::read_record_lite()
       input_format = encoder->create_encoder_input_format();
     }
   }
+
 
 #ifdef REMPI_DBG_REPLAY
   REMPI_DBGI(REMPI_DBG_REPLAY, "end ====== (CDC thread)");

@@ -482,14 +482,14 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
   }
 #endif
 
-  for (i = 0; i < mc_length; ++i) {
-    ret_get = PMPI_Get(&mc_next_clocks[i], sizeof(size_t), MPI_BYTE, mc_recv_ranks[i], 0, sizeof(size_t), MPI_BYTE, mpi_fd_clock_win);
-    if (ret_get != MPI_SUCCESS) break;
-  }
+  // for (i = 0; i < mc_length; ++i) {
+  //   ret_get = PMPI_Get(&mc_next_clocks[i], sizeof(size_t), MPI_BYTE, mc_recv_ranks[i], 0, sizeof(size_t), MPI_BYTE, mpi_fd_clock_win);
+  //   if (ret_get != MPI_SUCCESS) break;
+  // }
 
-  if ((ret_flush = PMPI_Win_flush_local_all(mpi_fd_clock_win)) != MPI_SUCCESS) {
-    REMPI_DBG("PMPI_Win_flush_local_all failed");
-  }
+  // if ((ret_flush = PMPI_Win_flush_local_all(mpi_fd_clock_win)) != MPI_SUCCESS) {
+  //   REMPI_DBG("PMPI_Win_flush_local_all failed");
+  // }
 
 
 #if 0
@@ -1074,22 +1074,22 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
 
   while(!suspend_progress) {
     switch (decoding_state) {
-    case REMPI_DECODE_STATUS_OPEN:
+    case REMPI_DECODE_STATUS_OPEN: //0
       this->open_record_file(record_path);
       decoding_state = REMPI_DECODE_STATUS_CREATE_READ;
       break;
-    case REMPI_DECODE_STATUS_CREATE_READ:
+    case REMPI_DECODE_STATUS_CREATE_READ: //1
       decoding_input_format = this->create_encoder_input_format();
       is_no_more_record = this->read_record_file(*decoding_input_format);
 
 
       decoding_state = (is_no_more_record)? REMPI_DECODE_STATUS_CLOSE:REMPI_DECODE_STATUS_DECODE;
       break;
-    case REMPI_DECODE_STATUS_DECODE:
+    case REMPI_DECODE_STATUS_DECODE: //2
       this->decode(*decoding_input_format);
       decoding_state = REMPI_DECODE_STATUS_INSERT;
       break;
-    case REMPI_DECODE_STATUS_INSERT:
+    case REMPI_DECODE_STATUS_INSERT: //3
       if (recording_events != NULL && replaying_events != NULL && recv_test_id >= 0)  {
 	insert_encoder_input_format_chunk_recv_test_id(recording_events, replaying_events, decoding_input_format, 
 						       &is_epoch_finished, &has_new_event, recv_test_id);
@@ -1105,7 +1105,7 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
 	suspend_progress = 1;
       }
       break;
-    case REMPI_DECODE_STATUS_CLOSE:
+    case REMPI_DECODE_STATUS_CLOSE: //4
       replaying_events->close_push();
       delete decoding_input_format;
       decoding_input_format = NULL;
@@ -1114,7 +1114,7 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
       is_all_finished = 1;
       suspend_progress = 1;
       break;
-    case REMPI_DECODE_STATUS_COMPLETE:
+    case REMPI_DECODE_STATUS_COMPLETE: //5
       //      REMPI_ERR("No more events to replay");
       is_all_finished = 1;
       suspend_progress = 1;
@@ -1131,6 +1131,7 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
 
 
 #else
+  int decoding_state_old = -1;
 int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id) 
 {
   bool is_all_finished = 0;
@@ -1139,24 +1140,29 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
   int has_new_event;
   bool is_no_more_record;
 
+
   progress_decoding_mtx.lock();
   while(!suspend_progress) {
+    if (decoding_state != decoding_state_old) {
+      REMPI_DBGI(3, "state: %d => %d (recv_test_id: %d)", decoding_state_old, decoding_state, recv_test_id);
+    }
+    decoding_state_old = decoding_state;
     switch (decoding_state) {
-    case REMPI_DECODE_STATUS_OPEN:
+    case REMPI_DECODE_STATUS_OPEN: //0
       this->open_record_file(record_path);
       decoding_state = REMPI_DECODE_STATUS_CREATE_READ;
       break;
-    case REMPI_DECODE_STATUS_CREATE_READ:
+    case REMPI_DECODE_STATUS_CREATE_READ: //1
       decoding_input_format = this->create_encoder_input_format();
       is_no_more_record = this->read_record_file(*decoding_input_format);
       decoding_state = (is_no_more_record)? REMPI_DECODE_STATUS_CLOSE:REMPI_DECODE_STATUS_DECODE;
       break;
-    case REMPI_DECODE_STATUS_DECODE:
+    case REMPI_DECODE_STATUS_DECODE: //2
       this->decode(*decoding_input_format);
       decoding_state = REMPI_DECODE_STATUS_INSERT;
       //      REMPI_DBG("decoded !!");
       break;
-    case REMPI_DECODE_STATUS_INSERT:
+    case REMPI_DECODE_STATUS_INSERT: //3
       if (recording_events != NULL && replaying_events != NULL)  {
 	if (recv_test_id >= 0) {
 	  insert_encoder_input_format_chunk_recv_test_id(recording_events, replaying_events, decoding_input_format, 
@@ -1166,9 +1172,10 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
 	       rtid < n; rtid++) {
 	    insert_encoder_input_format_chunk_recv_test_id(recording_events, replaying_events, decoding_input_format, 
 							   &is_epoch_finished, &has_new_event, rtid);
+	    if (is_epoch_finished) break; /*If this epoch is finished, immediatly break to avoid hang */
 	  }
-	}
-	
+
+	}	
 	if (is_epoch_finished) {
 	  delete decoding_input_format;
 	  decoding_input_format = NULL;
@@ -1180,7 +1187,7 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
 	suspend_progress = 1;
       }
       break;
-    case REMPI_DECODE_STATUS_CLOSE:
+    case REMPI_DECODE_STATUS_CLOSE: //4
       replaying_events->close_push();
       delete decoding_input_format;
       decoding_input_format = NULL;
@@ -1189,8 +1196,9 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
       is_all_finished = 1;
       suspend_progress = 1;
       break;
-    case REMPI_DECODE_STATUS_COMPLETE:
-      //      REMPI_ERR("No more events to replay");
+    case REMPI_DECODE_STATUS_COMPLETE: //5
+      //REMPI_ERR("No more events to replay");
+      REMPI_DBG("no more event");
       is_all_finished = 1;
       suspend_progress = 1;
       break;
@@ -1675,6 +1683,14 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> *reco
   bool is_solid_ordered_event_list_updated = false;
     
 #endif
+
+
+  // if(test_id == 1) {
+  //   if (test_table->ordered_event_list.size() > 0 || test_table->solid_ordered_event_list.size() > 0) {
+  //     REMPI_DBGI(3, "ordered: %lu, solide: %lu",    test_table->ordered_event_list.size() ,     test_table->solid_ordered_event_list.size() );
+  //   }
+  // }
+
   
   if (test_table->is_decoded_all()) {
     /* When a function caling cdc_decode_ordering receive "true", the function increment counter by 1. 
@@ -2046,6 +2062,7 @@ N      CDC events flow:
     if (0 <= permutated_index && permutated_index < outcount) {
       replay_event_vec[permutated_index] = replaying_event;
       added_count++;
+      if (replay_event_vec.size() == added_count) break;
     } else if (permutated_index < 0){
       REMPI_ERR("permutated_index:%d < 0 (record data may be truncated): src_idx: %d -> dest_idx: %d, replayed_index: %d", 
 		permutated_index,
@@ -3133,7 +3150,9 @@ void rempi_encoder_cdc::close_record_file()
     //    delete matched_events_list_umap[recv_test_id];
     //    matched_events_list_umap[recv_test_id] = NULL;
     finished_testsome_count++;
-    if (finished_testsome_count == input_format->test_tables_map.size()) {
+    //    REMPI_DBGI(3, "finished: %d (count: %d / %lu)", recv_test_id, finished_testsome_count, input_format->test_tables_map.size());
+    if (finished_testsome_count >= input_format->test_tables_map.size()) {
+
       finished_testsome_count = 0;
       *is_epoch_finished = true;
     }

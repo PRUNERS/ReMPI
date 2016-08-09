@@ -9,6 +9,7 @@
 #include "rempi_re.h"
 #include "rempi_err.h"
 #include "rempi_mem.h"
+#include "rempi_send.h"
 #include "rempi_config.h"
 #include "rempi_type.h"
 #include "rempi_status.h"
@@ -577,6 +578,7 @@ int rempi_re::re_finalize()
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = recorder->record_finalize();
   } else {
+
     ret = recorder->replay_finalize();
   }
   return ret;

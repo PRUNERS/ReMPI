@@ -46,7 +46,7 @@ extern int rempi_max_event_length;
 
 
 #define REMPI_MULTI_THREAD
-//#define REMPI_MAIN_THREAD_PROGRESS
+#define REMPI_MAIN_THREAD_PROGRESS
 
 
 #define REMPI_MAX_RECV_TEST_ID (128)

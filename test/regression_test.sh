@@ -15,20 +15,20 @@ dir=/l/ssd
 
 librempi=../lib/librempi.so
 
-bin="./rempi_test_units matching"
-REMPI_MODE=0 REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-REMPI_MODE=1 REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-srun rm ${dir}/* 2> /dev/null
-exit
+#bin="./rempi_test_units matching"
+#REMPI_MODE=0 REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+#REMPI_MODE=1 REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+#srun rm ${dir}/* 2> /dev/null
+#exit
 
 # ======
 
 # Unit test
 #bin="./rempi_test_units matching isend null_status"
-bin="./rempi_test_units matching"
-REMPI_MODE=0 REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-REMPI_MODE=1 REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-srun rm ${dir}/* 2> /dev/null
+#bin="./rempi_test_units matching"
+#REMPI_MODE=0 REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+#REMPI_MODE=1 REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+#srun rm ${dir}/* 2> /dev/null
 
 
 # Master worker w/ gzip
