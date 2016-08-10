@@ -13,7 +13,7 @@ mkdir ${dir}
 #memcheck="memcheck"
 
 
-memcheck="memcheck --xml-file=/tmp/rempi.mc"
+#memcheck="memcheck --xml-file=/tmp/rempi.mc"
 bin="./rempi_test_mini_mcb 10 0 20"
 librempi="../lib/librempi.so"
 REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 REMPI_MAX=16 LD_PRELOAD=${librempi} srun -n ${num_procs} ${memcheck} ${bin}

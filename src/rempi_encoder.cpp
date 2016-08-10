@@ -119,6 +119,9 @@ void rempi_encoder_input_format::clear()
     test_table->clear();
     delete test_table;
   }
+
+  if (mc_recv_ranks  != NULL) free(mc_recv_ranks);
+
   free(decompressed_record_char);
   write_queue_vec.clear();
   write_size_queue_vec.clear();

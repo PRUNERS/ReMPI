@@ -1254,6 +1254,7 @@ bool rempi_encoder_cdc::read_record_file(rempi_encoder_input_format &input_forma
     compression_util.decompress_by_zlib_vec(compressed_payload_vec, compressed_payload_size_vec,
 					    input_format.write_queue_vec, input_format.write_size_queue_vec, decompressed_size);
     input_format.decompressed_size = decompressed_size;
+    free(zlib_payload);
   } else {
     input_format.write_queue_vec.push_back(zlib_payload);
     input_format.write_size_queue_vec.push_back(chunk_size);
@@ -1495,6 +1496,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     input_format.mc_next_clocks     = (size_t*)rempi_malloc(sizeof(size_t) * input_format.mc_length);
     input_format.tmp_mc_next_clocks = (size_t*)rempi_malloc(sizeof(size_t) * input_format.mc_length);
 #endif
+
     input_format.mc_length          = mc_recv_ranks_uset.size();
     input_format.mc_recv_ranks      =    (int*)rempi_malloc(sizeof(int) * input_format.mc_length);
 
@@ -1546,15 +1548,18 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     /*array for waiting receive msg count for each test_id*/
     //    int    *tmp =  new int[input_format.test_tables_map.size()];;
 
+    
     int    *tmp =  (int*)rempi_malloc(sizeof(int) * input_format.test_tables_map.size());
     memset(tmp, 0, sizeof(int) * input_format.test_tables_map.size());
+    if (this->num_of_recv_msg_in_next_event != NULL) free(this->num_of_recv_msg_in_next_event);
     this->num_of_recv_msg_in_next_event = tmp;
-    //    size_t *tmp2 = new size_t[input_format.test_tables_map.size()];;
     size_t *tmp2 = (size_t*)rempi_malloc(sizeof(size_t) *input_format.test_tables_map.size());
     memset(tmp2, 0, sizeof(size_t) * input_format.test_tables_map.size());
+    if (this->dequeued_count != NULL) free(this->dequeued_count);
     this->dequeued_count = tmp2;
     size_t *tmp3 = (size_t*)rempi_malloc(sizeof(size_t) *input_format.test_tables_map.size());
     memset(tmp3, 0, sizeof(size_t) * input_format.test_tables_map.size());
+    if (this->interim_min_clock_in_next_event != NULL) free(this->interim_min_clock_in_next_event);
     this->interim_min_clock_in_next_event = tmp3;
   }
 

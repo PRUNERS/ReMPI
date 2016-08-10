@@ -322,6 +322,10 @@ int rempi_cp_has_in_flight_msgs(int source_rank)
 {
   int index;
   int has;
+  if (rempi_pred_ranks_indices_umap.find(source_rank) == 
+      rempi_pred_ranks_indices_umap.end()) {
+    REMPI_ERR("No such pred rank: %d", source_rank);
+  }
   index = rempi_pred_ranks_indices_umap.at(source_rank);
   if (rempi_cp_gather_pc[index].send_count <= rempi_recv_counts[index]) {
     /* rempi_recv_counts may be incremented before updated rempi_cp_gather_pc[index].send_count 
