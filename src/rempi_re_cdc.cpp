@@ -22,6 +22,8 @@
 using namespace std;
 
 
+
+
 int rempi_re_cdc::re_testany(int count, MPI_Request array_of_requests[], int *index, int *flag, MPI_Status *status) {
   for (int i = 0; i < count; i++) {
     re_test(&array_of_requests[i], flag, status);
@@ -337,6 +339,7 @@ int rempi_re_cdc::re_testsome(
 #else
   int test_id = rempi_reqmg_get_test_id(array_of_requests);
 #endif
+
   
   if (array_of_statuses == NULL) {
     /*TODO: allocate array_of_statuses in ReMPI instead of the error below*/
@@ -684,9 +687,7 @@ int rempi_re_cdc::re_finalize()
   } else {
     //re_barrier(MPI_COMM_WORLD); // MPI progress for one-sided communication
     ret = PMPI_Finalize();
-    REMPI_DBG("finalize");
     ret = recorder->replay_finalize();
-    REMPI_DBG("finalize end");
   }
 
   return ret;

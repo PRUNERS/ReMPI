@@ -16,12 +16,19 @@ mkdir ${dir}
 #memcheck="memcheck --xml-file=/tmp/rempi.mc"
 
 
+
+bin="./rempi_test_units matching"
+librempi="../lib/librempi.so"
+REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+exit
+
+
 par=1000
 bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 --weakScaling"
 cd ./external/mcb/run-decks/
 make cleanc
 librempi="../../../../lib/librempi.so"
-REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 REMPI_MAX=16 LD_PRELOAD=${librempi} srun -n ${num_procs} ${memcheck} ${bin}
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 REMPI_MAX=128 LD_PRELOAD=${librempi} srun -n ${num_procs} ${memcheck} ${bin}
 cd -
 exit
 
@@ -39,10 +46,7 @@ exit
 
 
 
-bin="./rempi_test_units matching"
-librempi="../lib/librempi.so"
-REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-exit
+
 
 
 

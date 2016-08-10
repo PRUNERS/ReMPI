@@ -1206,10 +1206,10 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
       decoding_state = REMPI_DECODE_STATUS_COMPLETE;
       is_all_finished = 1;
       suspend_progress = 1;
-      REMPI_DBG("No more event");
+      //      REMPI_DBG("No more event");
       break;
     case REMPI_DECODE_STATUS_COMPLETE: //5
-      REMPI_DBG("Again, No more event");
+      //      REMPI_DBG("Again, No more event");
       is_all_finished = 1;
       suspend_progress = 1;
       break;
@@ -1520,7 +1520,9 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
       index++;
     }
 
-
+    if (this->solid_mc_next_clocks_umap_vec.size() != 0 && this->solid_mc_next_clocks_umap_vec.size() < input_format.test_tables_map.size()) {
+      REMPI_ERR("test_table_map size descreased: Us larger number for REMPI_MAX variable (default: %d)", REMPI_DEFAULT_MAX_EVENT_LENGTH);
+    }
     this->solid_mc_next_clocks_umap_vec.resize(input_format.test_tables_map.size(), NULL);
     for (int i = 0, size = this->solid_mc_next_clocks_umap_vec.size();
     	 i < size;
@@ -2254,7 +2256,9 @@ N      CDC events flow:
     test_table->solid_ordered_event_list.remove(replay_event_vec[i]); /*This ".remove" may be slow*/
   }
 
-#if 1
+
+  //#define REMPI_MCB_CHECK
+#ifdef REMPI_MCB_CHECK
     for (int i = 0, n = replay_event_vec.size(); i < n; i++) {
       for (int j = 0; j < n; j++) { 
 	if (j == i) continue;
@@ -2270,41 +2274,29 @@ N      CDC events flow:
 	  REMPI_DBG("== Wrong local_min (rank: %d, clock: %lu): count: X, RCQ:%d(test:%d)", 
 		    local_min_id_rank, local_min_id_clock,
 		    recording_events->size_replay(test_id), test_id);
-#ifdef BGQ
 	  for (list<rempi_event*>::const_iterator cit = test_table->ordered_event_list.cbegin(),
 		 cit_end = test_table->ordered_event_list.cend();
 	       cit != cit_end;
 	       cit++) {
 	    rempi_event *e = *cit;
-#else
-	  for (rempi_event *e: test_table->ordered_event_list) {
-#endif
 	    //	    REMPI_DBG("       list (rank: %d, clock: %lu): count: %d", e->get_source(), e->get_clock(), solid_event_count);
 	    REMPI_DBG("== Wrong       list (rank: %d, clock: %lu)", e->get_source(), e->get_clock());
 	  }
-#ifdef BGQ
 	  for (list<rempi_event*>::const_iterator cit = test_table->solid_ordered_event_list.cbegin(),
 		 cit_end = test_table->solid_ordered_event_list.cend();
 	       cit != cit_end;
 	       cit++) {
 	    rempi_event *e = *cit;
-#else
-	  for (rempi_event *e: test_table->solid_ordered_event_list) {
-#endif
 
 	    //	    REMPI_DBG("      slist (rank: %d, clock: %lu): count: %d", e->get_source(), e->get_clock(), solid_event_count);
 	    REMPI_DBG("== Wrong      slist (rank: %d, clock: %lu, order: %lu)", e->get_source(), e->get_clock(), e->clock_order);
 	  }
 	  REMPI_DBG("== Wrong replayed_matched_event_index: %d", test_table->replayed_matched_event_index);
-#ifdef BGQ
 	  for (vector<rempi_event*>::const_iterator cit = replay_event_vec.cbegin(),
 		 cit_end = replay_event_vec.cend();
 	       cit != cit_end;
 	       cit++) {
 	    rempi_event *replaying_event = *cit;
-#else
-	  for (rempi_event *replaying_event: replay_event_vec) {
-#endif
 
 	    int permutated_index = test_table->matched_events_permutated_indices_vec[replaying_event->clock_order]
 	      - test_table->replayed_matched_event_index;

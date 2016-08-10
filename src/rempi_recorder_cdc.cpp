@@ -1095,6 +1095,7 @@ int rempi_recorder_cdc::replay_testsome(
 
       irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[i]];
       for (int j = 0; j < replaying_event_vec.size(); j++) {
+	if (replaying_event_vec[j] == NULL) continue;
 	bool is_any_source =  (irecv_inputs->source == MPI_ANY_SOURCE);
 	bool is_source     =  (irecv_inputs->source == replaying_event_vec[j]->get_source());
 
@@ -1105,13 +1106,12 @@ int rempi_recorder_cdc::replay_testsome(
 	/*TODO: if array_of_requests has requests from the same rank, is_source does not work. And it introduces inconsistent replay
 	  Use MPI_Request pointer (is_request) instead of is_source. In MCB, this is OK.*/
 	if (is_source || is_any_source) {
+
 	  array_of_indices[*outcount] = i;
 	  array_of_statuses[*outcount].MPI_SOURCE = replaying_event_vec[j]->get_source();
 	  //	  array_of_statuses[*outcount].MPI_TAG    = replaying_event_vec[j]->get_tag();
 	  array_of_statuses[*outcount].MPI_TAG    = irecv_inputs->tag;
-
 	  clmpi_sync_clock(replaying_event_vec[j]->get_clock());
-
 	  *outcount = *outcount + 1;
 
 	  if (irecv_inputs->matched_request_proxy_list.size() == 0) {
@@ -1122,6 +1122,8 @@ int rempi_recorder_cdc::replay_testsome(
 	    */
 	    continue;
 	  }
+
+
 	  proxy_request = irecv_inputs->matched_request_proxy_list.front();
 	  if (proxy_request == NULL) {
 	    REMPI_ERR("matched_proxy_request(%d) is NULL: irecv(%p)->%p size:%d", i, irecv_inputs, proxy_request,
@@ -1140,6 +1142,8 @@ int rempi_recorder_cdc::replay_testsome(
 		     irecv_inputs->matched_request_proxy_list.size(), array_of_requests[i]);
 #endif
 	  delete proxy_request;
+	  //	  delete replaying_event_vec[j];
+	  //	  replaying_event_vec[j] = NULL;
 	  break;
 	}
       }
@@ -1149,6 +1153,8 @@ int rempi_recorder_cdc::replay_testsome(
     } else {
       REMPI_ERR("request does no exist in request_to_irecv_inputs_umap");
     }
+    
+    if (*outcount == replaying_event_vec.size()) break;
   }
 
 
@@ -1172,7 +1178,6 @@ int rempi_recorder_cdc::replay_testsome(
 	       replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
 	       replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), recv_test_id);
 #endif
-
 
     delete replaying_event_vec[j];
   }
