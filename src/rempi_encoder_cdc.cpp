@@ -570,6 +570,10 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
   solid_mc_next_clocks_umap = this->solid_mc_next_clocks_umap_vec[recv_test_id];
 
   *local_min_id_rank  = test_table->epoch_rank_vec[0];
+  if (solid_mc_next_clocks_umap->find(*local_min_id_rank) == 
+      solid_mc_next_clocks_umap->end()) {
+    REMPI_ERR("No such rank: %d", *local_min_id_rank);
+  }
   *local_min_id_clock = solid_mc_next_clocks_umap->at(*local_min_id_rank);
   for (int i = 0; i < epoch_rank_vec_size; i++) {
     int    tmp_rank  =  test_table->epoch_rank_vec[i];
@@ -631,8 +635,8 @@ int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_cl
 #else
 	if (solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) < rempi_cp_get_gather_clock(mc_recv_ranks[j])) {
 	  //	  is_updated = 1;
-	  // REMPI_DBGI(REMPI_DBG_REPLAY, "update FD_CLOCK (rank: %d, clock: %lu, test_id: %d): null", 
-	  // 	     mc_recv_ranks[j], rempi_cp_get_gather_clock(mc_recv_ranks[j]), i);
+	  //	  REMPI_DBGI(REMPI_DBG_REPLAY, "update FD_CLOCK (rank: %d, clock: %lu, test_id: %d): null", 
+	  //	     mc_recv_ranks[j], rempi_cp_get_gather_clock(mc_recv_ranks[j]), i);
 	}
 #endif
 #endif	    
@@ -1147,10 +1151,10 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
 
   progress_decoding_mtx.lock();
   while(!suspend_progress) {
-    if (decoding_state != decoding_state_old) {
-      REMPI_DBG("state: %d => %d (recv_test_id: %d)", decoding_state_old, decoding_state, recv_test_id);
-    }
-    decoding_state_old = decoding_state;
+    // if (decoding_state != decoding_state_old) {
+    //   REMPI_DBG("state: %d => %d (recv_test_id: %d)", decoding_state_old, decoding_state, recv_test_id);
+    // }
+    //    decoding_state_old = decoding_state;
     switch (decoding_state) {
     case REMPI_DECODE_STATUS_OPEN: //0
       this->open_record_file(record_path);
@@ -1160,12 +1164,12 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
       decoding_input_format = this->create_encoder_input_format();
       is_no_more_record = this->read_record_file(*decoding_input_format);
       decoding_state = (is_no_more_record)? REMPI_DECODE_STATUS_CLOSE:REMPI_DECODE_STATUS_DECODE;
-      suspend_progress = 1; /*TODO: find out why out_of_range crash happens if I remove "suspend_progress=1 here "*/
+      //      suspend_progress = 1; /*TODO: find out why out_of_range crash happens if I remove "suspend_progress=1 here "*/
       break;
     case REMPI_DECODE_STATUS_DECODE: //2
       this->decode(*decoding_input_format);
       decoding_state = REMPI_DECODE_STATUS_INSERT;
-      suspend_progress = 1;
+      //      suspend_progress = 1;
       //      REMPI_DBG("decoded !!");
       break;
     case REMPI_DECODE_STATUS_INSERT: //3
@@ -1183,6 +1187,7 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
 
 	}	
 	if (is_epoch_finished) {
+	  mc_length=0;
 	  delete decoding_input_format;
 	  decoding_input_format = NULL;
 	  decoding_state = REMPI_DECODE_STATUS_CREATE_READ;
@@ -1361,7 +1366,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
 	test_table->epoch_clock_vec.push_back(epoch_clock[i]);
 	/*=== Decode recv_ranks for minimal clock fetching  ===*/
 	mc_recv_ranks_uset.insert((int)(epoch_rank[i]));
-	//REMPI_DBGI(REMPI_DBG_REPLAY, "->> %d (%lu)", (int)(*epoch_rank), test_table->epoch_size);
+	//	REMPI_DBG("->> %d (%lu)", (int)(epoch_rank[i]), test_table->epoch_size);
 	/*=====================================================*/
       }
     }
@@ -1497,37 +1502,30 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     input_format.tmp_mc_next_clocks = (size_t*)rempi_malloc(sizeof(size_t) * input_format.mc_length);
 #endif
 
+    input_format.mc_recv_ranks      =    (int*)rempi_malloc(sizeof(int) * mc_recv_ranks_uset.size());
     input_format.mc_length          = mc_recv_ranks_uset.size();
-    input_format.mc_recv_ranks      =    (int*)rempi_malloc(sizeof(int) * input_format.mc_length);
 
 
-#ifdef BGQ
     for (unordered_set<int>::const_iterator cit = mc_recv_ranks_uset.cbegin(),
 	   cit_end = mc_recv_ranks_uset.cend();
 	 cit != cit_end;
 	 cit++) {
       int rank = *cit;
-#else
-    for (const int &rank: mc_recv_ranks_uset) {
-#endif
       input_format.mc_recv_ranks [index]      = rank;
+
 #ifndef CP_DBG
       input_format.mc_next_clocks[index]      = 0;
       input_format.tmp_mc_next_clocks[index]  = 0;
 #endif
-      //      this->solid_mc_next_clocks_umap[rank]  = 0;
-#ifdef REMPI_DBG_REPLAY
-      // REMPI_DBGI(REMPI_DBG_REPLAY, "index %d: %d %d ", 
-      // 		 index, input_format.mc_recv_ranks[index], input_format.mc_next_clocks[index]);
-#endif 
-
       index++;
     }
-    solid_mc_next_clocks_umap_vec.resize(input_format.test_tables_map.size(), NULL);
-    for (int i = 0, size = solid_mc_next_clocks_umap_vec.size();
+
+
+    this->solid_mc_next_clocks_umap_vec.resize(input_format.test_tables_map.size(), NULL);
+    for (int i = 0, size = this->solid_mc_next_clocks_umap_vec.size();
     	 i < size;
     	 i++){
-      if (solid_mc_next_clocks_umap_vec[i] != NULL) continue;
+      if (this->solid_mc_next_clocks_umap_vec[i] != NULL) continue;
       unordered_map<int, size_t> *umap = new unordered_map<int, size_t>();
       for (unordered_set<int>::const_iterator cit = mc_recv_ranks_uset.cbegin(),
     	     cit_end = mc_recv_ranks_uset.cend();
@@ -1536,11 +1534,14 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     	int rank = *cit;
     	umap->insert(make_pair(rank, 0));
       }
-      solid_mc_next_clocks_umap_vec[i] = umap;
+      this->solid_mc_next_clocks_umap_vec[i] = umap;
     }
 
-    this->mc_length      = input_format.mc_length;
     this->mc_recv_ranks        = input_format.mc_recv_ranks;
+    this->mc_length      = input_format.mc_length;
+    // for (int i = 0; i < this->mc_length; i++) {
+    //   REMPI_DBG("mc_recv_ranks[%d] = %d", i, this->mc_recv_ranks[i]);
+    // }
 #ifndef CP_DBG
     this->mc_next_clocks       = input_format.mc_next_clocks;
     this->tmp_mc_next_clocks   = input_format.tmp_mc_next_clocks;

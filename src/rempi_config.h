@@ -45,7 +45,12 @@ extern int rempi_max_event_length;
 //#define REMPI_DBG_ASSERT (-1)
 
 
-#define REMPI_MULTI_THREAD
+/*TODO: With REMPI_MULTI_THREAD + Multi epoch,
+  If rempi_thread is in the middle of reading next epoch 
+    while main_thraed accesses to variables of the epoch (input_table),
+    main_thraed may read freeed variables.
+*/
+//#define REMPI_MULTI_THREAD
 #define REMPI_MAIN_THREAD_PROGRESS
 
 
