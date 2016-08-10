@@ -1095,7 +1095,7 @@ int rempi_recorder_cdc::replay_testsome(
 
       irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[i]];
       for (int j = 0; j < replaying_event_vec.size(); j++) {
-	if (replaying_event_vec[j] == NULL) continue;
+	//	if (replaying_event_vec[j] == NULL) continue;
 	bool is_any_source =  (irecv_inputs->source == MPI_ANY_SOURCE);
 	bool is_source     =  (irecv_inputs->source == replaying_event_vec[j]->get_source());
 
