@@ -15,6 +15,7 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 	        $(SRC_DIR)/rempi_status.cpp \
 	        $(SRC_DIR)/rempi_mf.cpp \
 	        $(SRC_DIR)/rempi_send.cpp \
+		$(SRC_DIR)/rempi_mpi_init.cpp \
 		$(SRC_DIR)/rempi_recorder_cdc.cpp \
 		$(SRC_DIR)/rempi_recorder.cpp \
 		$(SRC_DIR)/rempi_message_manager.cpp \
@@ -35,8 +36,8 @@ rempi_SRCS =    $(SRC_DIR)/rempi.cpp \
 		$(SRC_DIR)/rempi_mutex.cpp
 #                $(SRC_DIR)/rempi_re_no_comp.cpp \
 
-rempi_OBJS = 	$(rempi_SRCS:%.cpp=%.o) 
-rempi_DEPS = 	$(rempi_SRCS:%.cpp=%.d) 
+rempi_OBJS = $(rempi_SRCS:%.cpp=%.o)
+rempi_DEPS = $(rempi_OBJS:%.o=%.d) 
 rempi_o_TEMP =	./rempi.tmp.o
 rempi_o_LIBS =	./librempi.o 
 rempi_a_LIBS =	../lib/librempi.a 

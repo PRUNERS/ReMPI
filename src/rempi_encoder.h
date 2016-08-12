@@ -138,6 +138,7 @@ class rempi_encoder_input_format
 
   rempi_encoder_input_format()
     : total_length(0)
+    , decompressed_record_char(NULL)
     , mc_length(-1)
     , mc_recv_ranks(NULL)
 #ifndef CP_DBG

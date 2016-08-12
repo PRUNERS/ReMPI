@@ -92,7 +92,7 @@ bool rempi_encoder_basic::extract_encoder_input_format_chunk(rempi_event_list<re
 	usleep(1);
       }
     }
-    //    REMPI_DBG("event: source: %d (type: %d): %p", event_dequeued->get_source(), event_dequeued->get_type(), event_dequeued->request);
+    //    REMPI_DBG("event: source: %d (type: %d): %p %p", event_dequeued->get_source(), event_dequeued->get_type(), event_dequeued->request, event_dequeued);
     input_format.add(event_dequeued);
   }
 
@@ -110,6 +110,7 @@ bool rempi_encoder_basic::extract_encoder_input_format_chunk(rempi_event_list<re
       /*Append events to current check as many as possible*/
       if (events.front() == NULL) break;
       event_dequeued = events.pop();
+      //      REMPI_DBG("event: source: %d (type: %d): %p %p", event_dequeued->get_source(), event_dequeued->get_type(), event_dequeued->request, event_dequeued);
       if (event_dequeued->get_type() == REMPI_MPI_EVENT_TYPE_RECV) {
 	while(event_dequeued->get_rank() == MPI_ANY_SOURCE) {
 	  if (events.is_push_closed_()) break;
@@ -143,17 +144,19 @@ void rempi_encoder_basic::encode(rempi_encoder_input_format &input_format)
     original_buff_offset = i * rempi_event::record_num;
     encoding_event = test_table->events_vec[i];    
     memcpy(original_buff + original_buff_offset, &encoding_event->mpi_inputs.front(), rempi_event::max_size);
-    delete encoding_event;
 
-    // REMPI_DBG("Encoded  : (count: %d, type: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)", 
-    // 	      encoding_event->get_event_counts(), 
-    // 	      encoding_event->get_type(),
-    // 	      encoding_event->get_flag(),
-    // 	      encoding_event->get_rank(),
-    // 	      encoding_event->get_with_next(),
-    // 	      encoding_event->get_index(),
-    // 	      encoding_event->get_msg_id(),
-    // 	      encoding_event->get_matching_group_id());
+
+#if 0
+    REMPI_DBG("Encoded  : (count: %d, type: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)", 
+    	      encoding_event->get_event_counts(), 
+    	      encoding_event->get_type(),
+    	      encoding_event->get_flag(),
+    	      encoding_event->get_rank(),
+    	      encoding_event->get_with_next(),
+    	      encoding_event->get_index(),
+    	      encoding_event->get_msg_id(),
+    	      encoding_event->get_matching_group_id());
+#endif
 
     // for (int j = 0; i < rempi_event::record_num; i++) {
     //   REMPI_DBG("  %d", *(original_buff + original_buff_offset + i));
@@ -165,6 +168,8 @@ void rempi_encoder_basic::encode(rempi_encoder_input_format &input_format)
 	       encoding_event->get_event_counts(), encoding_event->get_is_testsome(), encoding_event->get_flag(), 
 	       encoding_event->get_source(), encoding_event->get_clock());
 #endif 
+
+    delete encoding_event;
 
   }
 
@@ -263,7 +268,8 @@ bool rempi_encoder_basic::read_record_file(rempi_encoder_input_format &input_for
   }
 
   for (int i = 0, s = input_format.write_queue_vec.size(); i < s; i++) {
-    size_t num_vals = input_format.decompressed_size / sizeof(int);
+    //    size_t num_vals = input_format.decompressed_size / sizeof(int);
+    size_t num_vals = input_format.write_size_queue_vec[i] / sizeof(int);
     size_t decoded_num_vals = 0;
     decoding_event_sequence_int = (int*)input_format.write_queue_vec[i];
     while (decoded_num_vals < num_vals) {

@@ -5,6 +5,11 @@ rempi_test_master_worker_OBJS = $(rempi_test_master_worker_SRCS:%.c=%.o)
 rempi_test_master_worker_DEPS = $(rempi_test_master_worker_SRCS:%.c=%.d)
 rempi_test_master_worker_PROGRAM = rempi_test_master_worker
 
+rempi_test_master_worker_fortran_SRCS = rempi_test_master_worker_fortran.f
+rempi_test_master_worker_fortran_OBJS = $(rempi_test_master_worker_fortran_SRCS:%.f=%.o)
+rempi_test_master_worker_fortran_DEPS = $(rempi_test_master_worker_fortran_SRCS:%.o=%.d)
+rempi_test_master_worker_fortran_PROGRAM = rempi_test_master_worker_fortran
+
 rempi_test_isendrecv_SRCS = rempi_test_isendrecv.c rempi_test_util.c
 rempi_test_isendrecv_OBJS =  $(rempi_test_isendrecv_SRCS:%.c=%.o)
 rempi_test_isendrecv_DEPS =  $(rempi_test_isendrecv_SRCS:%.c=%.d)
@@ -56,12 +61,14 @@ rempi_test_compress_DEPS = rempi_test_compress.d rempi_test_util.d
 rempi_test_compress_PROGRAM = rempi_test_compress
 
 PROGRAMS= $(rempi_test_master_worker_PROGRAM) \
+	  $(rempi_test_master_worker_fortran_PROGRAM) \
 	  $(rempi_test_mini_mcb_PROGRAM) \
 	  $(rempi_test_hypre_parasails_PROGRAM) \
 	  $(rempi_test_units_PROGRAM) \
 	  $(rempi_test_msg_race_PROGRAM) 
 
 OBJS= $(rempi_test_master_worker_OBJS) \
+	$(rempi_test_master_worker_fortran_OBJS) \
       $(rempi_test_mini_mcb_OBJS) \
       $(rempi_test_hypre_parasails_OBJS) \
       $(rempi_test_units_OBJS) \
@@ -85,6 +92,9 @@ install: all
 
 $(rempi_test_master_worker_PROGRAM): $(rempi_test_master_worker_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+
+$(rempi_test_master_worker_fortran_PROGRAM): $(rempi_test_master_worker_fortran_OBJS)
+	$(FC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 $(rempi_test_isendrecv_PROGRAM): $(rempi_test_isendrecv_OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
@@ -124,6 +134,12 @@ $(rempi_test_compress_PROGRAM): $(rempi_test_compress_OBJS)
 .cpp.o: 
 	$(CC) $(CXXFLAGS) $(LDFLAGS) -c -MMD -MP $<
 	$(CC) $(CXXFLAGS) $(LDFLAGS) -o $@ -c $< 
+
+.SUFFIXES: .f .o
+.f.o: 
+#	$(FC) $(CFLAGS) $(LDFLAGS) -c -MMD -MP $<
+	$(FC) $(CFLAGS) $(LDFLAGS) -o $@ -c $< 
+
 
 
 .PHONY: clean 

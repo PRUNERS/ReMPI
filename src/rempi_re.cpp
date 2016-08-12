@@ -9,6 +9,7 @@
 #include "rempi_re.h"
 #include "rempi_err.h"
 #include "rempi_mem.h"
+#include "rempi_mpi_init.h"
 #include "rempi_send.h"
 #include "rempi_config.h"
 #include "rempi_type.h"
@@ -76,7 +77,7 @@ int rempi_re::init_after_pmpi_init(int *argc, char ***argv)
   return 0;
 }
 
-int rempi_re::re_init(int *argc, char ***argv)
+int rempi_re::re_init(int *argc, char ***argv, int fortran_init)
 {
   int ret;
   //  int provided;
@@ -86,7 +87,8 @@ int rempi_re::re_init(int *argc, char ***argv)
   // rempi_sig_handler_init_test();
   // REMPI_DBG("test");
   // sleep(1100);
-  ret = PMPI_Init(argc, argv);
+  ret = rempi_mpi_init(argc, argv, fortran_init);
+  //  ret = PMPI_Init(argc, argv);
 
   /*Init from configuration and for valiables for errors*/
   init_after_pmpi_init(argc, argv);
@@ -102,11 +104,12 @@ int rempi_re::re_init(int *argc, char ***argv)
 
 int rempi_re::re_init_thread(
 			     int *argc, char ***argv,
-			     int required, int *provided)
+			     int required, int *provided, int fortran_init_thread)
 {
   int ret;
   /*Init CLMPI*/
-  ret = PMPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, provided);
+  //  ret = PMPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, provided);
+  ret = rempi_mpi_init_thread(argc, argv, MPI_THREAD_MULTIPLE, provided, fortran_init_thread);
 
   if (*provided < MPI_THREAD_SERIALIZED) {
     REMPI_ERR("MPI supports only MPI_THREAD_SINGLE, and ReMPI does not work on this MPI");

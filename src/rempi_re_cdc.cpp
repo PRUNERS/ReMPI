@@ -15,6 +15,7 @@
 #include "rempi_recorder.h"
 #include "rempi_request_mg.h"
 #include "rempi_cp.h"
+#include "rempi_mpi_init.h"
 
 #define  PNMPI_MODULE_REMPI "rempi"
 //#define MATCHING_ID_TEST
@@ -100,20 +101,25 @@ int rempi_re_cdc::init_clmpi()
 }
 
 
-int rempi_re_cdc::re_init(int *argc, char ***argv)
+int rempi_re_cdc::re_init(int *argc, char ***argv, int fortran_init)
 {
   int ret;
   int provided;
+  
 
   /*Init CLMPI*/
   init_clmpi();
+
+
+
 
   /*A CDC thread make MPI calls, so call PMPI_Init_thraed insted of PMPI_Init */
   // ret = PMPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, &provided);
   // if (provided < MPI_THREAD_SERIALIZED) {
   //   REMPI_ERR("MPI supports only MPI_THREAD_SINGLE, and ReMPI does not work on this MPI");
   // }
-  ret = PMPI_Init(argc, argv);
+  //  ret = PMPI_Init(argc, argv);
+  ret = rempi_mpi_init(argc, argv, fortran_init);
   //  REMPI_ERR("provided: %d", provided);
   /*Init from configuration and for valiables for errors*/
   init_after_pmpi_init(argc, argv);
@@ -132,13 +138,15 @@ int rempi_re_cdc::re_init(int *argc, char ***argv)
 
 int rempi_re_cdc::re_init_thread(
 			     int *argc, char ***argv,
-			     int required, int *provided)
+			     int required, int *provided,
+				 int fortran_init_thread)
 {
   int ret;
   /*Init CLMPI*/
   init_clmpi();
 
-  ret = PMPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, provided);
+  //  ret = PMPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, provided);
+  ret = rempi_mpi_init_thread(argc, argv, MPI_THREAD_MULTIPLE, provided, fortran_init_thread);
   if (*provided < MPI_THREAD_SERIALIZED) {
     REMPI_ERR("MPI supports only MPI_THREAD_SINGLE, and ReMPI does not work on this MPI");
   }
