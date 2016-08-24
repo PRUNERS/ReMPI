@@ -73,7 +73,7 @@ $(clmpi_OBJS):
 
 $(rempi_a_LIBS):  $(rempi_OBJS)  $(clmpi_OBJS) #$(rempilite_a_LIBS)
 	ld    -o $(rempi_o_LIBS) -r $(rempi_OBJS)
-	stack_pmpi $(rempi_o_TEMP) 0 $(rempi_o_LIBS) $(clmpi_OBJS)
+	stack_pmpi $(rempi_o_TEMP) 0 $(rempi_o_LIBS) $(clmpi_OBJS) 
 	ar cr $@ $(rempi_o_TEMP)
 	ranlib $@
 
