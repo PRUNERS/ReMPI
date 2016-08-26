@@ -1,5 +1,5 @@
 search ../io-watchdog
-timeout = 1s
+timeout = 5s
 actions = ReMPI # kill
 
 #search /usr/local/tools/io-watchdog/actions

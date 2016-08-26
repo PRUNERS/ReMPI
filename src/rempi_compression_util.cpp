@@ -12,9 +12,9 @@
 #define windowBits 15
 #define GZIP_ENCODING 16
 #ifdef REMPI_LITE
-#define ZLIB_CHUNK (1 *  1024)
+#define ZLIB_CHUNK (1 * 1024 *  1024)
 #else
-#define ZLIB_CHUNK (1 *  1024)
+#define ZLIB_CHUNK (1 * 1024)
 #endif
 
 #define CALL_ZLIB(x) {                                                  \
@@ -356,7 +356,9 @@ size_t rempi_compression_util<T>::decompress_by_zlib_vec(vector<char*>  &input_v
   /* clean up and return */
   (void)inflateEnd(&strm);
   if (ret != Z_STREAM_END) {
-    REMPI_ERR("Error in inflate");
+    REMPI_ERR("Error in inflateEnd: %d (strm: %p) (Z_STREAM_END: %d, Z_OK: %d, Z_ERROR: %d)", 
+	      ret, strm, 
+	      Z_STREAM_END, Z_OK, Z_ERRNO);
   }
   return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
 }

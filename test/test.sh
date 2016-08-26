@@ -5,15 +5,31 @@ prefix=/g/g90/sato5/repo/rempi
 mode=$1
 num_procs=$2
 
-
 dir=${prefix}/test/.rempi
 mkdir ${dir}
 #io_watchdog="--io-watchdog"
+librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
+
+
+bin="./rempi_test_msg_race 0 1 10000 2 0"
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun --io-watchdog=conf=.io-watchdogrc -n ${num_procs} ${bin}
+exit
+
+
+# ===== MCB test ========
+par=`expr 80 \* $num_procs`
+bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary
+ --sigmaA 1 --sigmaS 20 "
+cd ./external/mcb/run-decks/
+make cleanc
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
+cd -
+exit
+
 
 #memcheck="memcheck"
-
-
 #memcheck="memcheck --xml-file=/tmp/rempi.mc"
+
 
 
 bin="./rempi_test_master_worker_fortran"
