@@ -320,15 +320,13 @@ int rempi_recorder_cdc::replay_irecv(
     }
   } else {
 
-#ifdef BGQ
+    //#ifdef BGQ
     static size_t request_id = 847589431;
     memset(request, request_id, sizeof(MPI_Request));
     request_id++;
-    //    REMPI_DBG("request_id: %lu request: %p", request_id, *request);
-    //    *request = (MPI_Request)(request_id++);
-#else
-    *request = (MPI_Request)rempi_malloc(sizeof(MPI_Request));//((source + 1) * (tag + 1) * (comm_id * 1));
-#endif
+    //#else
+    //    *request = (MPI_Request)rempi_malloc(sizeof(MPI_Request));//((source + 1) * (tag + 1) * (comm_id * 1));
+    //#endif
 
 
     request_to_irecv_inputs_umap[*request] = new rempi_irecv_inputs(buf, count, datatype, source, tag, comm, *request);
