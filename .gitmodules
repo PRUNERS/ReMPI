@@ -6,3 +6,7 @@
 	path = scripts/external/pmpis
 #	url = https://sato5@lc.llnl.gov/stash/scm/prun/rempi-pmpis.git
 	url = ssh://git@cz-stash.llnl.gov:7999/prun/rempi-pmpis.git
+[submodule "test/external/mcb"]
+	   path = test/external/mcb
+#	   url = https://sato5@lc.llnl.gov/stash/scm/prun/rempi-mcbdouble.git
+	   url = ssh://git@cz-stash.llnl.gov:7999/prun/rempi-mcbdouble.git
