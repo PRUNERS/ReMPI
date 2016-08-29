@@ -1,6 +1,0 @@
-
-all:
-	@$(MAKE) -f Makefile-bgq-gnu -C test
-
-clean:
-	@$(MAKE) clean -f Makefile-bgq-gnu -C test
