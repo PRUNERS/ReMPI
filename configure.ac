@@ -69,9 +69,9 @@ AC_ARG_WITH([zlib-static],
             [AS_HELP_STRING([--with-zlib-static],
               [path to installation directory for libz])],
             [libz_DIR=$withval],
-            [])
+            [libz_DIR=""])
 
-if test "$libz_DIR" = :; then
+if test "$libz_DIR" = ""; then
    AC_CHECK_LIB([z], [deflate])
    AC_CHECK_LIB([z], [inflate])
 else
@@ -101,6 +101,7 @@ AC_CONFIG_FILES([
 	src/external/Makefile 
 	src/external/clmpi/Makefile 
 	test/Makefile
+	example/Makefile
 	example/example_x86.sh
 	example/examplex_x86.sh])
 AC_OUTPUT
