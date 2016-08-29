@@ -14,25 +14,24 @@
     OR
     $ git clone ssh://git@cz-stash.llnl.gov:7999/prun/rempi.git
     $ git submodule update --init
-  
-    ./autogen.sh
+    $ cd <rempi directory>
+    $ ./autogen.sh
 
 ### From tarball
 
     $ tar zxvf ./rempi_xxxxx.tar.bz
+    $ cd <rempi directory>
 
 ## 2. Build ReMPI
 
 ### Build (General)
 
-    cd rempi
     ./configure --prefix=<path to installation directory>
     make 
     make install
 
 ### Build (BG/Q)
 
-    cd rempi
     ./configure --prefix=<path to installation directory> --with-glugene --with-zlib-static=/usr/local/tools/zlib-1.2.6/
     make 
     make install
