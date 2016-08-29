@@ -3,7 +3,10 @@
 # https://www.gnu.org/software/autoconf/manual/autoconf-2.60/html_node/index.html#Top
 
 AC_PREREQ([2.63])
-AC_INIT([ReMPI], [0.0.1], [kento@llnl.gov])
+AC_INIT([ReMPI],
+        m4_esyscmd([git describe --always | awk '/.*/ {sub(/^v/, ""); printf "%s",$1; exit}']), 
+	[kento@llnl.gov])
+
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 #AM_INIT_AUTOMAKE([ReMPI], [0.1])
