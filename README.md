@@ -10,10 +10,12 @@
 
 ### From git repogitory
 
+    -
     $ git clone --recursive ssh://git@cz-stash.llnl.gov:7999/prun/rempi.git
     OR
     $ git clone ssh://git@cz-stash.llnl.gov:7999/prun/rempi.git
     $ git submodule update --init
+    -
     $ cd <rempi directory>
     $ ./autogen.sh
 
