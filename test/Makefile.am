@@ -55,9 +55,6 @@ rempi_test_units_LIBS = $(librempi_LIB)
 rempi_test_msg_race_SOURCES = rempi_test_msg_race.c rempi_test_util.c
 rempi_test_msg_race_LIBS = $(librempi_LIB)
 
-noinst_SCRIPTS = \
-	example_x86.sh \
-	examplex_x86.sh
 
 .PHONY: clean_core
 clean_core:
