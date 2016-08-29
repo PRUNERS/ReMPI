@@ -1140,7 +1140,7 @@ uninstall-am: uninstall-dist_workaround_libSCRIPTS \
 
 @ENABLE_CDC_TRUE@$(librempix_a_LIB): $(librempix_a_OBJECTS) $(clmpi_o_OBJECT)
 @ENABLE_CDC_TRUE@	ld -o $(librempix_a_LD_OBJECT) -r $(librempix_a_OBJECTS) $(libz_a_LIB)
-@ENABLE_CDC_TRUE@	stack_pmpi $(librempix_a_STACK_PMPI_OBJECT) 0 $(librempix_a_LD_OBJECT) $(clmpi_o_OBJECT)
+@ENABLE_CDC_TRUE@	../scripts/external/pmpis/stack_pmpi $(librempix_a_STACK_PMPI_OBJECT) 0 $(librempix_a_LD_OBJECT) $(clmpi_o_OBJECT)
 @ENABLE_CDC_TRUE@	ar cr $@ $(librempix_a_STACK_PMPI_OBJECT)
 @ENABLE_CDC_TRUE@	ranlib $@
 

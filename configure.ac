@@ -26,11 +26,12 @@ AC_ARG_ENABLE([cdc],
             [])
 AM_CONDITIONAL([ENABLE_CDC], [test "$enable_cdc" = yes])
 AC_ARG_WITH([bluegene],
-            [AS_HELP_STRING([--with-gluegene],
-              [build test codd with static library])],
+            [AS_HELP_STRING([--with-bluegene],
+              [build test code with static library])],
             [wiht_bluegene=yes],
             [])
 AM_CONDITIONAL([WITH_BLUEGENE], [test "$with_bluegene" = yes])
+
 
 #### Checks for programs.
 LX_FIND_MPI # TODO: AC_LANG_CASE([C++], ...) is not executed
@@ -64,9 +65,9 @@ AC_PROG_F77([mpif90])
 
 #### Checks for libraries.
 
-AC_ARG_WITH([zlib_static],
-            [AS_HELP_STRING([--with-zlib_static],
-              [path to instration directory of libz])],
+AC_ARG_WITH([zlib-static],
+            [AS_HELP_STRING([--with-zlib-static],
+              [path to installation directory for libz])],
             [libz_DIR=$withval],
             [])
 

@@ -60,7 +60,7 @@ dist_workaround_lib_SCRIPTS = $(librempix_so_LIB)
 
 $(librempix_a_LIB): $(librempix_a_OBJECTS) $(clmpi_o_OBJECT)
 	ld -o $(librempix_a_LD_OBJECT) -r $(librempix_a_OBJECTS) $(libz_a_LIB)
-	stack_pmpi $(librempix_a_STACK_PMPI_OBJECT) 0 $(librempix_a_LD_OBJECT) $(clmpi_o_OBJECT)
+	../scripts/external/pmpis/stack_pmpi $(librempix_a_STACK_PMPI_OBJECT) 0 $(librempix_a_LD_OBJECT) $(clmpi_o_OBJECT)
 	ar cr $@ $(librempix_a_STACK_PMPI_OBJECT)
 	ranlib $@
 
