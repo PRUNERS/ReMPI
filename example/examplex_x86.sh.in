@@ -5,7 +5,7 @@ num_procs=$1
 dir=./.rempi
 
 cd ../test/
-
+mkdir ${dir}
 # Master worker w/ gzip
 librempi=@prefix@/lib/librempix.so
 bin="./rempi_test_master_worker"
