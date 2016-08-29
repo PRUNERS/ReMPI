@@ -14,7 +14,7 @@
     OR
     $ git clone ssh://git@cz-stash.llnl.gov:7999/prun/rempi.git
     $ git submodule update --init
-
+  
     ./autogen.sh
 
 ### From tarball
@@ -23,14 +23,14 @@
 
 ## 2. Build ReMPI
 
-### General building
+### Build (General)
 
     cd rempi
     ./configure --prefix=<path to installation directory>
     make 
     make install
 
-### Building for BG/Q 
+### Build (BG/Q)
 
     cd rempi
     ./configure --prefix=<path to installation directory> --with-glugene --with-zlib-static=/usr/local/tools/zlib-1.2.6/
@@ -41,9 +41,11 @@
 ## 3. Run examples
 
   * Assuming SLURM
+
      cd example
      sh ./example_x86.sh 16
      ls -ltr .rempi # lists record files
+
 
 # Configuration Option
 
