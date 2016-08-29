@@ -40,7 +40,7 @@
 
 ## 3. Run examples
 
-  * Assuming SLURM
+Assuming SLURM
 
      cd example
      sh ./example_x86.sh 16
