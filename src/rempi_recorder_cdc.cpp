@@ -1222,7 +1222,7 @@ int rempi_recorder_cdc::replay_finalize(void)
 
   //TODO:
   //fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
-#if 1
+#if 0
   if (counta == 0) {
     REMPI_DBGI(0, "Get: %f (count: %lu, is_pending:%lu, is_updated:%lu, single: %f), waiting: %f (count: %lu, single: %f)", 
 	       dura, counta, counta_pending, counta_update, -1, durb, countb, dura/countb);
