@@ -15,7 +15,6 @@
 
 @SET_MAKE@
 
-
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -133,7 +132,6 @@ am__rempi_test_unitsx_SOURCES_DIST = rempi_test_units.c \
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@	rempi_test_util.$(OBJEXT)
 rempi_test_unitsx_OBJECTS = $(am_rempi_test_unitsx_OBJECTS)
 rempi_test_unitsx_LDADD = $(LDADD)
-SCRIPTS = $(noinst_SCRIPTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -270,6 +268,7 @@ build_cpu = @build_cpu@
 build_os = @build_os@
 build_vendor = @build_vendor@
 builddir = @builddir@
+clmpi_DIR = @clmpi_DIR@
 datadir = @datadir@
 datarootdir = @datarootdir@
 docdir = @docdir@
@@ -301,6 +300,7 @@ psdir = @psdir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
+stack_pmpi_DIR = @stack_pmpi_DIR@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
@@ -332,10 +332,6 @@ rempi_test_units_SOURCES = rempi_test_units.c rempi_test_util.c
 rempi_test_units_LIBS = $(librempi_LIB)
 rempi_test_msg_race_SOURCES = rempi_test_msg_race.c rempi_test_util.c
 rempi_test_msg_race_LIBS = $(librempi_LIB)
-noinst_SCRIPTS = \
-	example_x86.sh \
-	examplex_x86.sh
-
 all: all-am
 
 .SUFFIXES:
@@ -549,7 +545,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS) $(SCRIPTS)
+all-am: Makefile $(PROGRAMS)
 installdirs:
 install: install-am
 install-exec: install-exec-am

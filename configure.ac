@@ -33,6 +33,8 @@ AC_ARG_WITH([bluegene],
 AM_CONDITIONAL([WITH_BLUEGENE], [test "$with_bluegene" = yes])
 
 
+
+
 #### Checks for programs.
 LX_FIND_MPI # TODO: AC_LANG_CASE([C++], ...) is not executed
 
@@ -92,14 +94,34 @@ fi
 
 #### Checks for library functions.
 
+AC_ARG_WITH([stack-pmpi],
+            [AS_HELP_STRING([--with-stack-pmpi],
+              [path to stack_pmpi directory])],
+            [stack_pmpi_DIR=$withval],
+            [])
+if test "$stack_pmpi_DIR" = ""; then
+   AC_MSG_ERROR([This package needs stack_pmpi (in STACKP). (Option: --with-stack-pmpi=<path to stack_pmpi directory>)])
+fi
+AC_SUBST(stack_pmpi_DIR)
+
+AC_ARG_WITH([clmpi],
+            [AS_HELP_STRING([--with-clmpi],
+              [path to CLMPI directory])],
+            [clmpi_DIR=$withval],
+            [])
+if test "$clmpi_DIR" = ""; then
+   AC_MSG_ERROR([This package needs CLMPI library. (Option: --with-clmpi=<path to clmpi directory>)])
+fi
+AC_SUBST(clmpi_DIR)
+
+
+
 #### Output files.
 
 AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_FILES([
 	Makefile 
 	src/Makefile 
-	src/external/Makefile 
-	src/external/clmpi/Makefile 
 	test/Makefile
 	example/Makefile
 	example/example_x86.sh

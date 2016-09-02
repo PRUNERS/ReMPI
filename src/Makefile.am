@@ -1,9 +1,5 @@
 
-if ENABLE_CDC
-SUBDIRS = ./external/
-endif
-
-AM_CFLAGS = -fPIC -g -Wall -pthread -std=c++0x -I./external/clmpi -lstdc++ -I$(libz_a_INCLUDE)
+AM_CFLAGS = -fPIC -g -Wall -pthread -std=c++0x -I$(clmpi_DIR)/include/ -lstdc++ -I$(libz_a_INCLUDE)
 AM_CXXFLAGS = $(AM_CFLAGS)
 
 rempi_SOURCES =  \
@@ -53,14 +49,15 @@ librempix_a_SOURCES = $(rempi_SOURCES)
 librempix_a_CFLAGS = -lz -lstdc++ -lintlc
 librempix_a_LD_OBJECT = librempix.ar.o
 librempix_a_STACK_PMPI_OBJECT = librempix.stack_pmpi.o
-clmpi_o_OBJECT = $(SUBDIRS)/clmpi/libclmpi_stack_pmpi.o
+clmpi_o_OBJECT = $(clmpi_DIR)/lib/libclmpi.o
+clmpi_o_LIB_OBJECT = $(clmpi_DIR)/lib/.libs/libclmpi.o
 workaround_libdir = $(libdir)
 dist_workaround_lib_SCRIPTS = $(librempix_so_LIB)
 
 
 $(librempix_a_LIB): $(librempix_a_OBJECTS) $(clmpi_o_OBJECT)
 	ld -o $(librempix_a_LD_OBJECT) -r $(librempix_a_OBJECTS) $(libz_a_LIB)
-	../scripts/external/pmpis/stack_pmpi $(librempix_a_STACK_PMPI_OBJECT) 0 $(librempix_a_LD_OBJECT) $(clmpi_o_OBJECT)
+	$(stack_pmpi_DIR)/stack_pmpi $(librempix_a_STACK_PMPI_OBJECT) $(librempix_a_LD_OBJECT) $(clmpi_o_OBJECT)
 	ar cr $@ $(librempix_a_STACK_PMPI_OBJECT)
 	ranlib $@
 
