@@ -90,7 +90,7 @@ rempi_test_master_worker_fortran_OBJECTS =  \
 	$(am_rempi_test_master_worker_fortran_OBJECTS)
 rempi_test_master_worker_fortran_LDADD = $(LDADD)
 am__rempi_test_master_worker_fortranx_SOURCES_DIST =  \
-	rempi_test_master_worker_fortran.f
+	rempi_test_master_worker_fortran.f90
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@am_rempi_test_master_worker_fortranx_OBJECTS = rempi_test_master_worker_fortran.$(OBJEXT)
 rempi_test_master_worker_fortranx_OBJECTS =  \
 	$(am_rempi_test_master_worker_fortranx_OBJECTS)
@@ -145,12 +145,12 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-F77COMPILE = $(F77) $(AM_FFLAGS) $(FFLAGS)
-LTF77COMPILE = $(LIBTOOL) --tag=F77 $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=compile $(F77) $(AM_FFLAGS) $(FFLAGS)
-F77LD = $(F77)
-F77LINK = $(LIBTOOL) --tag=F77 $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(F77LD) $(AM_FFLAGS) $(FFLAGS) $(AM_LDFLAGS) \
+FCCOMPILE = $(FC) $(AM_FCFLAGS) $(FCFLAGS)
+LTFCCOMPILE = $(LIBTOOL) --tag=FC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
+	--mode=compile $(FC) $(AM_FCFLAGS) $(FCFLAGS)
+FCLD = $(FC)
+FCLINK = $(LIBTOOL) --tag=FC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
+	--mode=link $(FCLD) $(AM_FCFLAGS) $(FCFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(rempi_test_hypre_parasails_SOURCES) \
 	$(rempi_test_hypre_parasailsx_SOURCES) \
@@ -202,8 +202,8 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
-F77 = @F77@
-FFLAGS = @FFLAGS@
+FC = @FC@
+FCFLAGS = @FCFLAGS@
 FGREP = @FGREP@
 GREP = @GREP@
 INSTALL = @INSTALL@
@@ -255,7 +255,7 @@ abs_top_srcdir = @abs_top_srcdir@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
-ac_ct_F77 = @ac_ct_F77@
+ac_ct_FC = @ac_ct_FC@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
@@ -309,7 +309,7 @@ top_srcdir = @top_srcdir@
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@librempix_LIB = @prefix@/lib/librempix.a
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_master_workerx_SOURCES = rempi_test_master_worker.c rempi_test_util.c
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_master_workerx_LIBS = $(librempix_LIB)
-@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_master_worker_fortranx_SOURCES = rempi_test_master_worker_fortran.f
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_master_worker_fortranx_SOURCES = rempi_test_master_worker_fortran.f90
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_master_worker_fortranx_LIBS = $(librempix_LIB)
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_mini_mcbx_SOURCES = rempi_test_mini_mcb.c rempi_test_util.c
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_mini_mcbx_LIBS = $(librempix_LIB)
@@ -319,10 +319,11 @@ top_srcdir = @top_srcdir@
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_unitsx_LIBS = $(librempix_LIB)
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_msg_racex_SOURCES = rempi_test_msg_race.c rempi_test_util.c
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_msg_racex_LIBS = $(librempix_LIB)
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@target_fortranx = rempi_test_master_worker_fortranx$(EXEEXT)
 @WITH_BLUEGENE_TRUE@librempi_LIB = @prefix@/lib/librempi.a
 rempi_test_master_worker_SOURCES = rempi_test_master_worker.c rempi_test_util.c
 rempi_test_master_worker_LIBS = $(librempi_LIB)
-rempi_test_master_worker_fortran_SOURCES = rempi_test_master_worker_fortran.f
+rempi_test_master_worker_fortran_SOURCES = rempi_test_master_worker_fortran.f90
 rempi_test_master_worker_fortran_LIBS = $(librempi_LIB)
 rempi_test_mini_mcb_SOURCES = rempi_test_mini_mcb.c rempi_test_util.c
 rempi_test_mini_mcb_LIBS = $(librempi_LIB)
@@ -332,10 +333,11 @@ rempi_test_units_SOURCES = rempi_test_units.c rempi_test_util.c
 rempi_test_units_LIBS = $(librempi_LIB)
 rempi_test_msg_race_SOURCES = rempi_test_msg_race.c rempi_test_util.c
 rempi_test_msg_race_LIBS = $(librempi_LIB)
+target_fortran = rempi_test_master_worker_fortran$(EXEEXT)
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .c .f .lo .o .obj
+.SUFFIXES: .c .f90 .lo .o .obj
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -386,10 +388,10 @@ rempi_test_master_worker$(EXEEXT): $(rempi_test_master_worker_OBJECTS) $(rempi_t
 	$(LINK) $(rempi_test_master_worker_OBJECTS) $(rempi_test_master_worker_LDADD) $(LIBS)
 rempi_test_master_worker_fortran$(EXEEXT): $(rempi_test_master_worker_fortran_OBJECTS) $(rempi_test_master_worker_fortran_DEPENDENCIES) 
 	@rm -f rempi_test_master_worker_fortran$(EXEEXT)
-	$(F77LINK) $(rempi_test_master_worker_fortran_OBJECTS) $(rempi_test_master_worker_fortran_LDADD) $(LIBS)
+	$(FCLINK) $(rempi_test_master_worker_fortran_OBJECTS) $(rempi_test_master_worker_fortran_LDADD) $(LIBS)
 rempi_test_master_worker_fortranx$(EXEEXT): $(rempi_test_master_worker_fortranx_OBJECTS) $(rempi_test_master_worker_fortranx_DEPENDENCIES) 
 	@rm -f rempi_test_master_worker_fortranx$(EXEEXT)
-	$(F77LINK) $(rempi_test_master_worker_fortranx_OBJECTS) $(rempi_test_master_worker_fortranx_LDADD) $(LIBS)
+	$(FCLINK) $(rempi_test_master_worker_fortranx_OBJECTS) $(rempi_test_master_worker_fortranx_LDADD) $(LIBS)
 rempi_test_master_workerx$(EXEEXT): $(rempi_test_master_workerx_OBJECTS) $(rempi_test_master_workerx_DEPENDENCIES) 
 	@rm -f rempi_test_master_workerx$(EXEEXT)
 	$(LINK) $(rempi_test_master_workerx_OBJECTS) $(rempi_test_master_workerx_LDADD) $(LIBS)
@@ -446,14 +448,14 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-.f.o:
-	$(F77COMPILE) -c -o $@ $<
+.f90.o:
+	$(FCCOMPILE) -c -o $@ $<
 
-.f.obj:
-	$(F77COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+.f90.obj:
+	$(FCCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
-.f.lo:
-	$(LTF77COMPILE) -c -o $@ $<
+.f90.lo:
+	$(LTFCCOMPILE) -c -o $@ $<
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -658,6 +660,10 @@ uninstall-am:
 	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
 	pdf pdf-am ps ps-am tags uninstall uninstall-am
 
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@$(target_fortranx):
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@	mpif90  -g -c -o rempi_test_master_worker_fortranx rempi_test_master_worker_fortranx.f90 -lmpi
+$(target_fortran):
+	mpif90  -g -o rempi_test_master_worker_fortran rempi_test_master_worker_fortran.f90 -lmpi
 
 .PHONY: clean_core
 clean_core:

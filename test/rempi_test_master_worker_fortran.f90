@@ -14,8 +14,7 @@
 
       if (rank .eq. 0) then
          do i=1,numtasks-1
-            call MPI_RECV(inmsg, 1, MPI_INT, MPI_ANY_SOURCE, tag, 
-     &           MPI_COMM_WORLD, stat, ierr)
+            call MPI_RECV(inmsg, 1, MPI_INT, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, stat, ierr)
             dest = stat(MPI_SOURCE)
             print *, "rank=", dest, "value=", inmsg
         end do
@@ -23,8 +22,7 @@
       else 
          outmsg = rank
          dest = 0
-         call MPI_SEND(outmsg, 1, MPI_INT, dest, tag, 
-     &        MPI_COMM_WORLD, err)
+         call MPI_SEND(outmsg, 1, MPI_INT, dest, tag, MPI_COMM_WORLD, err)
       endif
 
 

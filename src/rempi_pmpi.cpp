@@ -235,10 +235,10 @@ void init_rempi() {
   } else if (rempi_lite) {
     REMPI_ERR("No such rempi_encode in ReMPI(Lite): %d", rempi_encode);
   } else {
-#ifdef REMPI_LITE
-    REMPI_ERR("No such rempi_encode: %d", rempi_encode);
-#else
+#if MPI_VERSION == 3 && !defined(REMPI_LITE)
     rempi_record_replay = new rempi_re_cdc();
+#else
+    REMPI_ERR("No such rempi_encode: %d", rempi_encode);
 #endif  
   }
   return;

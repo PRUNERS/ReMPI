@@ -28,8 +28,8 @@ AM_CONDITIONAL([ENABLE_CDC], [test "$enable_cdc" = yes])
 AC_ARG_WITH([bluegene],
             [AS_HELP_STRING([--with-bluegene],
               [build test code with static library])],
-            [wiht_bluegene=yes],
-            [])
+            [with_bluegene=yes],
+            [with_bluegene=""])
 AM_CONDITIONAL([WITH_BLUEGENE], [test "$with_bluegene" = yes])
 
 
@@ -52,15 +52,17 @@ fi
 AC_PROG_CC([mpicc])
 AM_PROG_CC_C_O([mpicc])
 AC_PROG_CXX([mpicc])
+#AC_PROG_FC([mpif90])
 AC_SUBST([CC], [$MPICC])
 AC_SUBST([CXX], [$MPICC])
+
 
 
 AC_CHECK_PROGS([MPIF90], [mpif90], [:])
 if test "$MPIF90" = :; then
    AC_MSG_ERROR([This package needs mpif90.])
 fi
-AC_PROG_F77([mpif90])
+AC_PROG_FC([mpif90])
 
 
 #AC_ARG_VAR([CC], [CC for compile])
@@ -82,7 +84,26 @@ else
 fi
 
 #AC_CHECK_LIB([mpi], [MPI_Init])
-#AC_CHECK_LIB([mpi], [MPI_Get])
+mpi_version3="yes"
+if test "$enable_cdc" = yes; then
+if test "$with_bluegene" = ""; then
+AC_CHECK_LIB([mpi], [MPI_Get], [], [mpi_version3="no"])
+AC_CHECK_LIB([mpi], [PMPI_Get], [], [mpi_version3="no"])
+AC_CHECK_LIB([mpi], [MPI_Win_lock_all], [], [mpi_version3="no"])
+AC_CHECK_LIB([mpi], [PMPI_Win_lock_all], [], [mpi_version3="no"])
+AC_CHECK_LIB([mpi], [MPI_Win_unlock_all], [], [mpi_version3="no"])
+AC_CHECK_LIB([mpi], [PMPI_Win_unlock_all], [], [mpi_version3="no"])
+AC_CHECK_LIB([mpi], [MPI_Win_allocate], [], [mpi_version3="no"])
+AC_CHECK_LIB([mpi], [PMPI_Win_allocate], [], [mpi_version3="no"])
+AC_CHECK_LIB([mpi], [MPI_Win_free], [], [mpi_version3="no"])
+AC_CHECK_LIB([mpi], [PMPI_Win_free], [], [mpi_version3="no"])
+AC_CHECK_LIB([mpi], [MPI_Win_flush_local_all], [], [mpi_version3="no"])
+AC_CHECK_LIB([mpi], [PMPI_Win_flush_local_all], [], [mpi_version3="no"])
+if test "$mpi_version3" = "no"; then
+   AC_MSG_ERROR([This package needs MPI3.])
+fi		    
+fi		    
+fi
 
 #### Checks for header files.
 

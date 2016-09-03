@@ -102,7 +102,8 @@ class rempi_re_cdc : public rempi_re
  protected:
   int collective_sync_clock(MPI_Comm comm);
  public:
-  rempi_re_cdc() {
+  rempi_re_cdc() 
+    {
     recorder = new rempi_recorder_cdc();
   };
 
