@@ -1,8 +1,8 @@
-[submodule "src/external/clmpi"]
-	path = src/external/clmpi
+#[submodule "src/external/clmpi"]
+#	path = src/external/clmpi
 #	url = https://sato5@lc.llnl.gov/stash/scm/prun/rempi-clmpi.git
-	url = ssh://git@cz-stash.llnl.gov:7999/prun/rempi-clmpi.git
-[submodule "scripts/external/pmpis"]
-	path = scripts/external/pmpis
+#	url = ssh://git@cz-stash.llnl.gov:7999/prun/rempi-clmpi.git
+#[submodule "scripts/external/pmpis"]
+#	path = scripts/external/pmpis
 #	url = https://sato5@lc.llnl.gov/stash/scm/prun/rempi-pmpis.git
-	url = ssh://git@cz-stash.llnl.gov:7999/prun/rempi-pmpis.git
+#	url = ssh://git@cz-stash.llnl.gov:7999/prun/rempi-pmpis.git
