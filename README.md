@@ -52,7 +52,9 @@ Assuming SLURM
 
 For more details, run ./configure -h  
 
-  * `--enable-cdc`: (Experimental) enables CDC (clock delta compression), and output librempix.a and .so
+  * `--enable-cdc`: (Experimental) enables CDC (clock delta compression), and output librempix.a and .so. When CDC is enabled, ReMPI requires below two software
+     *`--with-stack-pmpi`: path to stack_pmpi directory (STACKP)
+     *`--with-clmpi`: path to CLMPI directory
   * `--with-bluegene`: build test codd with static library
   * `--with-zlib-static`: path to installation directory for libz.a
 

@@ -12,7 +12,10 @@
 #include "rempi_err.h"
 #include "rempi_mem.h"
 #include "rempi_recorder.h"
+
+#if !defined(REMPI_LITE)
 #include "clmpi.h"
+#endif
 
 
 using namespace std;

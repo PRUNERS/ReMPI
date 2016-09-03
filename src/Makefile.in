@@ -16,7 +16,6 @@
 @SET_MAKE@
 
 
-
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -36,9 +35,11 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+@ENABLE_CDC_TRUE@am__append_1 = $(librempix_la_LIBRARY) 
 subdir = src
-DIST_COMMON = $(am__dist_workaround_lib_SCRIPTS_DIST) \
-	$(srcdir)/Makefile.am $(srcdir)/Makefile.in
+DIST_COMMON = $(am__dist_install_non_pic_lib_SCRIPTS_DIST) \
+	$(am__dist_install_pic_lib_SCRIPTS_DIST) $(srcdir)/Makefile.am \
+	$(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
@@ -71,48 +72,13 @@ am__nobase_list = $(am__nobase_strip_setup); \
 am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(libdir)" \
-	"$(DESTDIR)$(workaround_libdir)"
-LIBRARIES = $(lib_LIBRARIES)
-ARFLAGS = cru
-librempix_a_AR = $(AR) $(ARFLAGS)
-librempix_a_LIBADD =
-am__librempix_a_SOURCES_DIST = rempi_pmpi.cpp rempi_err.cpp \
-	rempi_mem.cpp rempi_util.cpp rempi_compression_util.cpp \
-	rempi_config.cpp rempi_re.cpp rempi_re_cdc.cpp \
-	rempi_sig_handler.cpp rempi_status.cpp rempi_mf.cpp \
-	rempi_recorder_cdc.cpp rempi_recorder.cpp \
-	rempi_message_manager.cpp rempi_mpi_init.cpp \
-	rempi_request_mg.cpp rempi_event_list.cpp rempi_event.cpp \
-	rempi_cp.cpp rempi_clock_delta_compression.cpp \
-	rempi_encoder.cpp rempi_encoder_basic.cpp \
-	rempi_encoder_cdc.cpp rempi_encoder_cdc_row_wise_diff.cpp \
-	rempi_encoder_cdc_permutation_diff.cpp rempi_encoder_zlib.cpp \
-	rempi_encoder_simple_zlib.cpp rempi_thread.cpp \
-	rempi_io_thread.cpp rempi_mutex.cpp
-am__objects_1 = rempi_pmpi.$(OBJEXT) rempi_err.$(OBJEXT) \
-	rempi_mem.$(OBJEXT) rempi_util.$(OBJEXT) \
-	rempi_compression_util.$(OBJEXT) rempi_config.$(OBJEXT) \
-	rempi_re.$(OBJEXT) rempi_re_cdc.$(OBJEXT) \
-	rempi_sig_handler.$(OBJEXT) rempi_status.$(OBJEXT) \
-	rempi_mf.$(OBJEXT) rempi_recorder_cdc.$(OBJEXT) \
-	rempi_recorder.$(OBJEXT) rempi_message_manager.$(OBJEXT) \
-	rempi_mpi_init.$(OBJEXT) rempi_request_mg.$(OBJEXT) \
-	rempi_event_list.$(OBJEXT) rempi_event.$(OBJEXT) \
-	rempi_cp.$(OBJEXT) rempi_clock_delta_compression.$(OBJEXT) \
-	rempi_encoder.$(OBJEXT) rempi_encoder_basic.$(OBJEXT) \
-	rempi_encoder_cdc.$(OBJEXT) \
-	rempi_encoder_cdc_row_wise_diff.$(OBJEXT) \
-	rempi_encoder_cdc_permutation_diff.$(OBJEXT) \
-	rempi_encoder_zlib.$(OBJEXT) \
-	rempi_encoder_simple_zlib.$(OBJEXT) rempi_thread.$(OBJEXT) \
-	rempi_io_thread.$(OBJEXT) rempi_mutex.$(OBJEXT)
-@ENABLE_CDC_TRUE@am_librempix_a_OBJECTS = $(am__objects_1)
-librempix_a_OBJECTS = $(am_librempix_a_OBJECTS)
+am__installdirs = "$(DESTDIR)$(libdir)" \
+	"$(DESTDIR)$(install_non_pic_libdir)" \
+	"$(DESTDIR)$(install_pic_libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 librempi_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am__objects_2 = librempi_la-rempi_pmpi.lo librempi_la-rempi_err.lo \
+am__objects_1 = librempi_la-rempi_pmpi.lo librempi_la-rempi_err.lo \
 	librempi_la-rempi_mem.lo librempi_la-rempi_util.lo \
 	librempi_la-rempi_compression_util.lo \
 	librempi_la-rempi_config.lo librempi_la-rempi_re.lo \
@@ -134,10 +100,41 @@ am__objects_2 = librempi_la-rempi_pmpi.lo librempi_la-rempi_err.lo \
 	librempi_la-rempi_encoder_simple_zlib.lo \
 	librempi_la-rempi_thread.lo librempi_la-rempi_io_thread.lo \
 	librempi_la-rempi_mutex.lo
-am_librempi_la_OBJECTS = $(am__objects_2)
+am_librempi_la_OBJECTS = $(am__objects_1)
 librempi_la_OBJECTS = $(am_librempi_la_OBJECTS)
-am__dist_workaround_lib_SCRIPTS_DIST = librempix.so
-SCRIPTS = $(dist_workaround_lib_SCRIPTS)
+librempix_la_LIBADD =
+am__librempix_la_SOURCES_DIST = rempi_pmpi.cpp rempi_err.cpp \
+	rempi_mem.cpp rempi_util.cpp rempi_compression_util.cpp \
+	rempi_config.cpp rempi_re.cpp rempi_re_cdc.cpp \
+	rempi_sig_handler.cpp rempi_status.cpp rempi_mf.cpp \
+	rempi_recorder_cdc.cpp rempi_recorder.cpp \
+	rempi_message_manager.cpp rempi_mpi_init.cpp \
+	rempi_request_mg.cpp rempi_event_list.cpp rempi_event.cpp \
+	rempi_cp.cpp rempi_clock_delta_compression.cpp \
+	rempi_encoder.cpp rempi_encoder_basic.cpp \
+	rempi_encoder_cdc.cpp rempi_encoder_cdc_row_wise_diff.cpp \
+	rempi_encoder_cdc_permutation_diff.cpp rempi_encoder_zlib.cpp \
+	rempi_encoder_simple_zlib.cpp rempi_thread.cpp \
+	rempi_io_thread.cpp rempi_mutex.cpp
+am__objects_2 = rempi_pmpi.lo rempi_err.lo rempi_mem.lo rempi_util.lo \
+	rempi_compression_util.lo rempi_config.lo rempi_re.lo \
+	rempi_re_cdc.lo rempi_sig_handler.lo rempi_status.lo \
+	rempi_mf.lo rempi_recorder_cdc.lo rempi_recorder.lo \
+	rempi_message_manager.lo rempi_mpi_init.lo rempi_request_mg.lo \
+	rempi_event_list.lo rempi_event.lo rempi_cp.lo \
+	rempi_clock_delta_compression.lo rempi_encoder.lo \
+	rempi_encoder_basic.lo rempi_encoder_cdc.lo \
+	rempi_encoder_cdc_row_wise_diff.lo \
+	rempi_encoder_cdc_permutation_diff.lo rempi_encoder_zlib.lo \
+	rempi_encoder_simple_zlib.lo rempi_thread.lo \
+	rempi_io_thread.lo rempi_mutex.lo
+@ENABLE_CDC_TRUE@am_librempix_la_OBJECTS = $(am__objects_2)
+librempix_la_OBJECTS = $(am_librempix_la_OBJECTS)
+@ENABLE_CDC_TRUE@am_librempix_la_rpath = -rpath $(libdir)
+am__dist_install_non_pic_lib_SCRIPTS_DIST = ./librempix.o
+am__dist_install_pic_lib_SCRIPTS_DIST = ./.libs/librempix.o
+SCRIPTS = $(dist_install_non_pic_lib_SCRIPTS) \
+	$(dist_install_pic_lib_SCRIPTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -151,8 +148,8 @@ CXXLD = $(CXX)
 CXXLINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(librempix_a_SOURCES) $(librempi_la_SOURCES)
-DIST_SOURCES = $(am__librempix_a_SOURCES_DIST) $(librempi_la_SOURCES)
+SOURCES = $(librempi_la_SOURCES) $(librempix_la_SOURCES)
+DIST_SOURCES = $(librempi_la_SOURCES) $(am__librempix_la_SOURCES_DIST)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -320,23 +317,27 @@ rempi_SOURCES = \
 		rempi_io_thread.cpp \
 		rempi_mutex.cpp
 
-lib_LTLIBRARIES = librempi.la
+lib_LTLIBRARIES = librempi.la $(am__append_1)
 librempi_la_SOURCES = $(rempi_SOURCES)
 librempi_la_LIBADD = $(libz_a_LIB)
 librempi_la_CFLaGS = -lz -lstdc++ -lintlc
 librempi_la_CPPFLAGS = -DREMPI_LITE
-@ENABLE_CDC_TRUE@librempix_a_LIB = librempix.a
-@ENABLE_CDC_TRUE@lib_LIBRARIES = $(librempix_a_LIB)
-@ENABLE_CDC_TRUE@librempix_so_LIB = librempix.so
-@ENABLE_CDC_TRUE@librempix_a_SOURCES = $(rempi_SOURCES)
-#librempix_a_OBJECTS = $(librempix_a_SOURCES:%.cpp=%.o) <= automake will create this variable
-@ENABLE_CDC_TRUE@librempix_a_CFLAGS = -lz -lstdc++ -lintlc
-@ENABLE_CDC_TRUE@librempix_a_LD_OBJECT = librempix.ar.o
-@ENABLE_CDC_TRUE@librempix_a_STACK_PMPI_OBJECT = librempix.stack_pmpi.o
-@ENABLE_CDC_TRUE@clmpi_o_OBJECT = $(clmpi_DIR)/lib/libclmpi.o
-@ENABLE_CDC_TRUE@clmpi_o_LIB_OBJECT = $(clmpi_DIR)/lib/.libs/libclmpi.o
-@ENABLE_CDC_TRUE@workaround_libdir = $(libdir)
-@ENABLE_CDC_TRUE@dist_workaround_lib_SCRIPTS = $(librempix_so_LIB)
+@ENABLE_CDC_TRUE@librempix_la_LIBRARY = librempix.la
+# ===== librempix ===== 
+@ENABLE_CDC_TRUE@librempix_la_SOURCES = $(rempi_SOURCES)
+
+# user-defined custom name             
+@ENABLE_CDC_TRUE@librempix_la_OBJECT = ./librempix_la-librempix.lo
+@ENABLE_CDC_TRUE@librempix_la_OBJECTS_O = $(librempix_la_OBJECTS:%.lo=%.o)
+@ENABLE_CDC_TRUE@librempix_la_STACK_PMPI_OBJECT_O = ./librempix.o
+@ENABLE_CDC_TRUE@librempix_la_LIBS_OBJECTS_O = $(librempix_la_OBJECTS:%.lo=.libs/%.o)
+@ENABLE_CDC_TRUE@librempix_la_LIBS_STACK_PMPI_OBJECT_O = ./.libs/librempix.o
+
+# ===== Object file installation =====                     
+@ENABLE_CDC_TRUE@install_pic_libdir = $(libdir)/.libs
+@ENABLE_CDC_TRUE@dist_install_pic_lib_SCRIPTS = $(librempix_la_LIBS_STACK_PMPI_OBJECT_O) 
+@ENABLE_CDC_TRUE@install_non_pic_libdir = $(libdir)
+@ENABLE_CDC_TRUE@dist_install_non_pic_lib_SCRIPTS = $(librempix_la_STACK_PMPI_OBJECT_O) 
 all: all-am
 
 .SUFFIXES:
@@ -371,42 +372,6 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-install-libLIBRARIES: $(lib_LIBRARIES)
-	@$(NORMAL_INSTALL)
-	test -z "$(libdir)" || $(MKDIR_P) "$(DESTDIR)$(libdir)"
-	@list='$(lib_LIBRARIES)'; test -n "$(libdir)" || list=; \
-	list2=; for p in $$list; do \
-	  if test -f $$p; then \
-	    list2="$$list2 $$p"; \
-	  else :; fi; \
-	done; \
-	test -z "$$list2" || { \
-	  echo " $(INSTALL_DATA) $$list2 '$(DESTDIR)$(libdir)'"; \
-	  $(INSTALL_DATA) $$list2 "$(DESTDIR)$(libdir)" || exit $$?; }
-	@$(POST_INSTALL)
-	@list='$(lib_LIBRARIES)'; test -n "$(libdir)" || list=; \
-	for p in $$list; do \
-	  if test -f $$p; then \
-	    $(am__strip_dir) \
-	    echo " ( cd '$(DESTDIR)$(libdir)' && $(RANLIB) $$f )"; \
-	    ( cd "$(DESTDIR)$(libdir)" && $(RANLIB) $$f ) || exit $$?; \
-	  else :; fi; \
-	done
-
-uninstall-libLIBRARIES:
-	@$(NORMAL_UNINSTALL)
-	@list='$(lib_LIBRARIES)'; test -n "$(libdir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	test -n "$$files" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(libdir)' && rm -f "$$files" )"; \
-	cd "$(DESTDIR)$(libdir)" && rm -f $$files
-
-clean-libLIBRARIES:
-	-test -z "$(lib_LIBRARIES)" || rm -f $(lib_LIBRARIES)
-librempix.a: $(librempix_a_OBJECTS) $(librempix_a_DEPENDENCIES) 
-	-rm -f librempix.a
-	$(librempix_a_AR) librempix.a $(librempix_a_OBJECTS) $(librempix_a_LIBADD)
-	$(RANLIB) librempix.a
 install-libLTLIBRARIES: $(lib_LTLIBRARIES)
 	@$(NORMAL_INSTALL)
 	test -z "$(libdir)" || $(MKDIR_P) "$(DESTDIR)$(libdir)"
@@ -440,10 +405,12 @@ clean-libLTLIBRARIES:
 	done
 librempi.la: $(librempi_la_OBJECTS) $(librempi_la_DEPENDENCIES) 
 	$(CXXLINK) -rpath $(libdir) $(librempi_la_OBJECTS) $(librempi_la_LIBADD) $(LIBS)
-install-dist_workaround_libSCRIPTS: $(dist_workaround_lib_SCRIPTS)
+librempix.la: $(librempix_la_OBJECTS) $(librempix_la_DEPENDENCIES) 
+	$(CXXLINK) $(am_librempix_la_rpath) $(librempix_la_OBJECTS) $(librempix_la_LIBADD) $(LIBS)
+install-dist_install_non_pic_libSCRIPTS: $(dist_install_non_pic_lib_SCRIPTS)
 	@$(NORMAL_INSTALL)
-	test -z "$(workaround_libdir)" || $(MKDIR_P) "$(DESTDIR)$(workaround_libdir)"
-	@list='$(dist_workaround_lib_SCRIPTS)'; test -n "$(workaround_libdir)" || list=; \
+	test -z "$(install_non_pic_libdir)" || $(MKDIR_P) "$(DESTDIR)$(install_non_pic_libdir)"
+	@list='$(dist_install_non_pic_lib_SCRIPTS)'; test -n "$(install_non_pic_libdir)" || list=; \
 	for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
@@ -461,19 +428,53 @@ install-dist_workaround_libSCRIPTS: $(dist_workaround_lib_SCRIPTS)
 	while read type dir files; do \
 	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
 	     test -z "$$files" || { \
-	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(workaround_libdir)$$dir'"; \
-	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(workaround_libdir)$$dir" || exit $$?; \
+	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(install_non_pic_libdir)$$dir'"; \
+	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(install_non_pic_libdir)$$dir" || exit $$?; \
 	     } \
 	; done
 
-uninstall-dist_workaround_libSCRIPTS:
+uninstall-dist_install_non_pic_libSCRIPTS:
 	@$(NORMAL_UNINSTALL)
-	@list='$(dist_workaround_lib_SCRIPTS)'; test -n "$(workaround_libdir)" || exit 0; \
+	@list='$(dist_install_non_pic_lib_SCRIPTS)'; test -n "$(install_non_pic_libdir)" || exit 0; \
 	files=`for p in $$list; do echo "$$p"; done | \
 	       sed -e 's,.*/,,;$(transform)'`; \
 	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(workaround_libdir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(workaround_libdir)" && rm -f $$files
+	echo " ( cd '$(DESTDIR)$(install_non_pic_libdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(install_non_pic_libdir)" && rm -f $$files
+install-dist_install_pic_libSCRIPTS: $(dist_install_pic_lib_SCRIPTS)
+	@$(NORMAL_INSTALL)
+	test -z "$(install_pic_libdir)" || $(MKDIR_P) "$(DESTDIR)$(install_pic_libdir)"
+	@list='$(dist_install_pic_lib_SCRIPTS)'; test -n "$(install_pic_libdir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
+	done | \
+	sed -e 'p;s,.*/,,;n' \
+	    -e 'h;s|.*|.|' \
+	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
+	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
+	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
+	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
+	      if (++n[d] == $(am__install_max)) { \
+		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
+	    else { print "f", d "/" $$4, $$1 } } \
+	  END { for (d in files) print "f", d, files[d] }' | \
+	while read type dir files; do \
+	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
+	     test -z "$$files" || { \
+	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(install_pic_libdir)$$dir'"; \
+	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(install_pic_libdir)$$dir" || exit $$?; \
+	     } \
+	; done
+
+uninstall-dist_install_pic_libSCRIPTS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_install_pic_lib_SCRIPTS)'; test -n "$(install_pic_libdir)" || exit 0; \
+	files=`for p in $$list; do echo "$$p"; done | \
+	       sed -e 's,.*/,,;$(transform)'`; \
+	test -n "$$list" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(install_pic_libdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(install_pic_libdir)" && rm -f $$files
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -511,36 +512,36 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_status.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_thread.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_util.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_clock_delta_compression.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_compression_util.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_config.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_cp.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_basic.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_cdc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_cdc_permutation_diff.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_cdc_row_wise_diff.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_simple_zlib.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_zlib.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_err.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_event.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_event_list.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_io_thread.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_mem.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_message_manager.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_mf.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_mpi_init.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_mutex.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_pmpi.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_re.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_re_cdc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_recorder.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_recorder_cdc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_request_mg.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_sig_handler.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_status.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_thread.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_clock_delta_compression.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_compression_util.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_config.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_cp.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_basic.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_cdc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_cdc_permutation_diff.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_cdc_row_wise_diff.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_simple_zlib.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_zlib.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_err.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_event.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_event_list.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_io_thread.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_mem.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_message_manager.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_mf.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_mpi_init.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_mutex.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_pmpi.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_re.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_re_cdc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_recorder.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_recorder_cdc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_request_mg.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_sig_handler.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_status.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_thread.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_util.Plo@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -863,10 +864,9 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-@ENABLE_CDC_FALSE@all-local:
-all-am: Makefile $(LIBRARIES) $(LTLIBRARIES) $(SCRIPTS) all-local
+all-am: Makefile $(LTLIBRARIES) $(SCRIPTS)
 installdirs:
-	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(libdir)" "$(DESTDIR)$(workaround_libdir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(install_non_pic_libdir)" "$(DESTDIR)$(install_pic_libdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -894,11 +894,10 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-@ENABLE_CDC_FALSE@clean-local:
 clean: clean-am
 
-clean-am: clean-generic clean-libLIBRARIES clean-libLTLIBRARIES \
-	clean-libtool clean-local mostlyclean-am
+clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
+	mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -918,13 +917,14 @@ info: info-am
 
 info-am:
 
-install-data-am: install-dist_workaround_libSCRIPTS
+install-data-am: install-dist_install_non_pic_libSCRIPTS \
+	install-dist_install_pic_libSCRIPTS
 
 install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-libLIBRARIES install-libLTLIBRARIES
+install-exec-am: install-libLTLIBRARIES
 
 install-html: install-html-am
 
@@ -964,43 +964,68 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-dist_workaround_libSCRIPTS \
-	uninstall-libLIBRARIES uninstall-libLTLIBRARIES
+uninstall-am: uninstall-dist_install_non_pic_libSCRIPTS \
+	uninstall-dist_install_pic_libSCRIPTS uninstall-libLTLIBRARIES
 
 .MAKE: install-am install-strip
 
-.PHONY: CTAGS GTAGS all all-am all-local check check-am clean \
-	clean-generic clean-libLIBRARIES clean-libLTLIBRARIES \
-	clean-libtool clean-local ctags distclean distclean-compile \
-	distclean-generic distclean-libtool distclean-tags distdir dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-data install-data-am \
-	install-dist_workaround_libSCRIPTS install-dvi install-dvi-am \
+.PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
+	clean-libLTLIBRARIES clean-libtool ctags distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am html html-am info info-am \
+	install install-am install-data install-data-am \
+	install-dist_install_non_pic_libSCRIPTS \
+	install-dist_install_pic_libSCRIPTS install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-libLIBRARIES \
-	install-libLTLIBRARIES install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am \
-	uninstall-dist_workaround_libSCRIPTS uninstall-libLIBRARIES \
-	uninstall-libLTLIBRARIES
+	install-info install-info-am install-libLTLIBRARIES \
+	install-man install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-dist_install_non_pic_libSCRIPTS \
+	uninstall-dist_install_pic_libSCRIPTS uninstall-libLTLIBRARIES
 
 
-@ENABLE_CDC_TRUE@$(librempix_a_LIB): $(librempix_a_OBJECTS) $(clmpi_o_OBJECT)
-@ENABLE_CDC_TRUE@	ld -o $(librempix_a_LD_OBJECT) -r $(librempix_a_OBJECTS) $(libz_a_LIB)
-@ENABLE_CDC_TRUE@	$(stack_pmpi_DIR)/stack_pmpi $(librempix_a_STACK_PMPI_OBJECT) $(librempix_a_LD_OBJECT) $(clmpi_o_OBJECT)
-@ENABLE_CDC_TRUE@	ar cr $@ $(librempix_a_STACK_PMPI_OBJECT)
-@ENABLE_CDC_TRUE@	ranlib $@
+@ENABLE_CDC_TRUE@$(librempix_la_STACK_PMPI_OBJECT_O):
+@ENABLE_CDC_TRUE@$(librempix_la_LIBS_STACK_PMPI_OBJECT_O):
 
-@ENABLE_CDC_TRUE@$(librempix_so_LIB): $(librempix_a_LIB)
-@ENABLE_CDC_TRUE@	$(MPICC) $(AM_CXXFLAGS) $(librempix_a_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) -shared -o $@ $(librempix_a_STACK_PMPI_OBJECT)
+@ENABLE_CDC_TRUE@$(librempix_la_LIBRARY): $(librempix_la_OBJECTS) $(librempix_la_DEPENDENCIES) $(librempix_la_OBJECTS_O) $(librempix_la_LIBS_OBJECTS_O)
+@ENABLE_CDC_TRUE@	$(stack_pmpi_DIR)/stack_pmpi $(librempix_la_STACK_PMPI_OBJECT_O) $(librempix_la_OBJECTS_O)
+@ENABLE_CDC_TRUE@	$(stack_pmpi_DIR)/stack_pmpi $(librempix_la_LIBS_STACK_PMPI_OBJECT_O) $(librempix_la_LIBS_OBJECTS_O)
+@ENABLE_CDC_TRUE@	echo "# Generated by `$(abs_top_builddir)/libtool --version | head -n 1`" >  $(librempix_la_OBJECT)
+@ENABLE_CDC_TRUE@	echo "pic_object='$(librempix_la_LIBS_STACK_PMPI_OBJECT_O)'" >> $(librempix_la_OBJECT)
+@ENABLE_CDC_TRUE@	echo "non_pic_object='$(librempix_la_STACK_PMPI_OBJECT_O)'" >> $(librempix_la_OBJECT)
+@ENABLE_CDC_TRUE@	$(CXXLINK) -rpath $(libdir) $(librempix_la_OBJECT) $(librempix_la_LIBADD) $(LIBS)
 
-@ENABLE_CDC_TRUE@all-local: $(librempix_a_LIB) $(librempix_so_LIB)
+# if ENABLE_CDC
+# librempix_a_LIB = librempix.a
+# lib_LIBRARIES = $(librempix_a_LIB)
+# librempix_so_LIB = librempix.so
+# librempix_a_SOURCES = $(rempi_SOURCES)
+# librempix_a_CFLAGS = -lz -lstdc++ -lintlc
+# librempix_a_LD_OBJECT = librempix.ar.o
+# librempix_a_STACK_PMPI_OBJECT = librempix.stack_pmpi.o
+# clmpi_o_OBJECT = $(clmpi_DIR)/lib/libclmpi.o
+# clmpi_o_LIB_OBJECT = $(clmpi_DIR)/lib/.libs/libclmpi.o
+# workaround_libdir = $(libdir)
+# dist_workaround_lib_SCRIPTS = $(librempix_so_LIB)
 
-@ENABLE_CDC_TRUE@clean-local:
-@ENABLE_CDC_TRUE@	-rm -f $(librempix_a_LIB) $(librempix_so_LIB) $(librempix_a_OBJECTS) $(librempix_a_LD_OBJECT) $(librempix_a_STACK_PMPI_OBJECT)
+# $(librempix_a_LIB): $(librempix_a_OBJECTS) $(clmpi_o_OBJECT)
+# 	ld -o $(librempix_a_LD_OBJECT) -r $(librempix_a_OBJECTS) $(libz_a_LIB)
+# 	$(stack_pmpi_DIR)/stack_pmpi $(librempix_a_STACK_PMPI_OBJECT) $(librempix_a_LD_OBJECT) $(clmpi_o_OBJECT)
+# 	ar cr $@ $(librempix_a_STACK_PMPI_OBJECT)
+# 	ranlib $@
+
+# $(librempix_so_LIB): $(librempix_a_LIB)
+# 	$(MPICC) $(AM_CXXFLAGS) $(librempix_a_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) -shared -o $@ $(librempix_a_STACK_PMPI_OBJECT)
+
+# all-local: $(librempix_a_LIB) $(librempix_so_LIB)
+
+# clean-local:
+# 	-rm -f $(librempix_a_LIB) $(librempix_so_LIB) $(librempix_a_OBJECTS) $(librempix_a_LD_OBJECT) $(librempix_a_STACK_PMPI_OBJECT)
+
+# endif
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

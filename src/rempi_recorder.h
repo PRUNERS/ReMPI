@@ -18,8 +18,11 @@
 #include "rempi_message_manager.h"
 #include "rempi_event_list.h"
 #include "rempi_io_thread.h"
-#include "clmpi.h"
 #include "rempi_encoder.h"
+
+#if !defined(REMPI_LITE)
+#include "clmpi.h"
+#endif
 
 /* class rempi_matching_id */
 /* { */

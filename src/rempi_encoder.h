@@ -16,7 +16,9 @@
 
 /*In CDC, rempi_endoers needs to fetch and update next_clocks, 
 so CLMPI and PNMPI module need to be included*/
+#if !defined(REMPI_LITE)
 #include "clmpi.h"
+#endif
 
 using namespace std;
 

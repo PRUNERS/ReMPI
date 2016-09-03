@@ -94,6 +94,7 @@ fi
 
 #### Checks for library functions.
 
+if test "$enable_cdc" = yes; then
 AC_ARG_WITH([stack-pmpi],
             [AS_HELP_STRING([--with-stack-pmpi],
               [path to stack_pmpi directory])],
@@ -113,6 +114,7 @@ if test "$clmpi_DIR" = ""; then
    AC_MSG_ERROR([This package needs CLMPI library. (Option: --with-clmpi=<path to clmpi directory>)])
 fi
 AC_SUBST(clmpi_DIR)
+fi	
 
 
 

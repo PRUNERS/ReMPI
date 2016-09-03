@@ -16,7 +16,10 @@
 #include "rempi_err.h"
 #include "rempi_config.h"
 #include "rempi_mem.h"
+
+#if !defined(REMPI_LITE)
 #include "clmpi.h"
+
 
 #define REMPI_RI_GATHER_TAG (1512)
 #define REMPI_RI_SCATTER_TAG (1513)
@@ -411,5 +414,5 @@ size_t rempi_cp_get_gather_send_count(int source_rank)
 
 
 
-
+#endif
 
