@@ -1,7 +1,2 @@
-
-Future Support:
-- done: MPI_Request_free support
-- fortran support
-
 Refactoring
 - move irecv_inputs and irecv_proxy capability to rempi_reqmg.c
