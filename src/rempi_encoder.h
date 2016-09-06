@@ -447,7 +447,7 @@ class rempi_encoder_cdc : public rempi_encoder
 
 
 #if MPI_VERSION == 3 && !defined(REMPI_LITE)
-class rempi_encoder_rep : public rempi_encoder
+class rempi_encoder_rep : public rempi_encoder_cdc
 {
 
   struct frontier_detection_clocks{ /*fd = frontier detection*/
