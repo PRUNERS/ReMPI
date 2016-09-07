@@ -50,7 +50,7 @@ librempix_la_SOURCES = $(rempi_SOURCES)
 
 # user-defined custom name             
 librempix_la_OBJECT    = ./librempix_la-librempix.lo
-librempix_la_OBJECT_O = $(librempix_la_OBJECT:%.lo=%.o)
+librempix_la_OBJECT_O  = $(librempix_la_OBJECT:%.lo=%.o)
 librempix_la_OBJECTS_O = $(librempix_la_OBJECTS:%.lo=%.o)
 librempix_la_STACK_PMPI_OBJECT_O = ./librempix.o
 librempix_la_LIBS_OBJECT_O = $(librempix_la_OBJECT:%.lo=.libs/%.o)

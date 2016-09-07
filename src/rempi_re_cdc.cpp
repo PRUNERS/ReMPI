@@ -324,12 +324,22 @@ int rempi_re_cdc::re_request_free(MPI_Request *request)
   return ret;
 }
 
+
+#if PMPI_Request_c2f != MPI_Fint && MPI_Request_c2f != MPI_Fint
 MPI_Fint rempi_re_cdc::re_request_c2f(MPI_Request request)
 {
   MPI_Fint ret;
   REMPI_ERR("request_c2f is not supported");
   return ret;
 }
+#else
+MPI_Fint rempi_re_cdc::re_request_c2f(MPI_Request request)
+{
+  MPI_Fint ret;
+  REMPI_ERR("%s shoudl not be called", __func__);
+  return ret;
+}
+#endif
 
 
 int rempi_re_cdc::re_testsome(

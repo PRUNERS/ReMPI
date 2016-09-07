@@ -215,7 +215,7 @@ int rempi_recorder_cdc::replay_init(int *argc, char ***argv, int rank)
 #ifdef REMPI_MULTI_THREAD
   read_record_thread->start();
 #endif
-  
+
 
   return 0;
 }
@@ -388,18 +388,29 @@ int rempi_recorder_cdc::replay_cancel(MPI_Request *request)
   return ret;
 }
 
+
 int rempi_recorder_cdc::replay_request_free(MPI_Request *request)
 {
   REMPI_ERR("Not supported");
   return (int)0;
 }
 
+
+
+
+#if PMPI_Request_c2f != MPI_Fint && MPI_Request_c2f != MPI_Fint
 MPI_Fint rempi_recorder_cdc::replay_request_c2f(MPI_Request request)
 {
   REMPI_ERR("Not supported");
   return (MPI_Fint)0;
 }
-
+#else
+MPI_Fint rempi_recorder_cdc::replay_request_c2f(MPI_Request request)
+{
+  REMPI_ERR("%s should not be called", __func__);
+  return (int)0;
+}
+#endif
 
 int rempi_recorder_cdc::record_test(
 				    MPI_Request *request,

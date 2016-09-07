@@ -301,9 +301,9 @@ int rempi_recorder::replay_request_free(MPI_Request *request)
 }
 
 
+
 #if PMPI_Request_c2f != MPI_Fint && MPI_Request_c2f != MPI_Fint
 extern "C" MPI_Fint PMPI_Request_c2f(MPI_Request request);
-
 MPI_Fint rempi_recorder::replay_request_c2f(MPI_Request request)
 {
   MPI_Fint ret;
@@ -330,6 +330,12 @@ MPI_Fint rempi_recorder::replay_request_c2f(MPI_Request request)
   ret = PMPI_Request_c2f(request);
 
   return ret;
+}
+#else
+MPI_Fint rempi_recorder::replay_request_c2f(MPI_Request request)
+{
+  REMPI_ERR("%s should not be called", __func__);
+  return 0;
 }
 #endif
 
