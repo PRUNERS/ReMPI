@@ -1,3 +1,5 @@
+SUBDIRS=../src
+
 if WITH_BLUEGENE	
 LIBS += $(libz_a_LIB) 
 endif

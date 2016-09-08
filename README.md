@@ -28,13 +28,13 @@
 
 ### Build (General)
 
-    ./configure --prefix=<path to installation directory>
+    ./configure --prefix=<path to installation directory> 
     make 
     make install
 
 ### Build (BG/Q)
 
-    ./configure --prefix=<path to installation directory> --with-glugene --with-zlib-static=/usr/local/tools/zlib-1.2.6/
+    ./configure --prefix=<path to installation directory> --with-glugene --with-zlib-static=<path to zlib directory (e.g. /usr/local/tools/zlib-1.2.6/>
     make 
     make install
 
@@ -52,12 +52,17 @@ Assuming SLURM
 
 For more details, run ./configure -h  
 
-  * `--enable-cdc`: (Experimental) enables CDC (clock delta compression), and output librempix.a and .so. When CDC is enabled, ReMPI requires MPI3 and below two software
-     *`--with-stack-pmpi`: path to stack_pmpi directory (STACKP)
-     *`--with-clmpi`: path to CLMPI directory
-  * `--with-bluegene`: build test codd with static library
-  * `--with-zlib-static`: path to installation directory for libz.a
+  * `--enable-cdc`: (Optional) enables CDC (clock delta compression), and output librempix.a and .so. When CDC is enabled, ReMPI requires MPI3 and below two software
+     *`--with-stack-pmpi`: (Required when `--enable-cdc` is specified) path to stack_pmpi directory (STACKP)
+     *`--with-clmpi`: (Required when `--enable-cdc` is specified) path to CLMPI directory
+  * `--with-bluegene`: (Required in BG/Q) build codes with static library for BG/Q system
+  * `--with-zlib-static`: (Required in BG/Q) path to installation directory for libz.a
 
+
+When the `--enable-cdc` option is specified, ReMPI require dependent software below:
+
+ * STACKP: A static MPI tool enabling to run multiple PMPI tools.
+ * CLMPI: A PMPI tool for piggybacking Lamport clocks.
 
 # Environmental valiables
 

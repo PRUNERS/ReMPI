@@ -1,2 +1,3 @@
 Refactoring
 - move irecv_inputs and irecv_proxy capability to rempi_reqmg.c
+- remove matched_events_square_sizes_vec

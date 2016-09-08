@@ -39,12 +39,7 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
   } else if (rempi_encode == 6) {
     encoder = new rempi_encoder_cdc_permutation_diff(mode);  //  (6): (3) + edit distance (one value for each message)
   }  else if (rempi_encode == 7) {
-    if (mode == REMPI_ENV_REMPI_MODE_REPLAY) {
-      REMPI_ERR("No such option conbination");
-      //      encoder = new rempi_encoder_rep(mode);                 //  (7): Reproducibile MPI
-    } else {
-      REMPI_ERR("No such option conbination");
-    }
+    encoder = new rempi_encoder_rep(mode);                 //  (7): Reproducibile MPI
   }
 #endif 
   else {

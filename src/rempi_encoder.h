@@ -363,7 +363,7 @@ class rempi_encoder_cdc : public rempi_encoder
     //    size_t trigger_clock; /*TODO: Remove trigger_clock, which is not used any more */
   };
 
- private:
+ protected:
   /* === For frontier detection === */
 
   MPI_Comm mpi_fd_clock_comm;
@@ -390,7 +390,6 @@ class rempi_encoder_cdc : public rempi_encoder
   bool cdc_decode_ordering(rempi_event_list<rempi_event*> *recording_events, list<rempi_event*> *event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> *replay_event_list, int test_id, int local_min_id_rank, size_t local_min_id_clock);
 
 
- protected:
   rempi_clock_delta_compression *cdc;
   virtual void compress_non_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
   virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
@@ -449,75 +448,12 @@ class rempi_encoder_cdc : public rempi_encoder
 #if MPI_VERSION == 3 && !defined(REMPI_LITE)
 class rempi_encoder_rep : public rempi_encoder_cdc
 {
-
-  struct frontier_detection_clocks{ /*fd = frontier detection*/
-    size_t next_clock;    /*TODO: Remove    next_clock, which is not used any more */
-    size_t trigger_clock; /*TODO: Remove trigger_clock, which is not used any more */
-  };
-
- private:
-  /* === For frontier detection === */
-  MPI_Comm mpi_fd_clock_comm;
-  MPI_Win mpi_fd_clock_win;
-  PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
-  PNMPIMOD_get_local_clock_t clmpi_get_local_sent_clock;
-
-  struct frontier_detection_clocks *fd_clocks;// = NULL;
-
-  /* ============================== */
-
-  void cdc_prepare_decode_indices(
-				  size_t matched_event_count,
-				  vector<size_t> &matched_events_id_vec,
-				  vector<size_t> &matched_events_delay_vec,
-				  vector<int> &matched_events_square_sizes,
-				  vector<int> &matched_events_permutated_indices);
-  bool cdc_decode_ordering(rempi_event_list<rempi_event*> *recording_events, list<rempi_event*> *event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> *replay_event_list, int test_id, int local_min_id_rank, size_t local_min_id_clock);
-
-
- protected:
-  rempi_clock_delta_compression *cdc;
-  virtual void compress_non_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
-  virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
-  virtual void decompress_non_matched_events(rempi_encoder_input_format &input_format);
-  virtual void decompress_matched_events(rempi_encoder_input_format &input_format);
-
  public:
+ rempi_encoder_rep(int mode)
+   : rempi_encoder_cdc(mode) {}
 
+  virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
 
-  rempi_encoder_rep(int mode);
-  /*For common*/
-  virtual rempi_encoder_input_format* create_encoder_input_format();
-  void write_record_file(rempi_encoder_input_format &input_format);
-  /*For only record*/
-  virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
-  virtual void encode(rempi_encoder_input_format &input_format);
-  /*For only replay*/
-  virtual bool read_record_file(rempi_encoder_input_format &input_format);
-  virtual void decode(rempi_encoder_input_format &input_format);
-  
-
-  virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
-
-  virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
-  virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock, int has_probed_message,
-				  unordered_set<int> *update_sources_set, unordered_map<int, size_t> *recv_message_source_umap,
-				  unordered_map<int, size_t> *recv_clock_umap,
-				  int recv_test_id);
-  virtual void update_fd_next_clock(
-				    int is_waiting_recv,
-				    int num_of_recv_msg_in_next_event,
-				    size_t interim_min_clock_in_next_event,
-				    size_t enqueued_count,
-				    int recv_test_id, 
-				    int is_after_recv_event);
-  virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
-				    int *local_min_id_rank, 
-				    size_t *local_min_id_clock,
-				    int recv_test_id);
-  virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/
-
-  //  virtual vector<rempi_event*> decode(char *serialized, size_t *size);
 };
 
 

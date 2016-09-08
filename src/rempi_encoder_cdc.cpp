@@ -405,16 +405,6 @@ void rempi_encoder_cdc::init_recv_ranks(char* record_path)
 
 void rempi_encoder_cdc::init_cp(const char *record_path)
 {
-
-  
-// #ifndef REMPI_MULTI_THREAD
-//   this->progress_decoding(NULL, NULL, -1);
-// #endif
-//   while (this->mc_length == -1) {
-//     usleep(1);
-//   }
-
-
 #ifdef CP_DBG  
   rempi_cp_init(record_path);
 #endif   
@@ -426,7 +416,6 @@ int inited = 0;
 
 void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock)
 {  
-
   /*Fetch*/
   int i;
   int flag;
@@ -445,32 +434,6 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
 #endif
 
 
-
-  // for (int i = 0; i < mc_length; ++i) {
-  //   REMPI_DBGI(1, "Before recved: rank: %d clock:%lu, my next clock: %lu", mc_recv_ranks[i], mc_next_clocks[i], fd_clocks->next_clock);
-  // }
-
-
-// #ifdef REMPI_DBG_REPLAY
-//   for (int i = 0; i < mc_length; ++i) {
-//     REMPI_DBGI(REMPI_DBG_REPLAY, "Before recved: rank: %d clock:%lu, my next clock: %lu", mc_recv_ranks[i], mc_next_clocks[i], fd_clocks->next_clock);
-//   }
-// #endif
-
-
-  /*Only after MPI_Win_flush_local_all, the retrived values by PMPI_Get become visible*/
-  /* We call PMPI_Win_flush_local_all first to sync with the previous PMPI_Get,
-       then post the next PMPI_Get(), which is synced by the next fetch_and_update_local_min_id() call.
-     In this way, we mimic asynchronously fetch and update. */
-  //  double s = rempi_get_time();
-  // if ((ret = PMPI_Win_flush_local_all(mpi_fd_clock_win)) != MPI_SUCCESS) {
-  //   REMPI_DBG("PMPI_Win_flush_local_all failed");
-  // }
-  //  double e = rempi_get_time();  if (e - s > 0.001) REMPI_DBGI(0, "flush time: %f", e - s);
-  /* --------------------- */
-
-
-
 #ifdef CP_DBG
   rempi_cp_gather_clocks();
 #else
@@ -484,15 +447,6 @@ void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_
     inited = 1;
   }
 #endif
-
-  // for (i = 0; i < mc_length; ++i) {
-  //   ret_get = PMPI_Get(&mc_next_clocks[i], sizeof(size_t), MPI_BYTE, mc_recv_ranks[i], 0, sizeof(size_t), MPI_BYTE, mpi_fd_clock_win);
-  //   if (ret_get != MPI_SUCCESS) break;
-  // }
-
-  // if ((ret_flush = PMPI_Win_flush_local_all(mpi_fd_clock_win)) != MPI_SUCCESS) {
-  //   REMPI_DBG("PMPI_Win_flush_local_all failed");
-  // }
 
 
 #if 0
@@ -1041,6 +995,7 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
   for (int i = 0; i < input_format.write_size_queue_vec.size(); i++) {
     total_original_size += input_format.write_size_queue_vec[i];
   }
+  REMPI_DBG("total_size: %lu", total_original_size);
   
   if(rempi_gzip) {
     vector<char*> compressed_write_queue_vec;
@@ -1318,8 +1273,6 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
   decoding_address = decompressed_record;
   input_format.decompressed_record_char = decoding_address;
 
-
-
   //  size_t sum = 0;
   /*
     After decoding by zlib, decoded data is chunked (size: ZLIB_CHUNK).
@@ -1331,6 +1284,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     decompressed_record += input_format.write_size_queue_vec[i];
     //    sum += input_format.write_size_queue_vec[i];
   }
+  //  REMPI_DBG("decording_address: %lu, decompressed_record %lu", decoding_address, decompressed_record);
   //  REMPI_DBG("total size: %lu, total size: %lu", input_format.decompressed_size, sum);
 
 
@@ -1428,16 +1382,20 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     test_table->unmatched_events_id_vec.clear();
     test_table->unmatched_events_count_vec.clear();
     /*===============================*/
+    
+
 
     /*=== Decode matched_events ===*/
     /*----------- size ------------*/
     test_table->compressed_matched_events_size      = *(size_t*)decoding_address;
+
     //    REMPI_DBGI(3, "matched size: %lu", test_table->compressed_matched_events_size);
     decoding_address += sizeof(test_table->compressed_matched_events_size);
-    /*----------- event ------------*/
-    test_table->compressed_matched_events          = decoding_address;
-    /*   --  id  --  */
-    {
+
+    if (test_table->compressed_matched_events_size > 0) {
+      /*----------- event ------------*/
+      test_table->compressed_matched_events          = decoding_address;
+      /*   --  id  --  */
       int* copy_start;
       copy_start = (int*)test_table->compressed_matched_events;
       rempi_copy_vec_int(copy_start,
@@ -1455,12 +1413,14 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
       if (test_table->matched_events_id_vec.size() != test_table->matched_events_delay_vec.size()) {
 	REMPI_ERR("matched_id_vec.size != matched_delay_vec.size()");
       }
-      cdc_prepare_decode_indices(test_table->count,
-				 test_table->matched_events_id_vec,
-				 test_table->matched_events_delay_vec,
-				 test_table->matched_events_square_sizes_vec,
-				 test_table->matched_events_permutated_indices_vec);
+    } else {
+      test_table->compressed_matched_events = NULL;
     }
+    cdc_prepare_decode_indices(test_table->count,
+			       test_table->matched_events_id_vec,
+			       test_table->matched_events_delay_vec,
+			       test_table->matched_events_square_sizes_vec,
+			       test_table->matched_events_permutated_indices_vec);
 
     
 
@@ -1473,17 +1433,6 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     /* ===================================================================*/
 
 
-#if 0
-    {
-      int *a, *b;
-      a  = (int*)test_table->compressed_matched_events;
-      b  = (int*)test_table->compressed_matched_events;
-      b +=  test_table->compressed_matched_events_size /sizeof(int)/  2;
-      for (int i = 0; i < test_table->compressed_matched_events_size / sizeof(int) / 2; i++) {
-	REMPI_DBG("--> %d %d", a[i], b[i]);
-      }
-    }
-#endif
 
     /*   ------------ */
     decoding_address += test_table->compressed_matched_events_size;
@@ -1570,7 +1519,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
   /*=====================================================*/
 
   if (decoding_address != decompressed_record) {
-    REMPI_ERR("Inconsistent size");
+    REMPI_ERR("Inconsistent size: decoded size: %lu, decompressed size: %lu", decoding_address, decompressed_record);
   }
 
   if (test_id > REMPI_MAX_RECV_TEST_ID) {

@@ -94,6 +94,7 @@ am__objects_1 = librempi_la-rempi_pmpi.lo librempi_la-rempi_err.lo \
 	librempi_la-rempi_encoder.lo \
 	librempi_la-rempi_encoder_basic.lo \
 	librempi_la-rempi_encoder_cdc.lo \
+	librempi_la-rempi_encoder_rep.lo \
 	librempi_la-rempi_encoder_cdc_row_wise_diff.lo \
 	librempi_la-rempi_encoder_cdc_permutation_diff.lo \
 	librempi_la-rempi_encoder_zlib.lo \
@@ -112,7 +113,8 @@ am__librempix_la_SOURCES_DIST = rempi_pmpi.cpp rempi_err.cpp \
 	rempi_request_mg.cpp rempi_event_list.cpp rempi_event.cpp \
 	rempi_cp.cpp rempi_clock_delta_compression.cpp \
 	rempi_encoder.cpp rempi_encoder_basic.cpp \
-	rempi_encoder_cdc.cpp rempi_encoder_cdc_row_wise_diff.cpp \
+	rempi_encoder_cdc.cpp rempi_encoder_rep.cpp \
+	rempi_encoder_cdc_row_wise_diff.cpp \
 	rempi_encoder_cdc_permutation_diff.cpp rempi_encoder_zlib.cpp \
 	rempi_encoder_simple_zlib.cpp rempi_thread.cpp \
 	rempi_io_thread.cpp rempi_mutex.cpp
@@ -124,7 +126,7 @@ am__objects_2 = rempi_pmpi.lo rempi_err.lo rempi_mem.lo rempi_util.lo \
 	rempi_event_list.lo rempi_event.lo rempi_cp.lo \
 	rempi_clock_delta_compression.lo rempi_encoder.lo \
 	rempi_encoder_basic.lo rempi_encoder_cdc.lo \
-	rempi_encoder_cdc_row_wise_diff.lo \
+	rempi_encoder_rep.lo rempi_encoder_cdc_row_wise_diff.lo \
 	rempi_encoder_cdc_permutation_diff.lo rempi_encoder_zlib.lo \
 	rempi_encoder_simple_zlib.lo rempi_thread.lo \
 	rempi_io_thread.lo rempi_mutex.lo
@@ -309,6 +311,7 @@ rempi_SOURCES = \
 		rempi_encoder.cpp \
 		rempi_encoder_basic.cpp \
 		rempi_encoder_cdc.cpp \
+		rempi_encoder_rep.cpp \
 		rempi_encoder_cdc_row_wise_diff.cpp \
 		rempi_encoder_cdc_permutation_diff.cpp \
 		rempi_encoder_zlib.cpp \
@@ -495,6 +498,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_encoder_cdc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_encoder_cdc_permutation_diff.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_encoder_cdc_row_wise_diff.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_encoder_rep.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_encoder_simple_zlib.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_encoder_zlib.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_err.Plo@am__quote@
@@ -525,6 +529,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_cdc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_cdc_permutation_diff.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_cdc_row_wise_diff.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_rep.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_simple_zlib.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_encoder_zlib.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_err.Plo@am__quote@
@@ -728,6 +733,13 @@ librempi_la-rempi_encoder_cdc.lo: rempi_encoder_cdc.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='rempi_encoder_cdc.cpp' object='librempi_la-rempi_encoder_cdc.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librempi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o librempi_la-rempi_encoder_cdc.lo `test -f 'rempi_encoder_cdc.cpp' || echo '$(srcdir)/'`rempi_encoder_cdc.cpp
+
+librempi_la-rempi_encoder_rep.lo: rempi_encoder_rep.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librempi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT librempi_la-rempi_encoder_rep.lo -MD -MP -MF $(DEPDIR)/librempi_la-rempi_encoder_rep.Tpo -c -o librempi_la-rempi_encoder_rep.lo `test -f 'rempi_encoder_rep.cpp' || echo '$(srcdir)/'`rempi_encoder_rep.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/librempi_la-rempi_encoder_rep.Tpo $(DEPDIR)/librempi_la-rempi_encoder_rep.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='rempi_encoder_rep.cpp' object='librempi_la-rempi_encoder_rep.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librempi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o librempi_la-rempi_encoder_rep.lo `test -f 'rempi_encoder_rep.cpp' || echo '$(srcdir)/'`rempi_encoder_rep.cpp
 
 librempi_la-rempi_encoder_cdc_row_wise_diff.lo: rempi_encoder_cdc_row_wise_diff.cpp
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librempi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT librempi_la-rempi_encoder_cdc_row_wise_diff.lo -MD -MP -MF $(DEPDIR)/librempi_la-rempi_encoder_cdc_row_wise_diff.Tpo -c -o librempi_la-rempi_encoder_cdc_row_wise_diff.lo `test -f 'rempi_encoder_cdc_row_wise_diff.cpp' || echo '$(srcdir)/'`rempi_encoder_cdc_row_wise_diff.cpp

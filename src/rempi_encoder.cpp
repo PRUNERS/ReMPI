@@ -191,8 +191,8 @@ void rempi_encoder::open_record_file(string record_path)
   }
 
   if(!record_fs.is_open()) {
-    REMPI_ASSERT(0);
     REMPI_ERR("Record file open failed: %s", record_path.c_str());
+    REMPI_ASSERT(0);
   }
   
   return;
