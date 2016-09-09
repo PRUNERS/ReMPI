@@ -436,9 +436,8 @@ int rempi_re::re_request_free(MPI_Request *request)
 
 
 
-extern "C" MPI_Fint PMPI_Request_c2f(MPI_Request request);
-
 #if PMPI_Request_c2f != MPI_Fint && MPI_Request_c2f != MPI_Fint
+extern "C" MPI_Fint PMPI_Request_c2f(MPI_Request request);
 MPI_Fint rempi_re::re_request_c2f(MPI_Request request)
 {
   MPI_Fint ret;

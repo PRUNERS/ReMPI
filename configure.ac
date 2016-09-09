@@ -63,6 +63,7 @@ if test "$MPIF90" = :; then
    AC_MSG_ERROR([This package needs mpif90.])
 fi
 AC_PROG_FC([mpif90])
+AC_SUBST([FC], [$MPIFC])
 
 
 #AC_ARG_VAR([CC], [CC for compile])
@@ -75,9 +76,13 @@ AC_ARG_WITH([zlib-static],
             [libz_DIR=$withval],
             [libz_DIR=""])
 
+check_zlib="yes"
 if test "$libz_DIR" = ""; then
-   AC_CHECK_LIB([z], [deflate])
-   AC_CHECK_LIB([z], [inflate])
+   AC_CHECK_LIB([z], [deflate], [], [check_zlib="no"])
+   AC_CHECK_LIB([z], [inflate], [], [check_zlib="no"])
+if test "$check_zlib" = "no"; then
+   AC_MSG_ERROR([This package needs zlib.])
+fi		    
 else
    AC_SUBST([libz_a_INCLUDE], [$libz_DIR/include/])
    AC_SUBST([libz_a_LIB], [$libz_DIR/lib/libz.a])
