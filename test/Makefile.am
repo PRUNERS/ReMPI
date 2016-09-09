@@ -37,11 +37,11 @@ rempi_test_unitsx_LIBS = $(librempix_LIB)
 rempi_test_msg_racex_SOURCES = rempi_test_msg_race.c rempi_test_util.c
 rempi_test_msg_racex_LIBS = $(librempix_LIB)
 
-target_fortranx=rempi_test_master_worker_fortranx$(EXEEXT)
-$(target_fortranx):
-	mpif90  -g -c -o rempi_test_master_worker_fortranx rempi_test_master_worker_fortranx.f90 -lmpi
-
+#target_fortranx=rempi_test_master_worker_fortranx$(EXEEXT)
+#$(target_fortranx):
+#	mpif90  -g -c -o rempi_test_master_worker_fortranx rempi_test_master_worker_fortranx.f90 -lmpi
 endif
+
 endif
 
 if WITH_BLUEGENE
@@ -61,9 +61,9 @@ rempi_test_msg_race_SOURCES = rempi_test_msg_race.c rempi_test_util.c
 rempi_test_msg_race_LIBS = $(librempi_LIB)
 
 
-target_fortran=rempi_test_master_worker_fortran$(EXEEXT)
-$(target_fortran):
-	mpif90  -g -o rempi_test_master_worker_fortran rempi_test_master_worker_fortran.f90 -lmpi
+#target_fortran=rempi_test_master_worker_fortran$(EXEEXT)
+#$(target_fortran):
+#	mpif90  -g -o rempi_test_master_worker_fortran rempi_test_master_worker_fortran.f90 -lmpi
 
 
 

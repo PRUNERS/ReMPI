@@ -319,7 +319,10 @@ top_srcdir = @top_srcdir@
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_unitsx_LIBS = $(librempix_LIB)
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_msg_racex_SOURCES = rempi_test_msg_race.c rempi_test_util.c
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_msg_racex_LIBS = $(librempix_LIB)
-@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@target_fortranx = rempi_test_master_worker_fortranx$(EXEEXT)
+
+#target_fortranx=rempi_test_master_worker_fortranx$(EXEEXT)
+#$(target_fortranx):
+#	mpif90  -g -c -o rempi_test_master_worker_fortranx rempi_test_master_worker_fortranx.f90 -lmpi
 @WITH_BLUEGENE_TRUE@librempi_LIB = @prefix@/lib/librempi.a
 rempi_test_master_worker_SOURCES = rempi_test_master_worker.c rempi_test_util.c
 rempi_test_master_worker_LIBS = $(librempi_LIB)
@@ -333,7 +336,6 @@ rempi_test_units_SOURCES = rempi_test_units.c rempi_test_util.c
 rempi_test_units_LIBS = $(librempi_LIB)
 rempi_test_msg_race_SOURCES = rempi_test_msg_race.c rempi_test_util.c
 rempi_test_msg_race_LIBS = $(librempi_LIB)
-target_fortran = rempi_test_master_worker_fortran$(EXEEXT)
 all: all-am
 
 .SUFFIXES:
@@ -660,10 +662,10 @@ uninstall-am:
 	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
 	pdf pdf-am ps ps-am tags uninstall uninstall-am
 
-@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@$(target_fortranx):
-@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@	mpif90  -g -c -o rempi_test_master_worker_fortranx rempi_test_master_worker_fortranx.f90 -lmpi
-$(target_fortran):
-	mpif90  -g -o rempi_test_master_worker_fortran rempi_test_master_worker_fortran.f90 -lmpi
+
+#target_fortran=rempi_test_master_worker_fortran$(EXEEXT)
+#$(target_fortran):
+#	mpif90  -g -o rempi_test_master_worker_fortran rempi_test_master_worker_fortran.f90 -lmpi
 
 .PHONY: clean_core
 clean_core:

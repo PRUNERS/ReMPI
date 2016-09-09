@@ -34,7 +34,7 @@
 
 ### Build (BG/Q)
 
-    ./configure --prefix=<path to installation directory> --with-glugene --with-zlib-static=/usr/local/tools/zlib-1.2.6/
+    ./configure --prefix=<path to installation directory> --with-bluegene --with-zlib-static=/usr/local/tools/zlib-1.2.6/ MPICC=/usr/local/tools/compilers/ibm/mpicxx-fastmpi-mpich-312
     make 
     make install
 
