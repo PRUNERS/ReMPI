@@ -23,19 +23,19 @@ endif
 
 if ENABLE_CDC
 if WITH_BLUEGENE	
-librempix_LIB = @prefix@/lib/librempix.a
+librempix_LIB = ../src/.libs/librempix.a
 rempi_test_master_workerx_SOURCES = rempi_test_master_worker.c rempi_test_util.c
-rempi_test_master_workerx_LIBS = $(librempix_LIB)
+rempi_test_master_workerx_LDADD = $(librempix_LIB)
 rempi_test_master_worker_fortranx_SOURCES = rempi_test_master_worker_fortran.f90
-rempi_test_master_worker_fortranx_LIBS = $(librempix_LIB)
+rempi_test_master_worker_fortranx_LDADD = $(librempix_LIB)
 rempi_test_mini_mcbx_SOURCES = rempi_test_mini_mcb.c rempi_test_util.c
-rempi_test_mini_mcbx_LIBS = $(librempix_LIB)
+rempi_test_mini_mcbx_LDADD = $(librempix_LIB)
 rempi_test_hypre_parasailsx_SOURCES = rempi_test_hypre_parasails.c rempi_test_util.c
-rempi_test_hypre_parasailsx_LIBS = $(librempix_LIB)
+rempi_test_hypre_parasailsx_LDADD = $(librempix_LIB)
 rempi_test_unitsx_SOURCES = rempi_test_units.c rempi_test_util.c
-rempi_test_unitsx_LIBS = $(librempix_LIB)
+rempi_test_unitsx_LDADD = $(librempix_LIB)
 rempi_test_msg_racex_SOURCES = rempi_test_msg_race.c rempi_test_util.c
-rempi_test_msg_racex_LIBS = $(librempix_LIB)
+rempi_test_msg_racex_LDADD = $(librempix_LIB)
 
 #target_fortranx=rempi_test_master_worker_fortranx$(EXEEXT)
 #$(target_fortranx):
@@ -45,20 +45,20 @@ endif
 endif
 
 if WITH_BLUEGENE
-librempi_LIB = @prefix@/lib/librempi.a
+librempi_LIB = ../src/.libs/librempi.a
 endif
 rempi_test_master_worker_SOURCES = rempi_test_master_worker.c rempi_test_util.c
-rempi_test_master_worker_LIBS = $(librempi_LIB)
+rempi_test_master_worker_LDADD = $(librempi_LIB)
 rempi_test_master_worker_fortran_SOURCES = rempi_test_master_worker_fortran.f90
-rempi_test_master_worker_fortran_LIBS = $(librempi_LIB)
+rempi_test_master_worker_fortran_LDADD = $(librempi_LIB)
 rempi_test_mini_mcb_SOURCES = rempi_test_mini_mcb.c rempi_test_util.c
-rempi_test_mini_mcb_LIBS = $(librempi_LIB)
+rempi_test_mini_mcb_LDADD = $(librempi_LIB)
 rempi_test_hypre_parasails_SOURCES = rempi_test_hypre_parasails.c rempi_test_util.c
-rempi_test_hypre_parasails_LIBS = $(librempi_LIB)
+rempi_test_hypre_parasails_LDADD = $(librempi_LIB)
 rempi_test_units_SOURCES = rempi_test_units.c rempi_test_util.c
-rempi_test_units_LIBS = $(librempi_LIB)
+rempi_test_units_LDADD = $(librempi_LIB)
 rempi_test_msg_race_SOURCES = rempi_test_msg_race.c rempi_test_util.c
-rempi_test_msg_race_LIBS = $(librempi_LIB)
+rempi_test_msg_race_LDADD = $(librempi_LIB)
 
 
 #target_fortran=rempi_test_master_worker_fortran$(EXEEXT)

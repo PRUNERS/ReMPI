@@ -70,7 +70,7 @@
 
 int my_rank=-1;
 int size;
-double start, end, overall_end;
+static double start, end, overall_end;
 
 int matching_ids[] = {
   MPI_Test_id,

@@ -71,67 +71,73 @@ am_rempi_test_hypre_parasails_OBJECTS =  \
 	rempi_test_hypre_parasails.$(OBJEXT) rempi_test_util.$(OBJEXT)
 rempi_test_hypre_parasails_OBJECTS =  \
 	$(am_rempi_test_hypre_parasails_OBJECTS)
-rempi_test_hypre_parasails_LDADD = $(LDADD)
+rempi_test_hypre_parasails_DEPENDENCIES = $(librempi_LIB)
 am__rempi_test_hypre_parasailsx_SOURCES_DIST =  \
 	rempi_test_hypre_parasails.c rempi_test_util.c
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@am_rempi_test_hypre_parasailsx_OBJECTS = rempi_test_hypre_parasails.$(OBJEXT) \
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@	rempi_test_util.$(OBJEXT)
 rempi_test_hypre_parasailsx_OBJECTS =  \
 	$(am_rempi_test_hypre_parasailsx_OBJECTS)
-rempi_test_hypre_parasailsx_LDADD = $(LDADD)
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_hypre_parasailsx_DEPENDENCIES =  \
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@	$(librempix_LIB)
 am_rempi_test_master_worker_OBJECTS =  \
 	rempi_test_master_worker.$(OBJEXT) rempi_test_util.$(OBJEXT)
 rempi_test_master_worker_OBJECTS =  \
 	$(am_rempi_test_master_worker_OBJECTS)
-rempi_test_master_worker_LDADD = $(LDADD)
+rempi_test_master_worker_DEPENDENCIES = $(librempi_LIB)
 am_rempi_test_master_worker_fortran_OBJECTS =  \
 	rempi_test_master_worker_fortran.$(OBJEXT)
 rempi_test_master_worker_fortran_OBJECTS =  \
 	$(am_rempi_test_master_worker_fortran_OBJECTS)
-rempi_test_master_worker_fortran_LDADD = $(LDADD)
+rempi_test_master_worker_fortran_DEPENDENCIES = $(librempi_LIB)
 am__rempi_test_master_worker_fortranx_SOURCES_DIST =  \
 	rempi_test_master_worker_fortran.f90
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@am_rempi_test_master_worker_fortranx_OBJECTS = rempi_test_master_worker_fortran.$(OBJEXT)
 rempi_test_master_worker_fortranx_OBJECTS =  \
 	$(am_rempi_test_master_worker_fortranx_OBJECTS)
-rempi_test_master_worker_fortranx_LDADD = $(LDADD)
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_master_worker_fortranx_DEPENDENCIES =  \
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@	$(librempix_LIB)
 am__rempi_test_master_workerx_SOURCES_DIST =  \
 	rempi_test_master_worker.c rempi_test_util.c
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@am_rempi_test_master_workerx_OBJECTS = rempi_test_master_worker.$(OBJEXT) \
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@	rempi_test_util.$(OBJEXT)
 rempi_test_master_workerx_OBJECTS =  \
 	$(am_rempi_test_master_workerx_OBJECTS)
-rempi_test_master_workerx_LDADD = $(LDADD)
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_master_workerx_DEPENDENCIES =  \
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@	$(librempix_LIB)
 am_rempi_test_mini_mcb_OBJECTS = rempi_test_mini_mcb.$(OBJEXT) \
 	rempi_test_util.$(OBJEXT)
 rempi_test_mini_mcb_OBJECTS = $(am_rempi_test_mini_mcb_OBJECTS)
-rempi_test_mini_mcb_LDADD = $(LDADD)
+rempi_test_mini_mcb_DEPENDENCIES = $(librempi_LIB)
 am__rempi_test_mini_mcbx_SOURCES_DIST = rempi_test_mini_mcb.c \
 	rempi_test_util.c
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@am_rempi_test_mini_mcbx_OBJECTS = rempi_test_mini_mcb.$(OBJEXT) \
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@	rempi_test_util.$(OBJEXT)
 rempi_test_mini_mcbx_OBJECTS = $(am_rempi_test_mini_mcbx_OBJECTS)
-rempi_test_mini_mcbx_LDADD = $(LDADD)
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_mini_mcbx_DEPENDENCIES =  \
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@	$(librempix_LIB)
 am_rempi_test_msg_race_OBJECTS = rempi_test_msg_race.$(OBJEXT) \
 	rempi_test_util.$(OBJEXT)
 rempi_test_msg_race_OBJECTS = $(am_rempi_test_msg_race_OBJECTS)
-rempi_test_msg_race_LDADD = $(LDADD)
+rempi_test_msg_race_DEPENDENCIES = $(librempi_LIB)
 am__rempi_test_msg_racex_SOURCES_DIST = rempi_test_msg_race.c \
 	rempi_test_util.c
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@am_rempi_test_msg_racex_OBJECTS = rempi_test_msg_race.$(OBJEXT) \
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@	rempi_test_util.$(OBJEXT)
 rempi_test_msg_racex_OBJECTS = $(am_rempi_test_msg_racex_OBJECTS)
-rempi_test_msg_racex_LDADD = $(LDADD)
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_msg_racex_DEPENDENCIES =  \
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@	$(librempix_LIB)
 am_rempi_test_units_OBJECTS = rempi_test_units.$(OBJEXT) \
 	rempi_test_util.$(OBJEXT)
 rempi_test_units_OBJECTS = $(am_rempi_test_units_OBJECTS)
-rempi_test_units_LDADD = $(LDADD)
+rempi_test_units_DEPENDENCIES = $(librempi_LIB)
 am__rempi_test_unitsx_SOURCES_DIST = rempi_test_units.c \
 	rempi_test_util.c
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@am_rempi_test_unitsx_OBJECTS = rempi_test_units.$(OBJEXT) \
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@	rempi_test_util.$(OBJEXT)
 rempi_test_unitsx_OBJECTS = $(am_rempi_test_unitsx_OBJECTS)
-rempi_test_unitsx_LDADD = $(LDADD)
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_unitsx_DEPENDENCIES =  \
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@	$(librempix_LIB)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -306,36 +312,36 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@librempix_LIB = @prefix@/lib/librempix.a
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@librempix_LIB = ../src/.libs/librempix.a
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_master_workerx_SOURCES = rempi_test_master_worker.c rempi_test_util.c
-@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_master_workerx_LIBS = $(librempix_LIB)
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_master_workerx_LDADD = $(librempix_LIB)
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_master_worker_fortranx_SOURCES = rempi_test_master_worker_fortran.f90
-@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_master_worker_fortranx_LIBS = $(librempix_LIB)
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_master_worker_fortranx_LDADD = $(librempix_LIB)
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_mini_mcbx_SOURCES = rempi_test_mini_mcb.c rempi_test_util.c
-@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_mini_mcbx_LIBS = $(librempix_LIB)
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_mini_mcbx_LDADD = $(librempix_LIB)
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_hypre_parasailsx_SOURCES = rempi_test_hypre_parasails.c rempi_test_util.c
-@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_hypre_parasailsx_LIBS = $(librempix_LIB)
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_hypre_parasailsx_LDADD = $(librempix_LIB)
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_unitsx_SOURCES = rempi_test_units.c rempi_test_util.c
-@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_unitsx_LIBS = $(librempix_LIB)
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_unitsx_LDADD = $(librempix_LIB)
 @ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_msg_racex_SOURCES = rempi_test_msg_race.c rempi_test_util.c
-@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_msg_racex_LIBS = $(librempix_LIB)
+@ENABLE_CDC_TRUE@@WITH_BLUEGENE_TRUE@rempi_test_msg_racex_LDADD = $(librempix_LIB)
 
 #target_fortranx=rempi_test_master_worker_fortranx$(EXEEXT)
 #$(target_fortranx):
 #	mpif90  -g -c -o rempi_test_master_worker_fortranx rempi_test_master_worker_fortranx.f90 -lmpi
-@WITH_BLUEGENE_TRUE@librempi_LIB = @prefix@/lib/librempi.a
+@WITH_BLUEGENE_TRUE@librempi_LIB = ../src/.libs/librempi.a
 rempi_test_master_worker_SOURCES = rempi_test_master_worker.c rempi_test_util.c
-rempi_test_master_worker_LIBS = $(librempi_LIB)
+rempi_test_master_worker_LDADD = $(librempi_LIB)
 rempi_test_master_worker_fortran_SOURCES = rempi_test_master_worker_fortran.f90
-rempi_test_master_worker_fortran_LIBS = $(librempi_LIB)
+rempi_test_master_worker_fortran_LDADD = $(librempi_LIB)
 rempi_test_mini_mcb_SOURCES = rempi_test_mini_mcb.c rempi_test_util.c
-rempi_test_mini_mcb_LIBS = $(librempi_LIB)
+rempi_test_mini_mcb_LDADD = $(librempi_LIB)
 rempi_test_hypre_parasails_SOURCES = rempi_test_hypre_parasails.c rempi_test_util.c
-rempi_test_hypre_parasails_LIBS = $(librempi_LIB)
+rempi_test_hypre_parasails_LDADD = $(librempi_LIB)
 rempi_test_units_SOURCES = rempi_test_units.c rempi_test_util.c
-rempi_test_units_LIBS = $(librempi_LIB)
+rempi_test_units_LDADD = $(librempi_LIB)
 rempi_test_msg_race_SOURCES = rempi_test_msg_race.c rempi_test_util.c
-rempi_test_msg_race_LIBS = $(librempi_LIB)
+rempi_test_msg_race_LDADD = $(librempi_LIB)
 all: all-am
 
 .SUFFIXES:
