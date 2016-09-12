@@ -1019,9 +1019,6 @@ int rempi_recorder_cdc::replay_testsome(
     mc_encoder->progress_decoding(recording_event_list, replaying_event_list, recv_test_id);
 #endif
 
-    
-
-
 
     while ((replaying_event = replaying_event_list->dequeue_replay(recv_test_id, event_list_status)) != NULL) {
 #ifdef REMPI_DBG_REPLAY
