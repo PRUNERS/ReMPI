@@ -381,9 +381,22 @@ int rempi_re_cdc::re_testsome(
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     clocks = (size_t*)rempi_malloc(sizeof(size_t) * incount);
-    clmpi_register_recv_clocks(clocks, incount);
 
+#if 1
+    clmpi_register_recv_clocks(clocks, incount);
     ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
+#else
+    for (int i = 0; i < incount; i++) {
+      clmpi_register_recv_clocks(&clocks[i], 1);
+      PMPI_Test(&array_of_requests[i], outcount, &array_of_statuses[0]);
+      if (*outcount != 0) {
+	array_of_indices[0] = i;
+	break;
+      }
+    }
+#endif
+
+    //    REMPI_DBG("update");
 
 
 
@@ -433,7 +446,6 @@ int rempi_re_cdc::re_testsome(
 	  if (i == *outcount - 1) {
 	    is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
 	  }
-
 	  
 // #ifdef REMPI_DBG_REPLAY
 // 	  REMPI_DBGI(REMPI_DBG_REPLAY, "  Test: index: %d (incount: %d, outcount: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",     index, incount, *outcount, is_with_next, flag,
@@ -457,6 +469,7 @@ int rempi_re_cdc::re_testsome(
 //     REMPI_DBGI(REMPI_DBG_REPLAY, "testsome call");
 // #endif
     recorder->replay_testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, test_id, REMPI_MF_FLAG_1_TEST, REMPI_MF_FLAG_2_SOME);
+
 // #ifdef REMPI_DBG_REPLAY
 //     REMPI_DBGI(REMPI_DBG_REPLAY, "testsome end");
 // #endif
@@ -521,11 +534,13 @@ int rempi_re_cdc::re_waitall(
   } else {
     int  outcount;
     /*TODO: This is to avoid malloc overhead. But to fix this limitation*/
+    REMPI_DBGI(0, "replay waitall");
     if (incount > 16) {
       REMPI_ERR("Current ReMPI only support incount <= 16 in MPI_Waitall");
     }    
     recorder->replay_testsome(incount, array_of_requests, &outcount, array_of_indices_waitall, array_of_statuses, test_id, 
 			      REMPI_MF_FLAG_1_WAIT, REMPI_MF_FLAG_2_ALL);
+    REMPI_DBGI(0, "replay waitall done");
     if (incount != outcount) {
       REMPI_ERR("incount != outcount in MPI_Waitall: incount = %d outcount = %d", incount, outcount);
     }

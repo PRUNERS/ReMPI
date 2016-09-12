@@ -563,6 +563,7 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
 /*
   If update_source_set is NULL OR has_pending_recv_message = 0, update mc_next_clocks of all ranks
  */
+
 int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_clock, int has_probed_message, 
 					   unordered_set<int> *pending_message_source_set, 
 					   unordered_map<int, size_t> *recv_message_source_umap, 
@@ -623,7 +624,6 @@ int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_cl
 	 TODO: only update ranks with which MPI_probe probed
        */
     } else {
-
       for (int id = 0, size = solid_mc_next_clocks_umap_vec.size(); id < size; id++) {
 	solid_mc_next_clocks_umap = solid_mc_next_clocks_umap_vec[id];
 	for (int j = 0; j < mc_length; j++) {
@@ -635,7 +635,7 @@ int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_cl
 	      is_updated = 1;
 	      //	      REMPI_DBGI(REMPI_DBG_REPLAY, "update FD_CLOCK (rank: %d, clock: %lu, test_id: %d): pending or same id", mc_recv_ranks[j], last_clock, id);
 #endif	    
-		solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = last_clock;
+   	      solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = last_clock;
 	      }
 	    }
 	  } else if (recv_message_source_umap->find(mc_recv_ranks[j]) != recv_message_source_umap->end()) {
@@ -731,6 +731,7 @@ int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_cl
     }
   }
 #endif
+
   //  memcpy(solid_mc_next_clocks, tmp_mc_next_clocks, sizeof(size_t) * mc_length);  
   
 
@@ -995,7 +996,8 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
   for (int i = 0; i < input_format.write_size_queue_vec.size(); i++) {
     total_original_size += input_format.write_size_queue_vec[i];
   }
-  REMPI_DBG("total_size: %lu", total_original_size);
+  //  REMPI_DBG("total_size: %lu", total_original_size);
+
   
   if(rempi_gzip) {
     vector<char*> compressed_write_queue_vec;
@@ -1336,16 +1338,19 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     test_table->compressed_with_previous_size = *(size_t*)decoding_address;
     decoding_address += sizeof(test_table->compressed_with_previous_size);
     /*----------- with_next   ------------*/
-    test_table->compressed_with_previous = decoding_address;
-    rempi_copy_vec((size_t*)test_table->compressed_with_previous, test_table->compressed_with_previous_size / sizeof(size_t), 
-		   test_table->with_previous_vec);
-    compression_util.decompress_by_linear_prediction(test_table->with_previous_vec);
-    decoding_address += test_table->compressed_with_previous_size;
-    {
-      test_table->with_previous_bool_vec.resize(test_table->count, false);
-      for (int i = 0, n = test_table->with_previous_vec.size(); i < n; i++) {
-	int with_next_index = test_table->with_previous_vec[i];
-	test_table->with_previous_bool_vec[with_next_index] = true;
+    REMPI_DBG("length: %lu, size: %lu", test_table->compressed_with_previous_length, test_table->compressed_with_previous_size);
+    if (test_table->compressed_with_previous_size > 0) {
+      test_table->compressed_with_previous = decoding_address;
+      rempi_copy_vec((size_t*)test_table->compressed_with_previous, test_table->compressed_with_previous_size / sizeof(size_t), 
+		     test_table->with_previous_vec);
+      compression_util.decompress_by_linear_prediction(test_table->with_previous_vec);
+      decoding_address += test_table->compressed_with_previous_size;
+      {
+	test_table->with_previous_bool_vec.resize(test_table->count, false);
+	for (int i = 0, n = test_table->with_previous_vec.size(); i < n; i++) {
+	  int with_next_index = test_table->with_previous_vec[i];
+	  test_table->with_previous_bool_vec[with_next_index] = true;
+	}
       }
     }
 
@@ -1796,6 +1801,7 @@ N      CDC events flow:
 
   /*Sort observed list, and create totally-ordered list*/
   test_table->ordered_event_list.sort(compare);    
+  //  REMPI_DBG("size: %lu, min_clock: %lu", test_table->ordered_event_list.size(), local_min_id_clock);
 
   //  usleep(50000);
 

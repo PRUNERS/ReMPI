@@ -452,6 +452,7 @@ class rempi_encoder_rep : public rempi_encoder_cdc
  rempi_encoder_rep(int mode)
    : rempi_encoder_cdc(mode) {}
 
+  virtual void compress_non_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
   virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
 
 };

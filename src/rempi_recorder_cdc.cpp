@@ -889,13 +889,16 @@ int rempi_recorder_cdc::replay_testsome(
   //REMPI_DBGI(REMPI_DBG_REPLAY, "Testsome recv call: global_test_id: %d => recv_test_id: %d (flag1: %d flag2: %d)", 
   //	     global_test_id, recv_test_id, mf_flag_1, mf_flag_2);
 #endif
-  int interval = 0;
 
+
+
+
+  int interval = 0;
   while (with_next == REMPI_MPI_EVENT_WITH_NEXT) {
     int unmatched_flag_count = 0;
     int min_recv_rank;
     size_t min_next_clock;
-    int has_recv_msg = 0;
+    int has_recv_msg = 0, iprobe_flag_int = 0, has_recv_or_probe_msg = 0;
 
     /*The last two 0s are not used, if the first vaiable is 0 
       Update next sending out clock for frontier detection*/
@@ -930,29 +933,22 @@ int rempi_recorder_cdc::replay_testsome(
     this->pending_message_source_set.clear();    
     /* clear is necessary to clear rank(key) rather that clock(value) */
     recv_message_source_umap.clear();
-// #ifdef REMPI_DBG_REPLAY    
-//     REMPI_DBGI(REMPI_DBG_REPLAY, " ===== Progress start  =====");
-// #endif 
-    has_recv_msg = progress_recv_requests(recv_test_id, incount, array_of_requests, 
-					  mc_encoder->global_local_min_id.rank, 
-					  mc_encoder->global_local_min_id.clock,
-					  &(this->pending_message_source_set),
-					  &recv_message_source_umap,
-					  recv_clock_umap_p_1);
-// #ifdef REMPI_DBG_REPLAY    
-//     REMPI_DBGI(REMPI_DBG_REPLAY, " ===== Progress end  =====: %lu", recv_message_source_umap.size());
-// #endif 
 
-    
-    // #ifdef REMPI_DBG_REPLAY
-    //     REMPI_DBGI(REMPI_DBG_REPLAY, "progrell: global: %d recv: %d", global_test_id, recv_test_id);
-    // #endif
+    do {
+
+      has_recv_msg = progress_recv_requests(recv_test_id, incount, array_of_requests, 
+					    mc_encoder->global_local_min_id.rank, 
+					    mc_encoder->global_local_min_id.clock,
+					    &(this->pending_message_source_set),
+					    &recv_message_source_umap,
+					    recv_clock_umap_p_1);
 
 
-    int iprobe_flag_int = 0;
-    /* TODO: multiple communicators */
-    PMPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &iprobe_flag_int, MPI_STATUS_IGNORE);
-    has_recv_msg = has_recv_msg || iprobe_flag_int;
+
+      /* TODO: multiple communicators */
+      PMPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &iprobe_flag_int, MPI_STATUS_IGNORE);
+      has_recv_or_probe_msg = has_recv_msg || iprobe_flag_int;
+    } while (has_recv_msg == 1);
 
 
     /* ======================================================== */
@@ -973,9 +969,9 @@ int rempi_recorder_cdc::replay_testsome(
       recv_clock_umap_p_1 = tmp;
     }
     if (is_updated) counta_update++;
-    if (has_recv_msg) counta_pending++;
+    if (has_recv_or_probe_msg) counta_pending++;
 #else
-    if (!has_recv_msg) {
+    if (!has_recv_or_probe_msg) {
       int is_updated = 0;
       //REMPI_DBGI(REMPI_DBG_REPLAY, " ==== update start");
       is_updated = mc_encoder->update_local_min_id(min_recv_rank, min_next_clock, iprobe_flag_int, &(this->pending_message_source_set), 
@@ -1024,7 +1020,7 @@ int rempi_recorder_cdc::replay_testsome(
 #endif
 
     
-    
+
 
 
     while ((replaying_event = replaying_event_list->dequeue_replay(recv_test_id, event_list_status)) != NULL) {
@@ -1069,6 +1065,14 @@ int rempi_recorder_cdc::replay_testsome(
     // if (MPI_Wtime() - strb > 0.00005) {
     //   REMPI_DBG("Big: %f", MPI_Wtime() - strb);
     // }
+
+// #if 1 //_rep test
+//     if (with_next == REMPI_MPI_EVENT_WITH_NEXT) {
+//       *outcount = 0;
+//       return ret;      
+//     }  
+// #endif
+
 
 
   } /* while (with_next == REMPI_MPI_EVENT_WITH_NEXT) */

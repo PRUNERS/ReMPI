@@ -63,7 +63,9 @@ if test "$MPIF90" = :; then
    AC_MSG_ERROR([This package needs mpif90.])
 fi
 AC_PROG_FC([mpif90])
+if test "$with_bluegene" = yes; then
 AC_SUBST([FC], [$MPIFC])
+fi
 
 
 #AC_ARG_VAR([CC], [CC for compile])
