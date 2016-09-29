@@ -241,6 +241,7 @@ int rempi_re_cdc::re_irecv(
   return ret;
 }
   
+
 int rempi_re_cdc::re_test(
 		    MPI_Request *request, 
 		    int *flag, 
