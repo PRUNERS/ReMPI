@@ -109,7 +109,7 @@ class rempi_irecv_inputs
 #define REQUEST_INFO_SIZE (128)
 class rempi_recorder {
  protected:
-  void cancel_request(MPI_Request *request);
+
   rempi_message_manager msg_manager; //TODO: this is not used
   int next_test_id_to_assign;// = 0;
   unordered_map<MPI_Request, rempi_irecv_inputs*> request_to_irecv_inputs_umap; 
@@ -123,6 +123,25 @@ class rempi_recorder {
   int request_info[REQUEST_INFO_SIZE];
   MPI_Status  tmp_statuses[REQUEST_INFO_SIZE];
   MPI_Request tmp_requests[REQUEST_INFO_SIZE];
+
+  void cancel_request(MPI_Request *request);
+  virtual int rempi_mf(int incount,
+		       MPI_Request array_of_requests[],
+		       int *outcount,
+		       int array_of_indices[],
+		       MPI_Status array_of_statuses[],
+		       size_t **msg_id, // or clock
+		       int matching_function_type);
+
+  virtual int rempi_pf(int source,
+		       int tag,
+		       MPI_Comm comm,
+		       int *flag,
+		       MPI_Status *status,
+		       size_t *msg_id, // or clock
+		       int prove_function_type);
+
+
  public:
 
   rempi_recorder()
@@ -319,7 +338,22 @@ class rempi_recorder_cdc : public rempi_recorder
 			     unordered_map<int, size_t> *recv_message_source_umap,
 			     unordered_map<int, size_t> *recv_clock_umap);
 
+ protected:
+  virtual int rempi_mf(int incount,
+  		       MPI_Request array_of_requests[],
+  		       int *outcount,
+  		       int array_of_indices[],
+  		       MPI_Status array_of_statuses[],
+  		       size_t **msg_id, // or clock
+  		       int matching_function_type);
 
+  virtual int rempi_pf(int source,
+  		       int tag,
+  		       MPI_Comm comm,
+  		       int *flag,
+  		       MPI_Status *status,
+  		       size_t *msg_id, // or clock
+  		       int prove_function_type);
 
  public:
   rempi_recorder_cdc()

@@ -101,6 +101,7 @@ class rempi_re_cdc : public rempi_re
 #endif
  protected:
   int collective_sync_clock(MPI_Comm comm);
+  
  public:
   rempi_re_cdc() 
     {

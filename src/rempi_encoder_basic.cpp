@@ -476,17 +476,6 @@ void rempi_encoder_basic::insert_encoder_input_format_chunk(rempi_event_list<rem
   for (int i = 0, s = test_table->events_vec.size(); i < s; i++) {
     decoded_event = test_table->events_vec[i];
 
-    // REMPI_DBG( "Decoded  : (count: %d, type: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d): %p", 
-    // 	       decoded_event->get_event_counts(), 
-    // 	       decoded_event->get_type(),
-    // 	       decoded_event->get_flag(),
-    // 	       decoded_event->get_rank(),
-    // 	       decoded_event->get_with_next(),
-    // 	       decoded_event->get_index(),
-    // 	       decoded_event->get_msg_id(),
-    // 	       decoded_event->get_matching_group_id(),
-    // 	       decoded_event);
-
 #ifdef REMPI_DBG_REPLAY
     REMPI_DBG("Decoded  : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)", 
 	      decoded_event->get_event_counts(), 

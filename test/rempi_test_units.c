@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/mman.h>
 
 #include "rempi_test_util.h"
 
@@ -124,6 +125,8 @@ int sendrecv_req_ids[] = {
 };
 
 
+static   size_t ag;  
+static   size_t addr;
 
 static void rempi_test_randome_sleep()
 {
@@ -345,7 +348,6 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
   MPI_Status status;
   int *matched_indices;
 
-  rempi_test_dbg_print("Rank %d: Start Test MPI_test: %d (%d) = %d x %d", my_rank, matching_type, num_send_msgs, num_sender, NUM_TEST_MSG);
 
   requests   = (MPI_Request*)malloc(sizeof(MPI_Request) * (num_sender));
   statuses   = (MPI_Status*)malloc(sizeof(MPI_Status) * (num_sender));
@@ -355,8 +357,6 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
     MPI_Irecv(&recv_vals[i], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[i]);
   }
 
-
-  
   switch(matching_type) {
   case MPI_Test_id:
     for (i = 0; i < num_send_msgs; i++) {
@@ -574,6 +574,8 @@ void rempi_test_sendrecv_req(int matching_type)
     index++;
   }
 
+  //  rempi_test_dbg_print("req: %p, status: %p", requests, statuses);
+
   switch(matching_type) {
   case MPI_Test_id:
     for (i = 0; i < num_msgs; i++) {
@@ -654,6 +656,9 @@ void rempi_test_sendrecv_req(int matching_type)
 
 
 
+
+
+
 int main(int argc, char *argv[])
 {
   int i, j, k;
@@ -665,12 +670,10 @@ int main(int argc, char *argv[])
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-
-  
   init_ndrand();
   start = MPI_Wtime();
 
-  for (k = 0; k < argc; k++) {
+  for (k = 1; k < argc; k++) {
     if (argc == 1) {
       is_all = 1;
       test_name = "all";
@@ -747,8 +750,8 @@ int main(int argc, char *argv[])
 #endif
     } 
 
-    if (!strcmp(test_name, "sendrecv_req") || is_all) {
 
+    if (!strcmp(test_name, "sendrecv_req") || is_all) {
 #if defined(TEST_SENDRECV_REQ)
       if (my_rank == 0) fprintf(stdout, "Start testing sendrecv req ... "); fflush(stdout);
       for (i = 0; i < sizeof(sendrecv_req_ids)/sizeof(int); i++) {
@@ -758,7 +761,9 @@ int main(int argc, char *argv[])
       if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
 #endif
     }
+
   }
+
 
 
   end = MPI_Wtime();

@@ -4,12 +4,12 @@
 #include "rempi_config.h"
 #include "rempi_err.h"
 
-int rempi_mf(int incount,
-	     MPI_Request array_of_requests[],
-	     int *outcount,
-	     int array_of_indices[],
-	     MPI_Status array_of_statuses[],
-	     int matching_function_type)
+int rempi_mpi_mf(int incount,
+		 MPI_Request array_of_requests[],
+		 int *outcount,
+		 int array_of_indices[],
+		 MPI_Status array_of_statuses[],
+		 int matching_function_type)
 {
   switch(matching_function_type) {
   case REMPI_MPI_TEST: 
@@ -48,12 +48,12 @@ int rempi_mf(int incount,
 }
 
 
-int rempi_pf(int source,
-	     int tag,
-	     MPI_Comm comm,
-	     int *flag,
-	     MPI_Status *status,
-	     int probe_function_type)
+int rempi_mpi_pf(int source,
+		 int tag,
+		 MPI_Comm comm,
+		 int *flag,
+		 MPI_Status *status,
+		 int probe_function_type)
 {
   int ret;
   switch(probe_function_type) {

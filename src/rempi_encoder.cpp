@@ -363,6 +363,7 @@ bool rempi_encoder::read_record_file(rempi_encoder_input_format &input_format)
   rempi_event* decoded_event;
   size_t size;
   bool is_no_more_record = false;
+  
 
   /*TODO: 
     Currently read only one event at one this function call, 

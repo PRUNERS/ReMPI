@@ -1,5 +1,7 @@
 SUBDIRS=../src
 
+#AM_CFLAGS = -lefence
+
 if WITH_BLUEGENE	
 LIBS += $(libz_a_LIB) 
 endif

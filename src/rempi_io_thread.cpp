@@ -49,6 +49,11 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
 #else 
   if (rempi_encode == 0) {
     encoder = new rempi_encoder_basic(mode);                 //  (1): Simple record (count, flag, rank with_next and clock)
+    if (rempi_is_test_id) {
+      rempi_is_test_id = 0;
+      REMPI_DBGI(0, "REMPI_TEST_ID is ignored");
+    }
+
   } else if (rempi_encode == 8) {
     encoder = new rempi_encoder(mode);
   }  else {

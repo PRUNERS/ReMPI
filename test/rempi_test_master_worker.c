@@ -8,8 +8,9 @@
 
 #include "rempi_test_util.h"
 
-#define NUM_MEG_PER_RANK (100)
+#define NUM_MEG_PER_RANK (2)
 #define MAX_HASH (1000000)
+#define BUFF_SIZE (1024 * 1024)
 int my_rank;
 
 
@@ -20,7 +21,9 @@ int main(int argc, char *argv[])
   int rank, size;
   MPI_Status status;
   double start, end, overall_end;
-  int hash = 0;
+  int hash = 1;
+  int buff[BUFF_SIZE];
+
 
 
   /* Init */
@@ -36,12 +39,18 @@ int main(int argc, char *argv[])
   int k = 0;
   for (k=0; k<1; k++) {
     if (rank != 0) { // Slaves
+      MPI_Request request;
+      MPI_Status status;
+      int flag = 0;
       int buf;
       int i;
       for (i = 0; i < NUM_MEG_PER_RANK; i++) {
 	/*Emulate two wave of MPI_Send, so that rank=0 can poll MPI_Test to wait the MPI_Send waves*/
 	//      usleep(100);
-	MPI_Send(&rank, 1, MPI_INT, 0, i, MPI_COMM_WORLD); 
+	MPI_Isend(buff, BUFF_SIZE, MPI_INT, 0, i, MPI_COMM_WORLD, &request); 
+	do {
+	  MPI_Test(&request, &flag, &status);
+	} while(!flag);
       }
     } else { // Master
       int sum = 0;
@@ -51,7 +60,7 @@ int main(int argc, char *argv[])
       rempi_test_dbg_print("Start: %f", MPI_Wtime());
       while (sum < (size - 1) * NUM_MEG_PER_RANK) { 
 	if(flag == -1) {
-	  MPI_Irecv(&res, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &request);
+	  MPI_Irecv(buff, BUFF_SIZE, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &request);
 	  flag = 0;
 	}
 
@@ -72,6 +81,7 @@ int main(int argc, char *argv[])
     }
   }
 
+  rempi_test_dbg_print("rank: %d: finisehd", rank);
   end = MPI_Wtime();
   MPI_Finalize();
   //  overall_end = MPI_Wtime();

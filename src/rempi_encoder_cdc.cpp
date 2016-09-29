@@ -1338,7 +1338,6 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     test_table->compressed_with_previous_size = *(size_t*)decoding_address;
     decoding_address += sizeof(test_table->compressed_with_previous_size);
     /*----------- with_next   ------------*/
-    REMPI_DBG("length: %lu, size: %lu", test_table->compressed_with_previous_length, test_table->compressed_with_previous_size);
     if (test_table->compressed_with_previous_size > 0) {
       test_table->compressed_with_previous = decoding_address;
       rempi_copy_vec((size_t*)test_table->compressed_with_previous, test_table->compressed_with_previous_size / sizeof(size_t), 

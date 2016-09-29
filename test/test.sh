@@ -15,24 +15,48 @@ librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
 
 
 
-
-# ===== MCB test ========
-par=`expr 80 \* $num_procs`
-bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary
- --sigmaA 1 --sigmaS 20 "
-cd /g/g90/sato5/repo/MCBdouble/run-decks/
-make cleanc
-librempi=/g/g90/sato5/repo/rempi/install_x86-64/lib/librempix.so
-REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
-cd -
+bin="./rempi_test_units sendrecv_req"
+librempi=../src/.libs/librempi.so
+REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+#REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
 exit
 
 
 bin="./rempi_test_master_worker"
+librempi=../src/.libs/librempi.so
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+exit
+
+
+
+
+bin="./rempi_test_master_worker"
 librempi=../src/.libs/librempix.so
-REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
 #REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
 exit
+
+
+# ===== MCB test ========
+par=`expr 80 \* $num_procs`
+bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 "
+cd /g/g90/sato5/repo/MCBdouble/run-decks/
+make cleanc
+librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
+#REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
+cd -
+exit
+
+
+
+bin="./rempi_test_mini_mcb 3 0 20"
+librempi=../src/.libs/librempix.so
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${memcheck} ${bin}
+exit
+
+
+
 
 
 
@@ -70,9 +94,7 @@ REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 
 cd -
 exit
 
-bin="./rempi_test_mini_mcb 10 0 20"
-librempi="../lib/librempi.so"
-REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 REMPI_MAX=16 LD_PRELOAD=${librempi} srun -n ${num_procs} ${memcheck} ${bin}
+
 exit
 
 
