@@ -1,3 +1,4 @@
 Refactoring
 - move irecv_inputs and irecv_proxy capability to rempi_reqmg.c
 - remove matched_events_square_sizes_vec
+- Record: Tick clock (in CLMPI), Replay: Tick clock (in ReMPI) => Tick clock (in ReMPI), Replay: Tick clock (in ReMPI) and use PBMPI.

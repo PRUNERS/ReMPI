@@ -15,6 +15,7 @@
 #include "rempi_recorder.h"
 #include "rempi_request_mg.h"
 #include "rempi_cp.h"
+#include "rempi_status.h"
 #include "rempi_mpi_init.h"
 
 #define  PNMPI_MODULE_REMPI "rempi"
@@ -189,7 +190,7 @@ int rempi_re_cdc::re_isend(
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
-    recorder->replay_isend(request);
+    recorder->replay_isend(buf, count, datatype, dest, tag, comm, request, -1);
   }
 
 #ifdef REMPI_DBG_REPLAY
@@ -199,7 +200,36 @@ int rempi_re_cdc::re_isend(
   return ret;
 }
 
+#define DEV_MF_SUPPORT
+#ifdef DEV_MF_SUPPORT
+int rempi_re_cdc::re_irecv(
+		       void *buf,
+		       int count,
+		       MPI_Datatype datatype,
+		       int source,
+		       int tag,
+		       MPI_Comm comm,
+		       MPI_Request *request)
+{
+  int ret;
+  char comm_id[REMPI_COMM_ID_LENGTH];
+  //  int comm_id_int;
+  int resultlen;
+  if (comm != MPI_COMM_WORLD) {
+    REMPI_ERR("Current ReMPI does not multiple communicators");
+  }
 
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    ret = recorder->record_irecv(buf, count, datatype, source, tag, (int)comm_id[0], comm, request);
+  } else {
+    /*TODO: Really need datatype ??*/
+    ret = recorder->replay_irecv(buf, count, datatype, source, tag, (int)comm_id[0], comm, request);
+  }
+
+  return ret;
+}
+
+#else
 int rempi_re_cdc::re_irecv(
 		 void *buf,
 		 int count,
@@ -240,8 +270,38 @@ int rempi_re_cdc::re_irecv(
 #endif
   return ret;
 }
+#endif
   
 
+
+#ifdef DEV_MF_SUPPORT
+
+int rempi_re_cdc::re_test(
+		    MPI_Request *request, 
+		    int *flag, 
+		    MPI_Status *status)
+{
+
+  int ret;
+  int test_id;
+  int status_flag;
+
+  status = rempi_status_allocate(1, status, &status_flag);
+
+  *flag = 0;
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    ret = recorder->record_mf(1, request, flag, NULL, status, test_id, REMPI_MPI_TEST);
+  } else {
+    ret = recorder->replay_mf(1, request, flag, NULL, status, test_id, REMPI_MPI_TEST);
+  }
+
+  if (status_flag) rempi_status_free(status);
+
+  return ret;
+}
+
+
+#else
 int rempi_re_cdc::re_test(
 		    MPI_Request *request, 
 		    int *flag, 
@@ -295,6 +355,7 @@ int rempi_re_cdc::re_test(
 
   return ret;
 }
+#endif
 
 int rempi_re_cdc::re_cancel(MPI_Request *request)
 {
@@ -333,139 +394,25 @@ MPI_Fint rempi_re_cdc::re_request_c2f(MPI_Request request)
 
 
 int rempi_re_cdc::re_testsome(
-			  int incount, 
-			  MPI_Request array_of_requests[],
-			  int *outcount, 
-			  int array_of_indices[], 
-			  MPI_Status array_of_statuses[])
+			      int incount, 
+			      MPI_Request array_of_requests[],
+			      int *outcount, 
+			      int array_of_indices[], 
+			      MPI_Status array_of_statuses[])
 {
   int ret;
-  size_t *clocks;
-  int is_with_next = REMPI_MPI_EVENT_WITH_NEXT;
-#ifdef REVERT1
-  int test_id = rempi_reqmg_get_test_id(array_of_requests, incount);
-#else
-  int test_id = rempi_reqmg_get_test_id(array_of_requests);
-#endif
-
+  int test_id;
+  int status_flag;  
   
-  if (array_of_statuses == NULL) {
-    /*TODO: allocate array_of_statuses in ReMPI instead of the error below*/
-    REMPI_ERR("ReMPI requires array_of_statues in Matching functions");
-  }
-
-#ifdef MATCHING_ID_TEST
-  for (int i = 0; i < incount; i++) {
-    if(request_to_recv_id_umap.count(array_of_requests[i]) > 0) {
-      int recv_id = request_to_recv_id_umap[array_of_requests[i]];
-      REMPI_DBGI(1, "test_id: %d, recv_id: %d", test_id, recv_id);
-      request_to_recv_id_umap.erase(array_of_requests[i]);
-    }
-  }
-#endif
-  // for (int i = 0; i < incount; i++) {
-  //   int matching_set_id;
-  //   matching_set_id = get_matching_set_id(&array_of_requests[i], incount);
-  //   //    REMPI_DBGI(0, "test_id: %d, set_id: %d", test_id, matching_set_id);    
-  // }
+  array_of_statuses = rempi_status_allocate(incount, array_of_statuses, &status_flag);
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    clocks = (size_t*)rempi_malloc(sizeof(size_t) * incount);
-
-#if 1
-    clmpi_register_recv_clocks(clocks, incount);
-    ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
-#else
-    for (int i = 0; i < incount; i++) {
-      clmpi_register_recv_clocks(&clocks[i], 1);
-      PMPI_Test(&array_of_requests[i], outcount, &array_of_statuses[0]);
-      if (*outcount != 0) {
-	array_of_indices[0] = i;
-	break;
-      }
-    }
-#endif
-
-
-    if (*outcount == 0) {
-      int flag = 0;
-#ifdef ENABLE_TEST
-      recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
-#else
-      /*TODO: 
-	PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK does not mean it's send request, but mean it's not recv request.
-	It means that if the request is not called by Irecv, ReMPI regard the request as send request.
-	currently if at least one of requests is NOT PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK 
-	(which means one of request is called by Irecv), 
-        then ReMPI regard the rest of the request are recv requests that is not called by Irecv.
-	Thus, ReMPI record the events as unmatched event
-      */
-      int is_all_send_req = 1;
-      for (int i = 0; i < incount; i++) {
-	if(clocks[i] != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {	
-	  is_all_send_req = 0;
-	}
-      }
-
-      if (!is_all_send_req) {
-	recorder->record_test(NULL, &flag, -1, -1, -1, REMPI_MPI_EVENT_NOT_WITH_NEXT, test_id);
-      } else {
-#ifdef REMPI_DBG_REPLAY
-	REMPI_DBGI(0, "Test send: test_id: %d: incount: %d outcount: %d", test_id, incount, *outcount);
-#endif
-      }
-#endif
-    } else {
-      for (int i = 0; i < *outcount; i++) {
-	int flag = 1;
-	int index = array_of_indices[i];
-	if(clocks[index] != PNMPI_MODULE_CLMPI_SEND_REQ_CLOCK) {
-	  if (i == *outcount - 1) {
-	    is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
-	  }
-	  
-// #ifdef REMPI_DBG_REPLAY
-// 	  REMPI_DBGI(REMPI_DBG_REPLAY, "  Test: index: %d (incount: %d, outcount: %d, with_next: %d, flag: %d, source: %d, tag: %d, clock: %d): test_id: %d",     index, incount, *outcount, is_with_next, flag,
-// 		     array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, clocks[index], test_id);
-// #endif
-	  /*array_of_statuses only contain statuese for completed messages (i.e. length of array_of_indices == *outcount)
-	    so I use [i] insted of [index]
-	   */
-	  recorder->record_test(&array_of_requests[index], &flag, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, clocks[index], is_with_next, test_id);
-	}  else {
-#if 0	
-	  REMPI_DBGI(1, "skipp flag = 1, clock: %d (%d/%d)", clocks[i], i, *outcount);
-#endif
-	}
-      }
-    }
-    free(clocks);
+    recorder->record_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, test_id, REMPI_MPI_TESTSOME);
   } else {
-    //    ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
-// #ifdef REMPI_DBG_REPLAY
-//     REMPI_DBGI(REMPI_DBG_REPLAY, "testsome call");
-// #endif
-    recorder->replay_testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, test_id, REMPI_MF_FLAG_1_TEST, REMPI_MF_FLAG_2_SOME);
-
-// #ifdef REMPI_DBG_REPLAY
-//     REMPI_DBGI(REMPI_DBG_REPLAY, "testsome end");
-// #endif
+    recorder->replay_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, test_id, REMPI_MPI_TESTSOME);
   }
 
-#if 0
-  for (int i = 0; i < *outcount; i++) {
-    int source;
-    int index = array_of_indices[i];
-    source =    array_of_statuses[index].MPI_SOURCE;
-    // REMPI_DBG("out: (%lu |%d|) read index: %d", clocks[index], source, index);
-    //    REMPI_DBG("clock %lu, source: %d (%d/%d); incount:%d", clocks[index], source, index, *outcount, incount);
-    REMPI_DBG(" => Testsome: clock %lu |%d|", clocks[index], source);
-    //    REMPI_DBG("source: %d (%d/%d); incount:%d", source, index, *outcount, incount);
-  }
-#endif
-
-
-  //  REMPI_DBG(" ----------- ");
+  if (status_flag) rempi_status_free(array_of_statuses);
 
   return ret;
 }

@@ -10,7 +10,6 @@ rempi_SOURCES =  \
 		rempi_compression_util.cpp \
 		rempi_config.cpp \
                 rempi_re.cpp \
-		rempi_re_cdc.cpp \
 	        rempi_sig_handler.cpp \
 	        rempi_status.cpp \
 	        rempi_mf.cpp \
@@ -38,7 +37,7 @@ rempi_SOURCES =  \
 lib_LTLIBRARIES = librempi.la
 librempi_la_SOURCES  = $(rempi_SOURCES)
 librempi_la_LIBADD =  $(libz_a_LIB)
-librempi_la_CFLaGS = -lz -lstdc++ -lintlc
+librempi_la_CFLAGS = -lz -lstdc++ -lintlc
 librempi_la_CPPFLAGS = -DREMPI_LITE
 
 if ENABLE_CDC

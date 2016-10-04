@@ -308,7 +308,7 @@ void rempi_encoder_cdc_input_format::debug_print()
 		test_table->matched_events_id_vec[i], test_table->matched_events_delay_vec[i]);
     }
 
-#if 1
+#if 0
     for (int i = 0; i < test_table->matched_events_square_sizes_vec.size(); i++) {
       REMPI_DBG("  matched(sq):  id: %d, size: %d", i, 
 		test_table->matched_events_square_sizes_vec[i]);
@@ -654,24 +654,16 @@ int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_cl
 	      }
 	    }
 	  } else {
-#ifdef REMPI_DBG_REPLAY	
 
-#ifndef CP_DBG
-	    if (solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) < tmp_mc_next_clocks[j]) { 
-	      is_updated = 3;
-	      REMPI_DBGI(REMPI_DBG_REPLAY, "update FD_CLOCK (rank: %d, clock: %lu, test_id: %d): in no message", mc_recv_ranks[j], tmp_mc_next_clocks[j], id);
-	    }
-#else
+#ifdef REMPI_DBG_REPLAY	
 	    if (solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) < rempi_cp_get_gather_clock(mc_recv_ranks[j])) { 
 	      is_updated = 3;
 	      // REMPI_DBGI(REMPI_DBG_REPLAY, "update FD_CLOCK (rank: %d, clock: %lu, test_id: %d): in no message", 
 	      // 		 mc_recv_ranks[j], rempi_cp_get_gather_clock(mc_recv_ranks[j]), id);
 	    }
-#endif
-
 #endif	 
 
-#ifdef CP_DBG
+
 	    if (rempi_cp_has_in_flight_msgs(mc_recv_ranks[j])) {
 	      if (recv_clock_umap->find(mc_recv_ranks[j]) != recv_clock_umap->end()) {
 		size_t last_clock = recv_clock_umap->at((mc_recv_ranks[j]));
@@ -685,11 +677,9 @@ int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_cl
 		}
 	      }
 	    } else {
+	      // REMPI_DBGI(REMPI_DBG_REPLAY, "update FD_CLOCK (rank: %d, clock: %lu, test_id: %d): pending or same id", mc_recv_ranks[j],  rempi_cp_get_gather_clock(mc_recv_ranks[j]), id);
 	      solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = rempi_cp_get_gather_clock(mc_recv_ranks[j]);
 	    }
-#else
-	    solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = tmp_mc_next_clocks[j];
-#endif
 
 	  }
 	}
@@ -1199,7 +1189,7 @@ bool rempi_encoder_cdc::read_record_file(rempi_encoder_input_format &input_forma
   if (read_size == 0) {
     /* When chunk_size == 0 (= all_epoch_rank_separator), ReMPI stop reading files before read file to the end. 
      So read_size == 0 won't happen */
-    REMPI_ERR("this will not happens");
+    REMPI_ERR("Record data is broken");
   }  else if (chunk_size == all_epoch_rank_separator)  {
     is_no_more_record = true;
     this->mc_length = 0; 
@@ -1531,8 +1521,8 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
   }
 
   
-  //  input_format.debug_print();
-  //  exit(0);
+  input_format.debug_print();
+
   return;
 }
 
@@ -1694,6 +1684,10 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> *reco
 					   REMPI_MPI_EVENT_INPUT_IGNORE,
 					   REMPI_MPI_EVENT_INPUT_IGNORE,
 					   REMPI_MPI_EVENT_INPUT_IGNORE);
+
+    REMPI_DBGI(0, "PQ -> RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)", 
+     	        unmatched_event->get_event_counts(),  unmatched_event->get_is_testsome(),  unmatched_event->get_flag(),
+ 	        unmatched_event->get_source(), unmatched_event->get_clock());
 
 #ifdef REMPI_DBG_REPLAY
     REMPI_DBGI(REMPI_DBG_REPLAY, "PQ -> RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)", 
@@ -3003,11 +2997,11 @@ void rempi_encoder_cdc::update_fd_next_clock(
   }
 
 #ifdef REMPI_DBG_REPLAY  
-  // if (fd_clocks->next_clock < next_clock) {
-  //   REMPI_DBGI(REMPI_DBG_REPLAY, "NEXT Clock Update: from %lu to %lu:  (min.rank: %d, min.clock: %lu): is_waiting_recv: %d, is_after_recv_event: %d, recv_test_id: %d", 
-  // 	       fd_clocks->next_clock, next_clock, global_local_min_id.rank, global_local_min_id.clock, 
-  //   	       is_waiting_recv, is_after_reve_event, recv_test_id);
-  // }
+  if (rempi_cp_get_scatter_clock() < next_clock) {
+    // REMPI_DBG("NEXT Clock Update: from %lu to %lu:  (min.rank: %d, min.clock: %lu): is_waiting_recv: %d, is_after_recv_event: %d, recv_test_id: %d", 
+    // 	       rempi_cp_get_scatter_clock(), next_clock, global_local_min_id.rank, global_local_min_id.clock, 
+    // 	       is_waiting_recv, is_after_reve_event, recv_test_id);
+  }
 #endif
 
 #ifdef CP_DBG
@@ -3080,7 +3074,6 @@ void rempi_encoder_cdc::close_record_file()
   if (matched_events_list_umap.find(recv_test_id) == matched_events_list_umap.end()) {
     matched_events_list_umap[recv_test_id]  = new list<rempi_event*>();
   }
-
 
   this->compute_local_min_id(input_format->test_tables_map.at(recv_test_id), &local_min_id_rank, &local_min_id_clock, recv_test_id);
   while (recording_events->front_replay(recv_test_id) != NULL) {      

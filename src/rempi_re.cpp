@@ -80,15 +80,8 @@ int rempi_re::init_after_pmpi_init(int *argc, char ***argv)
 int rempi_re::re_init(int *argc, char ***argv, int fortran_init)
 {
   int ret;
-  //  int provided;
-
-  /*Init CLMPI*/
-
-  // rempi_sig_handler_init_test();
-  // REMPI_DBG("test");
-  // sleep(1100);
   ret = rempi_mpi_init(argc, argv, fortran_init);
-  //  ret = PMPI_Init(argc, argv);
+
 
   /*Init from configuration and for valiables for errors*/
   init_after_pmpi_init(argc, argv);
@@ -107,13 +100,12 @@ int rempi_re::re_init_thread(
 			     int required, int *provided, int fortran_init_thread)
 {
   int ret;
-  /*Init CLMPI*/
-  //  ret = PMPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, provided);
   ret = rempi_mpi_init_thread(argc, argv, MPI_THREAD_MULTIPLE, provided, fortran_init_thread);
-
   if (*provided < MPI_THREAD_SERIALIZED) {
     REMPI_ERR("MPI supports only MPI_THREAD_SINGLE, and ReMPI does not work on this MPI");
   }
+
+
   /*Init from configuration and for valiables for errors*/
   init_after_pmpi_init(argc, argv);
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
@@ -141,18 +133,15 @@ int rempi_re::re_isend(
   int resultlen;
   char comm_id[REMPI_COMM_ID_LENGTH];
 
-
   if (comm != MPI_COMM_WORLD) {
-    REMPI_ERR("Current ReMPI does not multiple communicators");
+    REMPI_ERR("Current ReMPI accept only MPI_COMM_WORLD");
   }
 
-  ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
-  PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);  
-  rempi_reqmg_register_request(request, dest, tag, (int)comm_id[0], REMPI_SEND_REQUEST);
-
-  // if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
-  //   recorder->replay_isend(request);
-  // }
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    recorder->record_isend(buf, count, datatype, dest, tag, comm, request, -1);
+  } else {
+    recorder->replay_isend(buf, count, datatype, dest, tag, comm, request, -1);
+  }
 
   return ret;
 }
@@ -174,7 +163,6 @@ int rempi_re::re_irecv(
   if (comm != MPI_COMM_WORLD) {
     REMPI_ERR("Current ReMPI does not multiple communicators");
   }
-  
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     // ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
@@ -195,16 +183,15 @@ int rempi_re::re_test(
 		    MPI_Status *status)
 {
   int ret;
-  int test_id;
   int status_flag;
 
   status = rempi_status_allocate(1, status, &status_flag);
 
   *flag = 0;
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    recorder->record_mf(1, request, flag, NULL, status, test_id, REMPI_MPI_TEST);
+    recorder->record_mf(1, request, flag, NULL, status, REMPI_MPI_TEST);
   } else {
-    recorder->replay_mf(1, request, flag, NULL, status, test_id, REMPI_MPI_TEST);
+    recorder->replay_mf(1, request, flag, NULL, status, REMPI_MPI_TEST);
   }
 
   if (status_flag) rempi_status_free(status);
@@ -216,15 +203,14 @@ int rempi_re::re_testany(int count, MPI_Request array_of_requests[],
 		       int *index, int *flag, MPI_Status *status)
 { 
   int ret;
-  int test_id;
   int status_flag;
 
   status = rempi_status_allocate(count, status, &status_flag);
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    recorder->record_mf(count, array_of_requests, flag, index, status, test_id, REMPI_MPI_TESTANY);
+    recorder->record_mf(count, array_of_requests, flag, index, status, REMPI_MPI_TESTANY);
   } else {
-    recorder->replay_mf(count, array_of_requests, flag, index, status, test_id, REMPI_MPI_TESTANY);
+    recorder->replay_mf(count, array_of_requests, flag, index, status, REMPI_MPI_TESTANY);
   }
 
   if (status_flag) rempi_status_free(status);
@@ -242,15 +228,14 @@ int rempi_re::re_testsome(
 			  MPI_Status array_of_statuses[])
 {
   int ret;
-  int test_id;
   int status_flag;  
   
   array_of_statuses = rempi_status_allocate(incount, array_of_statuses, &status_flag);
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    recorder->record_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, test_id, REMPI_MPI_TESTSOME);
+    recorder->record_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, REMPI_MPI_TESTSOME);
   } else {
-    recorder->replay_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, test_id, REMPI_MPI_TESTSOME);
+    recorder->replay_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, REMPI_MPI_TESTSOME);
   }
 
   if (status_flag) rempi_status_free(array_of_statuses);
@@ -263,15 +248,14 @@ int rempi_re::re_testall(int count, MPI_Request array_of_requests[],
 		       int *flag, MPI_Status array_of_statuses[])
 {
   int ret;
-  int test_id;
   int status_flag;
 
   array_of_statuses = rempi_status_allocate(count, array_of_statuses, &status_flag);
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    recorder->record_mf(count, array_of_requests, flag, NULL, array_of_statuses, test_id, REMPI_MPI_TESTALL);
+    recorder->record_mf(count, array_of_requests, flag, NULL, array_of_statuses, REMPI_MPI_TESTALL);
   } else {
-    recorder->replay_mf(count, array_of_requests, flag, NULL, array_of_statuses, test_id, REMPI_MPI_TESTALL);
+    recorder->replay_mf(count, array_of_requests, flag, NULL, array_of_statuses, REMPI_MPI_TESTALL);
     *flag = (*flag > 0)? 1:0;
   }
 
@@ -285,16 +269,15 @@ int rempi_re::re_wait(
 		    MPI_Status *status)
 {
   int ret;
-  int test_id;
   int flag = 1;
   int status_flag;
 
   status = rempi_status_allocate(1, status, &status_flag);
   
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    recorder->record_mf(1, request, NULL, NULL, status, test_id, REMPI_MPI_WAIT);
+    recorder->record_mf(1, request, NULL, NULL, status, REMPI_MPI_WAIT);
   } else {
-    recorder->replay_mf(1, request, NULL, NULL, status, test_id, REMPI_MPI_WAIT);
+    recorder->replay_mf(1, request, NULL, NULL, status, REMPI_MPI_WAIT);
   }
 
   if (status_flag) rempi_status_free(status);
@@ -307,16 +290,15 @@ int rempi_re::re_waitany(
 		       int *index, MPI_Status *status)
 {
   int ret;
-  int test_id;
   int flag = 1;
   int status_flag;
 
   status = rempi_status_allocate(count, status, &status_flag);
   
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    recorder->record_mf(count, array_of_requests, NULL, index, status, test_id, REMPI_MPI_WAITANY);
+    recorder->record_mf(count, array_of_requests, NULL, index, status, REMPI_MPI_WAITANY);
   } else {
-    recorder->replay_mf(count, array_of_requests, NULL, index, status, test_id, REMPI_MPI_WAITANY);
+    recorder->replay_mf(count, array_of_requests, NULL, index, status, REMPI_MPI_WAITANY);
   }
   if (status_flag) rempi_status_free(status);
   return ret;
@@ -327,15 +309,14 @@ int rempi_re::re_waitsome(int incount, MPI_Request array_of_requests[],
 			  MPI_Status array_of_statuses[])
 {
   int ret;
-  int test_id;
   int status_flag;
   
   array_of_statuses = rempi_status_allocate(incount, array_of_statuses, &status_flag);
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    recorder->record_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, test_id, REMPI_MPI_WAITSOME);
+    recorder->record_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, REMPI_MPI_WAITSOME);
   } else {
-    recorder->replay_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, test_id, REMPI_MPI_WAITSOME);
+    recorder->replay_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, REMPI_MPI_WAITSOME);
   }
   if (status_flag) rempi_status_free(array_of_statuses);
   return ret;
@@ -347,15 +328,14 @@ int rempi_re::re_waitall(
 			  MPI_Status array_of_statuses[])
 {
   int ret;
-  int test_id;
   int status_flag;
 
   array_of_statuses = rempi_status_allocate(incount, array_of_statuses, &status_flag);
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    recorder->record_mf(incount, array_of_requests, NULL, NULL, array_of_statuses, test_id, REMPI_MPI_WAITALL);
+    recorder->record_mf(incount, array_of_requests, NULL, NULL, array_of_statuses, REMPI_MPI_WAITALL);
   } else {
-    recorder->replay_mf(incount, array_of_requests, NULL, NULL, array_of_statuses, test_id, REMPI_MPI_WAITALL);
+    recorder->replay_mf(incount, array_of_requests, NULL, NULL, array_of_statuses, REMPI_MPI_WAITALL);
   }
   if (status_flag) rempi_status_free(array_of_statuses);
   return ret;
@@ -365,7 +345,6 @@ int rempi_re::re_waitall(
 int rempi_re::re_probe(int source, int tag, MPI_Comm comm, MPI_Status *status)
 {
   int ret;
-  int test_id;
   int flag;
   char comm_id[REMPI_COMM_ID_LENGTH];
   int resultlen;
@@ -378,7 +357,7 @@ int rempi_re::re_probe(int source, int tag, MPI_Comm comm, MPI_Status *status)
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     recorder->record_pf(source, tag, comm, NULL, status, REMPI_MPI_PROBE);
   } else {
-    recorder->replay_iprobe(source, tag, comm, &flag, status, (int)comm_id[0]);
+    recorder->replay_pf(source, tag, comm, &flag, status, (int)comm_id[0]);
   }
   if (status_flag) rempi_status_free(status);
   return ret;
@@ -387,7 +366,6 @@ int rempi_re::re_probe(int source, int tag, MPI_Comm comm, MPI_Status *status)
 int rempi_re::re_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status)
 {
   int ret;
-  int test_id;
   char comm_id[REMPI_COMM_ID_LENGTH];
   int resultlen;
   int status_flag;
@@ -397,7 +375,7 @@ int rempi_re::re_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Statu
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     recorder->record_pf(source, tag, comm, flag, status, REMPI_MPI_IPROBE);
   } else {
-    recorder->replay_iprobe(source, tag, comm, flag, status, (int)comm_id[0]);
+    recorder->replay_pf(source, tag, comm, flag, status, (int)comm_id[0]);
   }
   if (status_flag) rempi_status_free(status);
 
@@ -470,21 +448,27 @@ MPI_Fint rempi_re::re_request_c2f(MPI_Request request)
 int rempi_re::re_comm_split(MPI_Comm arg_0, int arg_1, int arg_2, MPI_Comm *arg_3)
 {
   int ret;
+  recorder->pre_process_collective(arg_0);
   ret = PMPI_Comm_split(arg_0, arg_1, arg_2, arg_3);
+  recorder->post_process_collective();
   return ret;
 }
   
 int rempi_re::re_comm_create(MPI_Comm arg_0, MPI_Group arg_1, MPI_Comm *arg_2)
 {
   int ret;
+  recorder->pre_process_collective(arg_0);
   ret = PMPI_Comm_create(arg_0, arg_1, arg_2);
+  recorder->post_process_collective();
   return ret;
 }
 
 int rempi_re::re_comm_dup(MPI_Comm arg_0, MPI_Comm *arg_2)
 {
   int ret;   
+  recorder->pre_process_collective(arg_0);
   ret = PMPI_Comm_dup(arg_0, arg_2);
+  recorder->post_process_collective();
   return ret;
 }
 
@@ -494,102 +478,128 @@ int rempi_re::re_comm_dup(MPI_Comm arg_0, MPI_Comm *arg_2)
 int rempi_re::re_allreduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
 {
   int ret;
+  recorder->pre_process_collective(arg_5);
   ret = PMPI_Allreduce(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
+  recorder->post_process_collective();
   return ret;  
 }
 
 int rempi_re::re_reduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, int arg_5, MPI_Comm arg_6)
 {
   int ret;
+  recorder->pre_process_collective(arg_6);
   ret = PMPI_Reduce(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+  recorder->post_process_collective();
   return ret;
 }
 
 int rempi_re::re_scan(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
 {
   int ret;
+  recorder->pre_process_collective(arg_5);
   ret = PMPI_Scan(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
+  recorder->post_process_collective();
   return ret; 
 }
 
 int rempi_re::re_allgather(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6)
 {
   int ret;
+  recorder->pre_process_collective(arg_6);
   ret = PMPI_Allgather(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+  recorder->post_process_collective();
   return ret;
 }
 
 int rempi_re::re_gatherv(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, mpi_const int *arg_4, mpi_const int *arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8)
 {
   int ret;
+  recorder->pre_process_collective(arg_8);
   ret = PMPI_Gatherv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8);
+  recorder->post_process_collective();
   return ret;
 }
 
 int rempi_re::re_reduce_scatter(mpi_const void *arg_0, void *arg_1, mpi_const int *arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
 {
   int ret;
+  recorder->pre_process_collective(arg_5);
   ret = PMPI_Reduce_scatter(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
+  recorder->post_process_collective();
   return ret; 
 }
 
 int rempi_re::re_scatterv(mpi_const void *arg_0, mpi_const int *arg_1, mpi_const int *arg_2, MPI_Datatype arg_3, void *arg_4, int arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8)
 {
   int ret;
+  recorder->pre_process_collective(arg_8);
   ret = PMPI_Scatterv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8);
+  recorder->post_process_collective();
   return ret;
 }
 
 int rempi_re::re_allgatherv(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, mpi_const int *arg_4, mpi_const int *arg_5, MPI_Datatype arg_6, MPI_Comm arg_7)
 {
   int ret;
+  recorder->pre_process_collective(arg_7);
   ret = PMPI_Allgatherv(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);
+  recorder->post_process_collective();
   return ret; 
 }
 
 int rempi_re::re_scatter(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7)
 {
   int ret;
+  recorder->pre_process_collective(arg_7);
   ret = PMPI_Scatter(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);
+  recorder->post_process_collective();
   return ret;
 }
 
 int rempi_re::re_bcast(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, MPI_Comm arg_4)
 {
   int ret;
+  recorder->pre_process_collective(arg_4);
   ret = PMPI_Bcast(arg_0, arg_1, arg_2, arg_3, arg_4);
+  recorder->post_process_collective();
   return ret; 
 }
 
 int rempi_re::re_alltoall(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6)
 {
   int ret;
+  recorder->pre_process_collective(arg_6);
   ret = PMPI_Alltoall(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+  recorder->post_process_collective();
   return ret;
 }
 
 int rempi_re::re_gather(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7)
 {
   int ret;
+  recorder->pre_process_collective(arg_7);
   ret = PMPI_Gather(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7);
+  recorder->post_process_collective();
   return ret;
 }
 
 int rempi_re::re_barrier(MPI_Comm arg_0)
 {
   int ret;
+  recorder->pre_process_collective(arg_0);
   ret = PMPI_Barrier(arg_0);
+  recorder->post_process_collective();
   return ret;  
 }
 
 int rempi_re::re_finalize()
 {
   int ret;
-  ret = PMPI_Finalize();
+
+
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = recorder->record_finalize();
   } else {
-
     ret = recorder->replay_finalize();
   }
   return ret;

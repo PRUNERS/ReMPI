@@ -231,12 +231,17 @@ rempi_re *rempi_record_replay;
 
 void init_rempi() {
   if ((rempi_encode == 0  || rempi_encode == 8) && rempi_lite) {
-    rempi_record_replay = new rempi_re();
+    rempi_record_replay = new rempi_re(new rempi_recorder());
   } else if (rempi_lite) {
     REMPI_ERR("No such rempi_encode in ReMPI(Lite): %d", rempi_encode);
   } else {
 #if MPI_VERSION == 3 && !defined(REMPI_LITE)
-    rempi_record_replay = new rempi_re_cdc();
+    /* 
+       ReMPI do not use rempi_re_cdc(). 
+       Common interface is provided for bot basic ReMPI and CDC ReMPI by rempi_re().       
+     */
+    //    rempi_record_replay = new rempi_re_cdc();
+    rempi_record_replay = new rempi_re(new rempi_recorder_cdc()); 
 #else
     REMPI_ERR("No such rempi_encode: %d", rempi_encode);
 #endif  
@@ -278,9 +283,10 @@ _EXTERN_C_ int MPI_Init(int *arg_0, char ***arg_1)
   int _wrap_py_return_val = 0;
   rempi_set_configuration(arg_0, arg_1);
   init_rempi();
-  signal(SIGSEGV, SIG_DFL);
+  //  signal(SIGSEGV, SIG_DFL);
   _wrap_py_return_val = rempi_record_replay->re_init(arg_0, arg_1, fortran_init);
-  //signal(SIGSEGV, SIG_DFL);
+  signal(SIGSEGV, SIG_DFL);
+  signal(SIGBUS, SIG_DFL);
   print_configuration();
   REMPI_POSTPRINT;  
   return _wrap_py_return_val;
@@ -1943,7 +1949,12 @@ _EXTERN_C_ int MPI_Send(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, in
   REMPI_PREPRINT;
   int _wrap_py_return_val = 0;
   {
-    _wrap_py_return_val = PMPI_Send(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
+    MPI_Request req;
+    MPI_Status stat;
+    _wrap_py_return_val = MPI_Isend(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, &req);
+    _wrap_py_return_val = MPI_Wait(&req, &stat);
+
+    //    _wrap_py_return_val = PMPI_Send(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
   }
   REMPI_POSTPRINT;
   return _wrap_py_return_val;

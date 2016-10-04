@@ -8,6 +8,8 @@
 #define REMPI_MF_FLAG_2_SOME   (4)
 #define REMPI_MF_FLAG_2_ALL    (5)
 
+#define PRE_ALLOCATED_REQUEST_LENGTH (128)
+
 #include <string.h>
 
 #include <vector>
@@ -15,6 +17,7 @@
 
 
 #include "rempi_mem.h"
+#include "rempi_type.h"
 #include "rempi_message_manager.h"
 #include "rempi_event_list.h"
 #include "rempi_io_thread.h"
@@ -106,7 +109,7 @@ class rempi_irecv_inputs
   /* void erase_request(MPI_Request* proxy_request); */
 };
 
-#define REQUEST_INFO_SIZE (128)
+
 class rempi_recorder {
  protected:
 
@@ -120,9 +123,9 @@ class rempi_recorder {
   rempi_encoder *mc_encoder;// = NULL;
   unsigned int validation_code; /*integer to check if correctly replayed the reocrded events*/
   void update_validation_code(int outcount, int *array_of_indices, MPI_Status *array_of_statuses, int* request_info);
-  int request_info[REQUEST_INFO_SIZE];
-  MPI_Status  tmp_statuses[REQUEST_INFO_SIZE];
-  MPI_Request tmp_requests[REQUEST_INFO_SIZE];
+  int request_info[PRE_ALLOCATED_REQUEST_LENGTH];
+  MPI_Status  tmp_statuses[PRE_ALLOCATED_REQUEST_LENGTH];
+  MPI_Request tmp_requests[PRE_ALLOCATED_REQUEST_LENGTH];
 
   void cancel_request(MPI_Request *request);
   virtual int rempi_mf(int incount,
@@ -150,10 +153,10 @@ class rempi_recorder {
     , read_record_thread(NULL)
     , mc_encoder(NULL)
     , validation_code(5371) {
-    memset(request_info, 0, sizeof(int) * REQUEST_INFO_SIZE);
-    memset(tmp_statuses, 0, sizeof(MPI_Status) * REQUEST_INFO_SIZE);
-    memset(tmp_requests, 0, sizeof(MPI_Request) * REQUEST_INFO_SIZE);
-    //    request_info = (int*)rempi_malloc(sizeof(int) * REQUEST_INFO_SIZE);
+    memset(request_info, 0, sizeof(int) * PRE_ALLOCATED_REQUEST_LENGTH);
+    memset(tmp_statuses, 0, sizeof(MPI_Status) * PRE_ALLOCATED_REQUEST_LENGTH);
+    memset(tmp_requests, 0, sizeof(MPI_Request) * PRE_ALLOCATED_REQUEST_LENGTH);
+    //    request_info = (int*)rempi_malloc(sizeof(int) * PRE_ALLOCATED_REQUEST_LENGTH);
   }
   
   ~rempi_recorder()
@@ -186,7 +189,23 @@ class rempi_recorder {
 			   MPI_Request *request
 			   );
 
-  virtual int replay_isend(MPI_Request *request);
+  virtual int record_isend(mpi_const void *buf,
+			   int count,
+			   MPI_Datatype datatype,
+			   int dest,
+			   int tag,
+			   MPI_Comm comm,
+			   MPI_Request *request,
+			   int send_function_type);
+
+  virtual int replay_isend(mpi_const void *buf,
+			   int count,
+			   MPI_Datatype datatype,
+			   int dest,
+			   int tag,
+			   MPI_Comm comm,
+			   MPI_Request *request,
+			   int send_function_type);
 
   virtual int replay_irecv(
 			   void *buf,
@@ -229,7 +248,6 @@ class rempi_recorder {
 			int *outcount,
 			int array_of_indices[],
 			MPI_Status array_of_statuses[],
-			int global_test_id,
 			int matching_function_type);
 
   virtual int record_pf(int source,
@@ -245,8 +263,9 @@ class rempi_recorder {
 			int *outcount, 
 			int array_of_indices[], 
 			MPI_Status array_of_statuses[],
-			int global_test_id,
 			int matching_function_type);
+
+  virtual int replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int comm_id);
   
   /*TODO: Conmbine replay_test with replay_testsome into replay_mf by mf_flag_1 & mf_flag_2 ??*/
   virtual int replay_test(
@@ -265,8 +284,10 @@ class rempi_recorder {
 			      int mf_flag_1,
 			      int mf_flag_2);
 
-  virtual int replay_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int comm_id);
 
+
+  virtual int pre_process_collective(MPI_Comm comm);
+  virtual int post_process_collective();
 
   //TODO: Comm_dup Comm_split
 
@@ -284,7 +305,7 @@ class rempi_recorder {
 class rempi_recorder_cdc : public rempi_recorder
 {
  private:
-  
+  size_t pre_allocated_clocks[PRE_ALLOCATED_REQUEST_LENGTH];
   void* allocate_proxy_buf(int count, MPI_Datatype datatype);
   void copy_proxy_buf(void* fromt, void* to, int count, MPI_Datatype datatype);
   int get_test_id();
@@ -377,7 +398,23 @@ class rempi_recorder_cdc : public rempi_recorder
 		   MPI_Request *request
 		   );
 
-  int replay_isend(MPI_Request *request);
+  int record_isend(mpi_const void *buf,
+			   int count,
+			   MPI_Datatype datatype,
+			   int dest,
+			   int tag,
+			   MPI_Comm comm,
+			   MPI_Request *request,
+			   int send_function_type);
+
+  int replay_isend(mpi_const void *buf,
+			   int count,
+			   MPI_Datatype datatype,
+			   int dest,
+			   int tag,
+			   MPI_Comm comm,
+			   MPI_Request *request,
+			   int send_function_type);
 
   int replay_irecv(
 		   void *buf,
@@ -390,7 +427,7 @@ class rempi_recorder_cdc : public rempi_recorder
 		   MPI_Request *request
 		   );
 
-  int record_cancel(MPI_Request *request);
+  //  int record_cancel(MPI_Request *request);
   int replay_cancel(MPI_Request *request);
   int replay_request_free(MPI_Request *request);
   MPI_Fint replay_request_c2f(MPI_Request request);
@@ -414,13 +451,21 @@ class rempi_recorder_cdc : public rempi_recorder
 		  int test_id
 		  );
 
-  int record_mf(int incount,
-		MPI_Request array_of_requests[],
-		int *outcount,
-		int array_of_indices[],
-		MPI_Status array_of_statuses[],
-		int global_test_id,
-		int matching_function_type);
+  /* virtual int record_mf(int incount, */
+  /* 		MPI_Request array_of_requests[], */
+  /* 		int *outcount, */
+  /* 		int array_of_indices[], */
+  /* 		MPI_Status array_of_statuses[], */
+  /* 		int global_test_id, */
+  /* 		int matching_function_type); */
+
+  virtual int replay_mf(
+			int incount, 
+			MPI_Request array_of_requests[], 
+			int *outcount, 
+			int array_of_indices[], 
+			MPI_Status array_of_statuses[],
+			int matching_function_type);
 
   int record_pf(int source,
 		int tag,
@@ -428,6 +473,8 @@ class rempi_recorder_cdc : public rempi_recorder
 		int *flag,
 		MPI_Status *status,
 		int prove_function_type);
+
+  int replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int comm_id);
 
   int replay_test(
 		  MPI_Request *request,
@@ -446,7 +493,10 @@ class rempi_recorder_cdc : public rempi_recorder
 		      int mf_flag_1,
 		      int mf_flag_2);
 
-  int replay_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int comm_id);
+
+
+  int pre_process_collective(MPI_Comm comm);
+  int post_process_collective();
 
 
   //TODO: Comm_dup Comm_split

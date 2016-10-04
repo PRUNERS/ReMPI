@@ -67,17 +67,37 @@ public:
 
 };
 
+/* =========
+   Wheneve MPI_Request is initialized, 
+   rempi_reqmg_register_request must be called.
+   
+    - MPI_Isend/Ibsend/Irsend/Issend
+    - MPI_Send_init/Bsend_init/Rsend_init/Ssend_init
+    - MPI_Recv_init
+
+   And, whenever MPI_Request is freed,
+   rempi_reqmg_deregister_request must be called.
+   But if the MPI_Request is from MPI_Recv/Send..._Init, the MPI_Request
+   is reused by MPI so you do not have to call this function.
+   
+    - MPI_Wait/Waitany/Waitsome/Waitall
+    - MPI_Test/Testany/Testsome/Testall (only when matched)
+    - MPI_Cancel
+    - MPI_Request_free   
+*/
 int rempi_reqmg_register_request(MPI_Request *request, int source, int tag, int comm_id, int request_type);
 int rempi_reqmg_deregister_request(MPI_Request *request, int request_type);
-/* int rempi_reqmg_register_recv_request(MPI_Request *request, int source, int tag, int comm_id); */
-/* int rempi_reqmg_deregister_recv_request(MPI_Request *request); */
-/* int rempi_reqmg_register_send_request(MPI_Request *request, int source, int tag, int comm_id); */
-/* int rempi_reqmg_deregister_send_request(MPI_Request *request); */
+/* =========== */
 
+/* Return test_id */
 int rempi_reqmg_get_test_id(MPI_Request *request, int count);
+
+/* */
 void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendcount, int *recvcount, int *nullcount, int *request_info, int *is_record_nad_replay);
 void rempi_reqmg_get_request_type(MPI_Request *request, int *request_type);
 void rempi_reqmg_store_send_statuses(int incount, MPI_Request *requests, int *request_info, MPI_Status *statuses);
+
+
 /*TODO: remove the below two functions*/
 int rempi_reqmg_get_recv_request_count(int incount, MPI_Request *requests);
 int rempi_reqmg_get_null_request_count(int incount, MPI_Request *requests);

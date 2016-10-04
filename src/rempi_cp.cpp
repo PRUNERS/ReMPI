@@ -303,6 +303,7 @@ void rempi_cp_finalize()
 void rempi_cp_gather_clocks()
 {
   int ret;
+  
   for (int i = 0; i < rempi_pred_rank_count; ++i) {
     ret = PMPI_Get(&rempi_cp_gather_pc[i], sizeof(struct rempi_cp_prop_clock), MPI_BYTE, 
 		       rempi_pred_ranks[i], rempi_pred_indices[i], sizeof(struct rempi_cp_prop_clock), MPI_BYTE, rempi_cp_win);
@@ -317,6 +318,11 @@ void rempi_cp_gather_clocks()
       fprintf(stderr, "PMPI_Win_flush_local_all failed\n");
     }
   }
+
+  // for (int i = 0; i < 2; i++) {
+  //   REMPI_DBGI(0, "rempi_cp_gather_pc[%d]: %d", i, rempi_cp_gather_pc[i]);
+  // }
+
 
   return;
 }
@@ -333,9 +339,13 @@ int rempi_cp_has_in_flight_msgs(int source_rank)
   if (rempi_cp_gather_pc[index].send_count <= rempi_recv_counts[index]) {
     /* rempi_recv_counts may be incremented before updated rempi_cp_gather_pc[index].send_count 
      so I use "<=" instead of "==" */
+    // REMPI_DBGI(0, "NO: Rank %d (send_count: %d) ==> Rank %d (recv_count: %d)",
+    // 	      source_rank, rempi_cp_gather_pc[index].send_count, 
+    // 	      my_rank, rempi_recv_counts[index]
+    // 	      );
     has = 0;
   } else {
-    // REMPI_DBG("Rank %d (send_count: %d) ==> Rank %d (recv_count: %d)",
+    // REMPI_DBGI(0, "YES: Rank %d (send_count: %d) ==> Rank %d (recv_count: %d)",
     // 	      source_rank, rempi_cp_gather_pc[index].send_count, 
     // 	      my_rank, rempi_recv_counts[index]
     // 	      );

@@ -68,10 +68,11 @@ class rempi_re
   int my_rank; // = -1;
   int init_after_pmpi_init(int *argc, char ***argv);
  public:
- rempi_re()
+ rempi_re(rempi_recorder *rec)
    : my_rank(-1)
     {
-      recorder = new rempi_recorder();
+      //      recorder = new rempi_recorder();
+      recorder = rec;
     };
 
   ~rempi_re()
@@ -103,9 +104,10 @@ class rempi_re_cdc : public rempi_re
   int collective_sync_clock(MPI_Comm comm);
   
  public:
-  rempi_re_cdc() 
-    {
-    recorder = new rempi_recorder_cdc();
+  rempi_re_cdc(rempi_recorder *rec)
+    : rempi_re(rec) {
+    recorder = rec;
+    //    recorder = new rempi_recorder_cdc();
   };
 
   ~rempi_re_cdc() {

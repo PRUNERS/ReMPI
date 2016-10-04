@@ -218,6 +218,7 @@ static int rempi_reqmg_deregister_send_request(MPI_Request *request)
 static int rempi_reqmg_is_record_and_replay(int length, int *request_ifno, int send_count, int recv_count, int null_count, int ignore_count)
 {
   //  return send_count + recv_count + null_count > 0;
+#ifdef REMPI_LITE
   if (ignore_count > 0) {
     if (send_count + recv_count + null_count == 0) {
       return 0;
@@ -226,6 +227,9 @@ static int rempi_reqmg_is_record_and_replay(int length, int *request_ifno, int s
                 send_count, recv_count, null_count, ignore_count);
     }
   }
+#else
+  if (send_count > 0) return 0;
+#endif
   return 1;
 }
 
@@ -276,7 +280,10 @@ int rempi_reqmg_get_test_id(MPI_Request *request, int incount)
       next_test_id_to_assign++;
     }
     matching_set_id = test_ids_map[test_id_string];
+    // REMPI_DBGI(0, "id: %d", matching_set_id);
+    // REMPI_DBGI(0, "string: %s", test_id_string.c_str());    
   }
+
   return matching_set_id;
 }
 
