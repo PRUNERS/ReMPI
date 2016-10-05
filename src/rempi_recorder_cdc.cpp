@@ -568,7 +568,7 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
     //REMPI_DBGI(REMPI_DBG_REPLAY, " ==== update start");
     is_updated = mc_encoder->update_local_look_ahead_recv_clock(iprobe_flag_int, &(this->pending_message_source_set), 
 						 &recv_message_source_umap,
-						 recv_clock_umap_p_2,
+						 recv_clock_umap_p_1,
 						 matching_set_id);
     {
       unordered_map<int, size_t> *tmp;
@@ -583,31 +583,6 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
 
     int num_of_recv_msg_in_next_event = 0;
     size_t interim_min_clock_in_next_event = 0;
-    // if (mc_encoder->num_of_recv_msg_in_next_event != NULL && 
-    // 	mc_encoder->interim_min_clock_in_next_event != NULL) {
-    //   num_of_recv_msg_in_next_event = mc_encoder->num_of_recv_msg_in_next_event[matching_set_id];
-    //   /* ===== NOTE ================================================================================================
-    // 	 If num_of_recv_msg_in_next_event > 0 (Condition A), this means CDC now trying to replay recv event next. 
-    // 	 So if replaying_events_list->dequeue_replay does not return enough replay events (Condition B), this means 
-    // 	 this main thread will dequeue "recv" events next
-    // 	 -- Main thread --
-    // 	 Get  : num_of_recv_msg_in_next_event & interim_min_clock_in_next_event
-    // 	 Test_A : Any in Replay_queue ?
-    // 	 if (Test_A is false) Update : fd_next_clock
-    // 	 -----------------
-    // 	 -- CDC thread --
-    // 	 Test_B : Is replaying matched events ?
-    // 	 if (Test_B is true) Update: num_of_recv_msg_in_next_event & interim_min_clock_in_next_event
-    // 	 if (Replaying events) : num_of_recv_msg_in_next_event = 0
-    // 	 Update: Replay_queue
-    // 	 -------------------
-    // 	 ===========================================================================================================*/
-    //   if (mc_encoder->interim_min_clock_in_next_event == NULL) { /*TODO: remove this because this is already checked in the above*/
-    // 	REMPI_ERR("interim: %p", mc_encoder->interim_min_clock_in_next_event);
-    //   }
-    //   interim_min_clock_in_next_event = mc_encoder->interim_min_clock_in_next_event[matching_set_id];
-    // }
-
     /* ======================================================== */
     /* Step 3: Progress decoding & Check replay events          */
     /* ======================================================== */
@@ -621,11 +596,6 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
     if (!is_completed) {
       mc_encoder->update_fd_next_clock(1, num_of_recv_msg_in_next_event, mc_encoder->interim_min_clock_in_next_event[matching_set_id],
 				       recording_event_list->get_enqueue_count(matching_set_id), matching_set_id, 0);
-      // bool is_next_event_recv = num_of_recv_msg_in_next_event > 0;
-      // if (is_next_event_recv) {
-      // 	mc_encoder->update_fd_next_clock(1, num_of_recv_msg_in_next_event, interim_min_clock_in_next_event, 
-      // 					 recording_event_list->get_enqueue_count(matching_set_id), matching_set_id, 0);
-      // }
     }
 
 
