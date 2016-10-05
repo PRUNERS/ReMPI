@@ -72,8 +72,6 @@ class rempi_encoder_input_format_test_table
   map<int, rempi_event*>       matched_events_ordered_map; /*Used in recording*/
   vector<size_t>               matched_events_id_vec;      /*Used in replay*/
   vector<size_t>               matched_events_delay_vec;   /*Used in replay*/
-  vector<int>                  matched_events_square_sizes_vec;/*Used in replay*/
-  int                          matched_events_square_sizes_vec_index;// = 0;/*Used in replay*/
   vector<int>                  matched_events_permutated_indices_vec; /*Used in replay*/
   size_t                       replayed_matched_event_index;// = 0;
   size_t                       compressed_matched_events_size;// = 0;
@@ -88,7 +86,6 @@ class rempi_encoder_input_format_test_table
     , compressed_unmatched_events_id(NULL)
     , compressed_unmatched_events_count_size(0)
     , compressed_unmatched_events_count(NULL)
-    , matched_events_square_sizes_vec_index(0)
     , replayed_matched_event_index(0)
     , compressed_matched_events_size(0)
     , compressed_matched_events(NULL) {}
@@ -249,10 +246,10 @@ class rempi_encoder
     /*TODO: Due to multi-threaded issues in MPI/PNMPI, we define this function.
       But we would like to remove this function in future*/
     virtual void fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock);
-    virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock, int has_probed_message, 
-				    unordered_set<int> *update_sources_set, unordered_map<int, size_t> *recv_message_source_umap, 
-				    unordered_map<int, size_t> *recv_clock_umap,
-				    int recv_test_id);
+    /* virtual int update_local_look_ahead_recv_clock(int has_probed_message,  */
+    /* 						   unordered_set<int> *update_sources_set, unordered_map<int, size_t> *recv_message_source_umap,  */
+    /* 						   unordered_map<int, size_t> *recv_clock_umap, */
+    /* 						   int recv_test_id); */
     virtual void update_fd_next_clock(
 				      int is_waiting_recv,
 				      int num_of_recv_msg_in_next_event,
@@ -335,10 +332,10 @@ class rempi_encoder_basic : public rempi_encoder
     /*TODO: Due to multi-threaded issues in MPI/PNMPI, we define this function.
       But we would like to remove this function in future*/
     virtual void fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock);
-    virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock, int has_probed_message,
-                                    unordered_set<int> *update_sources_set, unordered_map<int, size_t> *recv_message_source_umap,
-                                    unordered_map<int, size_t> *recv_clock_umap,
-                                    int recv_test_id);
+    /* virtual int update_local_look_ahead_recv_clock(int has_probed_message, */
+    /* 						   unordered_set<int> *update_sources_set, unordered_map<int, size_t> *recv_message_source_umap, */
+    /* 						   unordered_map<int, size_t> *recv_clock_umap, */
+    /* 						   int recv_test_id); */
     virtual void update_fd_next_clock(
 				      int is_waiting_recv,
 				      int num_of_recv_msg_in_next_event,
@@ -385,7 +382,6 @@ class rempi_encoder_cdc : public rempi_encoder
 				  size_t matched_event_count,
 				  vector<size_t> &matched_events_id_vec,
 				  vector<size_t> &matched_events_delay_vec,
-				  vector<int> &matched_events_square_sizes,
 				  vector<int> &matched_events_permutated_indices);
   virtual bool cdc_decode_ordering(rempi_event_list<rempi_event*> *recording_events, list<rempi_event*> *event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> *replay_event_list, int test_id, int local_min_id_rank, size_t local_min_id_clock);
 
@@ -422,10 +418,10 @@ class rempi_encoder_cdc : public rempi_encoder
   virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
   virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
-  virtual int update_local_min_id(int min_recv_rank, size_t min_next_clock, int has_probed_message,
-				  unordered_set<int> *update_sources_set, unordered_map<int, size_t> *recv_message_source_umap,
-				  unordered_map<int, size_t> *recv_clock_umap,
-				  int recv_test_id);
+  virtual int update_local_look_ahead_recv_clock(int has_probed_message,
+						 unordered_set<int> *update_sources_set, unordered_map<int, size_t> *recv_message_source_umap,
+						 unordered_map<int, size_t> *recv_clock_umap,
+						 int recv_test_id);
   virtual void update_fd_next_clock(
 				    int is_waiting_recv,
 				    int num_of_recv_msg_in_next_event,

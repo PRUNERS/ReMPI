@@ -56,9 +56,7 @@ void rempi_encoder_input_format_test_table::clear()
   /*Matched*/
   matched_events_id_vec.clear();
   matched_events_delay_vec.clear();
-  matched_events_square_sizes_vec.clear();
   matched_events_permutated_indices_vec.clear(); 
-  matched_events_square_sizes_vec_index = 0;
   replayed_matched_event_index = 0;
   compressed_matched_events_size = 0;
   if (compressed_matched_events != NULL) {
@@ -540,15 +538,6 @@ void rempi_encoder::fetch_local_min_id(int *min_recv_rank, size_t *min_next_cloc
   return;
 }
 
-int rempi_encoder::update_local_min_id(int min_recv_rank, size_t min_next_clock, int has_probed_message,
-				       unordered_set<int> *update_sources_set, 
-				       unordered_map<int, size_t> *recv_message_source_umap, 
-				       unordered_map<int, size_t> *recv_clock_umap,
-				       int recv_test_id)
-{    
-  //  REMPI_ERR("please remove this REMPI_ERR later");
-  return 0;
-}
 
 void rempi_encoder::update_fd_next_clock(
 					 int is_waiting_recv,

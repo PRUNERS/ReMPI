@@ -308,12 +308,12 @@ void rempi_encoder_cdc_input_format::debug_print()
 		test_table->matched_events_id_vec[i], test_table->matched_events_delay_vec[i]);
     }
 
-#if 0
-    for (int i = 0; i < test_table->matched_events_square_sizes_vec.size(); i++) {
-      REMPI_DBG("  matched(sq):  id: %d, size: %d", i, 
-		test_table->matched_events_square_sizes_vec[i]);
-    }
-#endif
+// #if 0
+//     for (int i = 0; i < test_table->matched_events_square_sizes_vec.size(); i++) {
+//       REMPI_DBG("  matched(sq):  id: %d, size: %d", i, 
+// 		test_table->matched_events_square_sizes_vec[i]);
+//     }
+// #endif
 
     for (int i = 0; i < test_table->matched_events_permutated_indices_vec.size(); i++) {
       REMPI_DBG("  matched(pr):  id: %d  index: %d", i, 
@@ -564,11 +564,11 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
   If update_source_set is NULL OR has_pending_recv_message = 0, update mc_next_clocks of all ranks
  */
 
-int rempi_encoder_cdc::update_local_min_id(int min_recv_rank, size_t min_next_clock, int has_probed_message, 
-					   unordered_set<int> *pending_message_source_set, 
-					   unordered_map<int, size_t> *recv_message_source_umap, 
-					   unordered_map<int, size_t> *recv_clock_umap,
-					   int recv_test_id)
+int rempi_encoder_cdc::update_local_look_ahead_recv_clock(int has_probed_message, 
+							  unordered_set<int> *pending_message_source_set, 
+							  unordered_map<int, size_t> *recv_message_source_umap, 
+							  unordered_map<int, size_t> *recv_clock_umap,
+							  int recv_test_id)
 {
   unordered_map<int, size_t> *solid_mc_next_clocks_umap;
   int is_updated = 0;
@@ -1413,7 +1413,6 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     cdc_prepare_decode_indices(test_table->count,
 			       test_table->matched_events_id_vec,
 			       test_table->matched_events_delay_vec,
-			       test_table->matched_events_square_sizes_vec,
 			       test_table->matched_events_permutated_indices_vec);
 
     
@@ -1530,7 +1529,6 @@ void rempi_encoder_cdc::cdc_prepare_decode_indices(
 						   size_t matched_event_count,
 						   vector<size_t> &matched_events_id_vec,
 						   vector<size_t> &matched_events_delay_vec,
-						   vector<int> &matched_events_square_sizes_vec,
 						   vector<int> &matched_events_permutated_indices_vec)
 {
   list<int> permutated_indices_list;
@@ -1613,21 +1611,21 @@ void rempi_encoder_cdc::cdc_prepare_decode_indices(
   }
   
   /* == square_sizes_indices == */
-  int init_square_size = 0;
-  int max = 0;
-  matched_events_square_sizes_vec.push_back(init_square_size);
-  for (int i = 0, n = matched_events_permutated_indices_vec.size(); i < n; i++) {
-    matched_events_square_sizes_vec.back()++;
-    if (max < matched_events_permutated_indices_vec[i]) {
-      max = matched_events_permutated_indices_vec[i];
-    }
-    if (i == max) {
-      matched_events_square_sizes_vec.push_back(init_square_size);
-    }
-  }
-  if (matched_events_square_sizes_vec.back() == 0) {
-    matched_events_square_sizes_vec.pop_back();
-  }
+  // int init_square_size = 0;
+  // int max = 0;
+  // matched_events_square_sizes_vec.push_back(init_square_size);
+  // for (int i = 0, n = matched_events_permutated_indices_vec.size(); i < n; i++) {
+  //   matched_events_square_sizes_vec.back()++;
+  //   if (max < matched_events_permutated_indices_vec[i]) {
+  //     max = matched_events_permutated_indices_vec[i];
+  //   }
+  //   if (i == max) {
+  //     matched_events_square_sizes_vec.push_back(init_square_size);
+  //   }
+  // }
+  // if (matched_events_square_sizes_vec.back() == 0) {
+  //   matched_events_square_sizes_vec.pop_back();
+  // }
   return;
     
 }

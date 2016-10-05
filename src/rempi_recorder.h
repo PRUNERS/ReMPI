@@ -111,9 +111,11 @@ class rempi_irecv_inputs
 
 
 class rempi_recorder {
+ private:
+  rempi_encoder *mc_encoder;// = NULL;
+
  protected:
   vector<rempi_event*> replaying_event_vec; /*TODO: vector => list*/
-
   rempi_message_manager msg_manager; //TODO: this is not used
   int next_test_id_to_assign;// = 0;
   unordered_map<MPI_Request, rempi_irecv_inputs*> request_to_irecv_inputs_umap; 
@@ -121,7 +123,7 @@ class rempi_recorder {
   rempi_event_list<rempi_event*> *recording_event_list, *replaying_event_list;
   rempi_io_thread *record_thread, *read_record_thread;
   /*TODO: Fix bug in PNMPI fo rmulti-threaded, and remove this outputing*/
-  rempi_encoder *mc_encoder;// = NULL;
+
   unsigned int validation_code; /*integer to check if correctly replayed the reocrded events*/
   void update_validation_code(int incount, int *outcount, int *array_of_indices, MPI_Status *array_of_statuses, int* request_info);
   int request_info[PRE_ALLOCATED_REQUEST_LENGTH];
@@ -240,25 +242,6 @@ class rempi_recorder {
   virtual int replay_request_free(MPI_Request *request);
   virtual MPI_Fint replay_request_c2f(MPI_Request request);
 
-  virtual int record_test(
-			  MPI_Request *request,
-			  int *flag,
-			  int source, // of MPI_Status
-			  int tag,     // of MPI_tatus
-			  int clock,
-			  int with_previous
-			  );
-
-  virtual int record_test(
-			  MPI_Request *request,
-			  int *flag,
-			  int source, // of MPI_Status
-			  int tag,     // of MPI_tatus
-			  int clock,
-			  int with_previous,
-			  int test_id
-			  );
-
 
   virtual int record_mf(int incount,
 			MPI_Request array_of_requests[],
@@ -284,23 +267,6 @@ class rempi_recorder {
 
 
   virtual int replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int comm_id);
-  
-  /*TODO: Conmbine replay_test with replay_testsome into replay_mf by mf_flag_1 & mf_flag_2 ??*/
-  virtual int replay_test(
-			  MPI_Request *request,
-			  int *flag,
-			  MPI_Status *status,
-			  int test_id);
-
-  virtual int replay_testsome(
-			      int incount, 
-			      MPI_Request array_of_requests[], 
-			      int *outcount, 
-			      int array_of_indices[], 
-			      MPI_Status array_of_statuses[],
-			      int global_test_id,
-			      int mf_flag_1,
-			      int mf_flag_2);
 
 
 
@@ -323,6 +289,7 @@ class rempi_recorder {
 class rempi_recorder_cdc : public rempi_recorder
 {
  private:
+  rempi_encoder_cdc *mc_encoder;// = NULL;
   size_t pre_allocated_clocks[PRE_ALLOCATED_REQUEST_LENGTH];
   void* allocate_proxy_buf(int count, MPI_Datatype datatype);
   void copy_proxy_buf(void* fromt, void* to, int count, MPI_Datatype datatype);
@@ -357,14 +324,6 @@ class rempi_recorder_cdc : public rempi_recorder
 
   PNMPIMOD_get_local_sent_clock_t clmpi_get_local_sent_clock;
 
-  int REMPI_Send_Wait(MPI_Request *request, MPI_Status *status);
-  int REMPI_Send_Waitany(int arg_0, MPI_Request *arg_1, int *arg_2, MPI_Status *arg_3);
-  int REMPI_Send_Waitall(int count, MPI_Request *array_of_requests, MPI_Status *array_of_statuses);
-  int REMPI_Send_Waitsome(int incount, MPI_Request *array_of_requests, int *outcount, int *array_of_indices, MPI_Status *array_of_statuses);
-  int REMPI_Send_Test(MPI_Request *request, int *flag, MPI_Status *status);
-  int REMPI_Send_Testany(int count, MPI_Request *array_of_requests, int *index, int *flag, MPI_Status *status);
-  int REMPI_Send_Testall(int count, MPI_Request *array_of_requests, int *flag, MPI_Status *array_of_statuses);
-  int REMPI_Send_Testsome(int incount, MPI_Request *array_of_requests, int *outcount, int *array_of_indices, MPI_Status *array_of_statuses);
 
   bool progress_send_requests();
   
@@ -470,24 +429,6 @@ class rempi_recorder_cdc : public rempi_recorder
   int replay_request_free(MPI_Request *request);
   MPI_Fint replay_request_c2f(MPI_Request request);
 
-  int record_test(
-		  MPI_Request *request,
-		  int *flag,
-		  int source, // of MPI_Status
-		  int tag,     // of MPI_tatus
-		  int clock,
-		  int with_previous
-		  );
-
-  int record_test(
-		  MPI_Request *request,
-		  int *flag,
-		  int source, // of MPI_Status
-		  int tag,     // of MPI_tatus
-		  int clock,
-		  int with_previous,
-		  int test_id
-		  );
 
   /* virtual int record_mf(int incount, */
   /* 		MPI_Request array_of_requests[], */
@@ -513,24 +454,6 @@ class rempi_recorder_cdc : public rempi_recorder
 		int prove_function_type);
 
   int replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int comm_id);
-
-  int replay_test(
-		  MPI_Request *request,
-		  int *flag,
-		  MPI_Status *status,
-		  int test_id);
-
-
-  int replay_testsome(
-		      int incount, 
-		      MPI_Request array_of_requests[], 
-		      int *outcount, 
-		      int array_of_indices[], 
-		      MPI_Status array_of_statuses[],
-		      int global_test_id,
-		      int mf_flag_1,
-		      int mf_flag_2);
-
 
 
   int pre_process_collective(MPI_Comm comm);
