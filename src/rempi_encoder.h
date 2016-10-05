@@ -243,13 +243,7 @@ class rempi_encoder
     virtual int progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id);
     virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
-    /*TODO: Due to multi-threaded issues in MPI/PNMPI, we define this function.
-      But we would like to remove this function in future*/
-    virtual void fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock);
-    /* virtual int update_local_look_ahead_recv_clock(int has_probed_message,  */
-    /* 						   unordered_set<int> *update_sources_set, unordered_map<int, size_t> *recv_message_source_umap,  */
-    /* 						   unordered_map<int, size_t> *recv_clock_umap, */
-    /* 						   int recv_test_id); */
+
     virtual void update_fd_next_clock(
 				      int is_waiting_recv,
 				      int num_of_recv_msg_in_next_event,
@@ -329,9 +323,8 @@ class rempi_encoder_basic : public rempi_encoder
     virtual void decode(rempi_encoder_input_format &input_format);
     virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
-    /*TODO: Due to multi-threaded issues in MPI/PNMPI, we define this function.
-      But we would like to remove this function in future*/
-    virtual void fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock);
+
+
     /* virtual int update_local_look_ahead_recv_clock(int has_probed_message, */
     /* 						   unordered_set<int> *update_sources_set, unordered_map<int, size_t> *recv_message_source_umap, */
     /* 						   unordered_map<int, size_t> *recv_clock_umap, */
@@ -417,7 +410,7 @@ class rempi_encoder_cdc : public rempi_encoder
   void insert_encoder_input_format_chunk_recv_test_id(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, rempi_encoder_input_format *input_format, bool *is_finished, int *has_new_event, int recv_test_id);
   virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
-  virtual void fetch_local_min_id (int *min_recv_rank, size_t *min_next_clock);
+  virtual void fetch_remote_look_ahead_send_clocks();
   virtual int update_local_look_ahead_recv_clock(int has_probed_message,
 						 unordered_set<int> *update_sources_set, unordered_map<int, size_t> *recv_message_source_umap,
 						 unordered_map<int, size_t> *recv_clock_umap,

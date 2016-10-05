@@ -532,12 +532,6 @@ void rempi_encoder::insert_encoder_input_format_chunk(rempi_event_list<rempi_eve
 }
 
 
-void rempi_encoder::fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock)
-{    
-  //  REMPI_ERR("please remove this REMPI_ERR later");
-  return;
-}
-
 
 void rempi_encoder::update_fd_next_clock(
 					 int is_waiting_recv,

@@ -414,95 +414,9 @@ void rempi_encoder_cdc::init_cp(const char *record_path)
 
 int inited = 0;
 
-void rempi_encoder_cdc::fetch_local_min_id(int *min_recv_rank, size_t *min_next_clock)
+void rempi_encoder_cdc::fetch_remote_look_ahead_send_clocks()
 {  
-  /*Fetch*/
-  int i;
-  int flag;
-  int ret_get, ret_flush;
-
-  //  if (!mc_flag || !mc_length) return;
-  /*When CDC finish initialization of mc_recv_ranks, mc_next_clocks .., 
-    then set mc_length. If mc_length is <= 0, skip execution of MPI_Get */
-#ifndef CP_DBG
-  if (mc_length <= 0) {
-    //TODO: For now, main thread call MPI_Get everytime
-    *min_recv_rank  = -1;
-    *min_next_clock =  0;
-    return;
-  }
-#endif
-
-
-#ifdef CP_DBG
   rempi_cp_gather_clocks();
-#else
-
-#if 0
-  int tmp = mc_next_clocks[0];
-  if (tmp == 0 && inited == 1) {
-    REMPI_ERR("mc_next_clocks was falsified");
-  }
-  if (mc_next_clocks[0] > 0) {
-    inited = 1;
-  }
-#endif
-
-
-#if 0
-  if (tmp != 0 && mc_next_clocks[0] == 0) {
-    REMPI_ERR("PMPI_GET got 0 value: ret_get: %d %d (MPI_SUCCESS: %d)", ret_get, ret_flush, MPI_SUCCESS);
-  }
-  // if (mc_next_clocks[0] == 0) {
-  //   REMPI_DBG("zero dao")
-  // }
-#endif
-
-
-
-#ifdef REMPI_DBG_REPLAY
-  for (int i = 0; i < mc_length; ++i) {
-    REMPI_DBGI(REMPI_DBG_REPLAY, "After recved: rank: %d clock:%lu", mc_recv_ranks[i], mc_next_clocks[i]);
-  }
-#endif
-
-
-  if (ret_get == MPI_SUCCESS && ret_flush == MPI_SUCCESS) {
-    /* mc_next_clocks can change later, so copy to tmp_mc_next_clocks */
-    /* TODO: memcpy to for a[i] = b[i] ? */
-    memcpy(tmp_mc_next_clocks, mc_next_clocks, sizeof(size_t) * mc_length);
-    // if (mc_next_clocks[0] == 0) {
-    //   REMPI_DBG("zero daooo3 !");
-    // }
-
-    *min_recv_rank  = mc_recv_ranks[0];
-    *min_next_clock = mc_next_clocks[0];
-    for (int i = 1; i < mc_length; ++i) {
-      if (*min_next_clock > mc_next_clocks[i]) { 
-	*min_recv_rank  = mc_recv_ranks[i];
-	*min_next_clock = mc_next_clocks[i];
-      } else if (*min_next_clock == mc_next_clocks[i]) { /*tie-break*/
-	if (*min_recv_rank > mc_recv_ranks[i]) {
-	  *min_recv_rank  = mc_recv_ranks[i];
-	  *min_next_clock = mc_next_clocks[i];
-	}
-      }
-    }
-  }
-
-#ifdef REMPI_DBG_REPLAY
-  //  REMPI_DBGI(REMPI_DBG_REPLAY, "GLLC Clock Fetched: rank:%d clock:%lu", *min_recv_rank, *min_next_clock);
-#endif
-
-  // TODO: move to here later
-  // for (i = 0; i < mc_length; ++i) {
-  //   PMPI_Get(&mc_next_clocks[i], sizeof(size_t), MPI_BYTE, mc_recv_ranks[i], 0, sizeof(size_t), MPI_BYTE, mpi_fd_clock_win);
-  // }
-
-
-#endif
-
-
   return;
 }
 

@@ -531,7 +531,7 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
        local_min_id is really minimal. */
     if (interval++ % 10 == 0) {
       stra = MPI_Wtime();
-      mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
+      mc_encoder->fetch_remote_look_ahead_send_clocks();
       counta++;
       dura += MPI_Wtime() - stra;
       interval = 0;
@@ -1180,7 +1180,7 @@ void rempi_recorder_cdc::fetch_and_update_local_min_id()
   if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
 
     stra = MPI_Wtime();
-    mc_encoder->fetch_local_min_id(&min_recv_rank, &min_next_clock);
+    mc_encoder->fetch_remote_look_ahead_send_clocks();
     counta++;
     dura += MPI_Wtime() - stra;
     is_updated = mc_encoder->update_local_look_ahead_recv_clock(-1, NULL, NULL, NULL, -1);  
