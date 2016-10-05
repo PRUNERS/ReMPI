@@ -327,11 +327,11 @@ class rempi_recorder_cdc : public rempi_recorder
 
   bool progress_send_requests();
   
+  int dequeue_replay_event_set(vector<rempi_event*> &replaying_event_vec, int matching_set_id);
+  
   int progress_recv_requests(int global_test_id,
 			     int incount,
 			     MPI_Request array_of_requests[],
-			     int global_local_min_id_rank,
-			     size_t global_local_min_id_clock,
 			     unordered_set<int> *pending_message_sources,
 			     unordered_map<int, size_t> *recv_message_source_umap,
 			     unordered_map<int, size_t> *recv_clock_umap);
