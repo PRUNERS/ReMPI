@@ -206,6 +206,8 @@ int rempi_recorder_cdc::rempi_mf(int incount,
   if (msg_id != NULL) {
     *msg_id =  pre_allocated_clocks;
   }
+
+  mc_encoder->update_fd_next_clock(0, 0, 0, 0, 0, 0);
   return ret;
 }
 
@@ -420,7 +422,7 @@ int rempi_recorder_cdc::replay_irecv(
     *request = (MPI_Request)request_id;
     request_id++;
     request_to_irecv_inputs_umap[*request] = new rempi_irecv_inputs(buf, count, datatype, source, tag, comm, *request);
-    REMPI_DBGI(0, "Irecv: %p", *request);
+    //    REMPI_DBGI(0, "Irecv: %p", *request);
   }
 
   irecv_inputs = request_to_irecv_inputs_umap[*request];
@@ -556,144 +558,18 @@ int rempi_recorder_cdc::record_test(
   return 0;
 }
 
-// int rempi_recorder_cdc::record_mf(int incount,
-// 				  MPI_Request array_of_requests[],
-// 				  int *outcount,
-// 				  int array_of_indices[],
-// 				  MPI_Status array_of_statuses[],
-// 				  int global_test_id,
-// 				  int matching_function_type)
-// {
-//   REMPI_ERR("not implemented yet");
-//   return 0;
-// }
 
-
-int rempi_recorder_cdc::replay_mf(
-				  int incount,
-				  MPI_Request array_of_requests[],
-				  int *outcount,
-				  int array_of_indices[],
-				  MPI_Status array_of_statuses[],
-				  int matching_function_type)
+int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_requests, vector<rempi_event*> &replaying_event_vec, int matching_set_id)
 {
-  int ret;
-  int with_next = REMPI_MPI_EVENT_WITH_NEXT;
-  rempi_irecv_inputs *irecv_inputs;
-  size_t clock;
-  size_t *clocks;
   rempi_event *replaying_event;
-  vector<rempi_event*> replaying_event_vec; /*TODO: vector => list*/
-  int recv_test_id = -1;
-  int local_outcount = 0;
-  //  unordered_uset;
-
-#ifdef REMPI_DBG_REPLAY
-  //REMPI_DBGI(REMPI_DBG_REPLAY, "testsome call: original test_id %d", global_test_id);
-#endif
-
-#ifdef REMPI_DBG_REPLAY	  
-  // for (int i = 0; i < incount; i++) {
-  //   if (request_to_irecv_inputs_umap.find(array_of_requests[i]) != request_to_irecv_inputs_umap.end()) {
-  //     rempi_proxy_request *proxy_request;
-  //     irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[i]];
-  //     proxy_request = irecv_inputs->request_proxy_list.front();
-  //     REMPI_DBGI(REMPI_DBG_REPLAY, "   Test: request:%p(%p) source:%d tag:%d count:%d", &proxy_request->request, proxy_request, irecv_inputs->source, irecv_inputs->tag, irecv_inputs->count);
-  //   }
-  // }
-#endif
-
-  bool is_all_recv_reqs = false;
-  { /*Check if array_of_requests has both send & recv request*/
-    bool has_send_req = false;
-    bool has_recv_req = false;    
-    for (int i = 0; i < incount; i++) {
-      if (request_to_irecv_inputs_umap.find(array_of_requests[i]) == request_to_irecv_inputs_umap.end()) {
-	has_send_req = true;
-      } else {
-	has_recv_req = true;
-      }
-    }
-    if (has_send_req == true && has_recv_req == true) {
-      /*TODO: Can we remove this limitation ? */
-      //      REMPI_ERR("Currenty ReMPI does not support a Test family having both send and recv request within a single Test family call");
-    } else if (has_send_req == false && has_recv_req == true) {
-      is_all_recv_reqs = true;
-    } else {
-      is_all_recv_reqs = false;
-    }
-  }
-    
-  if (!is_all_recv_reqs) { 
-    // 
-    /* If this test call is all for Send requests */
-    //    clocks = (size_t*)rempi_malloc(sizeof(size_t) * incount);
-    //    clmpi_register_recv_clocks(clocks, incount);
-#ifdef REMPI_DBG_REPLAY	  
-    for (int j = 0; j < incount; j++) {
-      REMPI_DBGI(REMPI_DBG_REPLAY, "Isend:  index %d: request: %p", j, array_of_requests[j]);
-    }
-#endif
-
-
-#if 0
-    if (mf_flag_1 == REMPI_MF_FLAG_1_TEST) {
-      if (mf_flag_2 == REMPI_MF_FLAG_2_SOME) {
-	ret = REMPI_Send_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
-	//ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
-      } else if (mf_flag_2 == REMPI_MF_FLAG_2_SINGLE) {
-	REMPI_ASSERT(incount  == 1);
-	ret = REMPI_Send_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);	
-	//ret = PMPI_Testsome(incount, array_of_requests, outcount, array_of_indices, array_of_statuses);
-      } else {
-	REMPI_ERR("current ReMPI does not support this MF: %d %d", mf_flag_1, mf_flag_2);
-      }
-    } else if (mf_flag_1 == REMPI_MF_FLAG_1_WAIT) {
-      if (mf_flag_2 == REMPI_MF_FLAG_2_ALL) {
-	ret = REMPI_Send_Waitall(incount, array_of_requests, array_of_statuses);
-	//ret = PMPI_Waitall(incount, array_of_requests, array_of_statuses);
-	local_outcount = incount;
-      } else {
-	REMPI_ERR("current ReMPI does not support this MF: %d %d", mf_flag_1, mf_flag_2);
-      }
-    } else {
-      REMPI_ERR("unexpected error");
-    }
-#else
-    ret = rempi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, NULL, matching_function_type);
-#endif
-
-
-
-    mc_encoder->update_fd_next_clock(0, 0, 0, 0, 0, 0); /*Update next sending out clock for frontier detection*/
-
-#ifdef REMPI_DBG_REPLAY	  
-    for (int j = 0; j < local_outcount; j++) {
-      REMPI_DBGI(REMPI_DBG_REPLAY, "Isend:  matched index: %d", array_of_indices[j]);
-    }
-#endif
-    free(clocks);
-    return ret;
-  }
-  /* else, this test call is all for Recv requests*/
-
-
-  recv_test_id = rempi_reqmg_get_test_id(array_of_requests, incount);
-#ifdef REMPI_DBG_REPLAY
-  //REMPI_DBGI(REMPI_DBG_REPLAY, "Testsome recv call: global_test_id: %d => recv_test_id: %d (flag1: %d flag2: %d)", 
-  //	     global_test_id, recv_test_id, mf_flag_1, mf_flag_2);
-#endif
-
-
-
-
+  int with_next = REMPI_MPI_EVENT_WITH_NEXT;
   int interval = 0;
-  while (with_next == REMPI_MPI_EVENT_WITH_NEXT) {
-    int unmatched_flag_count = 0;
-    int min_recv_rank;
-    size_t min_next_clock;
-    int has_recv_msg = 0, iprobe_flag_int = 0, has_recv_or_probe_msg = 0;
+  int unmatched_flag_count = 0;
+  int min_recv_rank;
+  size_t min_next_clock;
+  int has_recv_msg = 0, iprobe_flag_int = 0, has_recv_or_probe_msg = 0;
 
+  while (with_next == REMPI_MPI_EVENT_WITH_NEXT) {
     /*The last two 0s are not used, if the first vaiable is 0 
       Update next sending out clock for frontier detection*/
     mc_encoder->update_fd_next_clock(0, 0, 0, 0, 0, 0); /*Update next sending out clock for frontier detection*/
@@ -716,22 +592,12 @@ int rempi_recorder_cdc::replay_mf(
     /* ======================================================== */
 
     strb = MPI_Wtime();
-    /*progress for send: 
-      if a send operation is completed, we can increment clock */
-#ifndef RS_DBG
-    progress_send_requests();
-#endif
-
-
-    /*progress for recv*/
 
     this->pending_message_source_set.clear();    
-    /* clear is necessary to clear rank(key) rather that clock(value) */
     recv_message_source_umap.clear();
-
     do {
 
-      has_recv_msg = progress_recv_requests(recv_test_id, incount, array_of_requests, 
+      has_recv_msg = progress_recv_requests(matching_set_id, incount, array_of_requests, 
 					    mc_encoder->global_local_min_id.rank, 
 					    mc_encoder->global_local_min_id.clock,
 					    &(this->pending_message_source_set),
@@ -756,7 +622,7 @@ int rempi_recorder_cdc::replay_mf(
     is_updated = mc_encoder->update_local_min_id(min_recv_rank, min_next_clock, iprobe_flag_int, &(this->pending_message_source_set), 
 						 &recv_message_source_umap,
 						 recv_clock_umap_p_2,
-						 recv_test_id);
+						 matching_set_id);
     {
       unordered_map<int, size_t> *tmp;
       tmp = recv_clock_umap_p_2;
@@ -770,7 +636,7 @@ int rempi_recorder_cdc::replay_mf(
       int is_updated = 0;
       //REMPI_DBGI(REMPI_DBG_REPLAY, " ==== update start");
       is_updated = mc_encoder->update_local_min_id(min_recv_rank, min_next_clock, iprobe_flag_int, &(this->pending_message_source_set), 
-						   &(this->recv_message_source_umap), recv_test_id);
+						   &(this->recv_message_source_umap), matching_set_id);
       if (is_updated) {
 	counta_update++;
       }
@@ -786,7 +652,7 @@ int rempi_recorder_cdc::replay_mf(
     size_t interim_min_clock_in_next_event = 0;
     if (mc_encoder->num_of_recv_msg_in_next_event != NULL && 
 	mc_encoder->interim_min_clock_in_next_event != NULL) {
-      num_of_recv_msg_in_next_event = mc_encoder->num_of_recv_msg_in_next_event[recv_test_id];
+      num_of_recv_msg_in_next_event = mc_encoder->num_of_recv_msg_in_next_event[matching_set_id];
       /* ===== NOTE ================================================================================================
 	 If num_of_recv_msg_in_next_event > 0 (Condition A), this means CDC now trying to replay recv event next. 
 	 So if replaying_events_list->dequeue_replay does not return enough replay events (Condition B), this means 
@@ -806,20 +672,20 @@ int rempi_recorder_cdc::replay_mf(
       if (mc_encoder->interim_min_clock_in_next_event == NULL) { /*TODO: remove this because this is already checked in the above*/
 	REMPI_ERR("interim: %p", mc_encoder->interim_min_clock_in_next_event);
       }
-      interim_min_clock_in_next_event = mc_encoder->interim_min_clock_in_next_event[recv_test_id];
+      interim_min_clock_in_next_event = mc_encoder->interim_min_clock_in_next_event[matching_set_id];
     }
 
 
 #ifdef REMPI_MAIN_THREAD_PROGRESS
-    mc_encoder->progress_decoding(recording_event_list, replaying_event_list, recv_test_id);
+    mc_encoder->progress_decoding(recording_event_list, replaying_event_list, matching_set_id);
 #endif
 
 
-    while ((replaying_event = replaying_event_list->dequeue_replay(recv_test_id, event_list_status)) != NULL) {
+    while ((replaying_event = replaying_event_list->dequeue_replay(matching_set_id, event_list_status)) != NULL) {
 #ifdef REMPI_DBG_REPLAY
-      REMPI_DBGI(REMPI_DBG_REPLAY, "RPQ->A  : (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) recv_test_id: %d",
+      REMPI_DBGI(REMPI_DBG_REPLAY, "RPQ->A  : (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) matching_set_id: %d",
 		 replaying_event->get_event_counts(), replaying_event->get_is_testsome(), replaying_event->get_flag(),
-		 replaying_event->get_source(), replaying_event->get_clock(), recv_test_id);
+		 replaying_event->get_source(), replaying_event->get_clock(), matching_set_id);
 #endif
 	
       replaying_event_vec.push_back(replaying_event);
@@ -840,14 +706,14 @@ int rempi_recorder_cdc::replay_mf(
 #ifdef RS_DBG
       if (is_next_event_recv) {
 	mc_encoder->update_fd_next_clock(1, num_of_recv_msg_in_next_event, interim_min_clock_in_next_event, 
-					 recording_event_list->get_enqueue_count(recv_test_id), recv_test_id, 0);
+					 recording_event_list->get_enqueue_count(matching_set_id), matching_set_id, 0);
 
       }
 #else
       clmpi_get_num_of_incomplete_sending_msg(&num_of_incomplete_msg);
       if (is_next_event_recv && num_of_incomplete_msg == 0) { /*checking Condition A*/
 	mc_encoder->update_fd_next_clock(1, num_of_recv_msg_in_next_event, interim_min_clock_in_next_event, 
-					 recording_event_list->get_enqueue_count(recv_test_id), recv_test_id, 0);
+					 recording_event_list->get_enqueue_count(matching_set_id), matching_set_id, 0);
       }
 #endif
 
@@ -859,27 +725,32 @@ int rempi_recorder_cdc::replay_mf(
     //   REMPI_DBG("Big: %f", MPI_Wtime() - strb);
     // }
 
+  } /* while (with_next == REMPI_MPI_EVENT_WITH_NEXT) */  
 
+  return 0;
+}
 
-  } /* while (with_next == REMPI_MPI_EVENT_WITH_NEXT) */
+int rempi_recorder_cdc::replay_mf_input(
+				  int incount,
+				  MPI_Request array_of_requests[],
+				  int *outcount,
+				  int array_of_indices[],
+				  MPI_Status array_of_statuses[],
+				  vector<rempi_event*> &replyaing_event_vec,
+				  int matching_set_id,
+				  int matching_function_type)
+{
+  int ret;
+  int local_outcount = 0;
+  rempi_event *e;
+  rempi_irecv_inputs *irecv_inputs;
+
   
-    /*======================================================*/
-    /*Now, next replaying events are in replaying_event_vec */
-    /*======================================================*/
-
-  if (replaying_event_vec.size() == 1) { 
-    if (replaying_event_vec.front()->get_flag() == 0) { /*if unmatched event*/
-      rempi_event *e = replaying_event_vec.front();
-      local_outcount = 0;
-#ifdef REMPI_DBG_REPLAY      
-      REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): recv_test_id: %d",
-		 e ->get_event_counts(), e ->get_is_testsome(), e ->get_flag(),
-		 e ->get_source(), e ->get_clock(), recv_test_id);
-#endif
-      //      clmpi_tick_clock();
-      delete replaying_event_vec.front();
-      return ret;
-    }
+  if (replaying_event_vec.size() == 1 && replaying_event_vec.front()->get_flag() == 0) { 
+    /*if unmatched event*/
+    e = replaying_event_vec.front();
+    *outcount = 0;
+    return ret;
   }
 
 
@@ -961,25 +832,62 @@ int rempi_recorder_cdc::replay_mf(
   if (local_outcount != replaying_event_vec.size()) {
     REMPI_DBG("===== Replayng matching count is %d, but found  %d messages", replaying_event_vec.size(), local_outcount);
     for (int j = 0; j < replaying_event_vec.size(); j++) {
-      REMPI_DBG(" = Wrong: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): recv_test_id: %d ",
+      REMPI_DBG(" = Wrong: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): matching_set_id: %d ",
 		replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
-		replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), recv_test_id);
+		replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), matching_set_id);
     }
     REMPI_ERR("All events are not replayed");
   }
 
-  for (int j = 0; j < replaying_event_vec.size(); j++) {
-#ifdef REMPI_DBG_REPLAY
-    REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): recv_test_id: %d ",
-	       replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
-	       replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), recv_test_id);
-#endif
 
-    delete replaying_event_vec[j];
-  }
-
-  return ret;
+  
+  return 0;
 }
+
+
+// int rempi_recorder_cdc::replay_mf(
+// 				  int incount,
+// 				  MPI_Request array_of_requests[],
+// 				  int *outcount,
+// 				  int array_of_indices[],
+// 				  MPI_Status array_of_statuses[],
+// 				  int matching_function_type)
+// {
+//   int ret;
+//   int recvcount, sendcount, nullcount;
+//   int is_record_and_replay;
+//   size_t *msg_id;
+//   int recv_test_id = -1;
+
+//   if (incount > PRE_ALLOCATED_REQUEST_LENGTH) {
+//     REMPI_ERR("incount: %d is larger than buffer", incount);
+//   }  
+//   rempi_reqmg_get_request_info(incount, array_of_requests, &sendcount, &recvcount, &nullcount, request_info, &is_record_and_replay);
+
+//   if (is_record_and_replay == 0) {
+//     /*this mf function is not replayed*/
+//     ret = this->rempi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, &msg_id, matching_function_type);
+//     return ret;
+//   }
+//   rempi_reqmg_store_send_statuses(incount, array_of_requests, request_info, tmp_statuses);
+//   recv_test_id = rempi_reqmg_get_test_id(array_of_requests, incount);
+
+
+//   replaying_event_vec.clear();
+//   this->get_next_events(incount, array_of_requests, replaying_event_vec, recv_test_id);
+//   this->replay_mf_input(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, replaying_event_vec, recv_test_id, matching_function_type);
+
+//   for (int j = 0; j < replaying_event_vec.size(); j++) {
+// #ifdef REMPI_DBG_REPLAY
+//     REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): matching_set_id: %d ",
+// 	       replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
+// 	       replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), matching_set_id);
+// #endif
+//     delete replaying_event_vec[j];
+//   }
+
+//   return ret;
+// }
 
 int rempi_recorder_cdc::record_pf(int source,
 				  int tag,
@@ -1170,7 +1078,7 @@ int rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 	 So we set has_pending_msg = true here, to avoid sender next clocks (= A) are updated, 
 	 and to keep A less than B.	
       */
-      REMPI_DBG("Pending source: %d", proxy_request->matched_source);
+      //      REMPI_DBG("Pending source: %d", proxy_request->matched_source);
       pending_message_sources_set->insert(proxy_request->matched_source);
     }
 #else
@@ -1187,7 +1095,7 @@ int rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 	 So we set has_pending_msg = true here, to avoid sender next clocks (= A) are updated, 
 	 and to keep A less than B.	
       */
-      REMPI_DBG("Pending source: %d", irecv_inputs->source);
+      //      REMPI_DBG("Pending source: %d", irecv_inputs->source);
       pending_message_sources_set->insert(irecv_inputs->source);
     }
 #endif
@@ -1283,7 +1191,7 @@ int rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 	REMPI_ERR("PMPI_Get_count returned MPI_UNDEFINED");
       }
       irecv_inputs->matched_pending_request_proxy_list.push_back(proxy_request);
-      REMPI_DBG("Pending source: %d", status.MPI_SOURCE);
+      //      REMPI_DBG("Pending source: %d", status.MPI_SOURCE);
       //      pending_message_sources_set->insert(irecv_inputs->source);
       pending_message_sources_set->insert(status.MPI_SOURCE);
       irecv_inputs->request_proxy_list.pop_front();

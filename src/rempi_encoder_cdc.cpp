@@ -1521,7 +1521,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
   }
 
   
-  input_format.debug_print();
+  //  input_format.debug_print();
 
   return;
 }
@@ -1685,9 +1685,6 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> *reco
 					   REMPI_MPI_EVENT_INPUT_IGNORE,
 					   REMPI_MPI_EVENT_INPUT_IGNORE);
 
-    REMPI_DBGI(0, "PQ -> RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)", 
-     	        unmatched_event->get_event_counts(),  unmatched_event->get_is_testsome(),  unmatched_event->get_flag(),
- 	        unmatched_event->get_source(), unmatched_event->get_clock());
 
 #ifdef REMPI_DBG_REPLAY
     REMPI_DBGI(REMPI_DBG_REPLAY, "PQ -> RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)", 

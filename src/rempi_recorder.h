@@ -112,6 +112,7 @@ class rempi_irecv_inputs
 
 class rempi_recorder {
  protected:
+  vector<rempi_event*> replaying_event_vec; /*TODO: vector => list*/
 
   rempi_message_manager msg_manager; //TODO: this is not used
   int next_test_id_to_assign;// = 0;
@@ -122,7 +123,7 @@ class rempi_recorder {
   /*TODO: Fix bug in PNMPI fo rmulti-threaded, and remove this outputing*/
   rempi_encoder *mc_encoder;// = NULL;
   unsigned int validation_code; /*integer to check if correctly replayed the reocrded events*/
-  void update_validation_code(int outcount, int *array_of_indices, MPI_Status *array_of_statuses, int* request_info);
+  void update_validation_code(int incount, int *outcount, int *array_of_indices, MPI_Status *array_of_statuses, int* request_info);
   int request_info[PRE_ALLOCATED_REQUEST_LENGTH];
   MPI_Status  tmp_statuses[PRE_ALLOCATED_REQUEST_LENGTH];
   MPI_Request tmp_requests[PRE_ALLOCATED_REQUEST_LENGTH];
@@ -143,6 +144,22 @@ class rempi_recorder {
 		       MPI_Status *status,
 		       size_t *msg_id, // or clock
 		       int prove_function_type);
+
+  virtual int replay_mf_input(
+		      int incount,
+		      MPI_Request array_of_requests[],
+		      int *outcount,
+		      int array_of_indices[],
+		      MPI_Status array_of_statuses[],
+		      vector<rempi_event*> &replyaing_event_vec,
+		      int matching_set_id,
+		      int matching_function_type);
+
+  virtual int get_next_events(
+			      int incount, 
+			      MPI_Request *array_of_requests, 
+			      vector<rempi_event*> &replaying_event_vec, 
+			      int matching_set_id);
 
 
  public:
@@ -265,6 +282,7 @@ class rempi_recorder {
 			MPI_Status array_of_statuses[],
 			int matching_function_type);
 
+
   virtual int replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int comm_id);
   
   /*TODO: Conmbine replay_test with replay_testsome into replay_mf by mf_flag_1 & mf_flag_2 ??*/
@@ -360,6 +378,7 @@ class rempi_recorder_cdc : public rempi_recorder
 			     unordered_map<int, size_t> *recv_clock_umap);
 
  protected:
+
   virtual int rempi_mf(int incount,
   		       MPI_Request array_of_requests[],
   		       int *outcount,
@@ -375,6 +394,25 @@ class rempi_recorder_cdc : public rempi_recorder
   		       MPI_Status *status,
   		       size_t *msg_id, // or clock
   		       int prove_function_type);
+
+  virtual int replay_mf_input(
+			      int incount,
+			      MPI_Request array_of_requests[],
+			      int *outcount,
+			      int array_of_indices[],
+			      MPI_Status array_of_statuses[],
+			      vector<rempi_event*> &replyaing_event_vec,
+			      int matching_set_id,
+			      int matching_function_type);
+  
+  virtual int get_next_events(
+			      int incount, 
+			      MPI_Request *array_of_requests, 
+			      vector<rempi_event*> &replaying_event_vec, 
+			      int matching_set_id);
+
+  
+
 
  public:
   rempi_recorder_cdc()
@@ -459,13 +497,13 @@ class rempi_recorder_cdc : public rempi_recorder
   /* 		int global_test_id, */
   /* 		int matching_function_type); */
 
-  virtual int replay_mf(
-			int incount, 
-			MPI_Request array_of_requests[], 
-			int *outcount, 
-			int array_of_indices[], 
-			MPI_Status array_of_statuses[],
-			int matching_function_type);
+  /* virtual int replay_mf( */
+  /* 			int incount,  */
+  /* 			MPI_Request array_of_requests[],  */
+  /* 			int *outcount,  */
+  /* 			int array_of_indices[],  */
+  /* 			MPI_Status array_of_statuses[], */
+  /* 			int matching_function_type); */
 
   int record_pf(int source,
 		int tag,
