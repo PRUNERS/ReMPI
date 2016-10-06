@@ -478,6 +478,90 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
   If update_source_set is NULL OR has_pending_recv_message = 0, update mc_next_clocks of all ranks
  */
 
+#if 1
+/*
+  input:
+    has_probed_message: flag if there any probed messages by MPI_Iprobe (but not received)
+    recv_message_source_umap: Source rank set. The received messages may or may not belong to message_set_id.
+    pending_message_source_set: Source rank set. But the recieved messages from the source rank do not belong to any matching_set_id yet
+      pending_message_source_set is a subset of recv_message_source_umap
+    recv_clock_umap: 
+
+*/
+
+int rempi_encoder_cdc::update_local_look_ahead_recv_clock(int has_probed_message, 
+							  unordered_set<int> *pending_message_source_set, 
+							  unordered_map<int, size_t> *recv_message_source_umap, 
+							  unordered_map<int, size_t> *recv_clock_umap,
+							  int recv_test_id)
+{
+  unordered_map<int, size_t> *solid_mc_next_clocks_umap;
+  int is_updated = 0;
+
+  if (pending_message_source_set == NULL) {
+    /* Update all: This is called only after global synchronoization */
+    REMPI_ASSERT(recv_message_source_umap == NULL);
+    REMPI_ASSERT(has_probed_message == -1);
+    for (int i = 0, size = solid_mc_next_clocks_umap_vec.size(); i < size; i++) {
+      solid_mc_next_clocks_umap = solid_mc_next_clocks_umap_vec[i];
+      for (int j = 0; j < mc_length; j++) {
+	if (rempi_cp_has_in_flight_msgs(mc_recv_ranks[j])) {
+	} else {
+	  solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = rempi_cp_get_gather_clock(mc_recv_ranks[j]);
+	}
+      }
+    }
+    
+  } else {
+    /* Update portion of ranks: not after gobal synchornoization */
+    if (has_probed_message) {
+      /* Because very small clock may arrive after calling MPI_recv/irecv
+	 we cannnot update anything.
+	 TODO: only update ranks with which MPI_probe probed
+       */
+    } else {
+      for (int id = 0, size = solid_mc_next_clocks_umap_vec.size(); id < size; id++) {
+	solid_mc_next_clocks_umap = solid_mc_next_clocks_umap_vec[id];
+	for (int j = 0; j < mc_length; j++) {
+	  if (pending_message_source_set->find(mc_recv_ranks[j]) != pending_message_source_set->end() && id != recv_test_id) {
+	    if (recv_clock_umap->find(mc_recv_ranks[j]) != recv_clock_umap->end()) {
+	    size_t last_clock = recv_clock_umap->at((mc_recv_ranks[j]));
+	      if (last_clock > solid_mc_next_clocks_umap->at(mc_recv_ranks[j])) {
+		solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = last_clock;
+	      }
+	    }
+	  } else if (recv_message_source_umap->find(mc_recv_ranks[j]) != recv_message_source_umap->end()) {
+	    /*
+	      If recves messages, we do not know which message is earlyer, this message or MPI_Get.
+	      So only update with recv_clock. 
+	    */
+	    if (recv_clock_umap->find(mc_recv_ranks[j]) != recv_clock_umap->end()) {
+	      size_t last_clock = recv_clock_umap->at((mc_recv_ranks[j]));
+	      if (last_clock > solid_mc_next_clocks_umap->at(mc_recv_ranks[j])) {
+		solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = last_clock;
+	      }
+	    }
+	  } else {
+	    if (rempi_cp_has_in_flight_msgs(mc_recv_ranks[j])) {
+	      if (recv_clock_umap->find(mc_recv_ranks[j]) != recv_clock_umap->end()) {
+		size_t last_clock = recv_clock_umap->at((mc_recv_ranks[j]));
+		if (last_clock > solid_mc_next_clocks_umap->at(mc_recv_ranks[j])) {
+		  solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = last_clock;
+		}
+	      }
+	    } else {
+	      solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = rempi_cp_get_gather_clock(mc_recv_ranks[j]);
+	    }
+
+	  }
+	}
+      }
+    }
+  }
+
+  return is_updated;
+}
+#else
 int rempi_encoder_cdc::update_local_look_ahead_recv_clock(int has_probed_message, 
 							  unordered_set<int> *pending_message_source_set, 
 							  unordered_map<int, size_t> *recv_message_source_umap, 
@@ -659,6 +743,7 @@ int rempi_encoder_cdc::update_local_look_ahead_recv_clock(int has_probed_message
 //   }
   return is_updated;
 }
+#endif
 
 
 

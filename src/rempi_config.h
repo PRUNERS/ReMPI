@@ -69,6 +69,9 @@ extern int rempi_max_event_length;
 #define REMPI_MPI_PROBE     (8)
 #define REMPI_MPI_IPROBE    (9)
 
+#define REMPI_MATCHING_SET_ID_UNKNOWN (-1)
+#define REMPI_MATCHING_SET_ID_IGNORE (-2)
+
 /* #define REMPI_MPI_MF_WAIT      (1 << 0) /\*0x00000001*\/ */
 /* #define REMPI_MPI_MF_TEST      (1 << 1) /\*0x00000010*\/ */
 /* #define REMPI_MPI_MF_SINGLE    (1 << 2) */

@@ -10,6 +10,10 @@
 
 #define PRE_ALLOCATED_REQUEST_LENGTH (128)
 
+#define REMPI_RECORDER_DO_NOT_FETCH_REMOTE_LOOK_AHEAD_SEND_CLOCKS (0)
+#define REMPI_RECORDER_DO_FETCH_REMOTE_LOOK_AHEAD_SEND_CLOCKS (1)
+
+
 #include <string.h>
 
 #include <vector>
@@ -278,8 +282,6 @@ class rempi_recorder {
   virtual int record_finalize(void);
   virtual int replay_finalize(void);
 
-  virtual void set_fd_clock_state(int flag);
-  virtual void fetch_and_update_local_min_id();
 
 
 };
@@ -317,6 +319,7 @@ class rempi_recorder_cdc : public rempi_recorder
   /* Map for memorizing recieved messages with clock */
   unordered_map<int, size_t> recv_message_source_umap; 
   /* Map for memorizing recieved clock */
+  unordered_map<int, size_t> recv_clock_umap;
   unordered_map<int, size_t> recv_clock_umap_1;
   unordered_map<int, size_t> recv_clock_umap_2;
   unordered_map<int, size_t> *recv_clock_umap_p_1;
@@ -326,15 +329,18 @@ class rempi_recorder_cdc : public rempi_recorder
 
 
   bool progress_send_requests();
+
+  int progress_recv_and_safe_update_local_look_ahead_recv_clock(int do_fetch,
+								int incount, MPI_Request *array_of_requests, int message_set_id);
+
   
   int dequeue_replay_event_set(vector<rempi_event*> &replaying_event_vec, int matching_set_id);
   
   int progress_recv_requests(int global_test_id,
 			     int incount,
-			     MPI_Request array_of_requests[],
-			     unordered_set<int> *pending_message_sources,
-			     unordered_map<int, size_t> *recv_message_source_umap,
-			     unordered_map<int, size_t> *recv_clock_umap);
+			     MPI_Request array_of_requests[]);
+
+
 
  protected:
 
@@ -465,8 +471,6 @@ class rempi_recorder_cdc : public rempi_recorder
   int record_finalize(void);
   int replay_finalize(void);
 
-  void set_fd_clock_state(int flag);
-  void fetch_and_update_local_min_id();
 
 
 };
