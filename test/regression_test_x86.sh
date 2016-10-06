@@ -6,6 +6,7 @@ dir=.rempi
 mkdir ${dir}
 librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
 
+
 # ===== Unite test ======== 
 bin=./rempi_test_units
 REMPI_MODE=0 REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
@@ -36,7 +37,7 @@ srun rm ${dir}/* 2> /dev/null
 # ===== MCB test ========
 par=`expr 80 \* $num_procs`
 bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 "
-cd ./external/mcb/run-decks/
+cd /g/g90/sato5/repo/MCBdouble/run-decks/
 make cleanc
 REMPI_MODE=0 REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
 REMPI_MODE=1 REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
