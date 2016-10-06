@@ -311,6 +311,9 @@ class rempi_recorder_cdc : public rempi_recorder
 
   size_t send_request_id;
   unordered_map<MPI_Request, MPI_Request> isend_request_umap;
+
+  /* Map for memorizing probed messages, but not received  */
+  unordered_set<int> probed_message_source_set;
   /* To detect  which next_clock(or from which rank) should be updated at update_local_min_id. 
      This is a set of ranks from which messages are received.
      However, the messages have not been assigend to particulaer MF (recv_test_id=-1)
@@ -329,6 +332,7 @@ class rempi_recorder_cdc : public rempi_recorder
 
 
   bool progress_send_requests();
+  int progress_probe();
 
   int progress_recv_and_safe_update_local_look_ahead_recv_clock(int do_fetch,
 								int incount, MPI_Request *array_of_requests, int message_set_id);

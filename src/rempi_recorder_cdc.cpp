@@ -531,14 +531,31 @@ int rempi_recorder_cdc::dequeue_replay_event_set(vector<rempi_event*> &replaying
   return is_completed;
 }
 
+int rempi_recorder_cdc::progress_probe()
+{
+  size_t pred_ranks_length;
+  int *pred_ranks;
+  size_t comm_length = 1;
+  MPI_Comm comm[1] = {MPI_COMM_WORLD};
+  int flag;
+
+  probed_message_source_set.clear();
+  pred_ranks = rempi_get_pred_ranks(&pred_ranks_length);
+  for (int i = 0; i < pred_ranks_length; i++) {
+    for (int j = 0; j < comm_length; j ++) {
+      PMPI_Iprobe(pred_ranks[j], MPI_ANY_TAG, comm[j], &flag, MPI_STATUS_IGNORE);
+      if (flag) probed_message_source_set.insert(pred_ranks[j]);
+    }
+  }
+  return 0;
+}
+
 
 int rempi_recorder_cdc::progress_recv_and_safe_update_local_look_ahead_recv_clock(int do_fetch, 
 										  int incount, MPI_Request *array_of_requests, int matching_set_id) 
 {
   int is_updated;
   int has_recv_msg;
-  int iprobe_flag_int;
-  int has_recv_or_probe_msg;
 
   if (do_fetch == REMPI_RECORDER_DO_FETCH_REMOTE_LOOK_AHEAD_SEND_CLOCKS) mc_encoder->fetch_remote_look_ahead_send_clocks();
 
@@ -547,10 +564,10 @@ int rempi_recorder_cdc::progress_recv_and_safe_update_local_look_ahead_recv_cloc
   /* ======================================================== */
   do {
     has_recv_msg = progress_recv_requests(matching_set_id, incount, array_of_requests);
-    /* TODO: multiple communicators */
-    PMPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &iprobe_flag_int, MPI_STATUS_IGNORE);
-    has_recv_or_probe_msg = has_recv_msg || iprobe_flag_int;
   } while (has_recv_msg == 1);
+  
+  progress_probe();
+  //  PMPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &iprobe_flag_int, MPI_STATUS_IGNORE);
 
 
   //REMPI_DBGI(REMPI_DBG_REPLAY, " ==== update start");
@@ -566,9 +583,11 @@ int rempi_recorder_cdc::progress_recv_and_safe_update_local_look_ahead_recv_cloc
     recv_clock_umap_p_1 = tmp;
   }
 #else
-  is_updated = mc_encoder->update_local_look_ahead_recv_clock(iprobe_flag_int, &(this->pending_message_source_set), 
+  is_updated = mc_encoder->update_local_look_ahead_recv_clock(
+							      &probed_message_source_set,
+							      &(this->pending_message_source_set), 
 							      &recv_message_source_umap,
-							      recv_clock_umap_p_1,
+							      &recv_clock_umap,
 							      matching_set_id);
 #endif
   return is_updated;

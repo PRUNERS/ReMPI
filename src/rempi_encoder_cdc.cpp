@@ -473,12 +473,54 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
   return;
 }
 
+
+
+int rempi_encoder_cdc::howto_update_look_ahead_recv_clock(int recv_rank, int matching_set_id,
+							  unordered_set<int> *probed_message_source_set,
+							  unordered_set<int> *pending_message_source_set,
+							  unordered_map<int, size_t> *recv_message_source_umap,
+							  unordered_map<int, size_t> *recv_clock_umap,
+							  unordered_map<int, size_t> *solid_mc_next_clocks_umap,
+							  int replaying_matching_set_id)
+{
+  int howto_update;
+  size_t last_clock;
+
+  if (probed_message_source_set->find(recv_rank) != probed_message_source_set->end()) {
+    /* Because very small clock may arrive after calling MPI_recv/irecv
+       we cannnot update anything.
+       TODO: only update ranks with which MPI_probe did not probe
+    */
+    howto_update = REMPI_ENCODER_NO_UPDATE;
+  } else if (pending_message_source_set->find(recv_rank) != pending_message_source_set->end() && replaying_matching_set_id != matching_set_id) {
+    howto_update = REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE;
+  } else if (recv_message_source_umap->find(recv_rank) != recv_message_source_umap->end()) {
+    howto_update = REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE;
+  } else if (rempi_cp_has_in_flight_msgs(recv_rank)) {
+    howto_update = REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE;
+  } else {
+    howto_update = REMPI_ENCODER_LOOK_AHEAD_CLOCK_UPDATE;
+  }
+  
+  if (howto_update == REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE) {
+    if (recv_clock_umap->find(recv_rank) == recv_clock_umap->end()) {
+      howto_update = REMPI_ENCODER_NO_UPDATE;
+    } else {
+      last_clock = recv_clock_umap->at(recv_rank);
+      if (last_clock < solid_mc_next_clocks_umap->at(recv_rank)) {
+	howto_update = REMPI_ENCODER_NO_UPDATE;
+      }
+    }
+  }
+  return howto_update;
+}
+
 /*TODO: change func name to update_solid_mc*/
 /*
   If update_source_set is NULL OR has_pending_recv_message = 0, update mc_next_clocks of all ranks
  */
 
-#if 1
+#ifndef DBG_BGQ_TEST_REQUIRED
 /*
   input:
     has_probed_message: flag if there any probed messages by MPI_Iprobe (but not received)
@@ -489,76 +531,39 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
 
 */
 
-int rempi_encoder_cdc::update_local_look_ahead_recv_clock(int has_probed_message, 
+int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *probed_message_source_set, 
 							  unordered_set<int> *pending_message_source_set, 
 							  unordered_map<int, size_t> *recv_message_source_umap, 
 							  unordered_map<int, size_t> *recv_clock_umap,
-							  int recv_test_id)
+							  int replaying_matching_set_id)
 {
   unordered_map<int, size_t> *solid_mc_next_clocks_umap;
   int is_updated = 0;
+  int howto_update;
 
-  if (pending_message_source_set == NULL) {
-    /* Update all: This is called only after global synchronoization */
-    REMPI_ASSERT(recv_message_source_umap == NULL);
-    REMPI_ASSERT(has_probed_message == -1);
-    for (int i = 0, size = solid_mc_next_clocks_umap_vec.size(); i < size; i++) {
-      solid_mc_next_clocks_umap = solid_mc_next_clocks_umap_vec[i];
-      for (int j = 0; j < mc_length; j++) {
-	if (rempi_cp_has_in_flight_msgs(mc_recv_ranks[j])) {
-	} else {
-	  solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = rempi_cp_get_gather_clock(mc_recv_ranks[j]);
-	}
-      }
-    }
-    
-  } else {
-    /* Update portion of ranks: not after gobal synchornoization */
-    if (has_probed_message) {
-      /* Because very small clock may arrive after calling MPI_recv/irecv
-	 we cannnot update anything.
-	 TODO: only update ranks with which MPI_probe probed
-       */
-    } else {
-      for (int id = 0, size = solid_mc_next_clocks_umap_vec.size(); id < size; id++) {
-	solid_mc_next_clocks_umap = solid_mc_next_clocks_umap_vec[id];
-	for (int j = 0; j < mc_length; j++) {
-	  if (pending_message_source_set->find(mc_recv_ranks[j]) != pending_message_source_set->end() && id != recv_test_id) {
-	    if (recv_clock_umap->find(mc_recv_ranks[j]) != recv_clock_umap->end()) {
-	    size_t last_clock = recv_clock_umap->at((mc_recv_ranks[j]));
-	      if (last_clock > solid_mc_next_clocks_umap->at(mc_recv_ranks[j])) {
-		solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = last_clock;
-	      }
-	    }
-	  } else if (recv_message_source_umap->find(mc_recv_ranks[j]) != recv_message_source_umap->end()) {
-	    /*
-	      If recves messages, we do not know which message is earlyer, this message or MPI_Get.
-	      So only update with recv_clock. 
-	    */
-	    if (recv_clock_umap->find(mc_recv_ranks[j]) != recv_clock_umap->end()) {
-	      size_t last_clock = recv_clock_umap->at((mc_recv_ranks[j]));
-	      if (last_clock > solid_mc_next_clocks_umap->at(mc_recv_ranks[j])) {
-		solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = last_clock;
-	      }
-	    }
-	  } else {
-	    if (rempi_cp_has_in_flight_msgs(mc_recv_ranks[j])) {
-	      if (recv_clock_umap->find(mc_recv_ranks[j]) != recv_clock_umap->end()) {
-		size_t last_clock = recv_clock_umap->at((mc_recv_ranks[j]));
-		if (last_clock > solid_mc_next_clocks_umap->at(mc_recv_ranks[j])) {
-		  solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = last_clock;
-		}
-	      }
-	    } else {
-	      solid_mc_next_clocks_umap->at(mc_recv_ranks[j]) = rempi_cp_get_gather_clock(mc_recv_ranks[j]);
-	    }
 
-	  }
-	}
+  for (int matching_set_id = 0, size = solid_mc_next_clocks_umap_vec.size(); matching_set_id < size; matching_set_id++) {
+    solid_mc_next_clocks_umap = solid_mc_next_clocks_umap_vec[matching_set_id];
+    for (int index = 0; index < mc_length; index++) {
+      howto_update = howto_update_look_ahead_recv_clock(mc_recv_ranks[index], matching_set_id,
+							probed_message_source_set,
+							pending_message_source_set,
+							recv_message_source_umap,
+							recv_clock_umap,
+							solid_mc_next_clocks_umap,
+							replaying_matching_set_id);
+      switch(howto_update) {
+      case REMPI_ENCODER_NO_UPDATE:
+	break;
+      case REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE:
+	solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) = recv_clock_umap->at((mc_recv_ranks[index]));
+	break;
+      case REMPI_ENCODER_LOOK_AHEAD_CLOCK_UPDATE:
+	solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) = rempi_cp_get_gather_clock(mc_recv_ranks[index]);
+	break;
       }
     }
   }
-
   return is_updated;
 }
 #else

@@ -48,6 +48,10 @@ void   rempi_cp_set_scatter_clock(size_t clock);
 /* get look-ahead send clock*/
 size_t rempi_cp_get_scatter_clock(void);
 
+/* get sender_list */
+int *rempi_get_pred_ranks(size_t *length);
+
+
 
 
 

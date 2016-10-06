@@ -18,6 +18,10 @@
 #define REMPI_ENCODER_REPLAYING_TYPE_RECV (1)
 #define REMPI_ENCODER_NO_MATCHING_SET_ID (-1)
 
+#define REMPI_ENCODER_NO_UPDATE (0)
+#define REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE (1)
+#define REMPI_ENCODER_LOOK_AHEAD_CLOCK_UPDATE (2)
+
 /*In CDC, rempi_endoers needs to fetch and update next_clocks, 
 so CLMPI and PNMPI module need to be included*/
 #if !defined(REMPI_LITE)
@@ -341,6 +345,15 @@ class rempi_encoder_cdc : public rempi_encoder
     //    size_t trigger_clock; /*TODO: Remove trigger_clock, which is not used any more */
   };
 
+ private:
+  int howto_update_look_ahead_recv_clock(int recv_rank, int matching_set_id, 
+					 unordered_set<int> *probed_message_source_set,
+					 unordered_set<int> *pending_message_source_set,
+					 unordered_map<int, size_t> *recv_message_source_umap,
+					 unordered_map<int, size_t> *recv_clock_umap,
+					 unordered_map<int, size_t> *solid_mc_next_clocks_umap,
+					 int replaying_matching_set_id);
+
  protected:
   /* === For frontier detection === */
 
@@ -399,11 +412,12 @@ class rempi_encoder_cdc : public rempi_encoder
   virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
   virtual void fetch_remote_look_ahead_send_clocks();
-  virtual int update_local_look_ahead_recv_clock(int has_probed_message,
-						 unordered_set<int> *update_sources_set, unordered_map<int, size_t> *recv_message_source_umap,
+  virtual int update_local_look_ahead_recv_clock(
+						 unordered_set<int> *probed_message_source_set, 
+						 unordered_set<int> *update_sources_set, 
+						 unordered_map<int, size_t> *recv_message_source_umap,
 						 unordered_map<int, size_t> *recv_clock_umap,
 						 int recv_test_id);
-
 
   virtual void update_local_look_ahead_send_clock(
 						  int replaying_event_type,
