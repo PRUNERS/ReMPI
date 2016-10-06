@@ -310,7 +310,7 @@ class rempi_recorder_cdc : public rempi_recorder
   PNMPIMOD_get_num_of_incomplete_sending_msg_t clmpi_get_num_of_incomplete_sending_msg;
 
   size_t send_request_id;
-  unordered_map<MPI_Request, MPI_Request> isend_request_umap;
+
 
   /* Map for memorizing probed messages, but not received  */
   unordered_set<int> probed_message_source_set;
@@ -331,7 +331,6 @@ class rempi_recorder_cdc : public rempi_recorder
   PNMPIMOD_get_local_sent_clock_t clmpi_get_local_sent_clock;
 
 
-  bool progress_send_requests();
   int progress_probe();
 
   int progress_recv_and_safe_update_local_look_ahead_recv_clock(int do_fetch,

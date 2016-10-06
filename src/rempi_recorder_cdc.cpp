@@ -323,19 +323,8 @@ int rempi_recorder_cdc::replay_isend(MPI_Request *request)
   if ((MPI_Request)send_request_id != MPI_REQUEST_NULL) {
     send_request_id++;
   }  
-  
-  isend_request_umap[(MPI_Request)send_request_id] = *request;
-#ifdef BGQ
-  MPI_Request tmp = *request;
-  //  REMPI_DBG("send_request:%p",*request);
-  *request = (MPI_Request)send_request_id;
-  if (isend_request_umap[*request] != tmp) {
-    REMPI_ERR("not matched: key:%p to %p: %p and %p", (MPI_Request)send_request_id, *request, isend_request_umap[*request], tmp);
-  }
-#else
-  *request = (MPI_Request)send_request_id;
-#endif
 
+  *request = (MPI_Request)send_request_id;
 
   {
     size_t sent_clock;
@@ -761,42 +750,6 @@ int rempi_recorder_cdc::record_pf(int source,
 }
 
 
-
-bool rempi_recorder_cdc::progress_send_requests()
-{
-  REMPI_ERR("Error");
-  int flag = 0;
-  MPI_Status status;
-  MPI_Request send_request, send_request_id;
-  size_t clock;
-  for (unordered_map<MPI_Request, MPI_Request>::iterator it = isend_request_umap.begin(), it_end = isend_request_umap.end();
-       it != it_end;
-       it++) {
-    send_request_id = it->first;
-    send_request    = it->second;
-
-    if (send_request != MPI_REQUEST_SEND_NULL && 
-	send_request != MPI_REQUEST_NULL) {
-      /*TODO: Actually, clock needs to be registered for PMPI_Test for send request*/
-      clmpi_register_recv_clocks(&clock, 1); 
-      //      REMPI_DBG("request: %p (size: %d)", send_request, isend_request_umap.size());
-      flag = 0;
-      PMPI_Test(&send_request, &flag, &status);
-      //      REMPI_DBG("request: %p end (MPI_REQUEST_NULL: %p)", send_request, MPI_REQUEST_NULL);
-      if (flag) {
-	isend_request_umap[(MPI_Request)send_request_id] = MPI_REQUEST_SEND_NULL;
-	//	REMPI_DBG("matched: request %p", isend_request_umap[(MPI_Request)send_request_id]);
-      }
-    }
-  }  
-
-  // for (auto &pair_send_req_and_send_req:isend_request_umap) {
-  //   key          = pair_send_req_and_send_req.first;
-  //   send_request = pair_send_req_and_send_req.second;
-  //   REMPI_DBG("==>: request %p->%p", key, send_request);
-  // }
-  return true;
-}
 
 
 int rempi_recorder_cdc::progress_decode()
