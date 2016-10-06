@@ -207,7 +207,7 @@ int rempi_recorder_cdc::rempi_mf(int incount,
     *msg_id =  pre_allocated_clocks;
   }
 
-  mc_encoder->update_fd_next_clock(0, 0, 0, 0, 0, 0);
+  mc_encoder->update_local_look_ahead_send_clock(REMPI_ENCODER_REPLAYING_TYPE_ANY, REMPI_ENCODER_NO_MATCHING_SET_ID);
   return ret;
 }
 
@@ -312,7 +312,7 @@ int rempi_recorder_cdc::replay_isend(mpi_const void *buf,
     REMPI_DBG("Exposting next clock (%lu) is bigger than accturally sent clock (%lu)", rempi_cp_get_scatter_clock(), sent_clock);
   }
 
-  mc_encoder->update_fd_next_clock(0, 0, 0, 0, 0, 0); 
+  mc_encoder->update_local_look_ahead_send_clock(REMPI_ENCODER_REPLAYING_TYPE_ANY, REMPI_ENCODER_NO_MATCHING_SET_ID);
 
   return ret;
 }
@@ -508,6 +508,7 @@ MPI_Fint rempi_recorder_cdc::replay_request_c2f(MPI_Request request)
 #endif
 
 
+
 int rempi_recorder_cdc::dequeue_replay_event_set(vector<rempi_event*> &replaying_event_vec, int matching_set_id)
 {
   int event_list_status;
@@ -521,12 +522,12 @@ int rempi_recorder_cdc::dequeue_replay_event_set(vector<rempi_event*> &replaying
 #endif
 
     replaying_event_vec.push_back(replaying_event);
-    //    with_next = replaying_event->get_is_testsome();
     if (replaying_event->get_with_next() ==  REMPI_MPI_EVENT_NOT_WITH_NEXT) {
       is_completed = 1;
       break;
     }
   }
+
   return is_completed;
 }
 
@@ -566,9 +567,10 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
 
     int is_updated = 0;
     //REMPI_DBGI(REMPI_DBG_REPLAY, " ==== update start");
+#ifdef REMOVE_IF_BGQ_TEST_PASSED
     is_updated = mc_encoder->update_local_look_ahead_recv_clock(iprobe_flag_int, &(this->pending_message_source_set), 
 						 &recv_message_source_umap,
-						 recv_clock_umap_p_1,
+						 recv_clock_umap_p_2,
 						 matching_set_id);
     {
       unordered_map<int, size_t> *tmp;
@@ -576,13 +578,18 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
       recv_clock_umap_p_2 = recv_clock_umap_p_1;
       recv_clock_umap_p_1 = tmp;
     }
+#else
+    is_updated = mc_encoder->update_local_look_ahead_recv_clock(iprobe_flag_int, &(this->pending_message_source_set), 
+						 &recv_message_source_umap,
+						 recv_clock_umap_p_1,
+						 matching_set_id);
+#endif
+
     if (is_updated) counta_update++;
     if (has_recv_or_probe_msg) counta_pending++;
     /* ======================================================== */
 
 
-    int num_of_recv_msg_in_next_event = 0;
-    size_t interim_min_clock_in_next_event = 0;
     /* ======================================================== */
     /* Step 3: Progress decoding & Check replay events          */
     /* ======================================================== */
@@ -594,8 +601,13 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
     is_completed = this->dequeue_replay_event_set(replaying_event_vec, matching_set_id);
 
     if (!is_completed) {
-      mc_encoder->update_fd_next_clock(1, num_of_recv_msg_in_next_event, mc_encoder->interim_min_clock_in_next_event[matching_set_id],
-				       recording_event_list->get_enqueue_count(matching_set_id), matching_set_id, 0);
+      /*
+	Not replayed any                 => is_completed=0: TYPE_RECV (if next event is unmatched, unmatched event must be returned)
+	Replayed Incomplete Matched test => is_completed=0: TYPE_RECV
+	Replayed complete unmatched test => is_completed=1: TYPE_ANY 
+	Replayed complete matched test   => is_completed=1: TYPE_ANY
+      */
+      mc_encoder->update_local_look_ahead_send_clock(REMPI_ENCODER_REPLAYING_TYPE_RECV, matching_set_id);
     }
 
 
@@ -692,7 +704,7 @@ int rempi_recorder_cdc::replay_mf_input(
       }
       /*The last two 0s are not used, if the first vaiable is 0 
 	Update next sending out clock for frontier detection*/
-      mc_encoder->update_fd_next_clock(0, 0, 0, 0, 0, 1); 
+      mc_encoder->update_local_look_ahead_send_clock(REMPI_ENCODER_REPLAYING_TYPE_ANY, REMPI_ENCODER_NO_MATCHING_SET_ID);
     } else {
       REMPI_ERR("request does no exist in request_to_irecv_inputs_umap");
     }

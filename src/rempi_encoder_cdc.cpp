@@ -2851,77 +2851,23 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> *reco
 
 
 
-void rempi_encoder_cdc::update_fd_next_clock(
-					     int is_waiting_recv, 
-					     int num_of_recv_msg_in_next_event, 
-					     size_t interim_min_clock_in_next_event, 
-					     size_t enqueued_count,
-					     int recv_test_id,
-					     int is_after_reve_event)
+void rempi_encoder_cdc::update_local_look_ahead_send_clock(
+							   int replaying_event_type,
+							   int matching_set_id)
 {
-  size_t local_clock;
-  size_t next_clock = 0;
+  size_t next_clock;
 
-
-
-  bool is_waiting_msg = false;
-  /*If waiting message recv to replay an event, the sending clock (next_clock) is bigger than "clock" by +1 */
-  /*
-    If is_waiting_recv == true, it means next events are matched recv event. 
-    If is_waiting_msg == true,  it means next events are matched recv event, 
-      and the events is triggered by a message which it have not received
-   */
-  if (is_waiting_recv) {
-#if 0
-    is_waiting_msg = (enqueued_count == dequeued_count[recv_test_id]);
-    if (is_waiting_msg) {
-      next_clock = global_local_min_id.clock;
-    } else {
-      /*min*/
-      next_clock = (interim_min_clock_in_next_event < global_local_min_id.clock)? interim_min_clock_in_next_event:global_local_min_id.clock;
-    }
-#else
-    next_clock = interim_min_clock_in_next_event;
-#endif
-    /*max*/
-    //    next_clock = (clock < next_clock)? next_clock:clock;
-    //    next_clock += 1; //next_clock += num_of_recv_msg_in_next_event; => this is wrong, must be +1
+  if (replaying_event_type == REMPI_ENCODER_REPLAYING_TYPE_RECV) {
+    next_clock = this->interim_min_clock_in_next_event[matching_set_id];
+  } else if (replaying_event_type == REMPI_ENCODER_REPLAYING_TYPE_ANY){
+    clmpi_get_local_clock(&next_clock);
   } else {
-    //    next_clock = sent_clock + 1;
-    if (is_after_reve_event) { 
-      /* is_after_recv_event is always 0. 
-	 So this routine will not be executed  */
-      clmpi_get_local_clock(&local_clock);
-    } else {
-
-#ifdef RS_DBG
-      clmpi_get_local_clock(&local_clock);
-#else
-      /*local_sent_clock is literary sent clock, so next clock must be over the sent clock, i.e., local_sent_clock + 1 at least*/
-      clmpi_get_local_sent_clock(&local_clock);
-      local_clock++;
-#endif
-    }
-    next_clock = local_clock;
+    REMPI_ERR("Unknow replaying_event_type: %d", replaying_event_type);
   }
 
-#ifdef REMPI_DBG_REPLAY  
-  if (rempi_cp_get_scatter_clock() < next_clock) {
-    // REMPI_DBG("NEXT Clock Update: from %lu to %lu:  (min.rank: %d, min.clock: %lu): is_waiting_recv: %d, is_after_recv_event: %d, recv_test_id: %d", 
-    // 	       rempi_cp_get_scatter_clock(), next_clock, global_local_min_id.rank, global_local_min_id.clock, 
-    // 	       is_waiting_recv, is_after_reve_event, recv_test_id);
-  }
-#endif
-
-#ifdef CP_DBG
   if (rempi_cp_get_scatter_clock() < next_clock) {
     rempi_cp_set_scatter_clock(next_clock);
   }  
-#else
-  if (fd_clocks->next_clock < next_clock) {
-    fd_clocks->next_clock = next_clock;
-  }  
-#endif
 
   return;
 }

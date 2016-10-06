@@ -14,6 +14,10 @@
 #include "rempi_config.h"
 #include "rempi_mutex.h"
 
+#define REMPI_ENCODER_REPLAYING_TYPE_ANY (0)
+#define REMPI_ENCODER_REPLAYING_TYPE_RECV (1)
+#define REMPI_ENCODER_NO_MATCHING_SET_ID (-1)
+
 /*In CDC, rempi_endoers needs to fetch and update next_clocks, 
 so CLMPI and PNMPI module need to be included*/
 #if !defined(REMPI_LITE)
@@ -244,13 +248,8 @@ class rempi_encoder
     virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
 
-    virtual void update_fd_next_clock(
-				      int is_waiting_recv,
-				      int num_of_recv_msg_in_next_event,
-				      size_t interim_min_clock_in_next_event,
-				      size_t enqueued_count,
-				      int recv_test_id,
-				      int is_after_recv_event);
+
+
     virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
 				      int *local_min_id_rank, 
 				      size_t *local_min_id_clock,
@@ -325,17 +324,6 @@ class rempi_encoder_basic : public rempi_encoder
 
 
 
-    /* virtual int update_local_look_ahead_recv_clock(int has_probed_message, */
-    /* 						   unordered_set<int> *update_sources_set, unordered_map<int, size_t> *recv_message_source_umap, */
-    /* 						   unordered_map<int, size_t> *recv_clock_umap, */
-    /* 						   int recv_test_id); */
-    virtual void update_fd_next_clock(
-				      int is_waiting_recv,
-				      int num_of_recv_msg_in_next_event,
-				      size_t interim_min_clock_in_next_event,
-				      size_t enqueued_count,
-				      int recv_test_id,
-				      int is_after_recv_event);
     virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
 				      int *local_min_id_rank, 
 				      size_t *local_min_id_clock,
@@ -415,13 +403,12 @@ class rempi_encoder_cdc : public rempi_encoder
 						 unordered_set<int> *update_sources_set, unordered_map<int, size_t> *recv_message_source_umap,
 						 unordered_map<int, size_t> *recv_clock_umap,
 						 int recv_test_id);
-  virtual void update_fd_next_clock(
-				    int is_waiting_recv,
-				    int num_of_recv_msg_in_next_event,
-				    size_t interim_min_clock_in_next_event,
-				    size_t enqueued_count,
-				    int recv_test_id, 
-				    int is_after_recv_event);
+
+
+  virtual void update_local_look_ahead_send_clock(
+						  int replaying_event_type,
+						  int matching_set_id);
+
   virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
 				    int *local_min_id_rank, 
 				    size_t *local_min_id_clock,

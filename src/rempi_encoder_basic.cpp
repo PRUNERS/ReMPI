@@ -495,17 +495,17 @@ void rempi_encoder_basic::insert_encoder_input_format_chunk(rempi_event_list<rem
 
 
 
-void rempi_encoder_basic::update_fd_next_clock(
-					 int is_waiting_recv,
-					 int num_of_recv_msg_in_next_event,
-					 size_t interim_min_clock_in_next_event,
-					 size_t enqueued_count,
-					 int recv_test_id,
-					 int is_after_recv_event)
-{ 
-  //  REMPI_ERR("please remove this REMPI_ERR later");
-  return;
-}
+// void rempi_encoder_basic::update_fd_next_clock(
+// 					 int is_waiting_recv,
+// 					 int num_of_recv_msg_in_next_event,
+// 					 size_t interim_min_clock_in_next_event,
+// 					 size_t enqueued_count,
+// 					 int recv_test_id,
+// 					 int is_after_recv_event)
+// { 
+//   //  REMPI_ERR("please remove this REMPI_ERR later");
+//   return;
+// }
 
 void rempi_encoder_basic::set_fd_clock_state(int flag)
 {
