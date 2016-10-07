@@ -215,7 +215,7 @@ static int rempi_reqmg_deregister_send_request(MPI_Request *request)
   return 1;
 }
 
-static int rempi_reqmg_is_record_and_replay(int length, int *request_ifno, int send_count, int recv_count, int null_count, int ignore_count)
+static int rempi_reqmg_is_record_and_replay(int length, int *request_info, int send_count, int recv_count, int null_count, int ignore_count)
 {
   //  return send_count + recv_count + null_count > 0;
 #ifdef REMPI_LITE
@@ -235,6 +235,7 @@ static int rempi_reqmg_is_record_and_replay(int length, int *request_ifno, int s
 
 int rempi_reqmg_register_request(MPI_Request *request, int source, int tag, int comm_id, int request_type)
 {
+  REMPI_DBG("Register  : %p (%d)", *request, request_type);
   switch(request_type) {
   case REMPI_SEND_REQUEST:
     rempi_reqmg_register_send_request(request, source, tag, comm_id);
@@ -250,6 +251,7 @@ int rempi_reqmg_register_request(MPI_Request *request, int source, int tag, int 
 
 int rempi_reqmg_deregister_request(MPI_Request *request, int request_type)
 {
+  REMPI_DBG("Deregister: %p (%d)", *request, request_type);
   switch(request_type) {
   case REMPI_SEND_REQUEST:
     rempi_reqmg_deregister_send_request(request);
@@ -309,9 +311,19 @@ void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendc
     if(request_to_send_id_umap.find(requests[i]) != send_endit) {
       request_info[i] = REMPI_SEND_REQUEST;
       (*sendcount)++;
+
+      if(request_to_recv_id_umap.find(requests[i]) != recv_endit) {
+	REMPI_ERR("error: %p", requests[i]);
+      }
+
     } else if(request_to_recv_id_umap.find(requests[i]) != recv_endit) {
       request_info[i] = REMPI_RECV_REQUEST;
       (*recvcount)++;
+
+      if(request_to_send_id_umap.find(requests[i]) != send_endit) {
+	REMPI_ERR("error: %p", requests[i]);
+      }
+
     } else if (requests[i] == MPI_REQUEST_NULL) {
       request_info[i] = REMPI_NULL_REQUEST;
       (*nullcount)++;
@@ -321,7 +333,7 @@ void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendc
       /*For unsupported MF, such as MPI_Recv_init, MPI_start and then */
       request_info[i] = REMPI_IGNR_REQUEST; 
       ignore++;
-      //      REMPI_DBG("Unknown request: %p index: %d", requests[i], i);
+      REMPI_DBG("Unknown request: %p index: %d", requests[i], i);
       //      REMPI_ERR("Unknown request: %p index: %d", requests[i], i);
     }
     //    REMPI_DBG("request: %p index: %d, info: %d", requests[i], i, request_info[i]);

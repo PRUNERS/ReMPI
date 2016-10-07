@@ -438,23 +438,6 @@ class rempi_recorder_cdc : public rempi_recorder
   int replay_request_free(MPI_Request *request);
   MPI_Fint replay_request_c2f(MPI_Request request);
 
-
-  /* virtual int record_mf(int incount, */
-  /* 		MPI_Request array_of_requests[], */
-  /* 		int *outcount, */
-  /* 		int array_of_indices[], */
-  /* 		MPI_Status array_of_statuses[], */
-  /* 		int global_test_id, */
-  /* 		int matching_function_type); */
-
-  /* virtual int replay_mf( */
-  /* 			int incount,  */
-  /* 			MPI_Request array_of_requests[],  */
-  /* 			int *outcount,  */
-  /* 			int array_of_indices[],  */
-  /* 			MPI_Status array_of_statuses[], */
-  /* 			int matching_function_type); */
-
   int record_pf(int source,
 		int tag,
 		MPI_Comm comm,

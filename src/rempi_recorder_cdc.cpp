@@ -195,6 +195,8 @@ int rempi_recorder_cdc::rempi_mf(int incount,
 {
   int ret;
   int recv_clock_length;
+
+
   if(matching_function_type == REMPI_MPI_WAITANY ||
      matching_function_type == REMPI_MPI_TESTANY) {
     recv_clock_length = 1;
@@ -368,7 +370,7 @@ int rempi_recorder_cdc::record_irecv(
   }
   request_to_recv_event_umap[*request] = e;
 
-  //  REMPI_DBG("test");
+
   return ret;
 }
 
@@ -417,6 +419,7 @@ int rempi_recorder_cdc::replay_irecv(
   }
 
   irecv_inputs = request_to_irecv_inputs_umap[*request];
+  rempi_reqmg_register_request(request, source, tag, comm_id, REMPI_RECV_REQUEST);
 
   if (irecv_inputs->request_proxy_list.size() == 0) {
 
@@ -425,7 +428,7 @@ int rempi_recorder_cdc::replay_irecv(
     //    proxy_request = (MPI_Request*)rempi_malloc(sizeof(MPI_Request));
     irecv_inputs->request_proxy_list.push_back(proxy_request_info);
     ret = PMPI_Irecv(proxy_request_info->buf, count, datatype, source, tag, comm, &proxy_request_info->request);
-    rempi_reqmg_register_request(&proxy_request_info->request, source, tag, comm_id, REMPI_RECV_REQUEST);
+    //    rempi_reqmg_register_request(&proxy_request_info->request, source, tag, comm_id, REMPI_RECV_REQUEST);
     //    REMPI_DBG("matched_proxy: request: %p", *request);
   } else {
     /*Irecv request with the same (source, tag, comm) was already posted, so simply return MPI_SUCCESS*/
@@ -449,7 +452,10 @@ int rempi_recorder_cdc::replay_cancel(MPI_Request *request)
   int ret;
   rempi_irecv_inputs *irecv_inputs;
   rempi_proxy_request *proxy_request;
-
+  int request_type;
+  rempi_reqmg_get_request_type(request, &request_type);
+  rempi_reqmg_deregister_request(request, request_type);
+    
   if (request_to_irecv_inputs_umap.find(*request) == request_to_irecv_inputs_umap.end()) {
     REMPI_ERR("No such request: %p", request);
   }
@@ -468,6 +474,7 @@ int rempi_recorder_cdc::replay_cancel(MPI_Request *request)
   REMPI_DBGI(REMPI_DBG_REPLAY, "MPI_Cancel: irecv_input->recv_test_id: %d", irecv_inputs->recv_test_id);
 #endif
   irecv_inputs->recv_test_id = -1;
+
 
   return ret;
 }
