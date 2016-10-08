@@ -287,7 +287,6 @@ int rempi_recorder_cdc::record_isend(mpi_const void *buf,
   return ret;
 }
 
-#if 1
 int rempi_recorder_cdc::replay_isend(mpi_const void *buf,
 				     int count,  
 				     MPI_Datatype datatype,
@@ -318,36 +317,7 @@ int rempi_recorder_cdc::replay_isend(mpi_const void *buf,
 
   return ret;
 }
-#else
-int rempi_recorder_cdc::replay_isend(MPI_Request *request)
-{
-  int ret;
-  if ((MPI_Request)send_request_id != MPI_REQUEST_NULL) {
-    send_request_id++;
-  }  
 
-  *request = (MPI_Request)send_request_id;
-
-  {
-    size_t sent_clock;
-    PNMPIMOD_get_local_clock(&sent_clock);
-    sent_clock--;
-#ifdef CP_DBG
-    if (sent_clock < rempi_cp_get_scatter_clock()) {
-      REMPI_DBG("Exposting next clock (%lu) is bigger than accturally sent clock (%lu)", rempi_cp_get_scatter_clock(), sent_clock);
-    }
-#else
-    if (sent_clock < ((rempi_encoder_cdc*)mc_encoder)->fd_clocks->next_clock) {
-      REMPI_DBG("Exposting next clock (%lu) is bigger than accturally sent clock (%lu)", ((rempi_encoder_cdc*)mc_encoder)->fd_clocks->next_clock, sent_clock);
-    }
-#endif
-  }
-
-  send_request_id++;
-
-  return ret;
-}
-#endif
 
 
 int rempi_recorder_cdc::record_irecv(
@@ -391,7 +361,6 @@ int rempi_recorder_cdc::replay_irecv(
   int ret;
   rempi_proxy_request *proxy_request_info;
   rempi_irecv_inputs *irecv_inputs;
-
 
 
   if (request_to_irecv_inputs_umap.find(*request) != 
@@ -629,7 +598,154 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
   return 0;
 }
 
+#define DBG_RECORD_MATCHED_INDEX
+#ifdef DBG_RECORD_MATCHED_INDEX
+int rempi_recorder_cdc::replay_mf_input(
+					int incount,
+					MPI_Request array_of_requests[],
+					int *outcount,
+					int array_of_indices[],
+					MPI_Status array_of_statuses[],
+					vector<rempi_event*> &replyaing_event_vec,
+					int matching_set_id,
+					int matching_function_type)
+{
+  rempi_event *replaying_test_event;
+  int local_outcount = 0;
+  rempi_irecv_inputs *irecv_inputs;
+  MPI_Status status;
+  int index = 0;
 
+
+  for (int i = 0, n = replaying_event_vec.size(); i < n; i++) {
+    replaying_test_event = replaying_event_vec[i];
+    if (replaying_test_event->get_type() != REMPI_MPI_EVENT_TYPE_TEST) {
+      REMPI_ERR("Invalid event type in mf: %d", replaying_test_event->get_type());
+    }
+
+    if (replaying_test_event->get_flag() == 0) {
+      /*Unmatched*/
+      if (outcount != NULL) {
+	*outcount = 0;
+      }
+      return 0;
+    }
+
+
+    if (incount == 0) {
+      REMPI_ERR("incount == 0, but replaying request rank: %d index: %d, with_next: %d (MF: %d)", 
+		replaying_test_event->get_rank(), replaying_test_event->get_index(),
+		replaying_test_event->get_with_next(), matching_function_type);
+    }
+
+    index = replaying_test_event->get_index();
+
+    if (request_info[index] == REMPI_SEND_REQUEST) {
+      if (tmp_statuses[index].MPI_SOURCE != replaying_test_event->get_rank()) {
+	REMPI_ERR("Replaying send event to rank %d, but dest of this send request is rank %d (MF: %d, matched_index: %d) %p", 
+		  replaying_test_event->get_rank(), tmp_statuses[index].MPI_SOURCE, matching_function_type, index, array_of_requests[index]);
+	REMPI_ASSERT(0);
+      }
+      rempi_reqmg_deregister_request(&array_of_requests[index], REMPI_SEND_REQUEST);      
+      REMPI_ERR("send wait");
+      PMPI_Wait(&array_of_requests[index], &array_of_statuses[local_outcount]);
+    } else if (request_info[index] == REMPI_RECV_REQUEST) {
+      irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[index]];
+   
+      if (irecv_inputs->source != MPI_ANY_SOURCE && 
+	  irecv_inputs->source != replaying_test_event->get_source()) {
+	REMPI_ERR("Replaying recv event from rank %d, but src of this recv request is rank %d: request: %p, index: %d", 
+		  replaying_test_event->get_rank(), irecv_inputs->source,
+		  array_of_requests[index], index);
+      }
+      rempi_reqmg_deregister_request(&array_of_requests[index], REMPI_RECV_REQUEST);
+
+
+
+#if 1
+      REMPI_DBGI(0, "irecv_inputs: %p, index: %d: size: %lu", irecv_inputs, index, irecv_inputs->matched_request_proxy_list.size());
+      //      request_to_irecv_inputs_umap.erase(array_of_requests[index]);
+
+      //PMPI_Wait(&array_of_requests[index], &status);
+      //      array_of_requests[index] = MPI_REQUEST_NULL;
+      array_of_statuses[local_outcount].MPI_SOURCE = replaying_test_event->get_source();
+      array_of_statuses[local_outcount].MPI_TAG    = irecv_inputs->tag;
+
+      rempi_proxy_request *proxy_request;
+      clmpi_sync_clock(replaying_test_event->get_clock());
+      if (irecv_inputs->matched_request_proxy_list.size() == 0) {
+	REMPI_ERR("irecv_inputs->matched_proxy_list is empty: input_inputs:%p request:%p: Matching condition of this MPI_Request may be overlapping with matching condition of another MPI_Request", irecv_inputs, array_of_requests[index]);
+	/*
+	        Matching condition of this MPI_Request may be overlapping with matching condition of another MPI_Request.
+		      To check another MPI_Request, continue; is called
+	*/
+	continue;
+      }
+      proxy_request = irecv_inputs->matched_request_proxy_list.front();
+      if (proxy_request == NULL) {
+	REMPI_ERR("matched_proxy_request(%d) is NULL: irecv(%p)->%p size:%d", i, irecv_inputs, proxy_request,
+		  irecv_inputs->matched_request_proxy_list.size());
+      }
+      copy_proxy_buf(proxy_request->buf, irecv_inputs->buf, replaying_test_event->msg_count, irecv_inputs->datatype);
+      irecv_inputs->matched_request_proxy_list.pop_front();
+      delete proxy_request;
+      //      delete irecv_inputs;
+      mc_encoder->update_local_look_ahead_send_clock(REMPI_ENCODER_REPLAYING_TYPE_ANY, REMPI_ENCODER_NO_MATCHING_SET_ID);
+#else 
+      delete irecv_inputs;
+      request_to_irecv_inputs_umap.erase(array_of_requests[index]);
+
+      PMPI_Wait(&array_of_requests[index], &status);
+      array_of_statuses[local_outcount].MPI_SOURCE = status.MPI_SOURCE;
+      array_of_statuses[local_outcount].MPI_TAG    = status.MPI_TAG;
+
+#endif
+    } else if (request_info[index] == REMPI_NULL_REQUEST) {
+      REMPI_ERR("MPI_REQUEST_NULL does not match any message: %d", request_info[index]);
+    } else {
+      REMPI_ERR("Trying replaying with Ignored MPI_Request: %d", request_info[index]);
+    }
+
+    if (array_of_indices != NULL) {
+      array_of_indices[local_outcount]  = index;
+    }
+
+    //    array_of_requests[index] = MPI_REQUEST_NULL;
+    (local_outcount)++;
+  }
+
+  if (outcount != NULL) {
+    *outcount = local_outcount;
+  }
+
+  // if (outcount == NULL) {
+  //   if (local_outcount != 0) {
+  //     /*print*/
+  //     for (int j = 0; j < replaying_event_vec.size(); j++) {
+  // REMPI_DBGI(0, "= dbg Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): matching_set_id: %d func: %d",
+  //    replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
+  //    replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), matching_set_id, matching_function_type);
+  //     }
+  //     exit(1);
+  //   }
+  // } else {
+  //   if (*outcount != local_outcount) {
+  //     /*print*/
+  //     for (int j = 0; j < replaying_event_vec.size(); j++) {
+  // REMPI_DBGI(0, "= dbg Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): matching_set_id: %d ",
+  //    replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
+  //    replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), matching_set_id);
+  
+  //     }
+  //     exit(1);
+  //   }
+  // }
+  
+
+
+  return 0;
+}
+#else
 int rempi_recorder_cdc::replay_mf_input(
 					int incount,
 					MPI_Request array_of_requests[],
@@ -682,8 +798,9 @@ int rempi_recorder_cdc::replay_mf_input(
 	  clmpi_sync_clock(replaying_event_vec[j]->get_clock());
 	  local_outcount = local_outcount + 1;
 
+	  REMPI_DBGI(0, "irecv_inputs: %p, index: %d: size: %lu", irecv_inputs, i, irecv_inputs->matched_request_proxy_list.size());
 	  if (irecv_inputs->matched_request_proxy_list.size() == 0) {
-	    //	    REMPI_DBG("irecv_inputs->matched_proxy_list is empty: input_inputs:%p request:%p: Matching condition of this MPI_Request may be overlapping with matching condition of another MPI_Request", irecv_inputs, array_of_requests[i]);
+	    //	    REMPI_ERR("irecv_inputs->matched_proxy_list is empty: input_inputs:%p request:%p: Matching condition of this MPI_Request may be overlapping with matching condition of another MPI_Request", irecv_inputs, array_of_requests[i]);
 	    /*
 	      Matching condition of this MPI_Request may be overlapping with matching condition of another MPI_Request.
 	      To check another MPI_Request, continue; is called
@@ -709,6 +826,9 @@ int rempi_recorder_cdc::replay_mf_input(
 	  REMPI_DBGI(REMPI_DBG_REPLAY, "matched_proxy_request(%d) is pop: irecv(%p)->%p size:%d request: %p", i, irecv_inputs, proxy_request,
 		     irecv_inputs->matched_request_proxy_list.size(), array_of_requests[i]);
 #endif
+	  if (i != replaying_event_vec[j]->get_index()) {
+	    REMPI_ERR("Wrong index %d %d", i, replaying_event_vec[j]->get_index());
+	  }
 	  delete proxy_request;
 	  //	  delete replaying_event_vec[j];
 	  //	  replaying_event_vec[j] = NULL;
@@ -729,6 +849,7 @@ int rempi_recorder_cdc::replay_mf_input(
   }
 
 
+
   if (local_outcount != replaying_event_vec.size()) {
     REMPI_DBG("===== Replayng matching count is %d, but found  %d messages", replaying_event_vec.size(), local_outcount);
     for (int j = 0; j < replaying_event_vec.size(); j++) {
@@ -743,6 +864,7 @@ int rempi_recorder_cdc::replay_mf_input(
   
   return 0;
 }
+#endif
 
 
 int rempi_recorder_cdc::record_pf(int source,

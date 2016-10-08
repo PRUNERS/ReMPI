@@ -89,6 +89,7 @@ class rempi_event
     virtual void set_rank(int rank);
     virtual int get_with_next();
     virtual int get_index();
+    virtual void set_index(int index);
     virtual int get_msg_id();
     virtual int get_matching_group_id();
 

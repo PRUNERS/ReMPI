@@ -44,6 +44,7 @@ void rempi_recorder::update_validation_code(int incount, int *outcount, int *arr
     //   validation_code = rempi_hash(validation_code, array_of_statuses[i].MPI_TAG);
     // }
     //    REMPI_DBG("val: index: %d, source: %d, tag: %d", index, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG);
+    //REMPI_DBGI(1, "validation: code: %lu", validation_code);
   }
   return;  
 }
@@ -198,8 +199,9 @@ int rempi_recorder::replay_irecv(
   //  REMPI_DBGI(1, "Irecv: %p", *request);
 
 #ifdef BGQ
-    memset(request, request_id, sizeof(MPI_Request));
-    request_id++;
+  memset(request, request_id, sizeof(MPI_Request));
+  request_id++;
+  REMPI_ERR("TODO: remove this")
     //    REMPI_DBG("request_id: %lu request: %p", request_id, *request);
     //    *request = (MPI_Request)(request_id++);
 #else
@@ -773,9 +775,15 @@ int rempi_recorder::replay_mf(
   this->replay_mf_input(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, replaying_event_vec, matching_set_id, matching_function_type);
   
   for (int j = 0; j < replaying_event_vec.size(); j++) {
+    REMPI_DBGI(0, "= Replay: (count: %d, with_next: %d, index: %d, flag: %d, source: %d, clock: %d): matching_set_id: %d ",
+               replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), 
+	       replaying_event_vec[j]->get_index(), replaying_event_vec[j]->get_flag(),
+               replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), matching_set_id);
+    //    if (replaying_event_vec[j]->get_clock() >= 50) exit(1);
 #ifdef REMPI_DBG_REPLAY
-    REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): matching_set_id: %d ",
-               replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
+    REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, index: %d, flag: %d, source: %d, clock: %d): matching_set_id: %d ",
+               replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), 
+	       replaying_event_vec[j]->get_index(), replaying_event_vec[j]->get_flag(),
                replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), matching_set_id);
 #endif
     delete replaying_event_vec[j];

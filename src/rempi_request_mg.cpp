@@ -235,7 +235,7 @@ static int rempi_reqmg_is_record_and_replay(int length, int *request_info, int s
 
 int rempi_reqmg_register_request(MPI_Request *request, int source, int tag, int comm_id, int request_type)
 {
-  REMPI_DBG("Register  : %p (%d)", *request, request_type);
+  //  REMPI_DBG("Register  : %p (%d)", *request, request_type);
   switch(request_type) {
   case REMPI_SEND_REQUEST:
     rempi_reqmg_register_send_request(request, source, tag, comm_id);
@@ -251,7 +251,7 @@ int rempi_reqmg_register_request(MPI_Request *request, int source, int tag, int 
 
 int rempi_reqmg_deregister_request(MPI_Request *request, int request_type)
 {
-  REMPI_DBG("Deregister: %p (%d)", *request, request_type);
+  //  REMPI_DBG("Deregister: %p (%d)", *request, request_type);
   switch(request_type) {
   case REMPI_SEND_REQUEST:
     rempi_reqmg_deregister_send_request(request);

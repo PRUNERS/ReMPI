@@ -94,18 +94,8 @@ fi
 mpi_version3="yes"
 if test "$enable_cdc" = yes; then
 if test "$with_bluegene" = ""; then
-AC_CHECK_LIB([mpi], [MPI_Get], [], [mpi_version3="no"])
-AC_CHECK_LIB([mpi], [PMPI_Get], [], [mpi_version3="no"])
-AC_CHECK_LIB([mpi], [MPI_Win_lock_all], [], [mpi_version3="no"])
-AC_CHECK_LIB([mpi], [PMPI_Win_lock_all], [], [mpi_version3="no"])
-AC_CHECK_LIB([mpi], [MPI_Win_unlock_all], [], [mpi_version3="no"])
-AC_CHECK_LIB([mpi], [PMPI_Win_unlock_all], [], [mpi_version3="no"])
-AC_CHECK_LIB([mpi], [MPI_Win_allocate], [], [mpi_version3="no"])
-AC_CHECK_LIB([mpi], [PMPI_Win_allocate], [], [mpi_version3="no"])
-AC_CHECK_LIB([mpi], [MPI_Win_free], [], [mpi_version3="no"])
-AC_CHECK_LIB([mpi], [PMPI_Win_free], [], [mpi_version3="no"])
-AC_CHECK_LIB([mpi], [MPI_Win_flush_local_all], [], [mpi_version3="no"])
-AC_CHECK_LIB([mpi], [PMPI_Win_flush_local_all], [], [mpi_version3="no"])
+AC_CHECK_LIB([mpi], [MPI_Get, PMPI_Get, MPI_Win_lock_all, PMPI_Win_lock_all, MPI_Win_unlock_all, PMPI_Win_unlock_all, MPI_Win_allocate, PMPI_Win_allocate, MPI_Win_free, PMPI_Win_free, MPI_Win_flush_local_all, PMPI_Win_flush_local_all], [], [mpi_version3="no"])
+
 if test "$mpi_version3" = "no"; then
    AC_MSG_ERROR([This package needs MPI3.])
 fi		    

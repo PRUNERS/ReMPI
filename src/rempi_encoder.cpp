@@ -38,6 +38,15 @@ void rempi_encoder_input_format_test_table::clear()
     compressed_with_previous = NULL;
   }
 
+  /* Matched index */
+  matched_index_vec.clear();
+  compressed_matched_index_length = 0;
+  compressed_matched_index_size   = 0;
+  if (compressed_matched_index != NULL) {
+    //free(compressed_matched_index);
+    compressed_matched_index = NULL;
+  }
+
   /*Unmatched */
   unmatched_events_id_vec.clear();
   unmatched_events_count_vec.clear();

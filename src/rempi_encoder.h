@@ -70,6 +70,10 @@ class rempi_encoder_input_format_test_table
   size_t                       compressed_with_previous_length;// = 0;
   size_t                       compressed_with_previous_size;//   = 0;
   char*                        compressed_with_previous;//        = NULL;
+  vector<size_t>               matched_index_vec;
+  size_t                       compressed_matched_index_length;
+  size_t                       compressed_matched_index_size;
+  char*                        compressed_matched_index;
   vector<size_t>               unmatched_events_id_vec;
   vector<size_t>               unmatched_events_count_vec;
   unordered_map<size_t, size_t>        unmatched_events_umap; /*Used in replay*/
@@ -90,6 +94,9 @@ class rempi_encoder_input_format_test_table
     , compressed_with_previous_length(0)
     , compressed_with_previous_size(0)
     , compressed_with_previous(NULL)
+    , compressed_matched_index_length(0)
+    , compressed_matched_index_size(0)
+    , compressed_matched_index(NULL)
     , compressed_unmatched_events_id_size(0)
     , compressed_unmatched_events_id(NULL)
     , compressed_unmatched_events_count_size(0)

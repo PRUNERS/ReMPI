@@ -184,6 +184,12 @@ int rempi_event::get_index()
   return mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_INDEX];
 }
 
+void rempi_event::set_index(int index)
+{
+  mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_INDEX] = index;
+  return;
+}
+
 int rempi_event::get_msg_id()
 {
   return mpi_inputs[REMPI_MPI_EVENT_INPUT_INDEX_MSG_ID];

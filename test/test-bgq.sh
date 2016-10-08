@@ -13,7 +13,7 @@ dir=${prefix}/test/.rempi
 #io_watchdog="--io-watchdog"
 #memcheck="memcheck  --xml-file=/tmp/unit.cab687.0.mc"
 
-par=1000
+par=80
 bin="../src/MCBenchmark.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 --weakScaling"
 cd ../../MCBdouble/run-decks/
 make cleanc

@@ -61,20 +61,6 @@ rempi_encoder_input_format* rempi_encoder_basic::create_encoder_input_format()
     write the data(char*)
     =============================== */
 
-// bool rempi_encoder::extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format)
-// {
-//   rempi_event *event;
-//   rempi_encoder_input_format_test_table *test_table;
-//   bool is_extracted = false;
-//   event = events.pop();
-//   /*encoding_event_sequence get only one event*/
-//   if (event != NULL) {
-//     //    rempi_dbgi(0, "pusu event: %p", event);                                                              
-//     input_format.add(event, 0);
-//     is_extracted = true;
-//   }
-//   return is_extracted;
-// }
 
 bool rempi_encoder_basic::extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format)
 {
