@@ -47,6 +47,7 @@ void rempi_encoder_input_format_test_table::clear()
     compressed_matched_index = NULL;
   }
 
+
   /*Unmatched */
   unmatched_events_id_vec.clear();
   unmatched_events_count_vec.clear();
@@ -351,6 +352,9 @@ void rempi_encoder::write_record_file(rempi_encoder_input_format &input_format)
 
   return;
 }
+
+void rempi_encoder::write_footer()
+{}
 
 void rempi_encoder::close_record_file()
 {

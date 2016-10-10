@@ -16,6 +16,7 @@ librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
 
 
 
+
 # ===== MCB test ========
 par=`expr 80 \* $num_procs`
 bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 "
@@ -35,6 +36,11 @@ bin="./rempi_test_master_worker"
 librempi=../src/.libs/librempix.so
 REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
 exit
+
+
+
+
+
 
 bin="./rempi_test_units matching"
 librempi=../src/.libs/librempix.so

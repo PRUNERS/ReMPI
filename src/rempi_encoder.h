@@ -212,8 +212,9 @@ class rempi_encoder
 
     //    unordered_map<int, size_t> solid_mc_next_clocks_umap; 
     /* ======================*/
-
     vector<size_t> write_size_vec;
+
+    virtual void write_footer();
 
  public:
     struct local_minimal_id global_local_min_id; /*minimal <rank,clock> in all senders across different MFs*/
@@ -245,6 +246,7 @@ class rempi_encoder
     virtual rempi_encoder_input_format* create_encoder_input_format();
 
     void open_record_file(string record_path);
+
     virtual void close_record_file();
     void set_record_path(string record_path);
 
@@ -392,6 +394,7 @@ class rempi_encoder_cdc : public rempi_encoder
   virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
   virtual void decompress_non_matched_events(rempi_encoder_input_format &input_format);
   virtual void decompress_matched_events(rempi_encoder_input_format &input_format);
+  virtual void write_footer();
 
  public:
 

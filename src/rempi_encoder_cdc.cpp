@@ -2091,6 +2091,8 @@ void rempi_encoder_cdc::set_fd_clock_state(int flag)
   return;  
 }
 
+void rempi_encoder_cdc::write_footer(){}
+
 void rempi_encoder_cdc::close_record_file()
 {
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {

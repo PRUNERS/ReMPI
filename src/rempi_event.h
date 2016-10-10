@@ -52,9 +52,14 @@ class rempi_event
     static int record_element_size;
 
     int clock_order; /*Ordered by clock when CDC compression is used */
-    int msg_count; /*Actual message count from sender. This is used in copy_proxy_buf*/
+
 
     MPI_Request request;
+    MPI_Datatype datatype;
+    int msg_count; /*Actual message count from sender. This is used in copy_proxy_buf*/
+    int tag;
+    MPI_Comm comm;
+    
     vector<int> mpi_inputs; /*TODO: use array insted of vector*/
     double ts;
 

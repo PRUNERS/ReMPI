@@ -282,8 +282,7 @@ int rempi_recorder_cdc::record_isend(mpi_const void *buf,
   int resultlen;
 
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
-  PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);
-  rempi_reqmg_register_request(request, dest, tag, (int)comm_id[0], REMPI_SEND_REQUEST);
+  rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request, REMPI_SEND_REQUEST);
   return ret;
 }
 
@@ -304,8 +303,7 @@ int rempi_recorder_cdc::replay_isend(mpi_const void *buf,
   rempi_cp_record_send(dest, 0);
 
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
-  PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);
-  rempi_reqmg_register_request(request, dest, tag, (int)comm_id[0], REMPI_SEND_REQUEST);
+  rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request, REMPI_SEND_REQUEST);
 
   PNMPIMOD_get_local_clock(&sent_clock);
   sent_clock--;
@@ -333,7 +331,7 @@ int rempi_recorder_cdc::record_irecv(
   int ret;
   rempi_event *e;
   ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
-  rempi_reqmg_register_request(request, source, tag, comm_id, REMPI_RECV_REQUEST); 
+  rempi_reqmg_register_request(buf, count, datatype, source, tag, comm, request, REMPI_RECV_REQUEST);
   e = rempi_event::create_recv_event(MPI_ANY_SOURCE, tag, NULL, request);
   if (request_to_recv_event_umap.find(*request) != request_to_recv_event_umap.end()) {
     REMPI_ERR("Recv event of request(%p) already exists", *request);
@@ -362,7 +360,6 @@ int rempi_recorder_cdc::replay_irecv(
   rempi_proxy_request *proxy_request_info;
   rempi_irecv_inputs *irecv_inputs;
 
-
   if (request_to_irecv_inputs_umap.find(*request) != 
       request_to_irecv_inputs_umap.end()) {
     /* If this request is posted in irecv before*/
@@ -388,7 +385,7 @@ int rempi_recorder_cdc::replay_irecv(
   }
 
   irecv_inputs = request_to_irecv_inputs_umap[*request];
-  rempi_reqmg_register_request(request, source, tag, comm_id, REMPI_RECV_REQUEST);
+  rempi_reqmg_register_request(buf, count, datatype, source, tag, comm, request, REMPI_RECV_REQUEST);
 
   if (irecv_inputs->request_proxy_list.size() == 0) {
 
@@ -598,7 +595,7 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
   return 0;
 }
 
-#define DBG_RECORD_MATCHED_INDEX
+//#define DBG_RECORD_MATCHED_INDEX
 #ifdef DBG_RECORD_MATCHED_INDEX
 int rempi_recorder_cdc::replay_mf_input(
 					int incount,
@@ -710,7 +707,7 @@ int rempi_recorder_cdc::replay_mf_input(
       array_of_indices[local_outcount]  = index;
     }
 
-    //    array_of_requests[index] = MPI_REQUEST_NULL;
+    array_of_requests[index] = MPI_REQUEST_NULL;
     (local_outcount)++;
   }
 

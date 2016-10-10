@@ -10,6 +10,7 @@
 #include "rempi_mem.h"
 #include "rempi_config.h"
 #include "rempi_util.h"
+#include "rempi_type.h"
 
 #define REMPI_SEND_REQUEST (151)
 #define REMPI_RECV_REQUEST (152)
@@ -67,6 +68,33 @@ public:
 
 };
 
+class rempi_reqmg_recv_args
+{
+
+ public:
+  const void* buffer;
+  int count;
+  MPI_Datatype datatype;
+  int source;
+  int tag;
+  MPI_Comm comm;
+  MPI_Request request;
+  int matching_set_id;
+  
+    
+
+  rempi_reqmg_recv_args(mpi_const void *buf, int count, MPI_Datatype datatype, int source,
+			int tag, MPI_Comm comm, MPI_Request request, int matching_set_id)
+    : buffer(buf)
+    , count(count)
+    , datatype(datatype)
+    , source(source)
+    , tag(tag)
+    , comm(comm)
+    , request(request)
+    , matching_set_id(matching_set_id) {}
+};
+
 /* =========
    Wheneve MPI_Request is initialized, 
    rempi_reqmg_register_request must be called.
@@ -85,9 +113,13 @@ public:
     - MPI_Cancel
     - MPI_Request_free   
 */
-int rempi_reqmg_register_request(MPI_Request *request, int source, int tag, int comm_id, int request_type);
+int rempi_reqmg_register_request(mpi_const void *buf, int count, MPI_Datatype datatype, int source,
+				 int tag, MPI_Comm comm, MPI_Request *request, int request_type);
 int rempi_reqmg_deregister_request(MPI_Request *request, int request_type);
 /* =========== */
+
+/* Check and progress receiving messages */
+int rempi_reqmg_progress_recv(int matching_set_id, int incount, MPI_Request array_of_requests[]);
 
 /* Return test_id */
 int rempi_reqmg_get_test_id(MPI_Request *request, int count);
