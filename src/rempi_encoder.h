@@ -48,7 +48,7 @@ class rempi_encoder_input_format_test_table
   bool is_pending_all_rank_msg();
   bool is_reached_epoch_line();
 
-
+  int matching_set_id;
   /*Used for any compression*/
   vector<rempi_event*> events_vec;
 
@@ -89,8 +89,9 @@ class rempi_encoder_input_format_test_table
   size_t                       compressed_matched_events_size;// = 0;
   char*                        compressed_matched_events;//      = NULL;
 
-  rempi_encoder_input_format_test_table()
-    : count(0)
+  rempi_encoder_input_format_test_table(int matching_set_id)
+    :  matching_set_id(matching_set_id)
+    , count(0)
     , compressed_with_previous_length(0)
     , compressed_with_previous_size(0)
     , compressed_with_previous(NULL)
@@ -197,10 +198,14 @@ class rempi_encoder
     rempi_mutex progress_decoding_mtx;
 
     /* === For CDC replay ===*/
+    unordered_map<int, list<rempi_event*>*> matched_events_list_umap;  
     int    mc_length;//       = 0;
     /*All source ranks in all receive MPI functions*/
+    unordered_map<int, unordered_map<int, size_t>*> solid_mc_next_clocks_umap_umap; 
     int    *mc_recv_ranks;//  = NULL; 
-    vector<unordered_map<int, size_t>*> solid_mc_next_clocks_umap_vec; 
+
+
+    unordered_map<int, size_t> interim_min_clock_in_next_event_umap;
 #ifndef CP_DBG
     int    mc_flag;//         = 0; /*if mc_flag == 1: main thread execute frontier detection*/
     /*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*/
@@ -220,9 +225,12 @@ class rempi_encoder
     struct local_minimal_id global_local_min_id; /*minimal <rank,clock> in all senders across different MFs*/
 
     int *num_of_recv_msg_in_next_event;// = NULL; /*array[i] contain the number of test_id=i*/
-    size_t *interim_min_clock_in_next_event;// = NULL;
+    //    size_t *interim_min_clock_in_next_event;// = NULL;
+
     size_t *dequeued_count;// = NULL;
     size_t tmp_fd_next_clock; /*Temporal variable for set_fd_clock_state*/
+
+
 
     rempi_event_list<rempi_event*> *events;
 
@@ -236,7 +244,6 @@ class rempi_encoder
       , tmp_mc_next_clocks(NULL) 
 #endif
       , num_of_recv_msg_in_next_event(NULL)
-      , interim_min_clock_in_next_event(NULL) 
       , dequeued_count(NULL)
       , tmp_fd_next_clock(0)
       , total_write_size(0)
@@ -373,9 +380,10 @@ class rempi_encoder_cdc : public rempi_encoder
 
   int decoding_state;
   int finished_testsome_count;
-  unordered_map<int, list<rempi_event*>*> matched_events_list_umap;
   list<rempi_event*> replay_event_list;
   rempi_encoder_input_format *decoding_input_format;
+
+
 
 
   /* ============================== */
@@ -401,6 +409,8 @@ class rempi_encoder_cdc : public rempi_encoder
 #ifndef CP_DBG
   struct frontier_detection_clocks *fd_clocks;// = NULL;
 #endif
+
+
 
   rempi_encoder_cdc(int mode);
   ~rempi_encoder_cdc();

@@ -557,7 +557,7 @@ N      CDC events flow:
     }
 
 #endif
-    interim_min_clock_in_next_event[test_id] = tmp_interim_min_clock;
+    interim_min_clock_in_next_event_umap[test_id] = tmp_interim_min_clock;
 #endif
   }
 

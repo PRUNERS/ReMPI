@@ -90,7 +90,7 @@ void rempi_encoder_input_format::add(rempi_event *event)
 {
   rempi_encoder_input_format_test_table *test_table;
   if (test_tables_map.find(0) == test_tables_map.end()) {
-    test_tables_map[0] = new rempi_encoder_input_format_test_table();
+    test_tables_map[0] = new rempi_encoder_input_format_test_table(0);
   }
   test_table = test_tables_map[0];
   test_table->events_vec.push_back(event);
@@ -102,7 +102,7 @@ void rempi_encoder_input_format::add(rempi_event *event, int test_id)
 {
   rempi_encoder_input_format_test_table *test_table;
   if (test_tables_map.find(test_id) == test_tables_map.end()) {
-    test_tables_map[test_id] = new rempi_encoder_input_format_test_table();
+    test_tables_map[test_id] = new rempi_encoder_input_format_test_table(test_id);
   }
   test_table = test_tables_map[test_id];
   test_table->events_vec.push_back(event);

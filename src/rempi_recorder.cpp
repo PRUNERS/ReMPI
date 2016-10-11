@@ -414,7 +414,7 @@ int rempi_recorder::record_mf(
     REMPI_ERR("incount: %d is larger than buffer", incount);
   }
   
-  rempi_reqmg_get_request_info(incount, array_of_requests, &sendcount, &recvcount, &nullcount, request_info, &is_record_and_replay);
+  rempi_reqmg_get_request_info(incount, array_of_requests, &sendcount, &recvcount, &nullcount, request_info, &is_record_and_replay, &global_test_id);
   if (is_record_and_replay) {
     rempi_reqmg_store_send_statuses(incount, array_of_requests, request_info, tmp_statuses);
   }
@@ -446,7 +446,7 @@ int rempi_recorder::record_mf(
     return ret;
   }
 
-  global_test_id = rempi_reqmg_get_test_id(array_of_requests, incount);
+  //  global_test_id = rempi_reqmg_get_test_id(array_of_requests, incount);
 
 
   
@@ -462,15 +462,15 @@ int rempi_recorder::record_mf(
 						(msg_id==NULL)? REMPI_MPI_EVENT_INPUT_IGNORE:*msg_id, // => is supposed to be REMPI_MPI_EVENT_INPUT_IGNORE
 						global_test_id);
     if (test_event != NULL) {
-      // REMPI_DBGI(0, "= Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
-      // 		 test_event->get_event_counts(),
-      // 		 test_event->get_flag(),
-      // 		 test_event->get_rank(),
-      // 		 test_event->get_with_next(),
-      // 		 test_event->get_index(),
-      // 		 test_event->get_msg_id(),
-      // 		 test_event->get_matching_group_id(),
-      // 		 matching_function_type);
+      REMPI_DBGI(0, "= Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
+      		 test_event->get_event_counts(),
+      		 test_event->get_flag(),
+      		 test_event->get_rank(),
+      		 test_event->get_with_next(),
+      		 test_event->get_index(),
+      		 test_event->get_msg_id(),
+      		 test_event->get_matching_group_id(),
+      		 matching_function_type);
     }
     recording_event_list->push(test_event);
   } else {
@@ -515,15 +515,15 @@ int rempi_recorder::record_mf(
 	//	if (msg_id[i] < 10) {REMPI_ERR("clock is wrong: %lu", msg_id[i]);}
 	if (test_event != NULL) {
 
-	  // REMPI_DBGI(0, "= Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
-	  // 	     test_event->get_event_counts(),
-	  // 	     test_event->get_flag(),
-	  // 	     test_event->get_rank(),
-	  // 	     test_event->get_with_next(),
-	  // 	     test_event->get_index(),
-	  // 	     test_event->get_msg_id(),
-	  // 	     test_event->get_matching_group_id(),
-	  // 	     matching_function_type);
+	  REMPI_DBGI(0, "= Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
+	  	     test_event->get_event_counts(),
+	  	     test_event->get_flag(),
+	  	     test_event->get_rank(),
+	  	     test_event->get_with_next(),
+	  	     test_event->get_index(),
+	  	     test_event->get_msg_id(),
+	  	     test_event->get_matching_group_id(),
+	  	     matching_function_type);
 	}
 	recording_event_list->push(test_event);
       }
@@ -733,7 +733,7 @@ int rempi_recorder::replay_mf(
   if (incount > PRE_ALLOCATED_REQUEST_LENGTH) {
     REMPI_ERR("incount: %d is larger than buffer", incount);
   }  
-  rempi_reqmg_get_request_info(incount, array_of_requests, &sendcount, &recvcount, &nullcount, request_info, &is_record_and_replay);
+  rempi_reqmg_get_request_info(incount, array_of_requests, &sendcount, &recvcount, &nullcount, request_info, &is_record_and_replay, &matching_set_id);
 
   if (is_record_and_replay == 0) {
     int matched_index, matched_count;
@@ -766,7 +766,6 @@ int rempi_recorder::replay_mf(
   }
 
   rempi_reqmg_store_send_statuses(incount, array_of_requests, request_info, tmp_statuses);
-  matching_set_id = rempi_reqmg_get_test_id(array_of_requests, incount);
 
 
   replaying_event_vec.clear();
@@ -798,7 +797,6 @@ int rempi_recorder::replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI
   int has_next_event = REMPI_MPI_EVENT_WITH_NEXT;
   int test_id;
   int replay_queue_status;
-
   MPI_Request dummy_req = NULL;
 
   rempi_reqmg_register_request(NULL, 0, MPI_BYTE, source, tag, comm, &dummy_req, REMPI_RECV_REQUEST);

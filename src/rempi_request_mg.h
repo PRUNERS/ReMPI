@@ -79,12 +79,14 @@ class rempi_reqmg_recv_args
   int tag;
   MPI_Comm comm;
   MPI_Request request;
+  int mpi_call_id;
   int matching_set_id;
+
   
     
 
   rempi_reqmg_recv_args(mpi_const void *buf, int count, MPI_Datatype datatype, int source,
-			int tag, MPI_Comm comm, MPI_Request request, int matching_set_id)
+			int tag, MPI_Comm comm, MPI_Request request, int mpi_call_id, int matching_set_id)
     : buffer(buf)
     , count(count)
     , datatype(datatype)
@@ -92,6 +94,7 @@ class rempi_reqmg_recv_args
     , tag(tag)
     , comm(comm)
     , request(request)
+    , mpi_call_id(mpi_call_id)
     , matching_set_id(matching_set_id) {}
 };
 
@@ -125,7 +128,7 @@ int rempi_reqmg_progress_recv(int matching_set_id, int incount, MPI_Request arra
 int rempi_reqmg_get_test_id(MPI_Request *request, int count);
 
 /* */
-void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendcount, int *recvcount, int *nullcount, int *request_info, int *is_record_nad_replay);
+void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendcount, int *recvcount, int *nullcount, int *request_info, int *is_record_and_replay, int *matching_set_id);
 void rempi_reqmg_get_request_type(MPI_Request *request, int *request_type);
 void rempi_reqmg_store_send_statuses(int incount, MPI_Request *requests, int *request_info, MPI_Status *statuses);
 

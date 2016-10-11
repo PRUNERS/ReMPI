@@ -153,7 +153,7 @@ void rempi_encoder_cdc_input_format::add(rempi_event *event)
   rempi_encoder_input_format_test_table *test_table;
   is_matched_event = (event->get_flag() == 1);
   if (test_tables_map.find(event->get_test_id()) == test_tables_map.end()) {
-    test_tables_map[event->get_test_id()] = new rempi_encoder_input_format_test_table();
+    test_tables_map[event->get_test_id()] = new rempi_encoder_input_format_test_table(event->get_test_id());
   }
   test_table = test_tables_map[event->get_test_id()];
 
@@ -252,7 +252,7 @@ void rempi_encoder_cdc_input_format::debug_print()
 
     test_table = test_tables_map_it->second;
 
-    REMPI_DBG(  " ====== Test_id: %2d (test_table: %p)======", test_id, test_table);
+    REMPI_DBG(  " ====== Test_id: %2d (test_table: %p)======", test_table->matching_set_id, test_table);
 
     REMPI_DBG(  "        count: %d", test_table->count);
     for (unordered_map<size_t, size_t>::iterator epoch_it = test_table->epoch_umap.begin();
@@ -335,6 +335,7 @@ rempi_encoder_cdc::rempi_encoder_cdc(int mode)
   , decoding_state(REMPI_DECODE_STATUS_OPEN)
   , finished_testsome_count(0)
 {
+
   /* === Create CDC object  === */
   cdc = new rempi_clock_delta_compression(1);
 
@@ -387,8 +388,10 @@ rempi_encoder_cdc::rempi_encoder_cdc(int mode)
 
 rempi_encoder_cdc::~rempi_encoder_cdc()
 {
-  for (int i = 0, n = solid_mc_next_clocks_umap_vec.size(); i < n ; i++) {
-    free(solid_mc_next_clocks_umap_vec[i]);
+  for (unordered_map<int, unordered_map<int, size_t>*>::iterator it = solid_mc_next_clocks_umap_umap.begin(),
+       it_end = solid_mc_next_clocks_umap_umap.end();
+       it != it_end; it++) {
+    free(it->second);
   }
   return;
 }
@@ -430,7 +433,7 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
     *local_min_id_clock = 0;
     return;
   }
-  solid_mc_next_clocks_umap = this->solid_mc_next_clocks_umap_vec[recv_test_id];
+  solid_mc_next_clocks_umap = this->solid_mc_next_clocks_umap_umap[recv_test_id];
 
   *local_min_id_rank  = test_table->epoch_rank_vec[0];
   if (solid_mc_next_clocks_umap->find(*local_min_id_rank) == 
@@ -530,10 +533,15 @@ int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *pr
   unordered_map<int, size_t> *solid_mc_next_clocks_umap;
   int is_updated = 0;
   int howto_update;
+  int matching_set_id;
 
-
-  for (int matching_set_id = 0, size = solid_mc_next_clocks_umap_vec.size(); matching_set_id < size; matching_set_id++) {
-    solid_mc_next_clocks_umap = solid_mc_next_clocks_umap_vec[matching_set_id];
+  for (unordered_map<int, unordered_map<int, size_t>*>::iterator it = solid_mc_next_clocks_umap_umap.begin(), 
+	 it_end = solid_mc_next_clocks_umap_umap.end(); 
+       it != it_end; it++) {
+    //  for (int matching_set_id = 0, size = solid_mc_next_clocks_umap_vec.size(); matching_set_id < size; matching_set_id++) {
+    matching_set_id = it->first;
+    //    solid_mc_next_clocks_umap = solid_mc_next_clocks_umap_vec[matching_set_id];
+    solid_mc_next_clocks_umap = it->second;
     for (int index = 0; index < mc_length; index++) {
       howto_update = howto_update_look_ahead_recv_clock(mc_recv_ranks[index], matching_set_id,
 							probed_message_source_set,
@@ -569,6 +577,12 @@ void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format &
 {
   char *write_buff;
   size_t write_size;
+
+  /*=== matching set id === */
+  input_format.write_queue_vec.push_back((char*)&test_table->matching_set_id);
+  input_format.write_size_queue_vec.push_back(sizeof(test_table->matching_set_id));  
+  /*=======================*/
+
 
   /*=== message count ===*/
   input_format.write_queue_vec.push_back((char*)&test_table->count);
@@ -949,13 +963,13 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
 	  insert_encoder_input_format_chunk_recv_test_id(recording_events, replaying_events, decoding_input_format, 
 							 &is_epoch_finished, &has_new_event, recv_test_id);
 	} else {
-	  for (int rtid = 0, n = decoding_input_format->test_tables_map.size();
-	       rtid < n; rtid++) {
+	  for (map<int, rempi_encoder_input_format_test_table*>::iterator it = decoding_input_format->test_tables_map.begin(),
+		 it_end = decoding_input_format->test_tables_map.end(); it != it_end; it++) {
+	    int rtid = it->first;
 	    insert_encoder_input_format_chunk_recv_test_id(recording_events, replaying_events, decoding_input_format, 
 							   &is_epoch_finished, &has_new_event, rtid);
 	    if (is_epoch_finished) break; /*If this epoch is finished, immediatly break to avoid hang */
 	  }
-
 	}	
 	if (is_epoch_finished) {
 	  mc_length=0;
@@ -1104,12 +1118,15 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
   //  REMPI_DBG("total size: %lu, total size: %lu", input_format.decompressed_size, sum);
 
 
-  int test_id = 0;
+  int test_id = -1;
   while (decoding_address < decompressed_record) {
     rempi_encoder_input_format_test_table *test_table;
 
-    test_table = new rempi_encoder_input_format_test_table();
-    input_format.test_tables_map[test_id++] = test_table;
+    test_id = *(int*)decoding_address;
+    decoding_address += sizeof(test_id);
+
+    test_table = new rempi_encoder_input_format_test_table(test_id);
+    input_format.test_tables_map[test_id] = test_table;
 
     /*=== Decode count  ===*/
     test_table->count = *(int*)decoding_address;
@@ -1139,6 +1156,8 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
 	//	REMPI_DBG("->> %d (%lu)", (int)(epoch_rank[i]), test_table->epoch_size);
 	/*=====================================================*/
       }
+
+
     }
     /*==========================*/
 
@@ -1304,8 +1323,35 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
       index++;
     }
 
+#if 1
+    if (this->solid_mc_next_clocks_umap_umap.size() != 0 && this->solid_mc_next_clocks_umap_umap.size() < input_format.test_tables_map.size()) {
+      REMPI_ERR("test_table_map size increased: Ues larger number for REMPI_MAX variable (default: %d)", REMPI_DEFAULT_MAX_EVENT_LENGTH);
+    }
+    //    this->solid_mc_next_clocks_umap_umap.resize(input_format.test_tables_map.size(), NULL);
+    for (map<int, rempi_encoder_input_format_test_table*>::iterator it = input_format.test_tables_map.begin(),
+	   it_end = input_format.test_tables_map.end(); it != it_end; it++) {
+      int matching_set_id;
+      matching_set_id = it->first;
+      unordered_map<int, size_t> *umap = new unordered_map<int, size_t>();
+      for (unordered_set<int>::const_iterator cit = mc_recv_ranks_uset.cbegin(),
+    	     cit_end = mc_recv_ranks_uset.cend();
+    	   cit != cit_end;
+    	   cit++) {
+    	int rank = *cit;
+    	umap->insert(make_pair(rank, 0));
+      }
+      if (this->solid_mc_next_clocks_umap_umap.find(matching_set_id) != 
+	  this->solid_mc_next_clocks_umap_umap.end()) {
+	if (this->solid_mc_next_clocks_umap_umap.size() != umap->size()) {
+	  REMPI_ERR("solid_mc_next_clocks size changes");
+	}
+      } else {
+	this->solid_mc_next_clocks_umap_umap[matching_set_id] = umap;
+      }
+    }
+#else
     if (this->solid_mc_next_clocks_umap_vec.size() != 0 && this->solid_mc_next_clocks_umap_vec.size() < input_format.test_tables_map.size()) {
-      REMPI_ERR("test_table_map size descreased: Us larger number for REMPI_MAX variable (default: %d)", REMPI_DEFAULT_MAX_EVENT_LENGTH);
+      REMPI_ERR("test_table_map size descreased: Ues larger number for REMPI_MAX variable (default: %d)", REMPI_DEFAULT_MAX_EVENT_LENGTH);
     }
     this->solid_mc_next_clocks_umap_vec.resize(input_format.test_tables_map.size(), NULL);
     for (int i = 0, size = this->solid_mc_next_clocks_umap_vec.size();
@@ -1322,6 +1368,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
       }
       this->solid_mc_next_clocks_umap_vec[i] = umap;
     }
+#endif
 
     this->mc_recv_ranks        = input_format.mc_recv_ranks;
     this->mc_length      = input_format.mc_length;
@@ -1335,7 +1382,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     /*array for waiting receive msg count for each test_id*/
     //    int    *tmp =  new int[input_format.test_tables_map.size()];;
 
-    
+#if 0    
     int    *tmp =  (int*)rempi_malloc(sizeof(int) * input_format.test_tables_map.size());
     memset(tmp, 0, sizeof(int) * input_format.test_tables_map.size());
     if (this->num_of_recv_msg_in_next_event != NULL) free(this->num_of_recv_msg_in_next_event);
@@ -1348,6 +1395,14 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     memset(tmp3, 0, sizeof(size_t) * input_format.test_tables_map.size());
     if (this->interim_min_clock_in_next_event != NULL) free(this->interim_min_clock_in_next_event);
     this->interim_min_clock_in_next_event = tmp3;
+#else
+    // this->interim_min_clock_in_next_event_umap[0] = 1;
+    //this->interim_min_clock_in_next_event_umap.clear();
+    // this->matched_events_list_umap[0] = NULL;
+    // this->matched_events_list_umap.clear();
+
+#endif
+
   }
 
   
@@ -1363,6 +1418,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
 
   
   //  input_format.debug_print();
+  //  exit(0);
 
   return;
 }
@@ -1876,7 +1932,8 @@ N      CDC events flow:
     }
 
 #endif
-    interim_min_clock_in_next_event[test_id] = tmp_interim_min_clock;
+    //    REMPI_DBG("test_id: %d, clock: %lu", test_id, tmp_interim_min_clock);
+    this->interim_min_clock_in_next_event_umap[test_id] = tmp_interim_min_clock;
 
   }
 
@@ -1898,6 +1955,7 @@ N      CDC events flow:
     		test_table->replayed_matched_event_index, test_table->count, test_id);
     }
 
+#if 0
     /* ==== Condition for (1) ===================================*/
     /*At this point, now, CDC need more msgs to replay.*/
     num_of_recv_msg_in_next_event[test_id] = outcount;
@@ -1919,6 +1977,7 @@ N      CDC events flow:
 	                                + previous_count;
       /* ------------------------------------------*/
     }
+#endif
 
     /* =========================================================*/
     return ret;
@@ -1926,7 +1985,9 @@ N      CDC events flow:
     /* ==== Condition for (1) ===================================*/
     /*At this point, now, the recv msg will be replayed, 
       and we do not know what the next event is now, so set 0*/
+#if 0    
     num_of_recv_msg_in_next_event[test_id] = 0;
+#endif
     /* =========================================================*/
   }
 
@@ -2056,7 +2117,12 @@ void rempi_encoder_cdc::update_local_look_ahead_send_clock(
   size_t next_clock;
 
   if (replaying_event_type == REMPI_ENCODER_REPLAYING_TYPE_RECV) {
-    next_clock = this->interim_min_clock_in_next_event[matching_set_id];
+    if (this->interim_min_clock_in_next_event_umap.find(matching_set_id) != 
+	this->interim_min_clock_in_next_event_umap.end()) {
+      next_clock = this->interim_min_clock_in_next_event_umap.at(matching_set_id);
+    } else {
+      next_clock = 0;
+    }
   } else if (replaying_event_type == REMPI_ENCODER_REPLAYING_TYPE_ANY){
     clmpi_get_local_clock(&next_clock);
   } else {
@@ -2091,11 +2157,8 @@ void rempi_encoder_cdc::set_fd_clock_state(int flag)
   return;  
 }
 
-void rempi_encoder_cdc::write_footer(){}
-
-void rempi_encoder_cdc::close_record_file()
+void rempi_encoder_cdc::write_footer()
 {
-  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     size_t val;
     val = all_epoch_rank_separator;
     record_fs.write((char*)&val, sizeof(size_t));
@@ -2109,6 +2172,12 @@ void rempi_encoder_cdc::close_record_file()
       record_fs.write((char*)&rank, sizeof(int));
       //      REMPI_DBG(" pred rank: %d", rank);
     }
+}
+
+void rempi_encoder_cdc::close_record_file()
+{
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    write_footer();
   }
 
   rempi_encoder::close_record_file();
