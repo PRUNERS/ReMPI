@@ -133,6 +133,7 @@ static int rempi_reqmg_assign_matching_set_id_to_recv(int matching_set_id, int i
 	REMPI_ERR("matching set id is already assigned for this recv");
       } else {
 	recv_args->matching_set_id = matching_set_id;
+	mpi_call_id_to_matching_set_id[recv_args->mpi_call_id] = matching_set_id;
       }
     }
   }
@@ -848,4 +849,23 @@ int rempi_reqmg_get_null_request_count(int incount, MPI_Request *requests)
     }
   }
   return count;
+}
+
+int rempi_reqmg_get_matching_set_id_map(int **mpi_call_ids, int **matching_set_ids, int *length)
+{
+  unordered_map<int, int>::iterator it     = mpi_call_id_to_matching_set_id.begin();
+  unordered_map<int, int>::iterator it_end = mpi_call_id_to_matching_set_id.end();
+  
+  *length = mpi_call_id_to_matching_set_id.size();
+  *mpi_call_ids     = (int*)rempi_malloc(*length * sizeof(int));
+  *matching_set_ids = (int*)rempi_malloc(*length * sizeof(int));
+  
+
+  for (int index = 0; it != it_end; it++, index++) {
+    (*mpi_call_ids)[index]     = it->first;
+    (*matching_set_ids)[index] = it->second;
+    REMPI_DBGI(0, "index: %d, matching_set_id: %d", it->first, it->second);
+  }
+  
+  return 0;
 }

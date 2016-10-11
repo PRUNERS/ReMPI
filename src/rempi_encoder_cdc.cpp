@@ -17,6 +17,7 @@
 #include "rempi_clock_delta_compression.h"
 #include "rempi_compression_util.h"
 #include "rempi_cp.h"
+#include "rempi_request_mg.h"
 
 
 #define REMPI_DECODE_STATUS_OPEN         (0)
@@ -340,45 +341,9 @@ rempi_encoder_cdc::rempi_encoder_cdc(int mode)
   cdc = new rempi_clock_delta_compression(1);
 
   /* === Load CLMPI module  === */
-  {
-    // int err;
-    // PNMPI_modHandle_t handle_test, handle_clmpi;
-    // PNMPI_Service_descriptor_t serv;
-    // /*Load clock-mpi*/
-    // err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_CLMPI, &handle_clmpi);
-    // if (err!=PNMPI_SUCCESS) {
-    //   REMPI_ERR("failed to load CLMPI modules");
-    // }
+  clmpi_get_local_clock = PNMPIMOD_get_local_clock;
+  clmpi_get_local_sent_clock = PNMPIMOD_get_local_sent_clock;
 
-    // /*Get clock-mpi service: fetch_next_clocks*/
-    // err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_local_clock","p",&serv);
-    // if (err!=PNMPI_SUCCESS) {
-    //   REMPI_ERR("failed to load CLMPI function: clmpi_get_local_clock");
-    // }
-    // clmpi_get_local_clock=(PNMPIMOD_get_local_clock_t) ((void*)serv.fct);
-    clmpi_get_local_clock = PNMPIMOD_get_local_clock;
-
-    // /*Get clock-mpi service: fetch_next_clocks*/
-    // err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_local_sent_clock","p",&serv);
-    // if (err!=PNMPI_SUCCESS) {
-    //   REMPI_ERR("failed to load CLMPI function: clmpi_get_local_sent_clock");
-    // }
-    // clmpi_get_local_sent_clock=(PNMPIMOD_get_local_sent_clock_t) ((void*)serv.fct);
-    clmpi_get_local_sent_clock = PNMPIMOD_get_local_sent_clock;
-  }
-
-  if (mode == REMPI_ENV_REMPI_MODE_REPLAY) {
-    /* == Init Window for one-sided communication for frontier detection*/
-#ifdef CP_DBG
-
-#else
-    PMPI_Comm_dup(MPI_COMM_WORLD, &mpi_fd_clock_comm);
-    PMPI_Win_allocate(sizeof(struct frontier_detection_clocks), sizeof(size_t), MPI_INFO_NULL, mpi_fd_clock_comm, &fd_clocks, &mpi_fd_clock_win);
-    memset(fd_clocks, 0, sizeof(struct frontier_detection_clocks));
-    PMPI_Win_lock_all(MPI_MODE_NOCHECK, mpi_fd_clock_win);
-#endif
-    //    PMPI_Win_lock_all(0, mpi_fd_clock_win);
-  }
   
   global_local_min_id.rank = -1;
   global_local_min_id.clock = 0;
@@ -2157,21 +2122,51 @@ void rempi_encoder_cdc::set_fd_clock_state(int flag)
   return;  
 }
 
+void rempi_encoder_cdc::read_footer()
+{
+  
+  
+}
+
 void rempi_encoder_cdc::write_footer()
 {
     size_t val;
+    /* ======= Write separator =========== */
     val = all_epoch_rank_separator;
     record_fs.write((char*)&val, sizeof(size_t));
+    /* =================================== */
+
+    /* ======= Global predecessor rank =========== */
     val = rempi_encoder_input_format_test_table::all_epoch_rank_uset.size();
     record_fs.write((char*)&val, sizeof(size_t));
-    //    REMPI_DBG("count: %lu", val);
     for (unordered_set<int>::iterator it = rempi_encoder_input_format_test_table::all_epoch_rank_uset.begin(),
 	   it_end = rempi_encoder_input_format_test_table::all_epoch_rank_uset.end();
 	 it != it_end; it++) {
       int rank = *it;
       record_fs.write((char*)&rank, sizeof(int));
-      //      REMPI_DBG(" pred rank: %d", rank);
     }
+    /* =================================== */
+    
+    /* ======= Global matching set ids =========== */
+    int *mpi_call_ids;
+    int *matching_set_ids;
+    int length;
+    rempi_reqmg_get_matching_set_id_map(&mpi_call_ids, &matching_set_ids, &length);
+    val = length;
+    record_fs.write((char*)&val, sizeof(int));
+    for (int i = 0; i < length; i++) {
+      //  REMPI_DBGI(0, "%d -> %d (%d/%d)", mpi_call_ids[i], matching_set_ids[i], i, length);
+      record_fs.write((char*)&matching_set_ids[i], sizeof(int));
+    }
+    rempi_free(matching_set_ids);
+    for (int i = 0; i < length; i++) {
+      record_fs.write((char*)&mpi_call_ids[i], sizeof(int));
+    }
+    rempi_free(mpi_call_ids);
+
+    /* =================================== */
+    
+    return;
 }
 
 void rempi_encoder_cdc::close_record_file()
