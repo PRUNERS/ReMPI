@@ -447,8 +447,6 @@ int rempi_recorder::record_mf(
   }
 
   //  global_test_id = rempi_reqmg_get_test_id(array_of_requests, incount);
-
-
   
   update_validation_code(incount, outcount, array_of_indices, array_of_statuses, request_info);
 
@@ -766,9 +764,9 @@ int rempi_recorder::replay_mf(
   }
 
   rempi_reqmg_store_send_statuses(incount, array_of_requests, request_info, tmp_statuses);
-  for (int i = 0; i < incount; i++) {
-    REMPI_DBGI(0, "dest[%d/%d]: %d (req: %p)", i, incount, tmp_statuses[i].MPI_SOURCE, array_of_requests[i]);
-  }
+  // for (int i = 0; i < incount; i++) {
+  //   REMPI_DBGI(0, "dest[%d/%d]: %d (req: %p)", i, incount, tmp_statuses[i].MPI_SOURCE, array_of_requests[i]);
+  // }
 
 
   replaying_event_vec.clear();

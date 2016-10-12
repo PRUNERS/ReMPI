@@ -675,7 +675,7 @@ static int rempi_reqmg_register_send_request(mpi_const void *buf, int count, MPI
 					     int tag, MPI_Comm comm, MPI_Request *request)
 {
   request_to_send_id_umap[*request] = rank;
-  REMPI_DBG("send req: %p  --> rank: %d", *request, rank);
+  //  REMPI_DBG("send req: %p  --> rank: %d", *request, rank);
   return 0;
 }
 
@@ -898,7 +898,7 @@ int rempi_reqmg_get_matching_set_id_map(int **mpi_call_ids, int **matching_set_i
   for (int index = 0; it != it_end; it++, index++) {
     (*mpi_call_ids)[index]     = it->first;
     (*matching_set_ids)[index] = it->second;
-    REMPI_DBGI(2, "mpi_call_id: %d, matching_set_id: %d", it->first, it->second);
+    //    REMPI_DBGI(0, "mpi_call_id: %d, matching_set_id: %d", it->first, it->second);
   }
   
   return 0;
@@ -907,7 +907,7 @@ int rempi_reqmg_get_matching_set_id_map(int **mpi_call_ids, int **matching_set_i
 int rempi_reqmg_set_matching_set_id_map(int *mpi_call_ids, int *matching_set_ids, int length)
 {
   for (int i = 0; i < length; i++) {
-    REMPI_DBGI(2, "mpi_call_id: %d, matching_set_id: %d", mpi_call_ids[i], matching_set_ids[i]);
+    //    REMPI_DBGI(0, "mpi_call_id: %d, matching_set_id: %d", mpi_call_ids[i], matching_set_ids[i]);
     mpi_call_id_to_matching_set_id[mpi_call_ids[i]] = matching_set_ids[i];
   }
   return 0;

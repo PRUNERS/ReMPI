@@ -101,6 +101,7 @@ void rempi_io_thread::write_record()
       //input_format->debug_print();
       /*Then, write to file.*/
       encoder->write_record_file(*input_format);
+      count++;
       e = rempi_get_time();
       delete input_format; //TODO: also delete iternal data in this variable
       input_format = encoder->create_encoder_input_format();
@@ -117,6 +118,7 @@ void rempi_io_thread::write_record()
       break;
     }
   }
+
   encoder->close_record_file();
   return;
 }

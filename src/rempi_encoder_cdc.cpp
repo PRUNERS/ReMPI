@@ -993,6 +993,7 @@ bool rempi_encoder_cdc::read_record_file(rempi_encoder_input_format &input_forma
 
   record_fs.read((char*)&chunk_size, sizeof(chunk_size));
   read_size = record_fs.gcount();
+  REMPI_DBG("separator: %lu v.s. %lu", chunk_size, all_epoch_rank_separator);
   if (read_size == 0) {
     /* When chunk_size == 0 (= all_epoch_rank_separator), ReMPI stop reading files before read file to the end. 
        So read_size == 0 won't happen */
@@ -1312,7 +1313,9 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
       if (this->solid_mc_next_clocks_umap_umap.find(matching_set_id) != 
 	  this->solid_mc_next_clocks_umap_umap.end()) {
 	if (this->solid_mc_next_clocks_umap_umap.size() != umap->size()) {
-	  REMPI_ERR("solid_mc_next_clocks size changes");
+	  REMPI_ERR("solid_mc_next_clocks_umap_umap.size() changes from %lu to %lu", 
+		    this->solid_mc_next_clocks_umap_umap.size(),
+		    umap->size());
 	}
       } else {
 	this->solid_mc_next_clocks_umap_umap[matching_set_id] = umap;
@@ -2137,9 +2140,11 @@ void rempi_encoder_cdc::read_footer()
     lseek(fd, chunk_size, SEEK_CUR);
   }
 
+  //  REMPI_DBGI(0, "size: %lu", chunk_size);
   if (chunk_size == 0) {
     /* rempi_cp_pred_ranks */
     read_count = read(fd, &rempi_cp_pred_rank_count, sizeof(size_t));
+    //    REMPI_DBGI(0, "count: %lu", rempi_cp_pred_rank_count);
     if (rempi_cp_pred_rank_count > 0) {
       rempi_cp_pred_ranks = (int*)rempi_malloc(rempi_cp_pred_rank_count * sizeof(int));
       read_count = read(fd, rempi_cp_pred_ranks, rempi_cp_pred_rank_count * sizeof(int));
@@ -2147,9 +2152,12 @@ void rempi_encoder_cdc::read_footer()
         REMPI_ERR("Incocnsistent size to actual data size");
       }
     }
-    rempi_free(rempi_cp_pred_ranks); /* <= rempi_cp_pred_ranks is just a place holder. So free it for now.*/
+    /* rempi_cp_set_pred_ranks(...): This is just a placeholder for futuer refactoring */
+    rempi_free(rempi_cp_pred_ranks);
+
     /* rempi_reqmg_matching_set_ids */
     read_count = read(fd, &rempi_reqmg_matching_set_id_length, sizeof(int));
+    //    REMPI_DBGI(0, "read_count: %d, length: %d", read_count, rempi_reqmg_matching_set_id_length);
     if (rempi_reqmg_matching_set_id_length > 0) {
       rempi_reqmg_mpi_call_ids     = (int*)rempi_malloc(rempi_reqmg_matching_set_id_length * sizeof(int));
       read_count = read(fd, rempi_reqmg_mpi_call_ids, rempi_reqmg_matching_set_id_length * sizeof(int));
@@ -2161,10 +2169,13 @@ void rempi_encoder_cdc::read_footer()
       if (read_count != rempi_reqmg_matching_set_id_length * sizeof(int)) {
         REMPI_ERR("Incocnsistent size to actual data size");
       }
+      rempi_reqmg_set_matching_set_id_map(rempi_reqmg_mpi_call_ids, rempi_reqmg_matching_set_ids, rempi_reqmg_matching_set_id_length);
+      rempi_free(rempi_reqmg_mpi_call_ids);
+      rempi_free(rempi_reqmg_matching_set_ids);
+    } else {
+      //      REMPI_DBG("No mathcing_set_id map");
     }
-    rempi_reqmg_set_matching_set_id_map(rempi_reqmg_mpi_call_ids, rempi_reqmg_matching_set_ids, rempi_reqmg_matching_set_id_length);
-    rempi_free(rempi_reqmg_mpi_call_ids);
-    rempi_free(rempi_reqmg_matching_set_ids);
+
   } else {
     if (read_count == 0) REMPI_ERR("No footer in ReMPI record");
   }
@@ -2182,11 +2193,13 @@ void rempi_encoder_cdc::write_footer()
 
     /* ======= Global predecessor rank =========== */
     val = rempi_encoder_input_format_test_table::all_epoch_rank_uset.size();
+    //    REMPI_DBGI(0, "length: %lu", val);
     record_fs.write((char*)&val, sizeof(size_t));
     for (unordered_set<int>::iterator it = rempi_encoder_input_format_test_table::all_epoch_rank_uset.begin(),
 	   it_end = rempi_encoder_input_format_test_table::all_epoch_rank_uset.end();
 	 it != it_end; it++) {
       int rank = *it;
+      //      REMPI_DBGI(0, "rank: %d", rank);
       record_fs.write((char*)&rank, sizeof(int));
     }
     /* =================================== */
@@ -2197,15 +2210,16 @@ void rempi_encoder_cdc::write_footer()
     int length;
     rempi_reqmg_get_matching_set_id_map(&mpi_call_ids, &matching_set_ids, &length);
     val = length;
-    record_fs.write((char*)&val, sizeof(int));
+    //    REMPI_DBGI(0, "length: %d", length);
+    record_fs.write((char*)&length, sizeof(int));
     for (int i = 0; i < length; i++) {
       record_fs.write((char*)&mpi_call_ids[i], sizeof(int));
     }
-    rempi_free(mpi_call_ids);
     for (int i = 0; i < length; i++) {
-      //  REMPI_DBGI(0, "%d -> %d (%d/%d)", mpi_call_ids[i], matching_set_ids[i], i, length);
+      //      REMPI_DBGI(0, "%d -> %d (%d/%d)", mpi_call_ids[i], matching_set_ids[i], i, length);
       record_fs.write((char*)&matching_set_ids[i], sizeof(int));
     }
+    rempi_free(mpi_call_ids);
     rempi_free(matching_set_ids);
 
     /* =================================== */
