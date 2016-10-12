@@ -4,6 +4,8 @@
 #include <string>
 #include <assert.h>
 
+extern int rempi_my_rank;
+
 #define REMPI_ASSERT(b)  \
   do {                \
     rempi_assert(b);        \

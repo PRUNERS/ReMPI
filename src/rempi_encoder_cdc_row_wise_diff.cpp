@@ -20,7 +20,7 @@
 /* ============================================== */
 
 
-rempi_encoder_cdc_row_wise_diff::rempi_encoder_cdc_row_wise_diff(int mode): rempi_encoder_cdc(mode)
+rempi_encoder_cdc_row_wise_diff::rempi_encoder_cdc_row_wise_diff(int mode, string record_path): rempi_encoder_cdc(mode, record_path)
 {}
 
 

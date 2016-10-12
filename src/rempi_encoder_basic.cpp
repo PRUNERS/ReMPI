@@ -17,8 +17,8 @@
 
 
 
-rempi_encoder_basic::rempi_encoder_basic(int mode)
-  : rempi_encoder(mode)
+rempi_encoder_basic::rempi_encoder_basic(int mode, string record_path)
+  : rempi_encoder(mode, record_path)
 {
   return;
 }

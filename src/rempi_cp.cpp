@@ -243,10 +243,6 @@ static void rempi_cp_init_pred_ranks(const char* path)
 void rempi_cp_init(const char* path)
 {
   int ret;
-  
-
-
-
 
   PMPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   PMPI_Comm_size(MPI_COMM_WORLD, &comm_size);

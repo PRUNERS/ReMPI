@@ -356,6 +356,9 @@ void rempi_encoder::write_record_file(rempi_encoder_input_format &input_format)
 void rempi_encoder::write_footer()
 {}
 
+void rempi_encoder::read_footer()
+{}
+
 void rempi_encoder::close_record_file()
 {
   // size_t total_write_size = 0;

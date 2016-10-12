@@ -132,8 +132,9 @@ void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendc
 void rempi_reqmg_get_request_type(MPI_Request *request, int *request_type);
 void rempi_reqmg_store_send_statuses(int incount, MPI_Request *requests, int *request_info, MPI_Status *statuses);
 
-/* Get matching set ids */
+/* Get/Set matching set ids */
 int rempi_reqmg_get_matching_set_id_map(int **mpi_call_ids, int **matching_set_ids, int *length);
+int rempi_reqmg_set_matching_set_id_map(int *mpi_call_ids, int *matching_set_ids, int length);
 
 
 /*TODO: remove the below two functions*/

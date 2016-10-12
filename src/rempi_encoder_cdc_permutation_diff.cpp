@@ -22,7 +22,7 @@
 /* ============================================== */
 
 
-rempi_encoder_cdc_permutation_diff::rempi_encoder_cdc_permutation_diff(int mode): rempi_encoder_cdc(mode)
+rempi_encoder_cdc_permutation_diff::rempi_encoder_cdc_permutation_diff(int mode, string record_path): rempi_encoder_cdc(mode, record_path)
 {
   cdc = new rempi_clock_delta_compression_2(0);
 }

@@ -3,6 +3,9 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <vector>
 #include <algorithm>
@@ -327,11 +330,8 @@ void rempi_encoder_cdc_input_format::debug_print()
 
 
 
-rempi_encoder_cdc::rempi_encoder_cdc(int mode)
-  : rempi_encoder(mode)
-#ifndef CP_DBG
-  , fd_clocks(NULL)
-#endif
+rempi_encoder_cdc::rempi_encoder_cdc(int mode, string record_path)
+  : rempi_encoder(mode, record_path)
   , decoding_input_format(NULL)
   , decoding_state(REMPI_DECODE_STATUS_OPEN)
   , finished_testsome_count(0)
@@ -343,6 +343,10 @@ rempi_encoder_cdc::rempi_encoder_cdc(int mode)
   /* === Load CLMPI module  === */
   clmpi_get_local_clock = PNMPIMOD_get_local_clock;
   clmpi_get_local_sent_clock = PNMPIMOD_get_local_sent_clock;
+
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
+    this->read_footer();
+  }
 
   
   global_local_min_id.rank = -1;
@@ -2103,28 +2107,68 @@ void rempi_encoder_cdc::update_local_look_ahead_send_clock(
 
 void rempi_encoder_cdc::set_fd_clock_state(int flag)
 {
-#ifdef CP_DBG
   if (flag) {
     tmp_fd_next_clock = rempi_cp_get_scatter_clock();
     rempi_cp_set_scatter_clock(PNMPI_MODULE_CLMPI_COLLECTIVE);
   } else {
     rempi_cp_set_scatter_clock(tmp_fd_next_clock);
   }  
-#else
-  if (flag) {
-    tmp_fd_next_clock = fd_clocks->next_clock;
-    fd_clocks->next_clock = PNMPI_MODULE_CLMPI_COLLECTIVE;
-  } else {
-    fd_clocks->next_clock = tmp_fd_next_clock;
-  }  
-#endif  
 
   return;  
 }
 
 void rempi_encoder_cdc::read_footer()
 {
-  
+  int fd;
+  size_t chunk_size = 1;
+  size_t read_count = 1;
+
+  size_t rempi_cp_pred_rank_count;
+  int *rempi_cp_pred_ranks;
+
+  int rempi_reqmg_matching_set_id_length;
+  int *rempi_reqmg_mpi_call_ids;
+  int *rempi_reqmg_matching_set_ids;
+
+
+  fd = open(record_path.c_str(), O_RDONLY);
+  while(chunk_size != 0 && read_count != 0) {
+    read_count = read(fd, &chunk_size, sizeof(size_t));
+    lseek(fd, chunk_size, SEEK_CUR);
+  }
+
+  if (chunk_size == 0) {
+    /* rempi_cp_pred_ranks */
+    read_count = read(fd, &rempi_cp_pred_rank_count, sizeof(size_t));
+    if (rempi_cp_pred_rank_count > 0) {
+      rempi_cp_pred_ranks = (int*)rempi_malloc(rempi_cp_pred_rank_count * sizeof(int));
+      read_count = read(fd, rempi_cp_pred_ranks, rempi_cp_pred_rank_count * sizeof(int));
+      if (read_count != rempi_cp_pred_rank_count * sizeof(int)) {
+        REMPI_ERR("Incocnsistent size to actual data size");
+      }
+    }
+    rempi_free(rempi_cp_pred_ranks); /* <= rempi_cp_pred_ranks is just a place holder. So free it for now.*/
+    /* rempi_reqmg_matching_set_ids */
+    read_count = read(fd, &rempi_reqmg_matching_set_id_length, sizeof(int));
+    if (rempi_reqmg_matching_set_id_length > 0) {
+      rempi_reqmg_mpi_call_ids     = (int*)rempi_malloc(rempi_reqmg_matching_set_id_length * sizeof(int));
+      read_count = read(fd, rempi_reqmg_mpi_call_ids, rempi_reqmg_matching_set_id_length * sizeof(int));
+      if (read_count != rempi_reqmg_matching_set_id_length * sizeof(int)) {
+        REMPI_ERR("Incocnsistent size to actual data size");
+      }
+      rempi_reqmg_matching_set_ids = (int*)rempi_malloc(rempi_reqmg_matching_set_id_length * sizeof(int));
+      read_count = read(fd, rempi_reqmg_matching_set_ids, rempi_reqmg_matching_set_id_length * sizeof(int));
+      if (read_count != rempi_reqmg_matching_set_id_length * sizeof(int)) {
+        REMPI_ERR("Incocnsistent size to actual data size");
+      }
+    }
+    rempi_reqmg_set_matching_set_id_map(rempi_reqmg_mpi_call_ids, rempi_reqmg_matching_set_ids, rempi_reqmg_matching_set_id_length);
+    rempi_free(rempi_reqmg_mpi_call_ids);
+    rempi_free(rempi_reqmg_matching_set_ids);
+  } else {
+    if (read_count == 0) REMPI_ERR("No footer in ReMPI record");
+  }
+  close(fd);
   
 }
 
@@ -2155,14 +2199,14 @@ void rempi_encoder_cdc::write_footer()
     val = length;
     record_fs.write((char*)&val, sizeof(int));
     for (int i = 0; i < length; i++) {
+      record_fs.write((char*)&mpi_call_ids[i], sizeof(int));
+    }
+    rempi_free(mpi_call_ids);
+    for (int i = 0; i < length; i++) {
       //  REMPI_DBGI(0, "%d -> %d (%d/%d)", mpi_call_ids[i], matching_set_ids[i], i, length);
       record_fs.write((char*)&matching_set_ids[i], sizeof(int));
     }
     rempi_free(matching_set_ids);
-    for (int i = 0; i < length; i++) {
-      record_fs.write((char*)&mpi_call_ids[i], sizeof(int));
-    }
-    rempi_free(mpi_call_ids);
 
     /* =================================== */
     

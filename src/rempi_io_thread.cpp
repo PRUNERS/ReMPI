@@ -23,23 +23,28 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
   encoder = NULL;
 #if !defined(REMPI_LITE)
   if (rempi_encode == 0) {
-    encoder = new rempi_encoder(mode);                       //  (1): Simple record (count, flag, rank with_next and clock)
+    encoder = new rempi_encoder(mode, record_path);                       //  (1): Simple record (count, flag, rank with_next and clock)
   } else if (rempi_encode == 1) {
-    encoder = new rempi_encoder_simple_zlib(mode);           //  (2): (1) + format change
+    REMPI_ERR("No such encode: %d", rempi_encode);
+    //    encoder = new rempi_encoder_simple_zlib(mode, record_path);           //  (2): (1) + format change
   } else if (rempi_encode == 2) {
-    encoder = new rempi_encoder_zlib(mode);                  //  (3): (2) + distingusishing different test/testsome
+    REMPI_ERR("No such encode: %d", rempi_encode);
+    //    encoder = new rempi_encoder_zlib(mode, record_path);                  //  (3): (2) + distingusishing different test/testsome
   } 
 #if MPI_VERSION == 3
   else if (rempi_encode == 3) {
-    encoder = new rempi_encoder_cdc_row_wise_diff(mode);     //  (4): (3) + row_wise diff
+    REMPI_ERR("No such encode: %d", rempi_encode);
+    //    encoder = new rempi_encoder_cdc_row_wise_diff(mode, record_path);     //  (4): (3) + row_wise diff
   } else if (rempi_encode == 4) {
-    encoder = new rempi_encoder_cdc(mode);                   //  (5): (3) + edit distance (two values for an only permutated message)
+    encoder = new rempi_encoder_cdc(mode, record_path);                   //  (5): (3) + edit distance (two values for an only permutated message)
   } else if (rempi_encode == 5) {
-    encoder = new rempi_encoder_cdc(mode);                   //  (5): (3) + edit distance (two values for an only permutated message)
+    REMPI_ERR("No such encode: %d", rempi_encode);
+    //    encoder = new rempi_encoder_cdc(mode, record_path);                   //  (5): (3) + edit distance (two values for an only permutated message)
   } else if (rempi_encode == 6) {
-    encoder = new rempi_encoder_cdc_permutation_diff(mode);  //  (6): (3) + edit distance (one value for each message)
+    REMPI_ERR("No such encode: %d", rempi_encode);
+    //    encoder = new rempi_encoder_cdc_permutation_diff(mode, record_path);  //  (6): (3) + edit distance (one value for each message)
   }  else if (rempi_encode == 7) {
-    encoder = new rempi_encoder_rep(mode);                 //  (7): Reproducibile MPI
+    encoder = new rempi_encoder_rep(mode, record_path);                 //  (7): Reproducibile MPI
   }
 #endif 
   else {
@@ -48,14 +53,14 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
 
 #else 
   if (rempi_encode == 0) {
-    encoder = new rempi_encoder_basic(mode);                 //  (1): Simple record (count, flag, rank with_next and clock)
+    encoder = new rempi_encoder_basic(mode, record_path);                 //  (1): Simple record (count, flag, rank with_next and clock)
     if (rempi_is_test_id) {
       rempi_is_test_id = 0;
       REMPI_DBGI(0, "REMPI_TEST_ID is ignored");
     }
 
   } else if (rempi_encode == 8) {
-    encoder = new rempi_encoder(mode);
+    encoder = new rempi_encoder(mode, record_path);
   }  else {
     REMPI_ERR("No such encoding mode");
   }

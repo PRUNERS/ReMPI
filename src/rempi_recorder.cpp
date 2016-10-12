@@ -462,15 +462,15 @@ int rempi_recorder::record_mf(
 						(msg_id==NULL)? REMPI_MPI_EVENT_INPUT_IGNORE:*msg_id, // => is supposed to be REMPI_MPI_EVENT_INPUT_IGNORE
 						global_test_id);
     if (test_event != NULL) {
-      REMPI_DBGI(0, "= Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
-      		 test_event->get_event_counts(),
-      		 test_event->get_flag(),
-      		 test_event->get_rank(),
-      		 test_event->get_with_next(),
-      		 test_event->get_index(),
-      		 test_event->get_msg_id(),
-      		 test_event->get_matching_group_id(),
-      		 matching_function_type);
+      // REMPI_DBGI(0, "= Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
+      // 		 test_event->get_event_counts(),
+      // 		 test_event->get_flag(),
+      // 		 test_event->get_rank(),
+      // 		 test_event->get_with_next(),
+      // 		 test_event->get_index(),
+      // 		 test_event->get_msg_id(),
+      // 		 test_event->get_matching_group_id(),
+      // 		 matching_function_type);
     }
     recording_event_list->push(test_event);
   } else {
@@ -515,15 +515,15 @@ int rempi_recorder::record_mf(
 	//	if (msg_id[i] < 10) {REMPI_ERR("clock is wrong: %lu", msg_id[i]);}
 	if (test_event != NULL) {
 
-	  REMPI_DBGI(0, "= Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
-	  	     test_event->get_event_counts(),
-	  	     test_event->get_flag(),
-	  	     test_event->get_rank(),
-	  	     test_event->get_with_next(),
-	  	     test_event->get_index(),
-	  	     test_event->get_msg_id(),
-	  	     test_event->get_matching_group_id(),
-	  	     matching_function_type);
+	  // REMPI_DBGI(0, "= Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
+	  // 	     test_event->get_event_counts(),
+	  // 	     test_event->get_flag(),
+	  // 	     test_event->get_rank(),
+	  // 	     test_event->get_with_next(),
+	  // 	     test_event->get_index(),
+	  // 	     test_event->get_msg_id(),
+	  // 	     test_event->get_matching_group_id(),
+	  // 	     matching_function_type);
 	}
 	recording_event_list->push(test_event);
       }
@@ -773,11 +773,10 @@ int rempi_recorder::replay_mf(
   this->replay_mf_input(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, replaying_event_vec, matching_set_id, matching_function_type);
   
   for (int j = 0; j < replaying_event_vec.size(); j++) {
-    REMPI_DBGI(0, "= Replay: (count: %d, with_next: %d, index: %d, flag: %d, source: %d, clock: %d): matching_set_id: %d ",
-               replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), 
-	       replaying_event_vec[j]->get_index(), replaying_event_vec[j]->get_flag(),
-               replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), matching_set_id);
-    //    if (replaying_event_vec[j]->get_clock() >= 50) exit(1);
+    // REMPI_DBGI(0, "= Replay: (count: %d, with_next: %d, index: %d, flag: %d, source: %d, clock: %d): matching_set_id: %d ",
+    //            replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), 
+    // 	       replaying_event_vec[j]->get_index(), replaying_event_vec[j]->get_flag(),
+    //            replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), matching_set_id);
 #ifdef REMPI_DBG_REPLAY
     REMPI_DBGI(REMPI_DBG_REPLAY, "= Replay: (count: %d, with_next: %d, index: %d, flag: %d, source: %d, clock: %d): matching_set_id: %d ",
                replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), 

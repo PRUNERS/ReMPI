@@ -795,7 +795,6 @@ int rempi_recorder_cdc::replay_mf_input(
 	  clmpi_sync_clock(replaying_event_vec[j]->get_clock());
 	  local_outcount = local_outcount + 1;
 
-	  REMPI_DBGI(0, "irecv_inputs: %p, index: %d: size: %lu", irecv_inputs, i, irecv_inputs->matched_request_proxy_list.size());
 	  if (irecv_inputs->matched_request_proxy_list.size() == 0) {
 	    //	    REMPI_ERR("irecv_inputs->matched_proxy_list is empty: input_inputs:%p request:%p: Matching condition of this MPI_Request may be overlapping with matching condition of another MPI_Request", irecv_inputs, array_of_requests[i]);
 	    /*

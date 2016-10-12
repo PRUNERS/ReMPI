@@ -26,10 +26,6 @@ rempi_SOURCES =  \
 		rempi_encoder_basic.cpp \
 		rempi_encoder_cdc.cpp \
 		rempi_encoder_rep.cpp \
-		rempi_encoder_cdc_row_wise_diff.cpp \
-		rempi_encoder_cdc_permutation_diff.cpp \
-		rempi_encoder_zlib.cpp \
-		rempi_encoder_simple_zlib.cpp \
 		rempi_thread.cpp \
 		rempi_io_thread.cpp \
 		rempi_mutex.cpp
