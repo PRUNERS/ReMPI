@@ -247,14 +247,14 @@ static int rempi_reqmg_assign_matching_set_id(int mpi_mf_call_id, int incount, M
   return matching_set_id;
 }
 
-static int rempi_reqmg_get_matching_set_id(int *matching_set_id, int *mpi_call_id, int mpi_call_type, int incount, MPI_Request array_of_requests[])
+static int rempi_reqmg_get_matching_set_id_0(int *matching_set_id)
 {
-  // for (int i = 0; i < incount; i++) {
-  //   if (request_to_recv_args_umap.find(array_of_requests[i]) != request_to_recv_args_umap.end()) {
-  //     rempi_reqmg_recv_args *recv_args = request_to_recv_args_umap.at(array_of_requests[i]);
-  //     if (rempi_my_rank == 2 && recv_args->mpi_call_id == 7 && mpi_call_type == 2) REMPI_ERR("====== type: %d", mpi_call_type);
-  //   }
-  // }
+  *matching_set_id = 0;
+  return 0;
+}
+
+static int rempi_reqmg_get_matching_set_id_1(int *matching_set_id, int *mpi_call_id, int mpi_call_type, int incount, MPI_Request array_of_requests[])
+{
   *mpi_call_id = get_mpi_call_id();
   if (mpi_call_id_to_matching_set_id.find(*mpi_call_id) != 
       mpi_call_id_to_matching_set_id.end()) {
@@ -283,6 +283,22 @@ static int rempi_reqmg_get_matching_set_id(int *matching_set_id, int *mpi_call_i
   }
   //  REMPI_DBGI(2, "%d -> %d (type: %d)", *mpi_call_id, *matching_set_id, mpi_call_type);
   return 0;
+}
+
+static int rempi_reqmg_get_matching_set_id(int *matching_set_id, int *mpi_call_id, int mpi_call_type, int incount, MPI_Request array_of_requests[])
+{
+  switch(rempi_is_test_id) {
+  case 0:
+    rempi_reqmg_get_matching_set_id_0(matching_set_id);
+    break;
+  case 1:
+    rempi_reqmg_get_matching_set_id_1(matching_set_id, mpi_call_id, mpi_call_type, incount, array_of_requests);
+    break;
+  default:
+    REMPI_ERR("No such REMPI_TEST_ID = %d", rempi_is_test_id);
+  }
+  return 0;
+
 }
 
 static int get_matching_set_id(MPI_Request *request, int count)
@@ -659,6 +675,7 @@ static int rempi_reqmg_register_send_request(mpi_const void *buf, int count, MPI
 					     int tag, MPI_Comm comm, MPI_Request *request)
 {
   request_to_send_id_umap[*request] = rank;
+  REMPI_DBG("send req: %p  --> rank: %d", *request, rank);
   return 0;
 }
 
