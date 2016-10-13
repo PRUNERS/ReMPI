@@ -280,9 +280,10 @@ int rempi_recorder_cdc::record_isend(mpi_const void *buf,
   int ret;
   char comm_id[REMPI_COMM_ID_LENGTH];
   int resultlen;
+  int matching_set_id;
 
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
-  rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request, REMPI_SEND_REQUEST);
+  rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request, REMPI_SEND_REQUEST, &matching_set_id);
   return ret;
 }
 
@@ -299,11 +300,12 @@ int rempi_recorder_cdc::replay_isend(mpi_const void *buf,
   char comm_id[REMPI_COMM_ID_LENGTH];
   int resultlen;
   size_t sent_clock;
+  int matching_set_id;
 
   rempi_cp_record_send(dest, 0);
 
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
-  rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request, REMPI_SEND_REQUEST);
+  rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request, REMPI_SEND_REQUEST, &matching_set_id);
 
   PNMPIMOD_get_local_clock(&sent_clock);
   sent_clock--;
@@ -330,8 +332,10 @@ int rempi_recorder_cdc::record_irecv(
 {
   int ret;
   rempi_event *e;
+  int matching_set_id;
+
   ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
-  rempi_reqmg_register_request(buf, count, datatype, source, tag, comm, request, REMPI_RECV_REQUEST);
+  rempi_reqmg_register_request(buf, count, datatype, source, tag, comm, request, REMPI_RECV_REQUEST, &matching_set_id);
   e = rempi_event::create_recv_event(MPI_ANY_SOURCE, tag, NULL, request);
   if (request_to_recv_event_umap.find(*request) != request_to_recv_event_umap.end()) {
     REMPI_ERR("Recv event of request(%p) already exists", *request);
@@ -359,11 +363,12 @@ int rempi_recorder_cdc::replay_irecv(
   int ret;
   rempi_proxy_request *proxy_request_info;
   rempi_irecv_inputs *irecv_inputs;
-
+  int matching_set_id;
+    static size_t request_id = 0xffffff0000;
   if (request_to_irecv_inputs_umap.find(*request) != 
       request_to_irecv_inputs_umap.end()) {
     /* If this request is posted in irecv before*/
-    irecv_inputs = request_to_irecv_inputs_umap[*request];
+    irecv_inputs = request_to_irecv_inputs_umap.at(*request);
     bool same_source = (irecv_inputs->source == source);
     bool same_tag    = (irecv_inputs->tag    == tag);
     bool same_comm   = (irecv_inputs->comm   == comm);
@@ -376,7 +381,7 @@ int rempi_recorder_cdc::replay_irecv(
       // 		"with MPI_Request which is not diactivated by MPI_{Wait|Test}{|some|any|all}");
     }
   } else {
-    static size_t request_id = 847589431;
+
     //    memset(request, request_id, sizeof(MPI_Request));
     *request = (MPI_Request)request_id;
     request_id++;
@@ -384,8 +389,10 @@ int rempi_recorder_cdc::replay_irecv(
     //    REMPI_DBGI(0, "Irecv: %p", *request);
   }
 
-  irecv_inputs = request_to_irecv_inputs_umap[*request];
-  rempi_reqmg_register_request(buf, count, datatype, source, tag, comm, request, REMPI_RECV_REQUEST);
+  irecv_inputs = request_to_irecv_inputs_umap.at(*request);
+  rempi_reqmg_register_request(buf, count, datatype, source, tag, comm, request, REMPI_RECV_REQUEST, &matching_set_id);
+  irecv_inputs->recv_test_id = matching_set_id;
+  REMPI_DBG("Irecv: irecv_inputs: %p (request_id: %p)", irecv_inputs, request_id);
 
   if (irecv_inputs->request_proxy_list.size() == 0) {
 
@@ -425,7 +432,7 @@ int rempi_recorder_cdc::replay_cancel(MPI_Request *request)
   if (request_to_irecv_inputs_umap.find(*request) == request_to_irecv_inputs_umap.end()) {
     REMPI_ERR("No such request: %p", request);
   }
-  irecv_inputs = request_to_irecv_inputs_umap[*request];
+  irecv_inputs = request_to_irecv_inputs_umap.at(*request);
   list<rempi_proxy_request*>::iterator proxy_request_it;
   for (proxy_request_it  = irecv_inputs->request_proxy_list.begin();
        proxy_request_it != irecv_inputs->request_proxy_list.end();
@@ -595,7 +602,7 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
   return 0;
 }
 
-//#define DBG_RECORD_MATCHED_INDEX
+#define DBG_RECORD_MATCHED_INDEX
 #ifdef DBG_RECORD_MATCHED_INDEX
 int rempi_recorder_cdc::replay_mf_input(
 					int incount,
@@ -647,7 +654,7 @@ int rempi_recorder_cdc::replay_mf_input(
       REMPI_ERR("send wait");
       PMPI_Wait(&array_of_requests[index], &array_of_statuses[local_outcount]);
     } else if (request_info[index] == REMPI_RECV_REQUEST) {
-      irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[index]];
+      irecv_inputs = request_to_irecv_inputs_umap.at(array_of_requests[index]);
    
       if (irecv_inputs->source != MPI_ANY_SOURCE && 
 	  irecv_inputs->source != replaying_test_event->get_source()) {
@@ -660,7 +667,7 @@ int rempi_recorder_cdc::replay_mf_input(
 
 
 #if 1
-      REMPI_DBGI(0, "irecv_inputs: %p, index: %d: size: %lu", irecv_inputs, index, irecv_inputs->matched_request_proxy_list.size());
+      REMPI_DBGI(0, "irecv_inputs: %p (request_id: %p), index: %d: size: %lu", irecv_inputs, array_of_requests[index], index, irecv_inputs->matched_request_proxy_list.size());
       //      request_to_irecv_inputs_umap.erase(array_of_requests[index]);
 
       //PMPI_Wait(&array_of_requests[index], &status);
@@ -1058,10 +1065,12 @@ int rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
     recv_message_source_umap.insert(make_pair(status.MPI_SOURCE, 0));
 
 
-
+    REMPI_DBGI(0, "A->     : (source: %d, tag: %d,  clock: %d): current irecv: %p recv_test_id: %d, size: %d (time: %f)",
+	       status.MPI_SOURCE, status.MPI_TAG, clock, irecv_inputs, irecv_inputs->recv_test_id, 
+	       request_to_irecv_inputs_umap.size(), PMPI_Wtime());
 #ifdef REMPI_DBG_REPLAY	  
-    REMPI_DBGI(REMPI_DBG_REPLAY, "A->     : (source: %d, tag: %d,  clock: %d): current recv_test_id: %d, size: %d (time: %f)",
-	       status.MPI_SOURCE, status.MPI_TAG, clock, irecv_inputs->recv_test_id, 
+    REMPI_DBGI(REMPI_DBG_REPLAY, "A->     : (source: %d, tag: %d,  clock: %d): current irecv: %p recv_test_id: %d, size: %d (time: %f)",
+	       status.MPI_SOURCE, status.MPI_TAG, clock, irecv_inputs, irecv_inputs->recv_test_id, 
 	       request_to_irecv_inputs_umap.size(), PMPI_Wtime());
 #endif
 

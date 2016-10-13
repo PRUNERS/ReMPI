@@ -13,9 +13,9 @@ rempi_SOURCES =  \
 	        rempi_sig_handler.cpp \
 	        rempi_status.cpp \
 	        rempi_mf.cpp \
+		rempi_msg_buffer.cpp \
 		rempi_recorder_cdc.cpp \
 		rempi_recorder.cpp \
-		rempi_message_manager.cpp \
 		rempi_mpi_init.cpp \
 		rempi_request_mg.cpp \
 		rempi_event_list.cpp \

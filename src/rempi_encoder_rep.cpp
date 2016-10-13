@@ -518,7 +518,7 @@ N      CDC events flow:
     }
 
 #ifdef REMPI_DBG_REPLAY
-    if (interim_min_clock_in_next_event[test_id] < tmp_interim_min_clock) {
+    if (interim_min_clock_in_next_event_umap[test_id] < tmp_interim_min_clock) {
       cit     = test_table->ordered_event_list.cbegin();
       cit_end = test_table->ordered_event_list.cend();
       size_t local_clock_dbg;
@@ -553,7 +553,7 @@ N      CDC events flow:
 	  REMPI_DBGI(REMPI_DBG_REPLAY, "  INTRM update: (rank: %d, clock: %lu)", replaying_event->get_source(), replaying_event->get_clock());
 	}
       }
-      REMPI_DBGI(REMPI_DBG_REPLAY, "INTRM update: interim: %lu => %lu (recv_test_id: %d)", interim_min_clock_in_next_event[test_id], tmp_interim_min_clock, test_id);
+      REMPI_DBGI(REMPI_DBG_REPLAY, "INTRM update: interim: %lu => %lu (recv_test_id: %d)", interim_min_clock_in_next_event_umap[test_id], tmp_interim_min_clock, test_id);
     }
 
 #endif

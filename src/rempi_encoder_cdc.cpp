@@ -39,14 +39,12 @@ unordered_set<int> rempi_encoder_input_format_test_table::all_epoch_rank_uset;
 
 bool rempi_encoder_input_format_test_table::is_decoded_all()
 {
-  bool is_unmatched_finished = true;
-
 
   if (!unmatched_events_umap.empty()) {
     return false;
   }
 
-  if (replayed_matched_event_index < count && count != 0) {
+  if ((int)replayed_matched_event_index < count && count != 0) {
     return false;
   }
 
@@ -993,7 +991,6 @@ bool rempi_encoder_cdc::read_record_file(rempi_encoder_input_format &input_forma
 
   record_fs.read((char*)&chunk_size, sizeof(chunk_size));
   read_size = record_fs.gcount();
-  REMPI_DBG("separator: %lu v.s. %lu", chunk_size, all_epoch_rank_separator);
   if (read_size == 0) {
     /* When chunk_size == 0 (= all_epoch_rank_separator), ReMPI stop reading files before read file to the end. 
        So read_size == 0 won't happen */
@@ -1488,6 +1485,7 @@ static int first = 1, first2=1;
 bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> *recording_events, list<rempi_event*> *event_list, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> *replay_event_list, int test_id, int local_min_id_rank, size_t local_min_id_clock)
 {
   vector<rempi_event*> replay_event_vec;
+  bool is_reached_epoch_line;
 #ifdef REMPI_DBG_REPLAY
   bool is_ordered_event_list_updated = false;
   bool is_solid_ordered_event_list_updated = false;
@@ -1664,7 +1662,7 @@ N      CDC events flow:
 	   cit != cit_end;
 	   cit++) {
 	rempi_event *event = *cit;
-	bool is_reached_epoch_line = test_table->is_reached_epoch_line();
+	is_reached_epoch_line = test_table->is_reached_epoch_line();
 	if (!compare2(local_min_id_rank, local_min_id_clock, event) || is_reached_epoch_line) {
 	  solid_event_count++;
 	  /*If event < local_min_id.{rank, clock} ... */
@@ -1729,8 +1727,8 @@ N      CDC events flow:
     
 #ifdef REMPI_DBG_REPLAY
     if (is_ordered_event_list_updated || is_solid_ordered_event_list_updated) {
-      REMPI_DBGI(REMPI_DBG_REPLAY, "LIST Queue Update: Local_min (rank: %d, clock: %lu): count: %d, test_id: %d",
-		 local_min_id_rank, local_min_id_clock, solid_event_count, test_id);
+      REMPI_DBGI(REMPI_DBG_REPLAY, "LIST Queue Update: Local_min (rank: %d, clock: %lu, is_reached: %d): count: %d, test_id: %d",
+		 local_min_id_rank, local_min_id_clock, is_reached_epoch_line, solid_event_count, test_id);
       for (list<rempi_event*>::const_iterator it = test_table->ordered_event_list.cbegin(), 
 	     it_end = test_table->ordered_event_list.cend();
 	   it !=it_end;
@@ -1865,7 +1863,7 @@ N      CDC events flow:
     }
 
 #ifdef REMPI_DBG_REPLAY
-    if (interim_min_clock_in_next_event[test_id] < tmp_interim_min_clock) {
+    if (interim_min_clock_in_next_event_umap[test_id] < tmp_interim_min_clock) {
       cit     = test_table->ordered_event_list.cbegin();
       cit_end = test_table->ordered_event_list.cend();
       size_t local_clock_dbg;
@@ -1900,7 +1898,7 @@ N      CDC events flow:
 	  REMPI_DBGI(REMPI_DBG_REPLAY, "  INTRM update: (rank: %d, clock: %lu)", replaying_event->get_source(), replaying_event->get_clock());
 	}
       }
-      REMPI_DBGI(REMPI_DBG_REPLAY, "INTRM update: interim: %lu => %lu (recv_test_id: %d)", interim_min_clock_in_next_event[test_id], tmp_interim_min_clock, test_id);
+      REMPI_DBGI(REMPI_DBG_REPLAY, "INTRM update: interim: %lu => %lu (recv_test_id: %d)", interim_min_clock_in_next_event_umap[test_id], tmp_interim_min_clock, test_id);
     }
 
 #endif
@@ -2151,9 +2149,10 @@ void rempi_encoder_cdc::read_footer()
       if (read_count != rempi_cp_pred_rank_count * sizeof(int)) {
         REMPI_ERR("Incocnsistent size to actual data size");
       }
+      rempi_free(rempi_cp_pred_ranks);
+      /* rempi_cp_set_pred_ranks(...): This is just a placeholder for futuer refactoring */
     }
-    /* rempi_cp_set_pred_ranks(...): This is just a placeholder for futuer refactoring */
-    rempi_free(rempi_cp_pred_ranks);
+
 
     /* rempi_reqmg_matching_set_ids */
     read_count = read(fd, &rempi_reqmg_matching_set_id_length, sizeof(int));

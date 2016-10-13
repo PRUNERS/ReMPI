@@ -7,7 +7,7 @@ struct rempi_cp_prop_clock
   size_t send_count;
 };
 
-#endif
+
 
 
 void rempi_cp_init(const char* record_path);
@@ -51,7 +51,7 @@ size_t rempi_cp_get_scatter_clock(void);
 /* get sender_list */
 int *rempi_get_pred_ranks(size_t *length);
 
-
+#endif
 
 
 

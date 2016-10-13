@@ -78,10 +78,10 @@ int matching_ids[] = {
    /* MPI_Testany_id, */
   /*  MPI_Testsome_id, */
   /* MPI_Testall_id, */
-   MPI_Wait_id,
-   MPI_Waitany_id,
-  /*  MPI_Waitsome_id, */
-  /*   MPI_Waitall_id */
+  //  MPI_Wait_id,
+  MPI_Waitany_id,
+  //   MPI_Waitsome_id,
+   //    MPI_Waitall_id
 };
 
 int probe_ids[] = {

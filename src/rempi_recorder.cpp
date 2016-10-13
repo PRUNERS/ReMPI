@@ -118,9 +118,10 @@ int rempi_recorder::record_isend(mpi_const void *buf,
 {
   int ret;
   int resultlen;
+  int matching_set_id;
 
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
-  rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request, REMPI_SEND_REQUEST);
+  rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request, REMPI_SEND_REQUEST, &matching_set_id);
   return ret;
 }
 
@@ -149,8 +150,10 @@ int rempi_recorder::record_irecv(
 {
   rempi_event *e;
   int ret;
+  int matching_set_id;
+
   ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
-  rempi_reqmg_register_request(buf, count, datatype, source, tag, comm, request, REMPI_RECV_REQUEST);
+  rempi_reqmg_register_request(buf, count, datatype, source, tag, comm, request, REMPI_RECV_REQUEST, &matching_set_id);
 
 
   e = rempi_event::create_recv_event(MPI_ANY_SOURCE, tag, NULL, request);
@@ -194,6 +197,7 @@ int rempi_recorder::replay_irecv(
   rempi_event *replaying_recv_event;
   int replaying_queue_status;
   int replaying_source;
+  int matching_set_id;
   
 
   //  REMPI_DBGI(1, "Irecv: %p", *request);
@@ -229,7 +233,7 @@ int rempi_recorder::replay_irecv(
     replaying_source = (replaying_recv_event->get_rank() == REMPI_MPI_EVENT_RANK_CANCELED)? source:replaying_recv_event->get_rank();
     ret = PMPI_Irecv(buf, count, datatype, replaying_source, tag, comm, request);  
     //    REMPI_DBG("register: %p: source: %d, tag: %d", *request,replaying_source, tag);
-    rempi_reqmg_register_request(buf, count, datatype, source, tag, comm, request, REMPI_RECV_REQUEST);
+    rempi_reqmg_register_request(buf, count, datatype, source, tag, comm, request, REMPI_RECV_REQUEST, &matching_set_id);
     //    delete replaying_recv_event;
     
   } else {
@@ -548,9 +552,10 @@ int rempi_recorder::record_pf(int source,
   int record_flag, record_source;
 
 
+
   /*TODO: Interface for NULL request. For now, use dummy_req*/
-  rempi_reqmg_register_request(NULL, 0, MPI_BYTE, source, tag, comm, &dummy_req, REMPI_RECV_REQUEST);
-  global_test_id = rempi_reqmg_get_test_id(&dummy_req, 1);
+  rempi_reqmg_register_request(NULL, 0, MPI_BYTE, source, tag, comm, &dummy_req, REMPI_RECV_REQUEST, &global_test_id);
+  //  global_test_id = rempi_reqmg_get_test_id(&dummy_req, 1);
   rempi_reqmg_deregister_request(&dummy_req, REMPI_RECV_REQUEST);
 
   /* Call MPI matching function */
@@ -799,8 +804,8 @@ int rempi_recorder::replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI
   int replay_queue_status;
   MPI_Request dummy_req = NULL;
 
-  rempi_reqmg_register_request(NULL, 0, MPI_BYTE, source, tag, comm, &dummy_req, REMPI_RECV_REQUEST);
-  test_id = rempi_reqmg_get_test_id(&dummy_req, 1);
+  rempi_reqmg_register_request(NULL, 0, MPI_BYTE, source, tag, comm, &dummy_req, REMPI_RECV_REQUEST, &test_id);
+  //  test_id = rempi_reqmg_get_test_id(&dummy_req, 1);
   rempi_reqmg_deregister_request(&dummy_req, REMPI_RECV_REQUEST);
 
 

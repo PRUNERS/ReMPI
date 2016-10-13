@@ -117,7 +117,7 @@ class rempi_reqmg_recv_args
     - MPI_Request_free   
 */
 int rempi_reqmg_register_request(mpi_const void *buf, int count, MPI_Datatype datatype, int source,
-				 int tag, MPI_Comm comm, MPI_Request *request, int request_type);
+				 int tag, MPI_Comm comm, MPI_Request *request, int request_type, int *matching_set_id);
 int rempi_reqmg_deregister_request(MPI_Request *request, int request_type);
 /* =========== */
 
@@ -133,6 +133,7 @@ void rempi_reqmg_get_request_type(MPI_Request *request, int *request_type);
 void rempi_reqmg_store_send_statuses(int incount, MPI_Request *requests, int *request_info, MPI_Status *statuses);
 
 /* Get/Set matching set ids */
+int rempi_reqmg_get_matching_set_id(MPI_Request *requet);
 int rempi_reqmg_get_matching_set_id_map(int **mpi_call_ids, int **matching_set_ids, int *length);
 int rempi_reqmg_set_matching_set_id_map(int *mpi_call_ids, int *matching_set_ids, int length);
 

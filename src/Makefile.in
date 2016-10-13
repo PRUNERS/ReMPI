@@ -83,10 +83,10 @@ am__objects_1 = librempi_la-rempi_pmpi.lo librempi_la-rempi_err.lo \
 	librempi_la-rempi_compression_util.lo \
 	librempi_la-rempi_config.lo librempi_la-rempi_re.lo \
 	librempi_la-rempi_sig_handler.lo librempi_la-rempi_status.lo \
-	librempi_la-rempi_mf.lo librempi_la-rempi_recorder_cdc.lo \
-	librempi_la-rempi_recorder.lo \
-	librempi_la-rempi_message_manager.lo \
-	librempi_la-rempi_mpi_init.lo librempi_la-rempi_request_mg.lo \
+	librempi_la-rempi_mf.lo librempi_la-rempi_msg_buffer.lo \
+	librempi_la-rempi_recorder_cdc.lo \
+	librempi_la-rempi_recorder.lo librempi_la-rempi_mpi_init.lo \
+	librempi_la-rempi_request_mg.lo \
 	librempi_la-rempi_event_list.lo librempi_la-rempi_event.lo \
 	librempi_la-rempi_cp.lo \
 	librempi_la-rempi_clock_delta_compression.lo \
@@ -101,21 +101,20 @@ librempix_la_LIBADD =
 am__librempix_la_SOURCES_DIST = rempi_pmpi.cpp rempi_err.cpp \
 	rempi_mem.cpp rempi_util.cpp rempi_compression_util.cpp \
 	rempi_config.cpp rempi_re.cpp rempi_sig_handler.cpp \
-	rempi_status.cpp rempi_mf.cpp rempi_recorder_cdc.cpp \
-	rempi_recorder.cpp rempi_message_manager.cpp \
-	rempi_mpi_init.cpp rempi_request_mg.cpp rempi_event_list.cpp \
-	rempi_event.cpp rempi_cp.cpp rempi_clock_delta_compression.cpp \
+	rempi_status.cpp rempi_mf.cpp rempi_msg_buffer.cpp \
+	rempi_recorder_cdc.cpp rempi_recorder.cpp rempi_mpi_init.cpp \
+	rempi_request_mg.cpp rempi_event_list.cpp rempi_event.cpp \
+	rempi_cp.cpp rempi_clock_delta_compression.cpp \
 	rempi_encoder.cpp rempi_encoder_basic.cpp \
 	rempi_encoder_cdc.cpp rempi_encoder_rep.cpp rempi_thread.cpp \
 	rempi_io_thread.cpp rempi_mutex.cpp
 am__objects_2 = rempi_pmpi.lo rempi_err.lo rempi_mem.lo rempi_util.lo \
 	rempi_compression_util.lo rempi_config.lo rempi_re.lo \
 	rempi_sig_handler.lo rempi_status.lo rempi_mf.lo \
-	rempi_recorder_cdc.lo rempi_recorder.lo \
-	rempi_message_manager.lo rempi_mpi_init.lo rempi_request_mg.lo \
-	rempi_event_list.lo rempi_event.lo rempi_cp.lo \
-	rempi_clock_delta_compression.lo rempi_encoder.lo \
-	rempi_encoder_basic.lo rempi_encoder_cdc.lo \
+	rempi_msg_buffer.lo rempi_recorder_cdc.lo rempi_recorder.lo \
+	rempi_mpi_init.lo rempi_request_mg.lo rempi_event_list.lo \
+	rempi_event.lo rempi_cp.lo rempi_clock_delta_compression.lo \
+	rempi_encoder.lo rempi_encoder_basic.lo rempi_encoder_cdc.lo \
 	rempi_encoder_rep.lo rempi_thread.lo rempi_io_thread.lo \
 	rempi_mutex.lo
 @ENABLE_CDC_TRUE@am_librempix_la_OBJECTS = $(am__objects_2)
@@ -286,9 +285,9 @@ rempi_SOURCES = \
 	        rempi_sig_handler.cpp \
 	        rempi_status.cpp \
 	        rempi_mf.cpp \
+		rempi_msg_buffer.cpp \
 		rempi_recorder_cdc.cpp \
 		rempi_recorder.cpp \
-		rempi_message_manager.cpp \
 		rempi_mpi_init.cpp \
 		rempi_request_mg.cpp \
 		rempi_event_list.cpp \
@@ -485,9 +484,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_event_list.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_io_thread.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_mem.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_message_manager.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_mf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_mpi_init.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_msg_buffer.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_mutex.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_pmpi.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librempi_la-rempi_re.Plo@am__quote@
@@ -511,9 +510,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_event_list.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_io_thread.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_mem.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_message_manager.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_mf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_mpi_init.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_msg_buffer.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_mutex.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_pmpi.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rempi_re.Plo@am__quote@
@@ -616,6 +615,13 @@ librempi_la-rempi_mf.lo: rempi_mf.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librempi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o librempi_la-rempi_mf.lo `test -f 'rempi_mf.cpp' || echo '$(srcdir)/'`rempi_mf.cpp
 
+librempi_la-rempi_msg_buffer.lo: rempi_msg_buffer.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librempi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT librempi_la-rempi_msg_buffer.lo -MD -MP -MF $(DEPDIR)/librempi_la-rempi_msg_buffer.Tpo -c -o librempi_la-rempi_msg_buffer.lo `test -f 'rempi_msg_buffer.cpp' || echo '$(srcdir)/'`rempi_msg_buffer.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/librempi_la-rempi_msg_buffer.Tpo $(DEPDIR)/librempi_la-rempi_msg_buffer.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='rempi_msg_buffer.cpp' object='librempi_la-rempi_msg_buffer.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librempi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o librempi_la-rempi_msg_buffer.lo `test -f 'rempi_msg_buffer.cpp' || echo '$(srcdir)/'`rempi_msg_buffer.cpp
+
 librempi_la-rempi_recorder_cdc.lo: rempi_recorder_cdc.cpp
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librempi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT librempi_la-rempi_recorder_cdc.lo -MD -MP -MF $(DEPDIR)/librempi_la-rempi_recorder_cdc.Tpo -c -o librempi_la-rempi_recorder_cdc.lo `test -f 'rempi_recorder_cdc.cpp' || echo '$(srcdir)/'`rempi_recorder_cdc.cpp
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/librempi_la-rempi_recorder_cdc.Tpo $(DEPDIR)/librempi_la-rempi_recorder_cdc.Plo
@@ -629,13 +635,6 @@ librempi_la-rempi_recorder.lo: rempi_recorder.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='rempi_recorder.cpp' object='librempi_la-rempi_recorder.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librempi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o librempi_la-rempi_recorder.lo `test -f 'rempi_recorder.cpp' || echo '$(srcdir)/'`rempi_recorder.cpp
-
-librempi_la-rempi_message_manager.lo: rempi_message_manager.cpp
-@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librempi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT librempi_la-rempi_message_manager.lo -MD -MP -MF $(DEPDIR)/librempi_la-rempi_message_manager.Tpo -c -o librempi_la-rempi_message_manager.lo `test -f 'rempi_message_manager.cpp' || echo '$(srcdir)/'`rempi_message_manager.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/librempi_la-rempi_message_manager.Tpo $(DEPDIR)/librempi_la-rempi_message_manager.Plo
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='rempi_message_manager.cpp' object='librempi_la-rempi_message_manager.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librempi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o librempi_la-rempi_message_manager.lo `test -f 'rempi_message_manager.cpp' || echo '$(srcdir)/'`rempi_message_manager.cpp
 
 librempi_la-rempi_mpi_init.lo: rempi_mpi_init.cpp
 @am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(librempi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT librempi_la-rempi_mpi_init.lo -MD -MP -MF $(DEPDIR)/librempi_la-rempi_mpi_init.Tpo -c -o librempi_la-rempi_mpi_init.lo `test -f 'rempi_mpi_init.cpp' || echo '$(srcdir)/'`rempi_mpi_init.cpp

@@ -4,7 +4,7 @@
 #include <vector>
 #include <set>
 
-#include "rempi_message_manager.h"
+//#include "rempi_message_manager.h"
 #include "rempi_event.h"
 
 

@@ -301,6 +301,7 @@ static int rempi_reqmg_get_matching_set_id(int *matching_set_id, int *mpi_call_i
 
 }
 
+
 static int get_matching_set_id(MPI_Request *request, int count)
 {
   int recv_id = -1;
@@ -355,17 +356,17 @@ static int assign_matching_set_id(int recv_id, int source, int tag, int comm_id)
 
 
 static int rempi_reqmg_register_recv_request(mpi_const void *buf, int count, MPI_Datatype datatype, int source,
-					     int tag, MPI_Comm comm, MPI_Request *request)
+					     int tag, MPI_Comm comm, MPI_Request *request, int *matching_set_id)
 {
   int size;
   void* pooled_buffer;
   MPI_Request *pooled_request;
   int ret;
-  int matching_set_id, mpi_call_id;
+  int mpi_call_id;
 
   //   *request = (MPI_Request)(mpi_request_id++);
-  rempi_reqmg_get_matching_set_id(&matching_set_id, &mpi_call_id, REMPI_REQMG_MPI_CALL_TYPE_RECV, 0, NULL);
-  request_to_recv_args_umap[*request] = new rempi_reqmg_recv_args(buf, count, datatype, source, tag, comm, *request, mpi_call_id, matching_set_id);
+  rempi_reqmg_get_matching_set_id(matching_set_id, &mpi_call_id, REMPI_REQMG_MPI_CALL_TYPE_RECV, 0, NULL);
+  request_to_recv_args_umap[*request] = new rempi_reqmg_recv_args(buf, count, datatype, source, tag, comm, *request, mpi_call_id, *matching_set_id);
   //   PMPI_Type_size(datatype, &size);
   //pooled_buffer = rempi_malloc(size * count);
   //  pooled_request = (MPI_Request*)rempi_malloc(sizeof(MPI_Request));
@@ -721,16 +722,17 @@ static int rempi_reqmg_is_record_and_replay(int length, int *request_info, int s
 }
 
 int rempi_reqmg_register_request(mpi_const void *buf, int count, MPI_Datatype datatype, int rank,
-				 int tag, MPI_Comm comm, MPI_Request *request, int request_type)
+				 int tag, MPI_Comm comm, MPI_Request *request, int request_type, int *matching_set_id)
 {
   //  REMPI_DBG("Register  : %p (%d)", *request, request_type);
   int ret;
   switch(request_type) {
   case REMPI_SEND_REQUEST:
+    *matching_set_id = REMPI_REQMG_MATCHING_SET_ID_UNKNOWN;
     ret = rempi_reqmg_register_send_request(buf, count, datatype, rank, tag, comm, request);
     break;
   case REMPI_RECV_REQUEST:
-    ret = rempi_reqmg_register_recv_request(buf, count, datatype, rank, tag, comm, request);
+    ret = rempi_reqmg_register_recv_request(buf, count, datatype, rank, tag, comm, request, matching_set_id);
     break;
   default:
     REMPI_ERR("Cannot register MPI_Request: request_type: %d", request_type);

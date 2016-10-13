@@ -23,6 +23,7 @@ rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_event
   encoder = NULL;
 #if !defined(REMPI_LITE)
   if (rempi_encode == 0) {
+    REMPI_ERR("No such encode: %d", rempi_encode)
     encoder = new rempi_encoder(mode, record_path);                       //  (1): Simple record (count, flag, rank with_next and clock)
   } else if (rempi_encode == 1) {
     REMPI_ERR("No such encode: %d", rempi_encode);
