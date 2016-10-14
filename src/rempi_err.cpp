@@ -186,6 +186,7 @@ string rempi_btrace_string()
     perror("backtrace_symbols");
     exit(EXIT_FAILURE);
   }
+
   /*
     You can translate the address to function name by
     addr2line -f -e ./a.out <address>

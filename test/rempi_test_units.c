@@ -74,14 +74,14 @@ int size;
 static double start, end, overall_end;
 
 int matching_ids[] = {
-   /* MPI_Test_id, */
-   /* MPI_Testany_id, */
-  /*  MPI_Testsome_id, */
-  /* MPI_Testall_id, */
-  //  MPI_Wait_id,
+  MPI_Test_id,
+  MPI_Testany_id,
+  MPI_Testsome_id,
+  MPI_Testall_id,
+  MPI_Wait_id,
   MPI_Waitany_id,
-  //   MPI_Waitsome_id,
-   //    MPI_Waitall_id
+  MPI_Waitsome_id,
+  MPI_Waitall_id
 };
 
 int probe_ids[] = {
@@ -684,7 +684,7 @@ int main(int argc, char *argv[])
 
     if (!strcmp(test_name, "matching") || is_all) {
 #if defined(TEST_MATCHING_FUNC)
-      if (my_rank == 0) fprintf(stdout, "Start testing matching functions ... "); fflush(stdout);
+      if (my_rank == 0) fprintf(stdout, "Start testing matching functions ... \n"); fflush(stdout);
       for (i = 0; i < sizeof(matching_ids)/ sizeof(int); i++) {
 	rempi_test_mpi_send_and_nonblocking_recvs(matching_ids[i]);
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -695,7 +695,7 @@ int main(int argc, char *argv[])
 
     if (!strcmp(test_name, "probe")  || is_all) {
 #if defined(TEST_PROBE_FUNC)
-      if (my_rank == 0) fprintf(stdout, "Start testing probe functions ... "); fflush(stdout);
+      if (my_rank == 0) fprintf(stdout, "Start testing probe functions ... \n"); fflush(stdout);
       for (i = 0; i < sizeof(probe_ids) / sizeof(int); i++) {
 	rempi_test_probe(probe_ids[i]);
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -706,7 +706,7 @@ int main(int argc, char *argv[])
 
     if (!strcmp(test_name, "isend") || is_all) {
 #if defined(TEST_ISEND_FUNC)
-      if (my_rank == 0) fprintf(stdout, "Start testing isend functions ... "); fflush(stdout);
+      if (my_rank == 0) fprintf(stdout, "Start testing isend functions ... \n"); fflush(stdout);
       for (i = 0; i < sizeof(isend_ids) / sizeof(int); i++) {
 	rempi_test_nonblocking_sends(isend_ids[i]);
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -717,7 +717,7 @@ int main(int argc, char *argv[])
 
     if (!strcmp(test_name, "init_sendrecv") || is_all) {
 #if defined(TEST_INIT_SENDRECV_FUNC)
-      if (my_rank == 0) fprintf(stdout, "Start testing init send/recv functions ... "); fflush(stdout);
+      if (my_rank == 0) fprintf(stdout, "Start testing init send/recv functions ... \n"); fflush(stdout);
       for (i = 0; i < sizeof(send_init_ids)/sizeof(int); i++) {
 	rempi_test_init_sendrecv(send_init_ids[i], MPI_Start_id, MPI_Start_id);
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -728,7 +728,7 @@ int main(int argc, char *argv[])
 
     if (!strcmp(test_name, "start") || is_all) {
 #if defined(TEST_START_FUNC)
-      if (my_rank == 0) fprintf(stdout, "Start testing start/startall functions ... "); fflush(stdout);
+      if (my_rank == 0) fprintf(stdout, "Start testing start/startall functions ... \n"); fflush(stdout);
       for (i = 0; i < sizeof(start_ids)/sizeof(int); i++) {
 	for (j = 0; j < sizeof(start_ids)/sizeof(int); j++) {
 	  rempi_test_init_sendrecv(MPI_Send_init_id, start_ids[i], start_ids[j]);
@@ -742,7 +742,7 @@ int main(int argc, char *argv[])
     if (!strcmp(test_name, "null_status") || is_all) {
 
 #if defined(TEST_NULL_STATUS)
-      if (my_rank == 0) fprintf(stdout, "Start testing null status ... "); fflush(stdout);
+      if (my_rank == 0) fprintf(stdout, "Start testing null status ... \n"); fflush(stdout);
       for (i = 0; i < sizeof(status_ids)/sizeof(int); i++) {
 	rempi_test_null_status(status_ids[i]);
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -754,7 +754,7 @@ int main(int argc, char *argv[])
 
     if (!strcmp(test_name, "sendrecv_req") || is_all) {
 #if defined(TEST_SENDRECV_REQ)
-      if (my_rank == 0) fprintf(stdout, "Start testing sendrecv req ... "); fflush(stdout);
+      if (my_rank == 0) fprintf(stdout, "Start testing sendrecv req ... \n"); fflush(stdout);
       for (i = 0; i < sizeof(sendrecv_req_ids)/sizeof(int); i++) {
 	rempi_test_sendrecv_req(sendrecv_req_ids[i]);
 	MPI_Barrier(MPI_COMM_WORLD);

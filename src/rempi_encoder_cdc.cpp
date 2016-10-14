@@ -2294,9 +2294,6 @@ void rempi_encoder_cdc::close_record_file()
        it++) {
     rempi_event *e = *it;
 
-    // REMPI_DBGI(0, "RPQv -> RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) recv_recv_test_id: %d",
-    // 		 e->get_event_counts(), e->get_with_next(), e->get_flag(),
-    // 		 e->get_source(), e->get_clock(), recv_test_id);
 
 #ifdef REMPI_DBG_REPLAY
     REMPI_DBGI(REMPI_DBG_REPLAY, "RPQv -> RPQ ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) recv_recv_test_id: %d",

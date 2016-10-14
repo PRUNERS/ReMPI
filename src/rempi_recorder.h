@@ -135,6 +135,7 @@ class rempi_recorder {
   MPI_Request tmp_requests[PRE_ALLOCATED_REQUEST_LENGTH];
 
   void cancel_request(MPI_Request *request);
+  int rempi_get_matched_count(int incount, int *outcount, int matching_function_type);
   virtual int rempi_mf(int incount,
 		       MPI_Request array_of_requests[],
 		       int *outcount,

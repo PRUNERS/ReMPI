@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <vector>
 
 #include <mpi.h>
 
@@ -16,6 +17,9 @@
 #define REMPI_RECV_REQUEST (152)
 #define REMPI_NULL_REQUEST (153)
 #define REMPI_IGNR_REQUEST (154)
+
+#define REMPI_REQMG_MATCHING_SET_ID_UNKNOWN   (-1)
+#define REMPI_REQMG_MPI_CALL_ID_UNKNOWN   (-1)
 
 using namespace std;
 
@@ -72,7 +76,7 @@ class rempi_reqmg_recv_args
 {
 
  public:
-  const void* buffer;
+  void* buffer;
   int count;
   MPI_Datatype datatype;
   int source;
@@ -85,7 +89,7 @@ class rempi_reqmg_recv_args
   
     
 
-  rempi_reqmg_recv_args(mpi_const void *buf, int count, MPI_Datatype datatype, int source,
+  rempi_reqmg_recv_args(void *buf, int count, MPI_Datatype datatype, int source,
 			int tag, MPI_Comm comm, MPI_Request request, int mpi_call_id, int matching_set_id)
     : buffer(buf)
     , count(count)
@@ -121,6 +125,7 @@ int rempi_reqmg_register_request(mpi_const void *buf, int count, MPI_Datatype da
 int rempi_reqmg_deregister_request(MPI_Request *request, int request_type);
 /* =========== */
 
+
 /* Check and progress receiving messages */
 int rempi_reqmg_progress_recv(int matching_set_id, int incount, MPI_Request array_of_requests[]);
 
@@ -131,6 +136,10 @@ int rempi_reqmg_get_test_id(MPI_Request *request, int count);
 void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendcount, int *recvcount, int *nullcount, int *request_info, int *is_record_and_replay, int *matching_set_id);
 void rempi_reqmg_get_request_type(MPI_Request *request, int *request_type);
 void rempi_reqmg_store_send_statuses(int incount, MPI_Request *requests, int *request_info, MPI_Status *statuses);
+
+/* Get arguments */
+int rempi_reqmg_get_matching_id(MPI_Request *request, int *rank, int *tag, MPI_Comm *comm);
+int rempi_reqmg_get_buffer(MPI_Request *request, void** buffer);
 
 /* Get/Set matching set ids */
 int rempi_reqmg_get_matching_set_id(MPI_Request *requet);

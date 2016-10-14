@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#export BG_COREDUMPBINARY="*"
+export BG_COREDUMPBINARY="*"
 
 #prefix=/g/g90/sato5/repo/rempi
 prefix=/p/lscratchv/sato5/
