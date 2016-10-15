@@ -21,6 +21,7 @@
 #include "rempi_compression_util.h"
 #include "rempi_cp.h"
 #include "rempi_request_mg.h"
+#include "rempi_msg_buffer.h"
 
 
 #define REMPI_DECODE_STATUS_OPEN         (0)
@@ -439,7 +440,51 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
 }
 
 
+#define DEV_MSGB
+#ifdef DEV_MSGB
+int rempi_encoder_cdc::howto_update_look_ahead_recv_clock(int recv_rank, int matching_set_id,
+							  unordered_set<int> *probed_message_source_set,
+							  unordered_set<int> *pending_message_source_set,
+							  unordered_map<int, size_t> *recv_message_source_umap,
+							  unordered_map<int, size_t> *recv_clock_umap,
+							  unordered_map<int, size_t> *solid_mc_next_clocks_umap,
+							  int replaying_matching_set_id)
+{
+  int howto_update;
+  size_t max_recved_clock;
 
+  if (rempi_msgb_has_probed_msg(recv_rank)) {
+    /* Because very small clock may arrive after calling MPI_recv/irecv
+       we cannnot update anything.
+       TODO: only update ranks with which MPI_probe did not probe
+    */
+    howto_update = REMPI_ENCODER_NO_UPDATE;
+  } else if (replaying_matching_set_id != matching_set_id) {
+    howto_update = REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE;
+  } else if (rempi_msgb_has_recved_msg(recv_rank)) {
+    howto_update = REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE;
+  } else if (rempi_cp_has_in_flight_msgs(recv_rank)) {
+    howto_update = REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE;
+  } else {
+    howto_update = REMPI_ENCODER_LOOK_AHEAD_CLOCK_UPDATE;
+  }
+  
+  if (howto_update == REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE) {
+    if ((max_recved_clock = rempi_msgb_get_max_recved_clock(recv_rank)) == 0) {
+      howto_update = REMPI_ENCODER_NO_UPDATE;
+    } else {
+    /* 
+       I already received "max_recved_clock", so next clock must be bigger than max_recvd_clock. 
+       So compare wit "max_recved_clock + 1"
+    */
+      if (max_recved_clock + 1 < solid_mc_next_clocks_umap->at(recv_rank)) {
+	howto_update = REMPI_ENCODER_NO_UPDATE;
+      }
+    }
+  }
+  return howto_update;
+}
+#else
 int rempi_encoder_cdc::howto_update_look_ahead_recv_clock(int recv_rank, int matching_set_id,
 							  unordered_set<int> *probed_message_source_set,
 							  unordered_set<int> *pending_message_source_set,
@@ -479,6 +524,7 @@ int rempi_encoder_cdc::howto_update_look_ahead_recv_clock(int recv_rank, int mat
   }
   return howto_update;
 }
+#endif
 
 
 /*
@@ -521,7 +567,11 @@ int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *pr
       case REMPI_ENCODER_NO_UPDATE:
 	break;
       case REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE:
+#ifdef DEV_MSGB
+	solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) = rempi_msgb_get_max_recved_clock(mc_recv_ranks[index]);
+#else
 	solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) = recv_clock_umap->at((mc_recv_ranks[index]));
+#endif
 	break;
       case REMPI_ENCODER_LOOK_AHEAD_CLOCK_UPDATE:
 	solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) = rempi_cp_get_gather_clock(mc_recv_ranks[index]);

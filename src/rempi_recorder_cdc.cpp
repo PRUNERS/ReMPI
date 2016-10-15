@@ -544,7 +544,7 @@ int rempi_recorder_cdc::progress_probe()
   int flag;
 
   probed_message_source_set.clear();
-  pred_ranks = rempi_get_pred_ranks(&pred_ranks_length);
+  pred_ranks = rempi_cp_get_pred_ranks(&pred_ranks_length);
   for (int i = 0; i < pred_ranks_length; i++) {
     for (int j = 0; j < comm_length; j ++) {
       PMPI_Iprobe(pred_ranks[j], MPI_ANY_TAG, comm[j], &flag, MPI_STATUS_IGNORE);

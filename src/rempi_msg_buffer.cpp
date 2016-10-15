@@ -1,4 +1,6 @@
 #include <list>
+#include <unordered_set>
+#include <unordered_map>
 
 #include "rempi_msg_buffer.h"
 #include "rempi_request_mg.h"
@@ -32,10 +34,11 @@ static rempi_event_list<rempi_event*> *recv_event_queue;
 static list<rempi_reqmg_recv_args*> active_recv_list;
 /* MPI_Irecv not is posted. Needs to be probed by probing functions */
 static list<inactive_request*> inactive_recv_list;
-/* */
-static unordered_map<MPI_Request, void*> request_to_original_buffer;
 
 
+unordered_set<int> probed_message_source_set;
+unordered_set<int> recved_message_source_set;
+unordered_map<int, size_t> max_recved_clock_umap;
 
 
 
@@ -66,6 +69,22 @@ static int activate_recv(int count, MPI_Datatype datatype, int source, int tag, 
   return 0;
 }
 
+static int update_max_recved_clock(int source, size_t clock) 
+{
+  size_t old_clock;
+  if (max_recved_clock_umap.find(source) == 
+      max_recved_clock_umap.end()) {
+    old_clock = 0;
+  } else {
+    old_clock = max_recved_clock_umap.at(source);
+  }
+
+  if (old_clock < clock) {
+    max_recved_clock_umap[source]  = clock;
+  } 
+  return 0;
+}
+
 static int progress_inactive_recv()
 {
   size_t clock;
@@ -79,11 +98,14 @@ static int progress_inactive_recv()
     recv_args = (*it)->recv_args;
     flag = 0;
 
-    CLMPI_register_recv_clocks(&clock, 1);
     CLMPI_clock_control(0);
+
     PMPI_Iprobe(recv_args->source, recv_args->tag, recv_args->comm, &flag, &status);
+    //    REMPI_DBG("Probe: source:%d, tag:%d => flag: %d", recv_args->source, recv_args->tag, flag);
+    //    sleep(1);
     CLMPI_clock_control(1);
     if (flag) {
+      //      REMPI_DBG("size: %lu", inactive_recv_list.size());
       PMPI_Get_count(&status, recv_args->datatype, &count);
       if (recv_args->count != count) {
 	REMPI_ERR("Recieve count is inconsistent: %d and %d", recv_args->count, count);
@@ -103,7 +125,7 @@ static int progress_active_recv()
   MPI_Status status;
   rempi_event *event;
 
-
+  recved_message_source_set.clear();
   for (it = active_recv_list.begin(); it != active_recv_list.end();) {
     recv_args = *it;
     flag = 0;
@@ -119,6 +141,7 @@ static int progress_active_recv()
       inactive_recv_list.push_back(new inactive_request(recv_args, status));
       it = active_recv_list.erase(it);
       rempi_cp_record_recv(status.MPI_SOURCE, 0);
+      recved_message_source_set.insert(status.MPI_SOURCE);
       event =  rempi_event::create_test_event(1,
 					      1,
 					      status.MPI_SOURCE,
@@ -126,9 +149,29 @@ static int progress_active_recv()
 					      REMPI_MPI_EVENT_INPUT_IGNORE,
 					      clock,
 					      recv_args->matching_set_id);
+      update_max_recved_clock(status.MPI_SOURCE, clock);
       send_event_queue->enqueue_replay(event, recv_args->matching_set_id);
     } else {
       it++;
+    }
+  }
+  return 0;
+}
+
+static int probe_msg()
+{
+  size_t pred_ranks_length;
+  int *pred_ranks;
+  size_t comm_length = 1;
+  MPI_Comm comm[1] = {MPI_COMM_WORLD};
+  int flag;
+  
+  probed_message_source_set.clear();
+  pred_ranks = rempi_cp_get_pred_ranks(&pred_ranks_length);
+  for (int i = 0; i < pred_ranks_length; i++) {
+    for (int j = 0; j < comm_length; j ++) {
+      PMPI_Iprobe(pred_ranks[j], MPI_ANY_TAG, comm[j], &flag, MPI_STATUS_IGNORE);
+      if (flag) probed_message_source_set.insert(pred_ranks[j]);
     }
   }
   return 0;
@@ -158,13 +201,12 @@ MPI_Request rempi_msgb_allocate_request(int request_type)
   default:
     REMPI_ERR("No such request_type: %d", request_type);
   }
-
+  return MPI_REQUEST_NULL;
 }
 
 int rempi_msgb_register_recv(void *buf, int count, MPI_Datatype datatype, int source,
                                  int tag, MPI_Comm comm, MPI_Request *request, int matching_set_id)
 {
-  request_to_original_buffer[*request] = buf;
   activate_recv(count, datatype, source, tag, comm, matching_set_id);
   return 0;
 }
@@ -173,14 +215,20 @@ int rempi_msgb_progress_recv()
 {
   progress_active_recv();
   progress_inactive_recv();
+  probe_msg();
+  return 0;
 }
 
 int rempi_msgb_cancel_request(MPI_Request *request)
 {
-  
+  /* 
+     Regardless of how canceling recv request, ReMPI replay message order as recorded.
+     So this routin do not anything.
+  */
+  return 0;
 }
 
-int rempi_msgb_recv_msg(void* dest_buffer, int replayed_rank, int requested_tag, int requested_comm, MPI_Status *replaying_status)
+int rempi_msgb_recv_msg(void* dest_buffer, int replayed_rank, int requested_tag, MPI_Comm  requested_comm, MPI_Status *replaying_status)
 {
   list<inactive_request*>::iterator it;
   inactive_request* inactive_request;
@@ -209,6 +257,21 @@ int rempi_msgb_recv_msg(void* dest_buffer, int replayed_rank, int requested_tag,
   return 0;
 }
 
+
+int rempi_msgb_has_recved_msg(int source) 
+{
+  return (recved_message_source_set.find(source) != recved_message_source_set.end())? 1:0;
+}
+
+int rempi_msgb_has_probed_msg(int source)
+{
+  return (probed_message_source_set.find(source) != probed_message_source_set.end())? 1:0;
+}
+
+size_t rempi_msgb_get_max_recved_clock(int source)
+{
+  return (max_recved_clock_umap.find(source) != max_recved_clock_umap.end())? max_recved_clock_umap.at(source):0;
+}
 
 
 

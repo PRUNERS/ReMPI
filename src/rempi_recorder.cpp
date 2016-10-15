@@ -27,32 +27,21 @@ void rempi_recorder::update_validation_code(int incount, int *outcount, int *arr
   int matched_count;
   matched_count = *outcount;
   validation_code = rempi_hash(validation_code, matched_count);
-  //  REMPI_DBG("val matched: %d", outcount);
-  fprintf(stderr, "C:%d:", matched_count);
+  //  fprintf(stderr, "C:%d:", matched_count);
   for (int i = 0; i < matched_count; i++) {
     if (array_of_indices != NULL) {
       index = array_of_indices[i];
       validation_code = rempi_hash(validation_code, index);
-
-      //      REMPI_DBG("request_info: %p %d to index: %d (matched: %d)", request_info, i, index, matched_count);
     }
     if (request_info != NULL) {
-      // REMPI_DBG("request_info: %p index: %d", request_info, index);
-      // REMPI_DBG("request_info_index: %d", request_info[index]);
       if (request_info[index] != REMPI_SEND_REQUEST) {
 	validation_code = rempi_hash(validation_code, array_of_statuses[i].MPI_SOURCE);
 	validation_code = rempi_hash(validation_code, array_of_statuses[i].MPI_TAG);
       }
     } 
-    fprintf(stderr, "I:%d(%d,%d) ", index, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG);
-    // else {
-    //   validation_code = rempi_hash(validation_code, array_of_statuses[i].MPI_SOURCE);
-    //   validation_code = rempi_hash(validation_code, array_of_statuses[i].MPI_TAG);
-    // }
-    //    REMPI_DBG("val: index: %d, source: %d, tag: %d", index, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG);
-    //REMPI_DBGI(1, "validation: code: %lu", validation_code);
+    //    fprintf(stderr, "I:%d(%d,%d) ", index, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG);
   }
-  fprintf(stderr, "\n");
+  //  fprintf(stderr, "\n");
   return;  
 }
 

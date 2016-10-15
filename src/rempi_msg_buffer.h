@@ -12,7 +12,11 @@ int rempi_msgb_register_recv(void *buf, int count, MPI_Datatype datatype, int so
 			     int tag, MPI_Comm comm, MPI_Request *request, int matching_set_id);
 int rempi_msgb_progress_recv();
 int rempi_msgb_cancel_request(MPI_Request *request);
-int rempi_msgb_recv_msg(void* dest_buffer, int replayed_rank, int requested_tag, int requested_comm, MPI_Status *replaying_status);
+int rempi_msgb_recv_msg(void* dest_buffer, int replayed_rank, int requested_tag, MPI_Comm requested_comm, MPI_Status *replaying_status);
+
+int rempi_msgb_has_recved_msg(int source);
+int rempi_msgb_has_probed_msg(int source);
+size_t rempi_msgb_get_max_recved_clock(int source);
 
 
 #endif

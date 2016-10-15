@@ -418,7 +418,7 @@ size_t rempi_cp_get_gather_send_count(int source_rank)
   return rempi_cp_gather_pc[index].send_count;
 }
 
-int *rempi_get_pred_ranks(size_t *length) 
+int *rempi_cp_get_pred_ranks(size_t *length) 
 {
   *length = rempi_pred_rank_count;
   return rempi_pred_ranks;
