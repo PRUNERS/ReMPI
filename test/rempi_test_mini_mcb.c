@@ -259,10 +259,10 @@ void neighbor_communication()
 
       if (send_msg_count[recv_index] < neighbor_comm_steps) {
 	sendrecv_kv[recv_index].val = get_hash(sendrecv_kv[recv_index].val + hash_count++, MAX_VAL);
-	MPI_Isend(&sendrecv_kv[recv_index], 8, MPI_CHAR, (my_rank + (recv_index + 1)) % size, 0, MPI_COMM_WORLD, &send_req); 
+	MPI_Isend(&sendrecv_kv[recv_index], 8, MPI_CHAR, (my_rank + (recv_index + 1)) % size, 0, MPI_COMM_WORLD, &send_req);
 	flag = 0;
 	while (flag == 0) {
-	  MPI_Test(&send_req, &flag, &send_stat); 
+	  MPI_Test(&send_req, &flag, &send_stat);
 	}
 	send_msg_count[recv_index]++;
       }
@@ -281,12 +281,13 @@ void neighbor_communication_finalize()
 }
 
 
+
 int compute_global_hash()
 {
   int i;
   int hash = -1;
 
-  final_kv = (struct key_val*)malloc(sizeof(struct key_val) * NUM_KV_PER_RANK * size);  
+  final_kv = (struct key_val*)malloc(sizeof(struct key_val) * NUM_KV_PER_RANK * size);
   memset(final_kv, 0, sizeof(final_kv));
   MPI_Gather(recv_kv, 2 * NUM_KV_PER_RANK, MPI_INT, final_kv, 2 * NUM_KV_PER_RANK, MPI_INT, 0, MPI_COMM_WORLD);
 

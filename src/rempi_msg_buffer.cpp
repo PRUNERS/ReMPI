@@ -11,19 +11,31 @@
 #include "rempi_cp.h"
 #include "clmpi.h"
 
-class inactive_request {
+#define REMPI_MSGB_REQUEST_TYPE_PASSIVE (0) /* Activated by application */
+#define REMPI_MSGB_REQUEST_TYPE_ACTIVE (1)  /* Activated by rempi_msb_buffer */
+
+class rempi_msgb_request {
 public:
+  int type;
   rempi_reqmg_recv_args *recv_args;
   MPI_Status status;
-  inactive_request(rempi_reqmg_recv_args *recv_args, MPI_Status status)
+  MPI_Request app_request;
+  rempi_msgb_request(rempi_reqmg_recv_args *recv_args, MPI_Request *request, MPI_Status *stat, int type)
     : recv_args(recv_args)
-    , status(status)
-  {}
+    , type(type)
+  {
+    if (stat != MPI_STATUS_IGNORE) status = *stat;
+    if (*request != MPI_REQUEST_NULL) app_request = *request;
+  }
+
+  ~rempi_msgb_request() {
+    delete recv_args;
+  }
 };
 
 
-static int rempi_msgb_next_recv_request_id = 0;
-static int rempi_msgb_next_send_request_id = 0;
+static int rempi_msgb_next_recv_request_id = 1;
+static int rempi_msgb_next_send_request_id = 1;
 
 /* Send queue to encoder */
 static rempi_event_list<rempi_event*> *send_event_queue;
@@ -31,15 +43,14 @@ static rempi_event_list<rempi_event*> *send_event_queue;
 static rempi_event_list<rempi_event*> *recv_event_queue;
 
 /* MPI_Irecv is posted. Needs to be tested by matching functions */
-static list<rempi_reqmg_recv_args*> active_recv_list;
+static list<rempi_msgb_request*> active_recv_list;
 /* MPI_Irecv not is posted. Needs to be probed by probing functions */
-static list<inactive_request*> inactive_recv_list;
+static list<rempi_msgb_request*> inactive_recv_list;
 
 
 unordered_set<int> probed_message_source_set;
 unordered_set<int> recved_message_source_set;
 unordered_map<int, size_t> max_recved_clock_umap;
-
 
 
 static int is_matched(int requested_rank, int requested_tag, MPI_Comm requested_comm, int actual_rank, int actual_tag, MPI_Comm actual_comm)
@@ -50,12 +61,14 @@ static int is_matched(int requested_rank, int requested_tag, MPI_Comm requested_
   return 1;
 }
 
-static int activate_recv(int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, int matching_set_id)
+static int activate_recv(int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request, int matching_set_id, int request_type)
 {
   int datatype_size;
   void* pooled_buf;
   rempi_reqmg_recv_args *recv_args;
+  rempi_msgb_request *msgb_request;
   MPI_Request real_request;
+  
 
   PMPI_Type_size(datatype, &datatype_size);
   pooled_buf = rempi_malloc(datatype_size * count);
@@ -63,7 +76,8 @@ static int activate_recv(int count, MPI_Datatype datatype, int source, int tag, 
   recv_args = new rempi_reqmg_recv_args(pooled_buf, count, datatype, source, tag, comm, real_request, 
 					REMPI_REQMG_MPI_CALL_ID_UNKNOWN, 
 					matching_set_id);
-  active_recv_list.push_back(recv_args);
+  msgb_request = new rempi_msgb_request(recv_args, request, MPI_STATUS_IGNORE, request_type);  
+  active_recv_list.push_back(msgb_request);
   //  REMPI_DBGI(0, "request: %p (null: %p)", real_request, MPI_REQUEST_NULL);  
 
   return 0;
@@ -89,13 +103,15 @@ static int progress_inactive_recv()
 {
   size_t clock;
   int flag;
+  rempi_msgb_request *msgb_request;
   rempi_reqmg_recv_args *recv_args;
-  list<inactive_request*>::iterator it, it_end;
+  list<rempi_msgb_request*>::iterator it, it_end;
   MPI_Status status;
   int count;
 
   for (it = inactive_recv_list.begin(); it != inactive_recv_list.end(); it++) {
-    recv_args = (*it)->recv_args;
+    msgb_request = *it;
+    recv_args = msgb_request->recv_args;
     flag = 0;
 
     CLMPI_clock_control(0);
@@ -110,7 +126,8 @@ static int progress_inactive_recv()
       if (recv_args->count != count) {
 	REMPI_ERR("Recieve count is inconsistent: %d and %d", recv_args->count, count);
       }
-      activate_recv(recv_args->count, recv_args->datatype, recv_args->source, recv_args->tag, recv_args->comm, recv_args->matching_set_id);
+      activate_recv(recv_args->count, recv_args->datatype, recv_args->source, recv_args->tag, recv_args->comm, 
+		    &(msgb_request->app_request), recv_args->matching_set_id, REMPI_MSGB_REQUEST_TYPE_ACTIVE);
     }
   }
   return 0;
@@ -120,14 +137,16 @@ static int progress_active_recv()
 {
   size_t clock;
   int flag;
+  rempi_msgb_request *msgb_request;
   rempi_reqmg_recv_args *recv_args;
-  list<rempi_reqmg_recv_args*>::iterator it, it_end;
+  list<rempi_msgb_request*>::iterator it, it_end;
   MPI_Status status;
   rempi_event *event;
 
   recved_message_source_set.clear();
   for (it = active_recv_list.begin(); it != active_recv_list.end();) {
-    recv_args = *it;
+    msgb_request = *it;
+    recv_args = msgb_request->recv_args;
     flag = 0;
 
     CLMPI_register_recv_clocks(&clock, 1);
@@ -136,9 +155,15 @@ static int progress_active_recv()
     PMPI_Test(&recv_args->request, &flag, &status);
     CLMPI_clock_control(1);
     if (flag) {
-      // REMPI_DBGI(0, "A->     : (source: %d, tag: %d, clock: %d, msid: %d)",
-      // 		 status.MPI_SOURCE, status.MPI_TAG, clock, recv_args->matching_set_id);
-      inactive_recv_list.push_back(new inactive_request(recv_args, status));
+#ifdef REMPI_DBG_REPLAY      
+      REMPI_DBGI(-1, "A->     : (source: %d, tag: %d, clock: %d, msid: %d)",
+       		 status.MPI_SOURCE, status.MPI_TAG, clock, recv_args->matching_set_id);
+      // REMPI_DBGI(REMPI_DBG_REPLAY, "A->     : (source: %d, tag: %d, clock: %d, msid: %d)",
+      //  		 status.MPI_SOURCE, status.MPI_TAG, clock, recv_args->matching_set_id);
+#endif
+      
+      msgb_request->status = status;
+      inactive_recv_list.push_back(msgb_request);
       it = active_recv_list.erase(it);
       rempi_cp_record_recv(status.MPI_SOURCE, 0);
       recved_message_source_set.insert(status.MPI_SOURCE);
@@ -207,7 +232,7 @@ MPI_Request rempi_msgb_allocate_request(int request_type)
 int rempi_msgb_register_recv(void *buf, int count, MPI_Datatype datatype, int source,
                                  int tag, MPI_Comm comm, MPI_Request *request, int matching_set_id)
 {
-  activate_recv(count, datatype, source, tag, comm, matching_set_id);
+  activate_recv(count, datatype, source, tag, comm, request, matching_set_id, REMPI_MSGB_REQUEST_TYPE_PASSIVE);
   return 0;
 }
 
@@ -230,8 +255,8 @@ int rempi_msgb_cancel_request(MPI_Request *request)
 
 int rempi_msgb_recv_msg(void* dest_buffer, int replayed_rank, int requested_tag, MPI_Comm  requested_comm, MPI_Status *replaying_status)
 {
-  list<inactive_request*>::iterator it;
-  inactive_request* inactive_request;
+  list<rempi_msgb_request*>::iterator it;
+  rempi_msgb_request* inactive_request;
   rempi_reqmg_recv_args* recv_args;;
   int matched;
   int datatype_size, count;

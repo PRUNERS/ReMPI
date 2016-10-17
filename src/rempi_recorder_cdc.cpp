@@ -366,10 +366,6 @@ int rempi_recorder_cdc::replay_irecv(
   *request = rempi_msgb_allocate_request(REMPI_RECV_REQUEST);
   rempi_reqmg_register_request(buf, count, datatype, source, tag, comm, request, REMPI_RECV_REQUEST, &matching_set_id);
   ret = rempi_msgb_register_recv(buf, count, datatype, source, tag, comm, request, matching_set_id);
-
-#ifdef REMPI_DBG_REPLAY
-  REMPI_DBGI(REMPI_DBG_REPLAY, "  Irecv called (source:%d, tag:%d, proxy_length:%d)", source, tag, irecv_inputs->request_proxy_list.size());
-#endif
   
   return ret;
 }
@@ -452,6 +448,7 @@ int rempi_recorder_cdc::replay_cancel(MPI_Request *request)
   rempi_reqmg_get_request_type(request, &request_type);
   rempi_reqmg_deregister_request(request, request_type);
   rempi_msgb_cancel_request(request);
+  return MPI_SUCCESS;
 }
 #else
 int rempi_recorder_cdc::replay_cancel(MPI_Request *request)
@@ -614,7 +611,6 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
 								    REMPI_RECORDER_DO_FETCH_REMOTE_LOOK_AHEAD_SEND_CLOCKS:
 								    REMPI_RECORDER_DO_NOT_FETCH_REMOTE_LOOK_AHEAD_SEND_CLOCKS,
 								    incount, array_of_requests, matching_set_id);
-
 
 #ifdef REMPI_MAIN_THREAD_PROGRESS
     mc_encoder->progress_decoding(recording_event_list, replaying_event_list, matching_set_id);
@@ -905,6 +901,7 @@ int rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 					       MPI_Request array_of_requests[])
 {
   rempi_msgb_progress_recv();
+  return 0;
 }
 #else
 
@@ -1163,6 +1160,7 @@ int rempi_recorder_cdc::replay_pf(int source, int tag, MPI_Comm comm, int *flag,
 
 int rempi_recorder_cdc::pre_process_collective(MPI_Comm comm)
 {
+  REMPI_DBG(" === collective ===");
   if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) mc_encoder->set_fd_clock_state(1);
   PNMPIMOD_collective_sync_clock(comm);
   if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) mc_encoder->set_fd_clock_state(0);

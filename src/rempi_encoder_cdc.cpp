@@ -482,6 +482,7 @@ int rempi_encoder_cdc::howto_update_look_ahead_recv_clock(int recv_rank, int mat
       }
     }
   }
+  REMPI_DBG("howto: %d", howto_update);
   return howto_update;
 }
 #else
@@ -1543,11 +1544,13 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> *reco
 #endif
 
 
+
   // if(test_id == 1) {
   //   if (test_table->ordered_event_list.size() > 0 || test_table->solid_ordered_event_list.size() > 0) {
   //     REMPI_DBGI(3, "ordered: %lu, solide: %lu",    test_table->ordered_event_list.size() ,     test_table->solid_ordered_event_list.size() );
   //   }
   // }
+
 
   
   if (test_table->is_decoded_all()) {
@@ -1771,7 +1774,6 @@ N      CDC events flow:
 	event->clock_order = next_clock_order++;	
       }
     }
-
 
 
     

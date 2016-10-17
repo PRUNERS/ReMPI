@@ -178,8 +178,8 @@ string rempi_btrace_string()
   char **strings;
   string trace_string;
 
-  nptrs = backtrace(buffer, 1024);
 
+  nptrs = backtrace(buffer, 1024);
   /* backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO)*/
   strings = backtrace_symbols(buffer, nptrs);
   if (strings == NULL) {

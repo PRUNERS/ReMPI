@@ -115,11 +115,10 @@ static int rempi_reqmg_assign_matching_set_id_to_recv(int matching_set_id, int i
 {
   rempi_reqmg_recv_args *recv_args;
   for (int i = 0; i < incount; i++) {
-    if (request_to_recv_args_umap.find(array_of_requests[i]) == 
-	request_to_recv_args_umap.end()) {
-      if (request_to_send_id_umap.find(array_of_requests[i]) == 
-	  request_to_send_id_umap.end()) {
-	REMPI_ERR("No such recv MPI_Request: %p", array_of_requests[i]);
+    if (request_to_recv_args_umap.find(array_of_requests[i]) == request_to_recv_args_umap.end() &&
+	request_to_send_id_umap.find(array_of_requests[i])   == request_to_send_id_umap.end()) {
+      if (array_of_requests[i] != MPI_REQUEST_NULL) {
+	REMPI_ERR("No such recv MPI_Request: %p", array_of_requests[i], MPI_REQUEST_NULL);
       }
     } else {
       recv_args = request_to_recv_args_umap.at(array_of_requests[i]);
@@ -275,6 +274,7 @@ static int rempi_reqmg_get_matching_set_id_1(int *matching_set_id, int *mpi_call
     }
   }
 
+
   switch(mpi_call_type) {
   case REMPI_REQMG_MPI_CALL_TYPE_SEND:
     *matching_set_id = REMPI_REQMG_MATCHING_SET_ID_UNKNOWN; // Send is not assigned
@@ -302,6 +302,7 @@ static int rempi_reqmg_get_matching_set_id(int *matching_set_id, int *mpi_call_i
   default:
     REMPI_ERR("No such REMPI_TEST_ID = %d", rempi_is_test_id);
   }
+
   return 0;
 
 }
@@ -729,7 +730,7 @@ static int rempi_reqmg_is_record_and_replay(int length, int *request_info, int s
 int rempi_reqmg_register_request(mpi_const void *buf, int count, MPI_Datatype datatype, int rank,
 				 int tag, MPI_Comm comm, MPI_Request *request, int request_type, int *matching_set_id)
 {
-  //  REMPI_DBG("Register  : %p (%d)", *request, request_type);
+  REMPI_DBGI(0, "Register  : %p (%d)", *request, request_type);
   int ret;
   switch(request_type) {
   case REMPI_SEND_REQUEST:
@@ -835,6 +836,7 @@ void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendc
   *is_record_and_replay = rempi_reqmg_is_record_and_replay(incount, request_info, *sendcount, *recvcount, *nullcount, ignore);
 
   *matching_set_id = REMPI_REQMG_MATCHING_SET_ID_UNKNOWN;
+
   if (*is_record_and_replay) {
     rempi_reqmg_get_matching_set_id(matching_set_id, &mpi_call_id, REMPI_REQMG_MPI_CALL_TYPE_MF, incount, requests);
   }
