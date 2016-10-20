@@ -146,6 +146,7 @@ int rempi_reqmg_get_matching_set_id(MPI_Request *requet);
 int rempi_reqmg_get_matching_set_id_map(int **mpi_call_ids, int **matching_set_ids, int *length);
 int rempi_reqmg_set_matching_set_id_map(int *mpi_call_ids, int *matching_set_ids, int length);
 
+rempi_reqmg_recv_args* rempi_reqmg_get_recv_args(MPI_Request *request);
 
 /*TODO: remove the below two functions*/
 int rempi_reqmg_get_recv_request_count(int incount, MPI_Request *requests);

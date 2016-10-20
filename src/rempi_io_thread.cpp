@@ -99,7 +99,7 @@ void rempi_io_thread::write_record()
       /*If I get the sequence, encode(compress) the seuence*/
       s = rempi_get_time();
       encoder->encode(*input_format);
-      //input_format->debug_print();
+      //      input_format->debug_print();
       /*Then, write to file.*/
       encoder->write_record_file(*input_format);
       count++;

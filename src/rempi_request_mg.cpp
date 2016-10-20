@@ -689,6 +689,7 @@ static int rempi_reqmg_register_send_request(mpi_const void *buf, int count, MPI
 
 static int rempi_reqmg_deregister_recv_request(MPI_Request *request)
 {
+  
   int is_erased;
   //  REMPI_DBGI(0, "dereg request: %p", *request);
 
@@ -730,7 +731,7 @@ static int rempi_reqmg_is_record_and_replay(int length, int *request_info, int s
 int rempi_reqmg_register_request(mpi_const void *buf, int count, MPI_Datatype datatype, int rank,
 				 int tag, MPI_Comm comm, MPI_Request *request, int request_type, int *matching_set_id)
 {
-  REMPI_DBGI(0, "Register  : %p (%d)", *request, request_type);
+  //  REMPI_DBGI(0, "Register  : %p (%d)", *request, request_type);
   int ret;
   switch(request_type) {
   case REMPI_SEND_REQUEST:
@@ -845,6 +846,12 @@ void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendc
   //  REMPI_DBGI(1, "incount:%d, sendcount:%d recvcount:%d nullcount:%d igncount:%d record:%d", incount, *sendcount, *recvcount, *nullcount, ignore, *is_record_and_replay)
   return;
 }
+
+rempi_reqmg_recv_args* rempi_reqmg_get_recv_args(MPI_Request *request) 
+{
+  return request_to_recv_args_umap.at(*request);
+}
+
 
 void rempi_reqmg_get_request_type(MPI_Request *request, int *request_type)
 {

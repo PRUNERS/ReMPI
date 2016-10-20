@@ -178,14 +178,15 @@ void rempi_encoder_cdc_input_format::add(rempi_event *event)
     not_empty = test_table->unmatched_events_id_vec.size() > 0;
 
     if (not_empty && test_table->unmatched_events_id_vec.back() == next_index_added_event_index) {
-      test_table->unmatched_events_count_vec.back() += 1;
+      //      test_table->unmatched_events_count_vec.back() += 1; ==> this is wrong; event->get_test_id() is not always 1
+      test_table->unmatched_events_count_vec.back() += event->get_event_counts();
     } else {
       test_table->unmatched_events_id_vec.push_back(next_index_added_event_index);
       test_table->unmatched_events_count_vec.push_back(event->get_event_counts());
-
       total_length++;
     }
   }
+
   last_added_event = event;
   
   return;
@@ -213,7 +214,7 @@ void rempi_encoder_cdc_input_format::format()
       test_table->matched_events_ordered_map.insert(make_pair(i, sorted_events_vec[i]));
 
 #ifdef REMPI_DBG_REPLAY
-      REMPI_DBGI(REMPI_DBG_REPLAY, "order: %d source: %d , clock: %d (test_id: %d)", i, sorted_events_vec[i]->get_source(), sorted_events_vec[i]->get_clock(), test_tables_map_it->first);
+      // REMPI_DBGI(REMPI_DBG_REPLAY, "order: %d source: %d , clock: %d (test_id: %d)", i, sorted_events_vec[i]->get_source(), sorted_events_vec[i]->get_clock(), test_tables_map_it->first);
 #endif
       /*Update epoch line by using unordered_map*/
       /*TODO: if & else are doing the same thing except error check, REMPI_ERR("Later ... */
@@ -448,7 +449,8 @@ int rempi_encoder_cdc::howto_update_look_ahead_recv_clock(int recv_rank, int mat
 							  unordered_map<int, size_t> *recv_message_source_umap,
 							  unordered_map<int, size_t> *recv_clock_umap,
 							  unordered_map<int, size_t> *solid_mc_next_clocks_umap,
-							  int replaying_matching_set_id)
+							  int replaying_matching_set_id,
+							  int *why)
 {
   int howto_update;
   size_t max_recved_clock;
@@ -459,19 +461,25 @@ int rempi_encoder_cdc::howto_update_look_ahead_recv_clock(int recv_rank, int mat
        TODO: only update ranks with which MPI_probe did not probe
     */
     howto_update = REMPI_ENCODER_NO_UPDATE;
+    *why = 0;
   } else if (replaying_matching_set_id != matching_set_id) {
     howto_update = REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE;
+    *why = 1;
   } else if (rempi_msgb_has_recved_msg(recv_rank)) {
     howto_update = REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE;
+    *why = 2;
   } else if (rempi_cp_has_in_flight_msgs(recv_rank)) {
     howto_update = REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE;
+    *why = 3;
   } else {
     howto_update = REMPI_ENCODER_LOOK_AHEAD_CLOCK_UPDATE;
+    *why = 4;
   }
   
   if (howto_update == REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE) {
     if ((max_recved_clock = rempi_msgb_get_max_recved_clock(recv_rank)) == 0) {
       howto_update = REMPI_ENCODER_NO_UPDATE;
+      *why = 5;
     } else {
     /* 
        I already received "max_recved_clock", so next clock must be bigger than max_recvd_clock. 
@@ -479,10 +487,10 @@ int rempi_encoder_cdc::howto_update_look_ahead_recv_clock(int recv_rank, int mat
     */
       if (max_recved_clock + 1 < solid_mc_next_clocks_umap->at(recv_rank)) {
 	howto_update = REMPI_ENCODER_NO_UPDATE;
+	*why = 6;
       }
     }
   }
-  REMPI_DBG("howto: %d", howto_update);
   return howto_update;
 }
 #else
@@ -538,6 +546,7 @@ int rempi_encoder_cdc::howto_update_look_ahead_recv_clock(int recv_rank, int mat
 
 */
 
+static int why[1024];
 int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *probed_message_source_set, 
 							  unordered_set<int> *pending_message_source_set, 
 							  unordered_map<int, size_t> *recv_message_source_umap, 
@@ -549,6 +558,7 @@ int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *pr
   int howto_update;
   int matching_set_id;
 
+
   for (unordered_map<int, unordered_map<int, size_t>*>::iterator it = solid_mc_next_clocks_umap_umap.begin(), 
 	 it_end = solid_mc_next_clocks_umap_umap.end(); 
        it != it_end; it++) {
@@ -556,6 +566,7 @@ int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *pr
     matching_set_id = it->first;
     //    solid_mc_next_clocks_umap = solid_mc_next_clocks_umap_vec[matching_set_id];
     solid_mc_next_clocks_umap = it->second;
+
     for (int index = 0; index < mc_length; index++) {
       howto_update = howto_update_look_ahead_recv_clock(mc_recv_ranks[index], matching_set_id,
 							probed_message_source_set,
@@ -563,23 +574,44 @@ int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *pr
 							recv_message_source_umap,
 							recv_clock_umap,
 							solid_mc_next_clocks_umap,
-							replaying_matching_set_id);
+							replaying_matching_set_id, 
+							&why[index]);
       switch(howto_update) {
       case REMPI_ENCODER_NO_UPDATE:
 	break;
       case REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE:
 #ifdef DEV_MSGB
-	solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) = rempi_msgb_get_max_recved_clock(mc_recv_ranks[index]);
+	if (solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) < rempi_msgb_get_max_recved_clock(mc_recv_ranks[index])) {
+	  solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) = rempi_msgb_get_max_recved_clock(mc_recv_ranks[index]);
+	  is_updated = 1;
+	}
+
 #else
 	solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) = recv_clock_umap->at((mc_recv_ranks[index]));
 #endif
+
 	break;
       case REMPI_ENCODER_LOOK_AHEAD_CLOCK_UPDATE:
-	solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) = rempi_cp_get_gather_clock(mc_recv_ranks[index]);
+	if (solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) < rempi_cp_get_gather_clock(mc_recv_ranks[index]) || 
+	    rempi_cp_get_gather_clock(mc_recv_ranks[index]) == PNMPI_MODULE_CLMPI_COLLECTIVE) {
+	  solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) = rempi_cp_get_gather_clock(mc_recv_ranks[index]);
+	  is_updated = 1;
+	}
 	break;
       }
     }
+
+#ifdef REMPI_DBG_REPLAY
+      if (is_updated) {
+	REMPI_DBGI(REMPI_DBG_REPLAY, "LR-Clock: msid: %d", replaying_matching_set_id);
+	for (int index = 0; index < mc_length; index++) {
+	  REMPI_DBGI(REMPI_DBG_REPLAY, "  souce %d: LR-clock: %lu (howto: %d, why: %d)", 
+		     mc_recv_ranks[index], solid_mc_next_clocks_umap->at(mc_recv_ranks[index]), howto_update, why[index]);
+	}
+      }
+#endif
   }
+  
   return is_updated;
 }
 
@@ -651,7 +683,7 @@ void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format &
 
   /*=== Compress unmatched_events ===*/
   /* (1) id */
-  compression_util.compress_by_linear_prediction(test_table->unmatched_events_id_vec);
+  //  compression_util.compress_by_linear_prediction(test_table->unmatched_events_id_vec);
   test_table->compressed_unmatched_events_id        = (char*)&test_table->unmatched_events_id_vec[0];
   test_table->compressed_unmatched_events_id_size   = test_table->unmatched_events_id_vec.size() * sizeof(test_table->unmatched_events_id_vec[0]);
   input_format.write_queue_vec.push_back((char*)&test_table->compressed_unmatched_events_id_size);
@@ -1234,7 +1266,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     test_table->compressed_unmatched_events_id      = decoding_address;
     rempi_copy_vec((size_t*)test_table->compressed_unmatched_events_id, test_table->compressed_unmatched_events_id_size / sizeof(size_t),
 		   test_table->unmatched_events_id_vec);
-    compression_util.decompress_by_linear_prediction(test_table->unmatched_events_id_vec);
+    //    compression_util.decompress_by_linear_prediction(test_table->unmatched_events_id_vec);
     decoding_address += test_table->compressed_unmatched_events_id_size;
     /*===  (2) count */
     /*----------- size ------------*/
@@ -1437,8 +1469,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
   }
 
   
-  //  input_format.debug_print();
-  //  exit(0);
+//  input_format.debug_print();
 
   return;
 }
@@ -1542,7 +1573,6 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> *reco
   bool is_solid_ordered_event_list_updated = false;
     
 #endif
-
 
 
   // if(test_id == 1) {
@@ -1703,9 +1733,6 @@ N      CDC events flow:
     if (local_min_id_clock == PNMPI_MODULE_CLMPI_COLLECTIVE) {
       /*Other ranks (except me) are in collective*/
       solid_event_count = test_table->ordered_event_list.size();
-#ifdef REMPI_DBG_REPLAY
-      is_solid_ordered_event_list_updated = true;
-#endif
     } else {
       /*Count solid event count 
 	Sorted "solid events" order does not change by the rest of events
@@ -1717,17 +1744,22 @@ N      CDC events flow:
 	rempi_event *event = *cit;
 	is_reached_epoch_line = test_table->is_reached_epoch_line();
 	if (!compare2(local_min_id_rank, local_min_id_clock, event) || is_reached_epoch_line) {
-	  solid_event_count++;
 	  /*If event < local_min_id.{rank, clock} ... */
-#ifdef REMPI_DBG_REPLAY
-	  is_solid_ordered_event_list_updated = true;
-#endif
+	  solid_event_count++;
 	} else {
 	/*Because ordered_event_list is sorted, so we do not need to check the rest of events*/
 	  break;
 	}   
       }
     }
+
+#ifdef REMPI_DBG_REPLAY
+    if (solid_event_count > 0) {
+      is_solid_ordered_event_list_updated = true;
+    }
+#endif
+
+
 
     /* ====== End of Operation B  ========*/
 

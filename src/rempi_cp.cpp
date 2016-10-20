@@ -77,6 +77,25 @@ static int compare(const void *val1, const void *val2)
 
 
 
+static void rempi_cp_print_remote_indexing(int input_length, int* input_pred_ranks, int* output_pred_indices, 
+				     size_t output_succ_rank_count, int* output_succ_ranks, int* output_succ_indices)
+{
+  string succ_ranks = " ";
+  string pred_ranks = " ";
+  for (size_t i = 0; i < output_succ_rank_count; i++) {
+    succ_ranks += "I" + to_string(i) + ":R" + to_string(output_succ_ranks[i]) + " ";
+  }
+  succ_ranks = "S: [" + succ_ranks + "]";
+  REMPI_DBG("%s", succ_ranks.c_str());
+
+  for (int i = 0; i < input_length; i++) {
+    pred_ranks += "R" + to_string(input_pred_ranks[i]) + ":I" + to_string(output_pred_indices[i]) + " ";
+  }
+  pred_ranks = "P: [" + pred_ranks + "]";
+  REMPI_DBG("%s", pred_ranks.c_str());
+
+  return;
+}
 
 /*
  Remote indexing algorithm: 
@@ -194,6 +213,9 @@ static void rempi_cp_remote_indexing(int input_length, int* input_pred_ranks, in
   *output_succ_ranks      = succ_ranks;
   *output_succ_indices    = succ_indices;
   
+  // rempi_cp_print_remote_indexing(input_length, input_pred_ranks, output_pred_indices, 
+  // 				  *output_succ_rank_count, *output_succ_ranks, *output_succ_indices);
+  
   
   free(send_requests);
   free(recv_requests);
@@ -299,8 +321,11 @@ void rempi_cp_finalize()
 void rempi_cp_gather_clocks()
 {
   int ret;
-  
+
+
   for (int i = 0; i < rempi_pred_rank_count; ++i) {
+    // REMPI_DBG("pc: %p, rank: %d, index: %d win: %p", 
+    // 	      &rempi_cp_gather_pc[i], rempi_pred_ranks[i], rempi_pred_indices[i], rempi_cp_win);
     ret = PMPI_Get(&rempi_cp_gather_pc[i], sizeof(struct rempi_cp_prop_clock), MPI_BYTE, 
 		       rempi_pred_ranks[i], rempi_pred_indices[i], sizeof(struct rempi_cp_prop_clock), MPI_BYTE, rempi_cp_win);
     if (ret != MPI_SUCCESS) {
@@ -384,6 +409,11 @@ void rempi_cp_record_send(int dest_rank, size_t clock)
 
 void rempi_cp_set_scatter_clock(size_t clock)
 {
+#ifdef REMPI_DBG_REPLAY
+  if (rempi_cp_scatter_clock < clock) {
+    REMPI_DBGI(REMPI_DBG_REPLAY, "LS-Clock: %lu -> %lu", rempi_cp_scatter_clock, clock);
+  }
+#endif
   rempi_cp_scatter_clock = clock;
   for (int i = 0; i < rempi_succ_rank_count; i++) {
     rempi_cp_scatter_pc[i].clock = clock;

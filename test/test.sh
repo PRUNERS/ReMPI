@@ -14,19 +14,6 @@ mkdir -p ${dir}
 librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
 
 
-
-bin="./rempi_test_units matching"
-librempi=../src/.libs/librempix.so
-REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-#REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-exit
-
-#bin="./rempi_test_mini_mcb 10 1 1000"
-bin="./rempi_test_mini_mcb 1 1 1"
-librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
-REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-exit
-
 # ===== MCB test ========
 par=`expr 80 \* $num_procs`
 bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 "
@@ -38,12 +25,22 @@ librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
 REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
 #librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
 #REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
+#srun ${io_watchdog} -n ${num_procs} ${bin}
 cd -
 exit
 
+bin="./rempi_test_units matching"
+librempi=../src/.libs/librempix.so
+REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+#REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+exit
 
 
-
+#bin="./rempi_test_mini_mcb 10 1 1000"
+bin="./rempi_test_mini_mcb 2 1 1"
+librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+exit
 
 par=1000
 bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 --weakScaling"

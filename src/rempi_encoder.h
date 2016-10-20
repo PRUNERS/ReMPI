@@ -370,7 +370,8 @@ class rempi_encoder_cdc : public rempi_encoder
 					 unordered_map<int, size_t> *recv_message_source_umap,
 					 unordered_map<int, size_t> *recv_clock_umap,
 					 unordered_map<int, size_t> *solid_mc_next_clocks_umap,
-					 int replaying_matching_set_id);
+					 int replaying_matching_set_id,
+					 int *why);
 
  protected:
   /* === For frontier detection === */

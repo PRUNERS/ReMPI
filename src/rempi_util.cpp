@@ -41,6 +41,17 @@ void rempi_sleep_usec(int usec)
 }
 
 
+static int hash = 837;
+int rempi_compute_hash(void* buff, int size)
+{ 
+  char* buff_c = (char*)buff;
+  for (int i = 0; i < size; i++) {
+    hash += buff_c[i] * 7 + hash;
+  }
+  return hash;
+}
+
+
 unsigned int rempi_hash(unsigned int original_val, unsigned int new_val) {
   return ((original_val << 5) + original_val) + new_val;
 }

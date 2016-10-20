@@ -373,12 +373,14 @@ int main(int argc, char *argv[])
 #ifdef USE_BIN_REDUCTION
     bin_reduction_end();
 #endif
+    rempi_test_dbg_print("====== Finalizing: %d ========", k);
     MPI_Barrier(MPI_COMM_WORLD); /*<= korehazushitemo daizyoubuni shi ro !!! MPI_Cancel problem*/
     if (my_rank == 0) rempi_test_dbgi_print(0, " Step %d -- end", k);
   } // end: for
 
   //  exit(1);
   //  rempi_test_dbgi_print(0, " Finalizing ");
+
   MPI_Barrier(MPI_COMM_WORLD);
   hash = compute_global_hash();
 

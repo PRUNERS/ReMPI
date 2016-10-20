@@ -176,6 +176,25 @@ int rempi_re::re_irecv(
   return ret;
 }
 
+
+static int print_outputs(int outcount, int* indices, MPI_Status *array_of_statuses)
+{
+#if 0
+  int count;
+  int index;
+  if (outcount == 0 ) {
+    REMPI_DBG("REVAL: unmatched");
+  }
+
+  for (int i = 0; i < outcount; i++) {
+    PMPI_Get_count(&array_of_statuses[i], MPI_BYTE , &count);
+    index = (indices == NULL)?0:indices[i];
+    REMPI_DBG("REVAL: index: %d, source: %d tag: %d count: %d", 
+	      index, array_of_statuses[i].MPI_SOURCE, array_of_statuses[i].MPI_TAG, count);
+  }
+#endif
+  return 0;
+}
   
 int rempi_re::re_test(
 		    MPI_Request *request, 
@@ -194,6 +213,7 @@ int rempi_re::re_test(
     recorder->replay_mf(1, request, flag, NULL, status, REMPI_MPI_TEST);
   }
 
+  print_outputs(1, NULL, status);
   if (status_flag) rempi_status_free(status);
 
   return ret;
@@ -213,6 +233,7 @@ int rempi_re::re_testany(int count, MPI_Request array_of_requests[],
     recorder->replay_mf(count, array_of_requests, flag, index, status, REMPI_MPI_TESTANY);
   }
 
+  print_outputs(1, index, status);
   if (status_flag) rempi_status_free(status);
 
   return MPI_SUCCESS;
@@ -238,6 +259,7 @@ int rempi_re::re_testsome(
     recorder->replay_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, REMPI_MPI_TESTSOME);
   }
 
+  print_outputs(*outcount, array_of_indices, array_of_statuses);
   if (status_flag) rempi_status_free(array_of_statuses);
 
   return ret;
@@ -259,6 +281,11 @@ int rempi_re::re_testall(int count, MPI_Request array_of_requests[],
     *flag = (*flag > 0)? 1:0;
   }
 
+  if (*flag) {
+    print_outputs(count, NULL, array_of_statuses);
+  } else {
+    print_outputs(0, NULL, array_of_statuses);
+  }
   if (status_flag) rempi_status_free(array_of_statuses);
 
   return ret;
@@ -280,6 +307,7 @@ int rempi_re::re_wait(
     recorder->replay_mf(1, request, NULL, NULL, status, REMPI_MPI_WAIT);
   }
 
+  print_outputs(1, NULL, status);
   if (status_flag) rempi_status_free(status);
   return ret;
 }
@@ -300,6 +328,8 @@ int rempi_re::re_waitany(
   } else {
     recorder->replay_mf(count, array_of_requests, NULL, index, status, REMPI_MPI_WAITANY);
   }
+
+  print_outputs(1, index, status);
   if (status_flag) rempi_status_free(status);
   return ret;
 }
@@ -318,6 +348,8 @@ int rempi_re::re_waitsome(int incount, MPI_Request array_of_requests[],
   } else {
     recorder->replay_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, REMPI_MPI_WAITSOME);
   }
+
+  print_outputs(*outcount, array_of_indices, array_of_statuses);
   if (status_flag) rempi_status_free(array_of_statuses);
   return ret;
 }
@@ -337,6 +369,9 @@ int rempi_re::re_waitall(
   } else {
     recorder->replay_mf(incount, array_of_requests, NULL, NULL, array_of_statuses, REMPI_MPI_WAITALL);
   }
+
+  print_outputs(incount, NULL, array_of_statuses);
+
   if (status_flag) rempi_status_free(array_of_statuses);
   return ret;
 }
@@ -391,6 +426,9 @@ int rempi_re::re_cancel(MPI_Request *request)
   } else {
     ret = recorder->replay_cancel(request);
   }
+#ifdef REMPI_DBG_REPLAY
+  REMPI_DBGI(REMPI_DBG_REPLAY, "Record/Replay canceled");
+#endif
   return ret;
 }
 

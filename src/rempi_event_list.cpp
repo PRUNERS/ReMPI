@@ -18,7 +18,7 @@ using namespace std;
 template <class T>
 size_t rempi_event_list<T>::size()
 {
-  //  mtx.lock();
+  //  mtx.lock(); //a
   size_t result = events.rough_size();
   //  mtx.unlock();
   return result;
@@ -51,6 +51,8 @@ void rempi_event_list<T>::push(rempi_event *event)
     previous_recording_event = event;
     return;
   }
+  
+  
 
   //TODO: use previous_recording_event_umap
   if ((*this->previous_recording_event) == *event 
@@ -64,7 +66,7 @@ void rempi_event_list<T>::push(rempi_event *event)
     (*this->previous_recording_event)++;
     delete event;
   } else {
-    //    mtx.lock();
+    //    mtx.lock();//a
     while (events.rough_size() >= max_size) {
       //      mtx.unlock();
       REMPI_DBG("rempi_event_list exceeded max_size");
@@ -87,7 +89,7 @@ void rempi_event_list<T>::push_all()
 
   if (previous_recording_event != NULL) {
     /*If previous is not empty, push the event to the event_list*/
-    //    mtx.lock();
+    //    mtx.lock();//a
     while (events.rough_size() >= max_size) {
       //      mtx.unlock();
       REMPI_DBG("rempi_event_list exceeded max_size");
@@ -420,7 +422,7 @@ size_t rempi_event_list<T>::get_dequeue_count(int test_id)
 template <class T>
 T rempi_event_list<T>::pop()
 {
-  //  mtx.lock();
+  //  mtx.lock();//a
   /*
     while (events.rough_size() <= 0)
     {
@@ -439,7 +441,7 @@ T rempi_event_list<T>::pop()
 template <class T>
 T rempi_event_list<T>::front()
 {
-  //  mtx.lock();
+  //  mtx.lock();//a
   T item = events.front();
   //  mtx.unlock();
   return item;

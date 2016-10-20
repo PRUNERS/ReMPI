@@ -95,7 +95,9 @@ void rempi_alert(const char* fmt, ...)
 }
 
 void rempi_dbg(const char* fmt, ...) {
+  pthread_mutex_lock (&print_mutex);
   REMPI_OUTPUT(DEBUG_STDOUT, "DEBUG", fmt);
+  pthread_mutex_unlock (&print_mutex);
   return;
 }
 
@@ -153,7 +155,9 @@ void rempi_printi(int r, const char* fmt, ...) {
 
 void rempi_debug(const char* fmt, ...)
 {
+  pthread_mutex_lock (&print_mutex);
   REMPI_OUTPUT(stderr, "DEBUG", fmt);
+  pthread_mutex_unlock (&print_mutex);
 }
 
 
@@ -178,9 +182,9 @@ string rempi_btrace_string()
   char **strings;
   string trace_string;
 
-
   nptrs = backtrace(buffer, 1024);
   /* backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO)*/
+
   strings = backtrace_symbols(buffer, nptrs);
   if (strings == NULL) {
     perror("backtrace_symbols");
