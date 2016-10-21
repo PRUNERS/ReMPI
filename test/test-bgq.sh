@@ -17,10 +17,6 @@ dir=${prefix}/test/.rempi
 #memcheck="memcheck  --xml-file=/tmp/unit.cab687.0.mc"
 
 
-bin="./rempi_test_unitsx matching"
-REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 srun -n ${num_procs} ${memcheck} ${bin}
-exit
-
 par=20
 #bin="../src/MCBenchmark.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 --weakScaling"
 bin="../src/MCBenchmark.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20"
@@ -31,6 +27,14 @@ REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 
 #REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 REMPI_MAX=50 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
 cd -
 exit
+
+
+
+bin="./rempi_test_unitsx matching"
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 srun -n ${num_procs} ${memcheck} ${bin}
+exit
+
+
 
 
 
