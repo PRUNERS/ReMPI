@@ -758,7 +758,9 @@ int rempi_reqmg_deregister_request(MPI_Request *request, int request_type)
     rempi_reqmg_deregister_recv_request(request);
     break;
   default:
+#ifndef REMPI_LITE
     REMPI_DBG("Cannot deregister MPI_Request: request_type: %d", request_type);
+#endif
     break;
   }
   return 0;
@@ -828,8 +830,10 @@ void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendc
       /*For unsupported MF, such as MPI_Recv_init, MPI_start and then */
       request_info[i] = REMPI_IGNR_REQUEST; 
       ignore++;
-      REMPI_DBG("Unknown request: %p index: %d", requests[i], i);
-      //      REMPI_ERR("Unknown request: %p index: %d", requests[i], i);
+#ifndef REMPI_LITE
+      REMPI_ERR("Unknown request: %p index: %d", requests[i], i);
+#endif
+      //
     }
     //    REMPI_DBG("request: %p index: %d, info: %d", requests[i], i, request_info[i]);
   }

@@ -4,7 +4,7 @@ num_procs=$1
 
 dir=.rempi
 mkdir ${dir}
-librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
+librempi=/g/g90/sato5/repo/rempi/src/.libs/librempi.so
 
 
 # ===== Unite test ======== 

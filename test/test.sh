@@ -11,7 +11,7 @@ num_procs=$2
 dir=${prefix}/test/.rempi
 mkdir -p ${dir}
 #io_watchdog="--io-watchdog"
-librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
+#librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
 
 
 # ===== MCB test ========

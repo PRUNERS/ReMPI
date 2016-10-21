@@ -122,7 +122,7 @@ class rempi_recorder {
   vector<rempi_event*> replaying_event_vec; /*TODO: vector => list*/
   rempi_message_manager msg_manager; //TODO: this is not used
   int next_test_id_to_assign;// = 0;
-  unordered_map<MPI_Request, rempi_irecv_inputs*> request_to_irecv_inputs_umap; 
+  //  unordered_map<MPI_Request, rempi_irecv_inputs*> request_to_irecv_inputs_umap_a; 
   unordered_map<MPI_Request, rempi_event*> request_to_recv_event_umap;
   rempi_event_list<rempi_event*> *recording_event_list, *replaying_event_list;
   rempi_io_thread *record_thread, *read_record_thread;
@@ -130,9 +130,11 @@ class rempi_recorder {
 
   unsigned int validation_code; /*integer to check if correctly replayed the reocrded events*/
   void update_validation_code(int incount, int *outcount, int *array_of_indices, MPI_Status *array_of_statuses, int* request_info);
+
   int request_info[PRE_ALLOCATED_REQUEST_LENGTH];
   MPI_Status  tmp_statuses[PRE_ALLOCATED_REQUEST_LENGTH];
   MPI_Request tmp_requests[PRE_ALLOCATED_REQUEST_LENGTH];
+
 
   void cancel_request(MPI_Request *request);
   int rempi_get_matched_count(int incount, int *outcount, int matching_function_type);
@@ -189,15 +191,15 @@ class rempi_recorder {
       delete recording_event_list;
       if (record_thread != NULL) delete record_thread;
       if (read_record_thread != NULL) delete read_record_thread;
-      unordered_map<MPI_Request, rempi_irecv_inputs*>::const_iterator request_to_irecv_inputs_umap_it;
-      unordered_map<MPI_Request, rempi_irecv_inputs*>::const_iterator request_to_irecv_inputs_umap_it_end;
-      for (request_to_irecv_inputs_umap_it     = request_to_irecv_inputs_umap.cbegin(),
-	     request_to_irecv_inputs_umap_it_end = request_to_irecv_inputs_umap.cend();
-	   request_to_irecv_inputs_umap_it != request_to_irecv_inputs_umap_it_end;
-	   request_to_irecv_inputs_umap_it++) {
-	rempi_irecv_inputs *irecv_inputs =  request_to_irecv_inputs_umap_it->second;
-	delete irecv_inputs;
-      }
+      /* unordered_map<MPI_Request, rempi_irecv_inputs*>::const_iterator request_to_irecv_inputs_umap_it; */
+      /* unordered_map<MPI_Request, rempi_irecv_inputs*>::const_iterator request_to_irecv_inputs_umap_it_end; */
+      /* for (request_to_irecv_inputs_umap_it     = request_to_irecv_inputs_umap.cbegin(), */
+      /* 	     request_to_irecv_inputs_umap_it_end = request_to_irecv_inputs_umap.cend(); */
+      /* 	   request_to_irecv_inputs_umap_it != request_to_irecv_inputs_umap_it_end; */
+      /* 	   request_to_irecv_inputs_umap_it++) { */
+      /* 	rempi_irecv_inputs *irecv_inputs =  request_to_irecv_inputs_umap_it->second; */
+      /* 	delete irecv_inputs; */
+      /* } */
     }
   
   virtual int record_init(int *argc, char ***argv, int rank);

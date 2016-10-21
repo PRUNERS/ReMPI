@@ -274,18 +274,7 @@ int rempi_recorder::replay_irecv(
   }
 
 
-#if 1
-  if (request_to_irecv_inputs_umap.find(*request) != 
-      request_to_irecv_inputs_umap.end()) {
-    irecv_inputs = request_to_irecv_inputs_umap[*request];
-    REMPI_ERR("Already exist request(req:%p) in (source, tag, comm): new (%d, %d, %p), old (%d, %d, %p)",
-	      (*request), irecv_inputs->source, irecv_inputs->tag, irecv_inputs->comm,
-	      source, tag, comm);
-  } else {
-    request_to_irecv_inputs_umap[*request] = new rempi_irecv_inputs(buf, count, datatype, source, tag, comm, *request);
-    //    REMPI_DBGI(1, "Add: %p", *request);
-  }
-#endif
+
 
   return MPI_SUCCESS;
 }
@@ -331,6 +320,9 @@ int rempi_recorder::replay_cancel(MPI_Request *request)
   return ret;
 }
 
+
+
+
 void rempi_recorder::cancel_request(MPI_Request *request)
 {
   int ret;
@@ -342,33 +334,11 @@ void rempi_recorder::cancel_request(MPI_Request *request)
   rempi_reqmg_deregister_request(request, request_type);
 
   if (request_type == REMPI_RECV_REQUEST) {
-
-    if (request_to_irecv_inputs_umap.find(*request) == request_to_irecv_inputs_umap.end()) {
-      REMPI_ERR("No such request: %p", request);
-    }
-    irecv_inputs = request_to_irecv_inputs_umap[*request];
-    list<rempi_proxy_request*>::iterator proxy_request_it;
-
-   for (proxy_request_it  = irecv_inputs->request_proxy_list.begin();
-	 proxy_request_it != irecv_inputs->request_proxy_list.end();
-	 proxy_request_it++) {
-      proxy_request = *proxy_request_it;
-      //      ret = PMPI_Cancel(&proxy_request->request);
-      //      ret = PMPI_Cancel(request);
-      delete proxy_request;
-    }
-    irecv_inputs->request_proxy_list.clear();
-#ifdef REMPI_DBG_REPLAY
-    REMPI_DBGI(REMPI_DBG_REPLAY, "MPI_Cancel: irecv_input->recv_test_id: %d", irecv_inputs->recv_test_id);
-#endif
-    irecv_inputs->recv_test_id = -1;
-    //    REMPI_DBGI(1, "remove 2: %p (%d %d %d)", *request, irecv_inputs->source, irecv_inputs->tag, irecv_inputs->comm);
-    delete irecv_inputs;
-    request_to_irecv_inputs_umap.erase(*request);
     *request = MPI_REQUEST_NULL;
   }
   return;
 }
+
 
 
 
@@ -389,26 +359,29 @@ int rempi_recorder::replay_request_free(MPI_Request *request)
 
 
 #if PMPI_Request_c2f != MPI_Fint && MPI_Request_c2f != MPI_Fint
+
+
 extern "C" MPI_Fint PMPI_Request_c2f(MPI_Request request);
 MPI_Fint rempi_recorder::replay_request_c2f(MPI_Request request)
 {
   MPI_Fint ret;
   int request_type;
   MPI_Request deregist_rempi_request;
-  rempi_irecv_inputs *irecv_inputs;
+  rempi_reqmg_recv_args *recv_args;
 
   rempi_reqmg_get_request_type(&request, &request_type);
   
   if (request_type == REMPI_RECV_REQUEST) {
-    irecv_inputs = request_to_irecv_inputs_umap[request];
+    recv_args = rempi_reqmg_get_recv_args(request);
     deregist_rempi_request = request;
     PMPI_Irecv(
-	       irecv_inputs->buf, 
-	       irecv_inputs->count,
-	       irecv_inputs->datatype,
-	       irecv_inputs->source,
-	       irecv_inputs->tag,
-	       irecv_inputs->comm, &request);
+	       recv_args->buffer,
+	       recv_args->count,
+	       recv_args->datatype,
+	       recv_args->source,
+	       recv_args->tag,
+	       recv_args->comm, 
+	       &request);
     cancel_request(&deregist_rempi_request);
   } else if (request_type == REMPI_SEND_REQUEST) {
     cancel_request(&request);
@@ -417,6 +390,9 @@ MPI_Fint rempi_recorder::replay_request_c2f(MPI_Request request)
 
   return ret;
 }
+
+
+
 #else
 MPI_Fint rempi_recorder::replay_request_c2f(MPI_Request request)
 {
@@ -677,21 +653,24 @@ int rempi_recorder::replay_mf_input(
       rempi_reqmg_deregister_request(&array_of_requests[index], REMPI_SEND_REQUEST);      
       PMPI_Wait(&array_of_requests[index], &array_of_statuses[local_outcount]);
     } else if (request_info[index] == REMPI_RECV_REQUEST) {
-      irecv_inputs = request_to_irecv_inputs_umap[array_of_requests[index]];
-   
-      if (irecv_inputs->source != MPI_ANY_SOURCE && 
-	  irecv_inputs->source != replaying_test_event->get_source()) {
+
+      int requested_source, requested_tag;
+      MPI_Comm requested_comm;
+      void *requested_buffer;
+
+
+      rempi_reqmg_get_matching_id(&array_of_requests[index], &requested_source, &requested_tag, &requested_comm);
+      rempi_reqmg_deregister_request(&array_of_requests[index], REMPI_RECV_REQUEST);
+      PMPI_Wait(&array_of_requests[index], &status);
+      if ((requested_source != MPI_ANY_SOURCE && requested_source != status.MPI_SOURCE) ||
+	  (requested_tag    != MPI_ANY_TAG    && requested_tag    != status.MPI_TAG)  ) {
 	REMPI_ERR("Replaying recv event from rank %d, but src of this recv request is rank %d: request: %p, index: %d", 
 		  replaying_test_event->get_rank(), irecv_inputs->source,
 		  array_of_requests[index], index);
       }
-      rempi_reqmg_deregister_request(&array_of_requests[index], REMPI_RECV_REQUEST);
-      delete irecv_inputs;
-      request_to_irecv_inputs_umap.erase(array_of_requests[index]);
-      //      REMPI_DBG("Wait: %p", array_of_requests[index]);
-      PMPI_Wait(&array_of_requests[index], &status);
-      array_of_statuses[local_outcount].MPI_SOURCE = status.MPI_SOURCE;
-      array_of_statuses[local_outcount].MPI_TAG    = status.MPI_TAG;
+      array_of_statuses[local_outcount] = status;
+
+
     } else if (request_info[index] == REMPI_NULL_REQUEST) {
       REMPI_ERR("MPI_REQUEST_NULL does not match any message: %d", request_info[index]);
     } else {

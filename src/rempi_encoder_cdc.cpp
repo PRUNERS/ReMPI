@@ -669,7 +669,6 @@ void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format &
   /*====================================*/
 
   /*=== Compress index ===*/
-  //  compression_util.compress_by_linear_prediction(test_table->matched_index_vec);
   test_table->compressed_matched_index_length = test_table->matched_index_vec.size();
   test_table->compressed_matched_index_size   = test_table->matched_index_vec.size() * sizeof(test_table->matched_index_vec[0]);
   test_table->compressed_matched_index        = (char*)&test_table->matched_index_vec[0];
@@ -683,7 +682,7 @@ void rempi_encoder_cdc::compress_non_matched_events(rempi_encoder_input_format &
 
   /*=== Compress unmatched_events ===*/
   /* (1) id */
-  //  compression_util.compress_by_linear_prediction(test_table->unmatched_events_id_vec);
+  compression_util.compress_by_linear_prediction(test_table->unmatched_events_id_vec);
   test_table->compressed_unmatched_events_id        = (char*)&test_table->unmatched_events_id_vec[0];
   test_table->compressed_unmatched_events_id_size   = test_table->unmatched_events_id_vec.size() * sizeof(test_table->unmatched_events_id_vec[0]);
   input_format.write_queue_vec.push_back((char*)&test_table->compressed_unmatched_events_id_size);
@@ -1266,7 +1265,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     test_table->compressed_unmatched_events_id      = decoding_address;
     rempi_copy_vec((size_t*)test_table->compressed_unmatched_events_id, test_table->compressed_unmatched_events_id_size / sizeof(size_t),
 		   test_table->unmatched_events_id_vec);
-    //    compression_util.decompress_by_linear_prediction(test_table->unmatched_events_id_vec);
+    compression_util.decompress_by_linear_prediction(test_table->unmatched_events_id_vec);
     decoding_address += test_table->compressed_unmatched_events_id_size;
     /*===  (2) count */
     /*----------- size ------------*/

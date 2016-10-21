@@ -516,6 +516,7 @@ int rempi_re::re_comm_dup(MPI_Comm arg_0, MPI_Comm *arg_2)
 int rempi_re::re_allreduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
 {
   int ret;
+  //  REMPI_DBG(" ==== allreduce ===");
   recorder->pre_process_collective(arg_5);
   ret = PMPI_Allreduce(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
   recorder->post_process_collective();
