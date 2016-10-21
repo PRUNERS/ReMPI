@@ -41,6 +41,7 @@ extern int rempi_max_event_length;
 
 #define CP_DBG
 #define RS_DBG
+#define DEV_CLOCK
 //#define ENABLE_TEST
 
 //#define REMPI_DBG_ASSERT (-1)

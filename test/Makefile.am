@@ -8,17 +8,20 @@ endif
 
 noinst_PROGRAMS = \
 	rempi_test_master_worker \
+	rempi_test_master_worker_fortran \
 	rempi_test_mini_mcb \
 	rempi_test_hypre_parasails \
 	rempi_test_units \
 	rempi_test_msg_race  	
 if ENABLE_CDC
 if WITH_BLUEGENE
-noinst_PROGRAMS += rempi_test_master_workerx \
-	rempi_test_mini_mcbx \
-	rempi_test_hypre_parasailsx \
-	rempi_test_unitsx \
-	rempi_test_msg_racex 
+noinst_PROGRAMS += \
+		rempi_test_master_workerx \
+		rempi_test_master_worker_fortranx \
+		rempi_test_mini_mcbx \
+		rempi_test_hypre_parasailsx \
+		rempi_test_unitsx \
+		rempi_test_msg_racex 
 endif
 endif
 

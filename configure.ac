@@ -14,7 +14,9 @@ AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 #LT_INIT([shared static])
 
 ### Action Macros
+AM_PROG_AR
 AC_PROG_LIBTOOL
+
 AC_SUBST([LIB_CURRENT], [0])
 AC_SUBST([LIB_REVISION], [0])
 AC_SUBST([LIB_AGE], [0])
@@ -35,8 +37,10 @@ AM_CONDITIONAL([WITH_BLUEGENE], [test "$with_bluegene" = yes])
 
 
 
+
 #### Checks for programs.
 LX_FIND_MPI # TODO: AC_LANG_CASE([C++], ...) is not executed
+
 
 
 

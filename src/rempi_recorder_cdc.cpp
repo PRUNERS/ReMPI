@@ -25,6 +25,7 @@
 #include "rempi_request_mg.h"
 #include "rempi_cp.h"
 #include "rempi_mf.h"
+#include "rempi_clock.h"
 
 #define  PNMPI_MODULE_REMPI "rempi"
 
@@ -137,7 +138,7 @@ int rempi_recorder_cdc::init_clmpi()
   // if (err!=PNMPI_SUCCESS)
   //   return err;
   // clmpi_register_recv_clocks=(PNMPIMOD_register_recv_clocks_t) ((void*)serv.fct);
-  clmpi_register_recv_clocks=PNMPIMOD_register_recv_clocks;
+  //  clmpi_register_recv_clocks=PNMPIMOD_register_recv_clocks;
 
   // /*Get clock-mpi service*/
   // err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_clock_control","i",&serv);
@@ -158,7 +159,7 @@ int rempi_recorder_cdc::init_clmpi()
   // if (err!=PNMPI_SUCCESS)
   //   return err;
   // clmpi_get_local_sent_clock=(PNMPIMOD_get_local_sent_clock_t) ((void*)serv.fct);
-  clmpi_get_local_sent_clock=PNMPIMOD_get_local_sent_clock;
+  //  clmpi_get_local_sent_clock=PNMPIMOD_get_local_sent_clock;
 
   // /*Get clock-mpi service*/
   // err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_sync_clock","i",&serv);
@@ -172,7 +173,7 @@ int rempi_recorder_cdc::init_clmpi()
   // if (err!=PNMPI_SUCCESS)
   //   return err;
   // clmpi_get_num_of_incomplete_sending_msg=(PNMPIMOD_get_num_of_incomplete_sending_msg_t) ((void*)serv.fct);
-  clmpi_get_num_of_incomplete_sending_msg=PNMPIMOD_get_num_of_incomplete_sending_msg;
+  //  clmpi_get_num_of_incomplete_sending_msg=PNMPIMOD_get_num_of_incomplete_sending_msg;
 
   // /*Load own moduel*/
   // err=PNMPI_Service_GetModuleByName(PNMPI_MODULE_REMPI, &handle_rempi);
@@ -193,20 +194,22 @@ int rempi_recorder_cdc::rempi_mf(int incount,
 				 int matching_function_type)
 {
   int ret;
+#ifdef DEV_CLOCK
+  ret = rempi_clock_mpi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, msg_id, matching_function_type);
+#else
   int recv_clock_length;
-
-
   if(matching_function_type == REMPI_MPI_WAITANY ||
      matching_function_type == REMPI_MPI_TESTANY) {
     recv_clock_length = 1;
   } else {
     recv_clock_length = incount;
   }
-  clmpi_register_recv_clocks(pre_allocated_clocks, recv_clock_length);
+  rempi_clock_register_recv_clocks(pre_allocated_clocks, recv_clock_length);
   ret = rempi_mpi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, matching_function_type);
   if (msg_id != NULL) {
     *msg_id =  pre_allocated_clocks;
   }
+#endif
   if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) mc_encoder->update_local_look_ahead_send_clock(REMPI_ENCODER_REPLAYING_TYPE_ANY, REMPI_ENCODER_NO_MATCHING_SET_ID);
   return ret;
 }
@@ -221,7 +224,7 @@ int rempi_recorder_cdc::rempi_pf(int source,
 {
   int ret;
   REMPI_ERR("MPI_Probe/Iprobe is not supported yet");
-  clmpi_register_recv_clocks(pre_allocated_clocks, 1);
+  rempi_clock_register_recv_clocks(pre_allocated_clocks, 1);
   ret = rempi_mpi_pf(source, tag, comm, flag, status, prove_function_type);
   *msg_id =  pre_allocated_clocks[0];
   return ret;
@@ -1065,7 +1068,7 @@ int rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
        when this request was canceled (MPI_Cancel) */
     if (irecv_inputs->request_proxy_list.size() == 0) continue; 
     proxy_request = irecv_inputs->request_proxy_list.front();
-    clmpi_register_recv_clocks(&clock, 1);
+    rempi_clock_register_recv_clocks(&clock, 1);
     clmpi_clock_control(0);
     flag = 0;
     REMPI_ASSERT(proxy_request != NULL);

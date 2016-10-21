@@ -21,6 +21,7 @@ rempi_SOURCES =  \
 		rempi_event_list.cpp \
 	     	rempi_event.cpp \
 		rempi_cp.cpp \
+		rempi_clock.cpp \
 	     	rempi_clock_delta_compression.cpp \
 		rempi_encoder.cpp \
 		rempi_encoder_basic.cpp \
