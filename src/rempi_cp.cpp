@@ -18,7 +18,6 @@
 #include "rempi_mem.h"
 
 #if !defined(REMPI_LITE)
-#include "clmpi.h"
 
 
 #define REMPI_RI_GATHER_TAG (1512)
@@ -156,7 +155,6 @@ static void rempi_cp_remote_indexing(int input_length, int* input_pred_ranks, in
   MPI_Request *recv_requests, *send_requests;
 
 
-  PNMPIMOD_clock_control(0);
 
 
   /* Step 1 */
@@ -206,7 +204,6 @@ static void rempi_cp_remote_indexing(int input_length, int* input_pred_ranks, in
   /* Step 5: Results are already in output_pred_indices */
   //  print_array2(input_length, output_pred_indices, input_pred_ranks);
 
-  PNMPIMOD_clock_control(1);
 
   /* Return results */
   *output_succ_rank_count = succ_rank_count;

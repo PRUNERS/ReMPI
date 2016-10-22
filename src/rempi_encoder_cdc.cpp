@@ -22,6 +22,7 @@
 #include "rempi_cp.h"
 #include "rempi_request_mg.h"
 #include "rempi_msg_buffer.h"
+#include "rempi_clock.h"
 
 
 #define REMPI_DECODE_STATUS_OPEN         (0)
@@ -341,8 +342,8 @@ rempi_encoder_cdc::rempi_encoder_cdc(int mode, string record_path)
   cdc = new rempi_clock_delta_compression(1);
 
   /* === Load CLMPI module  === */
-  clmpi_get_local_clock = PNMPIMOD_get_local_clock;
-  clmpi_get_local_sent_clock = PNMPIMOD_get_local_sent_clock;
+  // clmpi_get_local_clock = PNMPIMOD_get_local_clock;
+  // clmpi_get_local_sent_clock = PNMPIMOD_get_local_sent_clock;
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
     this->read_footer();
@@ -415,11 +416,11 @@ void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_tab
     size_t tmp_clock =  solid_mc_next_clocks_umap->at(tmp_rank);
 
     /* =========== added for set_fd_clock_state ============ */
-    if (tmp_clock == PNMPI_MODULE_CLMPI_COLLECTIVE) { 
+    if (tmp_clock == REMPI_CLOCK_COLLECTIVE_CLOCK) { 
       /*If this rank is in MPI_Collective, I skip this*/
       continue; 
     }
-    if (*local_min_id_clock == PNMPI_MODULE_CLMPI_COLLECTIVE) {
+    if (*local_min_id_clock == REMPI_CLOCK_COLLECTIVE_CLOCK) {
       *local_min_id_rank   = tmp_rank;
       *local_min_id_clock  = tmp_clock;
     }
@@ -593,7 +594,7 @@ int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *pr
 	break;
       case REMPI_ENCODER_LOOK_AHEAD_CLOCK_UPDATE:
 	if (solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) < rempi_cp_get_gather_clock(mc_recv_ranks[index]) || 
-	    rempi_cp_get_gather_clock(mc_recv_ranks[index]) == PNMPI_MODULE_CLMPI_COLLECTIVE) {
+	    rempi_cp_get_gather_clock(mc_recv_ranks[index]) == REMPI_CLOCK_COLLECTIVE_CLOCK) {
 	  solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) = rempi_cp_get_gather_clock(mc_recv_ranks[index]);
 	  is_updated = 1;
 	}
@@ -1729,7 +1730,7 @@ N      CDC events flow:
     /* ====== Operation B  ========*/
     /* Count how many events move from ordered_event_list to solid_ordered_event_list */
     int solid_event_count = 0;
-    if (local_min_id_clock == PNMPI_MODULE_CLMPI_COLLECTIVE) {
+    if (local_min_id_clock == REMPI_CLOCK_COLLECTIVE_CLOCK) {
       /*Other ranks (except me) are in collective*/
       solid_event_count = test_table->ordered_event_list.size();
     } else {
@@ -1910,9 +1911,9 @@ N      CDC events flow:
     calling compute_local_min_id.
   */
   //  if (recording_events.size_replay(test_id) == 0 && local_min_id_clock != PNMPI_MODULE_CLMPI_COLLECTIVE) {
-  if (local_min_id_clock != PNMPI_MODULE_CLMPI_COLLECTIVE) {
+  if (local_min_id_clock != REMPI_CLOCK_COLLECTIVE_CLOCK) {
 #ifdef RS_DBG
-    clmpi_get_local_clock(&tmp_interim_min_clock);
+    rempi_clock_get_local_clock(&tmp_interim_min_clock);
 #else
     clmpi_get_local_sent_clock(&tmp_interim_min_clock);
 #endif
@@ -1951,7 +1952,7 @@ N      CDC events flow:
       cit_end = test_table->ordered_event_list.cend();
       size_t local_clock_dbg;
 #ifdef RS_DBG
-      clmpi_get_local_clock(&local_clock_dbg);
+      rempi_clock_get_local_clock(&local_clock_dbg);
 #else
       clmpi_get_local_sent_clock(&local_clock_dbg);
 #endif
@@ -2177,7 +2178,7 @@ void rempi_encoder_cdc::update_local_look_ahead_send_clock(
       next_clock = 0;
     }
   } else if (replaying_event_type == REMPI_ENCODER_REPLAYING_TYPE_ANY){
-    clmpi_get_local_clock(&next_clock);
+    rempi_clock_get_local_clock(&next_clock);
   } else {
     REMPI_ERR("Unknow replaying_event_type: %d", replaying_event_type);
   }
@@ -2193,7 +2194,7 @@ void rempi_encoder_cdc::set_fd_clock_state(int flag)
 {
   if (flag) {
     tmp_fd_next_clock = rempi_cp_get_scatter_clock();
-    rempi_cp_set_scatter_clock(PNMPI_MODULE_CLMPI_COLLECTIVE);
+    rempi_cp_set_scatter_clock(REMPI_CLOCK_COLLECTIVE_CLOCK);
   } else {
     rempi_cp_set_scatter_clock(tmp_fd_next_clock);
   }  

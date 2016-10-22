@@ -11,7 +11,7 @@
 #include "rempi_cp.h"
 #include "rempi_config.h"
 #include "rempi_util.h"
-#include "clmpi.h"
+#include "rempi_clock.h"
 
 #define REMPI_MSGB_REQUEST_TYPE_USER_REQUESTED   (0) /* Requested by App */
 #define REMPI_MSGB_REQUEST_TYPE_REMPI_REQUESTED  (1) /* Requested by ReMPI */
@@ -185,11 +185,8 @@ static int progress_inactive_recv()
     recv_args = msgb_request->recv_args;
     flag = 0;
 
-    CLMPI_clock_control(0);
 
     PMPI_Iprobe(recv_args->source, recv_args->tag, recv_args->comm, &flag, &status);
-    //    sleep(1);
-    CLMPI_clock_control(1);
     if (flag) {
       //      REMPI_DBG("size: %lu", inactive_recv_list.size());
       PMPI_Get_count(&status, recv_args->datatype, &count);
@@ -272,11 +269,9 @@ static int progress_active_recv()
     recv_args = msgb_request->recv_args;
     flag = 0;
 
-    CLMPI_register_recv_clocks(&clock, 1);
-    CLMPI_clock_control(0);
+    rempi_clock_register_recv_clocks(&clock, 1);
     //    REMPI_DBGI(0, "test request: %p (soruct: %d)", recv_args->request, recv_args->source);
     PMPI_Test(&recv_args->request, &flag, &status);
-    CLMPI_clock_control(1);
     if (flag) {
 #ifdef REMPI_DBG_REPLAY      
       REMPI_DBGI(REMPI_DBG_REPLAY, "A->     : (source: %d, tag: %d, clock: %d, msid: %d)",

@@ -14,7 +14,7 @@
 #include "rempi_recorder.h"
 
 #if !defined(REMPI_LITE)
-#include "clmpi.h"
+
 #endif
 
 
@@ -89,9 +89,6 @@ class rempi_re
 class rempi_re_cdc : public rempi_re
 {
  private:
-  PNMPIMOD_register_recv_clocks_t clmpi_register_recv_clocks;
-  PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
-  PNMPIMOD_collective_sync_clock_t clmpi_collective_sync_clock;
   //  PNMPIMOD_get_recv_clocks_t clmpi_get_recv_clocks;
   int init_clmpi();
   rempi_recorder *recorder;  

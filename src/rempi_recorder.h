@@ -28,7 +28,7 @@
 #include "rempi_encoder.h"
 
 #if !defined(REMPI_LITE)
-#include "clmpi.h"
+
 #endif
 
 /* class rempi_matching_id */
@@ -307,11 +307,7 @@ class rempi_recorder_cdc : public rempi_recorder
 
   int progress_decode();
 
-  PNMPIMOD_register_recv_clocks_t clmpi_register_recv_clocks;
-  PNMPIMOD_clock_control_t clmpi_clock_control;
-  PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
-  PNMPIMOD_sync_clock_t      clmpi_sync_clock;
-  PNMPIMOD_get_num_of_incomplete_sending_msg_t clmpi_get_num_of_incomplete_sending_msg;
+
 
   size_t send_request_id;
 
@@ -332,7 +328,7 @@ class rempi_recorder_cdc : public rempi_recorder
   unordered_map<int, size_t> *recv_clock_umap_p_1;
   unordered_map<int, size_t> *recv_clock_umap_p_2;
 
-  PNMPIMOD_get_local_sent_clock_t clmpi_get_local_sent_clock;
+
 
 
   int progress_probe();

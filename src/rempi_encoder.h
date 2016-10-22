@@ -25,7 +25,7 @@
 /*In CDC, rempi_endoers needs to fetch and update next_clocks, 
 so CLMPI and PNMPI module need to be included*/
 #if !defined(REMPI_LITE)
-#include "clmpi.h"
+
 #endif
 
 using namespace std;
@@ -378,8 +378,7 @@ class rempi_encoder_cdc : public rempi_encoder
 
   MPI_Comm mpi_fd_clock_comm;
   MPI_Win mpi_fd_clock_win;
-  PNMPIMOD_get_local_clock_t clmpi_get_local_clock;
-  PNMPIMOD_get_local_clock_t clmpi_get_local_sent_clock;
+
 
   int decoding_state;
   int finished_testsome_count;

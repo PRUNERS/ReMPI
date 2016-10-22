@@ -17,6 +17,7 @@
 #include "rempi_clock_delta_compression.h"
 #include "rempi_compression_util.h"
 #include "rempi_cp.h"
+#include "rempi_clock.h"
 
 
 
@@ -232,7 +233,7 @@ N      CDC events flow:
     /* ====== Operation B  ========*/
     /* Count how many events move from ordered_event_list to solid_ordered_event_list */
     int solid_event_count = 0;
-    if (local_min_id_clock == PNMPI_MODULE_CLMPI_COLLECTIVE) {
+    if (local_min_id_clock == REMPI_CLOCK_COLLECTIVE_CLOCK) {
       /*Other ranks (except me) are in collective*/
       solid_event_count = test_table->ordered_event_list.size();
 #ifdef REMPI_DBG_REPLAY
@@ -478,9 +479,9 @@ N      CDC events flow:
     calling compute_local_min_id.
   */
   //  if (recording_events.size_replay(test_id) == 0 && local_min_id_clock != PNMPI_MODULE_CLMPI_COLLECTIVE) {
-  if (local_min_id_clock != PNMPI_MODULE_CLMPI_COLLECTIVE) {
+  if (local_min_id_clock != REMPI_CLOCK_COLLECTIVE_CLOCK) {
 #ifdef RS_DBG
-    clmpi_get_local_clock(&tmp_interim_min_clock);
+    rempi_clock_get_local_clock(&tmp_interim_min_clock);
 #else
     clmpi_get_local_sent_clock(&tmp_interim_min_clock);
 #endif

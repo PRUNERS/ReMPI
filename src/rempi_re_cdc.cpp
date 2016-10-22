@@ -11,12 +11,12 @@
 #include "rempi_mem.h"
 #include "rempi_config.h"
 #include "rempi_util.h"
-#include "clmpi.h"
 #include "rempi_recorder.h"
 #include "rempi_request_mg.h"
 #include "rempi_cp.h"
 #include "rempi_status.h"
 #include "rempi_mpi_init.h"
+#include "rempi_clock.h"
 
 #define  PNMPI_MODULE_REMPI "rempi"
 //#define MATCHING_ID_TEST
@@ -95,9 +95,9 @@ int rempi_re_cdc::re_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_S
 int rempi_re_cdc::init_clmpi()
 {
   int err;
-  clmpi_register_recv_clocks = PNMPIMOD_register_recv_clocks;
-  clmpi_get_local_clock = PNMPIMOD_get_local_clock;
-  clmpi_collective_sync_clock = PNMPIMOD_collective_sync_clock;
+  // clmpi_register_recv_clocks = PNMPIMOD_register_recv_clocks;
+  // clmpi_get_local_clock = PNMPIMOD_get_local_clock;
+  // clmpi_collective_sync_clock = PNMPIMOD_collective_sync_clock;
   return MPI_SUCCESS;
 }
 
@@ -505,7 +505,7 @@ int rempi_re_cdc::collective_sync_clock(MPI_Comm comm)
     recorder->set_fd_clock_state(1);
   }
   /*collectively sync clock*/
-  ret = clmpi_collective_sync_clock(comm);
+  ret = rempi_clock_collective_sync_clock(comm);
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
     recorder->set_fd_clock_state(0);    

@@ -21,7 +21,6 @@
 #include "rempi_err.h"
 #include "rempi_config.h"
 #include "rempi_mem.h"
-#include "clmpi.h"
 #include "rempi_request_mg.h"
 #include "rempi_cp.h"
 #include "rempi_mf.h"
@@ -70,8 +69,9 @@ bool compare3(int source1, size_t clock1,
 void* rempi_recorder_cdc::allocate_proxy_buf(int count, MPI_Datatype datatype)
 {
   int datatype_size;
-  MPI_Type_size(datatype, &datatype_size);
-  return rempi_malloc(datatype_size * count - sizeof(PNMPI_MODULE_CLMPI_PB_TYPE));
+  REMPI_ERR("error");
+  // MPI_Type_size(datatype, &datatype_size);
+  // return rempi_malloc(datatype_size * count - sizeof(PNMPI_MODULE_CLMPI_PB_TYPE));
 }
 
 void rempi_recorder_cdc::copy_proxy_buf(void* from, void* to, int count, MPI_Datatype datatype)
@@ -145,14 +145,14 @@ int rempi_recorder_cdc::init_clmpi()
   // if (err!=PNMPI_SUCCESS)
   //   return err;
   // clmpi_clock_control=(PNMPIMOD_clock_control_t) ((void*)serv.fct);
-  clmpi_clock_control=PNMPIMOD_clock_control;
+  //  clmpi_clock_control=PNMPIMOD_clock_control;
 
   // /*Get clock-mpi service*/
   // err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_local_clock","p",&serv);
   // if (err!=PNMPI_SUCCESS)
   //   return err;
   // clmpi_get_local_clock=(PNMPIMOD_get_local_clock_t) ((void*)serv.fct);
-  clmpi_get_local_clock=PNMPIMOD_get_local_clock;
+  //  clmpi_get_local_clock=PNMPIMOD_get_local_clock;
 
   // /*Get clock-mpi service*/
   // err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_local_sent_clock","p",&serv);
@@ -166,7 +166,7 @@ int rempi_recorder_cdc::init_clmpi()
   // if (err!=PNMPI_SUCCESS)
   //   return err;
   // clmpi_sync_clock=(PNMPIMOD_sync_clock_t) ((void*)serv.fct);
-  clmpi_sync_clock=PNMPIMOD_sync_clock;
+  //  clmpi_sync_clock=PNMPIMOD_sync_clock;
 
   // /*Get clock-mpi service*/                        
   // err=PNMPI_Service_GetServiceByName(handle_clmpi,"clmpi_get_incomplete_smsg_num","p",&serv);
@@ -232,6 +232,7 @@ int rempi_recorder_cdc::record_init(int *argc, char ***argv, int rank)
   string id;
 
   //fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
+  rempi_clock_init();
   init_clmpi();
   id = std::to_string((long long int)rank);
   replaying_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
@@ -247,6 +248,7 @@ int rempi_recorder_cdc::replay_init(int *argc, char ***argv, int rank)
   string id;
   string path;
 
+  rempi_clock_init();
   init_clmpi();
   id = std::to_string((long long int)rank);
   /*recording_event_list is needed for CDC, and when switching from repla mode to recording mode */
@@ -312,7 +314,7 @@ int rempi_recorder_cdc::replay_isend(mpi_const void *buf,
 
   rempi_cp_record_send(dest, 0);
 
-  PNMPIMOD_get_local_clock(&sent_clock);
+  rempi_clock_get_local_clock(&sent_clock);
 #ifdef REMPI_DBG_REPLAY
   REMPI_DBGI(REMPI_DBG_REPLAY, "Replay: Sending (rank:%d tag:%d clock:%lu)", dest, tag, sent_clock);
 #endif
@@ -712,7 +714,8 @@ int rempi_recorder_cdc::replay_mf_input(
       rempi_msgb_recv_msg(requested_buffer, replaying_test_event->get_rank(), requested_tag, requested_comm, replaying_test_event->get_msg_id(),
 			  &array_of_statuses[local_outcount]);
       rempi_reqmg_deregister_request(&array_of_requests[index], REMPI_RECV_REQUEST);
-      clmpi_sync_clock(replaying_test_event->get_clock());
+      //      clmpi_sync_clock(replaying_test_event->get_clock()); 
+      rempi_clock_sync_clock(replaying_test_event->get_clock(), REMPI_RECV_REQUEST);
       mc_encoder->update_local_look_ahead_send_clock(REMPI_ENCODER_REPLAYING_TYPE_ANY, REMPI_ENCODER_NO_MATCHING_SET_ID);
 
     } else if (request_info[index] == REMPI_NULL_REQUEST) {
