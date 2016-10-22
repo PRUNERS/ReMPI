@@ -9,6 +9,8 @@ int rempi_mpi_mf(int incount,
 	     MPI_Status array_of_statuses[],
 	     int matching_function_type);
 
+int rempi_mpi_get_matched_count(int incount, int *outcount, int matching_function_type);
+
 int rempi_mpi_pf(int source,
              int tag,
              MPI_Comm comm,

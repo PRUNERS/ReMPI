@@ -83,12 +83,13 @@ int rempi_recorder::rempi_get_matched_count(int incount, int *outcount, int matc
 }
 
 int rempi_recorder::rempi_mf(int incount,
-		     MPI_Request array_of_requests[],
-		     int *outcount,
-		     int array_of_indices[],
-		     MPI_Status array_of_statuses[],
-		     size_t **msg_id, // or clock
-		     int matching_function_type)
+			     MPI_Request array_of_requests[],
+			     int *outcount,
+			     int array_of_indices[],
+			     MPI_Status array_of_statuses[],
+			     size_t **msg_id, // or clock
+			     int *request_info,
+			     int matching_function_type)
 {
   int ret;
   ret = rempi_mpi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, matching_function_type);
@@ -435,9 +436,9 @@ int rempi_recorder::record_mf(
   for (int i = 0; i < incount; i++) tmp_requests[i] = array_of_requests[i];
 
   ret = this->rempi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, 
-		       &msg_id, matching_function_type);
-  matched_count = rempi_get_matched_count(incount, outcount, matching_function_type);
-
+		       &msg_id, request_info, matching_function_type);
+  matched_count = rempi_mpi_get_matched_count(incount, outcount, matching_function_type);
+  
   
   if (is_record_and_replay == 0) {
     for (int i = 0; i < matched_count; i++) {
@@ -763,8 +764,8 @@ int rempi_recorder::replay_mf(
   if (is_record_and_replay == 0) {
     /*this mf function is not replayed*/
     for (int i = 0; i < incount; i++) tmp_requests[i] = array_of_requests[i];
-    ret = this->rempi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, &msg_id, matching_function_type);
-    matched_count = rempi_get_matched_count(incount, outcount, matching_function_type);
+    ret = this->rempi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, &msg_id, request_info,  matching_function_type);
+    matched_count = rempi_mpi_get_matched_count(incount, outcount, matching_function_type);
 
     for (int i = 0; i < matched_count; i++) {
       matched_index = (array_of_indices==NULL)? i:array_of_indices[i];
@@ -805,7 +806,7 @@ int rempi_recorder::replay_mf(
   }
 
 
-  matched_count = rempi_get_matched_count(incount, outcount, matching_function_type);
+  matched_count = rempi_mpi_get_matched_count(incount, outcount, matching_function_type);
   update_validation_code(incount, &matched_count, array_of_indices, array_of_statuses, request_info);
 
 

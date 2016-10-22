@@ -191,25 +191,22 @@ int rempi_recorder_cdc::rempi_mf(int incount,
 				 int array_of_indices[],
 				 MPI_Status array_of_statuses[],
 				 size_t **msg_id, // or clock
+				 int *request_info,
 				 int matching_function_type)
 {
   int ret;
-#ifdef DEV_CLOCK
-  ret = rempi_clock_mpi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, msg_id, matching_function_type);
-#else
   int recv_clock_length;
-  if(matching_function_type == REMPI_MPI_WAITANY ||
-     matching_function_type == REMPI_MPI_TESTANY) {
-    recv_clock_length = 1;
-  } else {
-    recv_clock_length = incount;
-  }
+  int matched_count;
+  recv_clock_length = (matching_function_type == REMPI_MPI_WAITANY || matching_function_type == REMPI_MPI_TESTANY)? 1:incount;
   rempi_clock_register_recv_clocks(pre_allocated_clocks, recv_clock_length);
   ret = rempi_mpi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, matching_function_type);
+  matched_count = rempi_mpi_get_matched_count(incount, outcount, matching_function_type);
+  rempi_clock_sync_clock(matched_count, array_of_indices, pre_allocated_clocks, request_info, matching_function_type);
   if (msg_id != NULL) {
     *msg_id =  pre_allocated_clocks;
   }
-#endif
+  //  rempi_clock_
+
   if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) mc_encoder->update_local_look_ahead_send_clock(REMPI_ENCODER_REPLAYING_TYPE_ANY, REMPI_ENCODER_NO_MATCHING_SET_ID);
   return ret;
 }
@@ -285,7 +282,10 @@ int rempi_recorder_cdc::record_isend(mpi_const void *buf,
   int matching_set_id;
 
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
+  rempi_clock_mpi_isend(buf, count, datatype, dest, tag, comm, request, send_function_type);
+
   rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request, REMPI_SEND_REQUEST, &matching_set_id);
+
 #ifdef REMPI_DBG_REPLAY
   size_t sent_clock;
   PNMPIMOD_get_local_clock(&sent_clock);
@@ -316,7 +316,11 @@ int rempi_recorder_cdc::replay_isend(mpi_const void *buf,
 #ifdef REMPI_DBG_REPLAY
   REMPI_DBGI(REMPI_DBG_REPLAY, "Replay: Sending (rank:%d tag:%d clock:%lu)", dest, tag, sent_clock);
 #endif
+
+
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
+  rempi_clock_mpi_isend(buf, count, datatype, dest, tag, comm, request, send_function_type);
+
   rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request, REMPI_SEND_REQUEST, &matching_set_id);
 
 
@@ -1180,7 +1184,7 @@ int rempi_recorder_cdc::pre_process_collective(MPI_Comm comm)
   REMPI_DBGI(REMPI_DBG_REPLAY, "==== Record/Replay: Collective ======");
 #endif
   if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) mc_encoder->set_fd_clock_state(1);
-  PNMPIMOD_collective_sync_clock(comm);
+  rempi_clock_collective_sync_clock(comm);
   if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) mc_encoder->set_fd_clock_state(0);
 
   return MPI_SUCCESS;

@@ -144,6 +144,7 @@ class rempi_recorder {
 		       int array_of_indices[],
 		       MPI_Status array_of_statuses[],
 		       size_t **msg_id, // or clock
+		       int *request_info,
 		       int matching_function_type);
 
   virtual int rempi_pf(int source,
@@ -356,6 +357,7 @@ class rempi_recorder_cdc : public rempi_recorder
   		       int array_of_indices[],
   		       MPI_Status array_of_statuses[],
   		       size_t **msg_id, // or clock
+		       int *request_info,
   		       int matching_function_type);
 
   virtual int rempi_pf(int source,

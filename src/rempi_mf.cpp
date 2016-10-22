@@ -48,6 +48,41 @@ int rempi_mpi_mf(int incount,
 }
 
 
+int rempi_mpi_get_matched_count(int incount, int *outcount, int matching_function_type)
+{
+  int matched_count;
+  switch(matching_function_type) {
+  case REMPI_MPI_TEST:
+    matched_count = *outcount;
+    break;
+  case REMPI_MPI_TESTANY:
+    matched_count = *outcount;
+    break;
+  case REMPI_MPI_TESTSOME:
+    matched_count = *outcount;
+    break;
+  case REMPI_MPI_TESTALL:
+    matched_count = (*outcount == 0)? 0:incount;
+    break;
+  case REMPI_MPI_WAIT:
+    matched_count = 1;
+    break;
+  case REMPI_MPI_WAITANY:
+    matched_count = 1;
+    break;
+  case REMPI_MPI_WAITSOME:
+    matched_count = *outcount;
+    break;
+  case REMPI_MPI_WAITALL:
+    matched_count = incount;
+    break;
+  default:
+    REMPI_ERR("No such matching function type: %d", matching_function_type);
+  }
+  return matched_count;
+}
+
+
 int rempi_mpi_pf(int source,
 		 int tag,
 		 MPI_Comm comm,
