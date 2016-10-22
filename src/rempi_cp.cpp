@@ -79,6 +79,7 @@ static int compare(const void *val1, const void *val2)
 static void rempi_cp_print_remote_indexing(int input_length, int* input_pred_ranks, int* output_pred_indices, 
 				     size_t output_succ_rank_count, int* output_succ_ranks, int* output_succ_indices)
 {
+#if 0
   string succ_ranks = " ";
   string pred_ranks = " ";
   for (size_t i = 0; i < output_succ_rank_count; i++) {
@@ -92,6 +93,7 @@ static void rempi_cp_print_remote_indexing(int input_length, int* input_pred_ran
   }
   pred_ranks = "P: [" + pred_ranks + "]";
   REMPI_DBG("%s", pred_ranks.c_str());
+#endif
 
   return;
 }

@@ -906,74 +906,7 @@ void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_form
 
 
 
-#if 0
-int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id) 
-{
-  bool is_all_finished = 0;
-  bool is_epoch_finished = 0;
-  int suspend_progress = 0;
-  int has_new_event;
-  bool is_no_more_record;
 
-  while(!suspend_progress) {
-    switch (decoding_state) {
-    case REMPI_DECODE_STATUS_OPEN: //0
-      this->open_record_file(record_path);
-      decoding_state = REMPI_DECODE_STATUS_CREATE_READ;
-      break;
-    case REMPI_DECODE_STATUS_CREATE_READ: //1
-      decoding_input_format = this->create_encoder_input_format();
-      is_no_more_record = this->read_record_file(*decoding_input_format);
-
-
-      decoding_state = (is_no_more_record)? REMPI_DECODE_STATUS_CLOSE:REMPI_DECODE_STATUS_DECODE;
-      break;
-    case REMPI_DECODE_STATUS_DECODE: //2
-      this->decode(*decoding_input_format);
-      decoding_state = REMPI_DECODE_STATUS_INSERT;
-      break;
-    case REMPI_DECODE_STATUS_INSERT: //3
-      if (recording_events != NULL && replaying_events != NULL && recv_test_id >= 0)  {
-	insert_encoder_input_format_chunk_recv_test_id(recording_events, replaying_events, decoding_input_format, 
-						       &is_epoch_finished, &has_new_event, recv_test_id);
-	
-	if (is_epoch_finished) {
-	  delete decoding_input_format;
-	  decoding_input_format = NULL;
-	  decoding_state = REMPI_DECODE_STATUS_CREATE_READ;
-	} else {
-	  suspend_progress = 1;
-	}
-      } else {
-	suspend_progress = 1;
-      }
-      break;
-    case REMPI_DECODE_STATUS_CLOSE: //4
-      replaying_events->close_push();
-      delete decoding_input_format;
-      decoding_input_format = NULL;
-      this->close_record_file();
-      decoding_state = REMPI_DECODE_STATUS_COMPLETE;
-      is_all_finished = 1;
-      suspend_progress = 1;
-      break;
-    case REMPI_DECODE_STATUS_COMPLETE: //5
-      //      REMPI_ERR("No more events to replay");
-      is_all_finished = 1;
-      suspend_progress = 1;
-      break;
-    }
-  }
-  //  progress_decoding_mtx.unlock();
-
-  //  if (has_new_event == 0 && recv_test_id == -1) usleep(1);
-
-  return is_all_finished;
-
-}
-
-
-#else
 int decoding_state_old = -1;
 int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id) 
 {
@@ -1057,7 +990,7 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
   return is_all_finished;
 
 }
-#endif
+
 
 bool rempi_encoder_cdc::read_record_file(rempi_encoder_input_format &input_format)
 {

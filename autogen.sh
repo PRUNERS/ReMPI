@@ -7,7 +7,7 @@
 echo "Running libtoolize --automake --copy ... "
 libtoolize --automake --copy 
 echo "Running autoreconf --verbose --install"
-autoreconf --verbose --install 
+autoreconf --verbose --install
 echo "Cleaning up ..."
 rm -rf autom4te.cache 
 echo "Now run ./configure."

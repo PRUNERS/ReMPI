@@ -14,7 +14,8 @@ AM_INIT_AUTOMAKE([foreign -Wall -Werror])
 #LT_INIT([shared static])
 
 ### Action Macros
-AM_PROG_AR
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+
 AC_PROG_LIBTOOL
 
 AC_SUBST([LIB_CURRENT], [0])
@@ -27,12 +28,15 @@ AC_ARG_ENABLE([cdc],
             [enable_cdc=yes],
             [])
 AM_CONDITIONAL([ENABLE_CDC], [test "$enable_cdc" = yes])
+
 AC_ARG_WITH([bluegene],
             [AS_HELP_STRING([--with-bluegene],
               [build test code with static library])],
             [with_bluegene=yes],
             [with_bluegene=""])
 AM_CONDITIONAL([WITH_BLUEGENE], [test "$with_bluegene" = yes])
+
+
 
 
 
