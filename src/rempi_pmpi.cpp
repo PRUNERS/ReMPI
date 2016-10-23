@@ -236,12 +236,11 @@ void init_rempi() {
     REMPI_ERR("No such rempi_encode in ReMPI(Lite): %d", rempi_encode);
   } else {
 #if MPI_VERSION == 3 && !defined(REMPI_LITE)
-    /* 
-       ReMPI do not use rempi_re_cdc(). 
-       Common interface is provided for bot basic ReMPI and CDC ReMPI by rempi_re().       
-     */
-    //    rempi_record_replay = new rempi_re_cdc();
-    rempi_record_replay = new rempi_re(new rempi_recorder_cdc()); 
+    if (rempi_encode == 4) {
+      rempi_record_replay = new rempi_re(new rempi_recorder_cdc()); 
+    } else if (rempi_encode == 7) {
+      rempi_record_replay = new rempi_re(new rempi_recorder_rep());
+    }
 #else
     REMPI_ERR("No such rempi_encode: %d", rempi_encode);
 #endif  

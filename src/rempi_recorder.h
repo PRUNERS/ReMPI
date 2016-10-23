@@ -210,15 +210,17 @@ class rempi_recorder_cdc : public rempi_recorder
   rempi_encoder_cdc *mc_encoder;// = NULL;
   size_t pre_allocated_clocks[PRE_ALLOCATED_REQUEST_LENGTH];
   int progress_decode();
-  int progress_recv_and_safe_update_local_look_ahead_recv_clock(int do_fetch,
-								int incount, MPI_Request *array_of_requests, int message_set_id);
-  int dequeue_replay_event_set(vector<rempi_event*> &replaying_event_vec, int matching_set_id);
   int progress_recv_requests(int global_test_id,
 			     int incount,
 			     MPI_Request array_of_requests[]);
 
 
  protected:
+
+  int progress_recv_and_safe_update_local_look_ahead_recv_clock(int do_fetch,
+								int incount, MPI_Request *array_of_requests, int message_set_id);
+  int dequeue_replay_event_set(vector<rempi_event*> &replaying_event_vec, int matching_set_id);
+
 
   virtual int rempi_mf(int incount,
   		       MPI_Request array_of_requests[],
@@ -326,6 +328,32 @@ class rempi_recorder_cdc : public rempi_recorder
 
   int record_finalize(void);
   int replay_finalize(void);
+
+
+
+};
+
+
+
+
+class rempi_recorder_rep : public rempi_recorder_cdc
+{
+ private:
+  rempi_encoder_rep *mc_encoder;// = NULL;
+
+ protected:
+
+  virtual int get_next_events(
+			      int incount, 
+			      MPI_Request *array_of_requests, 
+			      vector<rempi_event*> &replaying_event_vec, 
+			      int matching_set_id);
+
+
+ public:
+  rempi_recorder_rep()
+    : rempi_recorder_cdc()
+    {}
 
 
 

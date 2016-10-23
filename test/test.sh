@@ -13,6 +13,12 @@ mkdir -p ${dir}
 #io_watchdog="--io-watchdog"
 #librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
 
+bin="./rempi_test_units matching"
+librempi=../src/.libs/librempix.so
+REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+#REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+exit
+
 
 # ===== MCB test ========
 par=`expr 80 \* $num_procs`
@@ -29,11 +35,7 @@ REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 
 cd -
 exit
 
-bin="./rempi_test_units matching"
-librempi=../src/.libs/librempix.so
-REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-#REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-exit
+
 
 
 #bin="./rempi_test_mini_mcb 10 1 1000"
