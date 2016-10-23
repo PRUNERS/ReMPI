@@ -27,91 +27,7 @@
 #include "rempi_io_thread.h"
 #include "rempi_encoder.h"
 
-#if !defined(REMPI_LITE)
 
-#endif
-
-/* class rempi_matching_id */
-/* { */
-/*  public: */
-/*   int source; */
-/*   int tag; */
-/*   int comm_id; */
-/*  rempi_matching_id(int source, int tag, int comm_id): */
-/*     source(source), tag(tag), comm_id(comm_id){}; */
-
-/*   bool operator<(const rempi_matching_id &matching_id) const { */
-/*     if (source == matching_id.source) { */
-/*       if (tag == matching_id.tag) { */
-/*   	return comm_id < matching_id.comm_id; */
-/*       } */
-/*       return tag < matching_id.tag; */
-/*     } */
-/*     return source < matching_id.source; */
-/*   } */
-/* }; */
-
-class rempi_proxy_request
-{
- public:
-  MPI_Request request;
-  void* buf;
-  int    matched_source; /*If matched, memorize the matched source for matched_pending_request */
-  int    matched_tag;    /*If matched, memorize the matched tag    for matched_pending_request*/
-  size_t matched_clock;  /*If matched, memorize the matched clock  for matched_pending_request*/
-  int    matched_count;  /*If matched, memorize the count          for matched_pending_request*/
-
- rempi_proxy_request(int count, MPI_Datatype datatype)
-    : matched_source(-1)
-    , matched_tag(-1)
-    , matched_clock(0)
-    , matched_count(-1) {
-      int datatype_size;
-      PMPI_Type_size(datatype, &datatype_size);
-      buf = rempi_malloc(datatype_size * count);
-  };
-  ~rempi_proxy_request() {
-    free(buf);
-  };
-};
-
-class rempi_irecv_inputs
-{
-
- public:
-  void *buf;
-  int count;
-  MPI_Datatype datatype;
-  int source;
-  int tag;
-  MPI_Comm comm;
-  MPI_Request request;
-  //  int test_id;
-  int recv_test_id;
-
-  list<rempi_proxy_request*> request_proxy_list; /*Posted by Irecv, but not matched yet*/
-  list<rempi_proxy_request*> matched_pending_request_proxy_list; /*Matched, but not enqueued*/
-  list<rempi_proxy_request*> matched_request_proxy_list; /*Enqueued, but not replayed*/
- rempi_irecv_inputs(
-		    void* buf,
-		    int count,
-		    MPI_Datatype datatype,
-		    int source,
-		    int tag,
-		    MPI_Comm comm,
-		    MPI_Request request) 
-    : buf(buf)
-    , count(count)
-    , datatype(datatype)
-    , source(source)
-    , tag(tag)
-    , comm(comm)
-    , request(request)
-    , recv_test_id(-1) {};
-  /* unordered_map<MPI_Request*, void*> proxy_requests_umap; */
-  /* void insert_request(MPI_Request* proxy_request, void* proxy_buf); */
-  /* void erase_request(MPI_Request* proxy_request); */
-};
 
 
 class rempi_recorder {
@@ -120,9 +36,7 @@ class rempi_recorder {
 
  protected:
   vector<rempi_event*> replaying_event_vec; /*TODO: vector => list*/
-  rempi_message_manager msg_manager; //TODO: this is not used
-  int next_test_id_to_assign;// = 0;
-  //  unordered_map<MPI_Request, rempi_irecv_inputs*> request_to_irecv_inputs_umap_a; 
+
   unordered_map<MPI_Request, rempi_event*> request_to_recv_event_umap;
   rempi_event_list<rempi_event*> *recording_event_list, *replaying_event_list;
   rempi_io_thread *record_thread, *read_record_thread;
@@ -137,7 +51,6 @@ class rempi_recorder {
 
 
   void cancel_request(MPI_Request *request);
-  int rempi_get_matched_count(int incount, int *outcount, int matching_function_type);
   virtual int rempi_mf(int incount,
 		       MPI_Request array_of_requests[],
 		       int *outcount,
@@ -175,8 +88,7 @@ class rempi_recorder {
  public:
 
   rempi_recorder()
-    : next_test_id_to_assign(0)
-    , record_thread(NULL)
+    : record_thread(NULL)
     , read_record_thread(NULL)
     , mc_encoder(NULL)
     , validation_code(5371) {
@@ -297,52 +209,13 @@ class rempi_recorder_cdc : public rempi_recorder
  private:
   rempi_encoder_cdc *mc_encoder;// = NULL;
   size_t pre_allocated_clocks[PRE_ALLOCATED_REQUEST_LENGTH];
-  void* allocate_proxy_buf(int count, MPI_Datatype datatype);
-  void copy_proxy_buf(void* fromt, void* to, int count, MPI_Datatype datatype);
-  int get_test_id();
-  int get_recv_test_id(int test_id);
-  unordered_map<int, int> test_id_to_recv_test_id_umap;
-  int next_recv_test_id_to_assign; // = 0;
-  int init_clmpi();
-
   int progress_decode();
-
-
-
-  size_t send_request_id;
-
-
-  /* Map for memorizing probed messages, but not received  */
-  unordered_set<int> probed_message_source_set;
-  /* To detect  which next_clock(or from which rank) should be updated at update_local_min_id. 
-     This is a set of ranks from which messages are received.
-     However, the messages have not been assigend to particulaer MF (recv_test_id=-1)
-   */
-  unordered_set<int> pending_message_source_set; 
-  /* Map for memorizing recieved messages with clock */
-  unordered_map<int, size_t> recv_message_source_umap; 
-  /* Map for memorizing recieved clock */
-  unordered_map<int, size_t> recv_clock_umap;
-  unordered_map<int, size_t> recv_clock_umap_1;
-  unordered_map<int, size_t> recv_clock_umap_2;
-  unordered_map<int, size_t> *recv_clock_umap_p_1;
-  unordered_map<int, size_t> *recv_clock_umap_p_2;
-
-
-
-
-  int progress_probe();
-
   int progress_recv_and_safe_update_local_look_ahead_recv_clock(int do_fetch,
 								int incount, MPI_Request *array_of_requests, int message_set_id);
-
-  
   int dequeue_replay_event_set(vector<rempi_event*> &replaying_event_vec, int matching_set_id);
-  
   int progress_recv_requests(int global_test_id,
 			     int incount,
 			     MPI_Request array_of_requests[]);
-
 
 
  protected:
@@ -386,10 +259,6 @@ class rempi_recorder_cdc : public rempi_recorder
  public:
   rempi_recorder_cdc()
     : rempi_recorder()
-    , next_recv_test_id_to_assign(0)
-    , send_request_id(100)
-    , recv_clock_umap_p_1(&recv_clock_umap_1)
-    , recv_clock_umap_p_2(&recv_clock_umap_2)
     {}
 
   int record_init(int *argc, char ***argv, int rank);

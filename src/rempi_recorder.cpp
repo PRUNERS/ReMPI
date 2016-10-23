@@ -48,39 +48,6 @@ void rempi_recorder::update_validation_code(int incount, int *outcount, int *arr
   return;  
 }
 
-int rempi_recorder::rempi_get_matched_count(int incount, int *outcount, int matching_function_type)
-{
-  int matched_count;
-  switch(matching_function_type) {
-  case REMPI_MPI_TEST:
-    matched_count = *outcount;
-    break;
-  case REMPI_MPI_TESTANY:
-    matched_count = *outcount;
-    break;
-  case REMPI_MPI_TESTSOME:
-    matched_count = *outcount;
-    break;
-  case REMPI_MPI_TESTALL:
-    matched_count = (*outcount == 0)? 0:incount;
-    break;
-  case REMPI_MPI_WAIT:
-    matched_count = 1;
-    break;
-  case REMPI_MPI_WAITANY:
-    matched_count = 1;
-    break;
-  case REMPI_MPI_WAITSOME:
-    matched_count = *outcount;
-    break;
-  case REMPI_MPI_WAITALL:
-    matched_count = incount;
-    break;
-  default:
-    REMPI_ERR("No such matching function type: %d", matching_function_type);
-  }
-  return matched_count;
-}
 
 int rempi_recorder::rempi_mf(int incount,
 			     MPI_Request array_of_requests[],
@@ -226,8 +193,7 @@ int rempi_recorder::replay_irecv(
    MPI_Request *request)
 {
   int ret;
-  rempi_proxy_request *proxy_request_info;
-  rempi_irecv_inputs *irecv_inputs;
+
   rempi_event *replaying_recv_event;
   int replaying_queue_status;
   int replaying_source;
@@ -327,8 +293,6 @@ int rempi_recorder::replay_cancel(MPI_Request *request)
 void rempi_recorder::cancel_request(MPI_Request *request)
 {
   int ret;
-  rempi_irecv_inputs *irecv_inputs;
-  rempi_proxy_request *proxy_request;
   int request_type;
   
   rempi_reqmg_get_request_type(request, &request_type);
@@ -617,7 +581,6 @@ int rempi_recorder::replay_mf_input(
 {
   rempi_event *replaying_test_event;
   int local_outcount = 0;
-  rempi_irecv_inputs *irecv_inputs;
   MPI_Status status;
   int index = 0;
 
@@ -666,7 +629,7 @@ int rempi_recorder::replay_mf_input(
       if ((requested_source != MPI_ANY_SOURCE && requested_source != status.MPI_SOURCE) ||
 	  (requested_tag    != MPI_ANY_TAG    && requested_tag    != status.MPI_TAG)  ) {
 	REMPI_ERR("Replaying recv event from rank %d, but src of this recv request is rank %d: request: %p, index: %d", 
-		  replaying_test_event->get_rank(), irecv_inputs->source,
+		  replaying_test_event->get_rank(), requested_source,
 		  array_of_requests[index], index);
       }
       array_of_statuses[local_outcount] = status;

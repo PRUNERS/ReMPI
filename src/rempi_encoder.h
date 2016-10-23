@@ -137,11 +137,6 @@ class rempi_encoder_input_format
   int    mc_length;//       = -1;
   /*All source ranks in all receive MPI functions*/
   int    *mc_recv_ranks;//  = NULL;
-#ifndef CP_DBG
-  /*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*/
-  size_t *mc_next_clocks;// = NULL;
-  size_t *tmp_mc_next_clocks;
-#endif
   /* ======================*/  
 
   /*vector to write to file*/
@@ -156,10 +151,6 @@ class rempi_encoder_input_format
     , decompressed_record_char(NULL)
     , mc_length(-1)
     , mc_recv_ranks(NULL)
-#ifndef CP_DBG
-    , mc_next_clocks(NULL)
-    , tmp_mc_next_clocks(NULL) 
-#endif
     {}
 
   ~rempi_encoder_input_format() 
@@ -206,14 +197,6 @@ class rempi_encoder
   int    *mc_recv_ranks;//  = NULL; 
 
   unordered_map<int, size_t> interim_min_clock_in_next_event_umap;
-#ifndef CP_DBG
-  int    mc_flag;//         = 0; /*if mc_flag == 1: main thread execute frontier detection*/
-  /*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*/
-  size_t *mc_next_clocks;// = NULL;
-  /* temporal array until in-flight message checking*/
-  size_t *tmp_mc_next_clocks;  
-  /* If no in-flight message, copyed from tmp_mc_next_clocks to solid_ordered_event_list*/
-#endif
 
   //    unordered_map<int, size_t> solid_mc_next_clocks_umap; 
   /* ======================*/
@@ -240,11 +223,6 @@ class rempi_encoder
       , record_path(record_path)
       , mc_length(-1)
       , mc_recv_ranks(NULL)
-#ifndef CP_DBG
-      , mc_flag(0)
-      , mc_next_clocks(NULL) 
-      , tmp_mc_next_clocks(NULL) 
-#endif
       , num_of_recv_msg_in_next_event(NULL)
       , dequeued_count(NULL)
       , tmp_fd_next_clock(0)
@@ -299,33 +277,6 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
 
 class rempi_encoder_basic : public rempi_encoder
 {
-
- /* protected: */
- /*    size_t total_write_size; */
- /*    int mode; */
- /*    string record_path; */
- /*    fstream record_fs; */
- /*    rempi_compression_util<size_t> compression_util; */
- /*    list<rempi_event*> matched_event_pool; */
- /*    bool is_event_pooled(rempi_event* replaying_event); */
- /*    rempi_event* pop_event_pool(rempi_event* replaying_event); */
-
-
- /*    /\* === For CDC replay ===*\/ */
- /*    int    mc_flag;//         = 0; /\*if mc_flag == 1: main thread execute frontier detection*\/ */
- /*    int    mc_length;//       = 0; */
- /*    /\*All source ranks in all receive MPI functions*\/ */
- /*    int    *mc_recv_ranks;//  = NULL;  */
- /*    /\*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*\/ */
- /*    size_t *mc_next_clocks;// = NULL; */
- /*    /\* temporal array until in-flight message checking*\/ */
- /*    size_t *tmp_mc_next_clocks;   */
- /*    /\* If no in-flight message, copyed from tmp_mc_next_clocks to solid_ordered_event_list*\/ */
- /*    unordered_map<int, size_t> solid_mc_next_clocks_umap;  */
- /*    /\* ======================*\/ */
-
- /*    vector<size_t> write_size_vec; */
-
  public:
   rempi_encoder_basic(int mode, string record_path);
 
@@ -409,9 +360,7 @@ class rempi_encoder_cdc : public rempi_encoder
 
  public:
 
-#ifndef CP_DBG
-  struct frontier_detection_clocks *fd_clocks;// = NULL;
-#endif
+
 
 
 

@@ -480,11 +480,9 @@ N      CDC events flow:
   */
   //  if (recording_events.size_replay(test_id) == 0 && local_min_id_clock != PNMPI_MODULE_CLMPI_COLLECTIVE) {
   if (local_min_id_clock != REMPI_CLOCK_COLLECTIVE_CLOCK) {
-#ifdef RS_DBG
+
     rempi_clock_get_local_clock(&tmp_interim_min_clock);
-#else
-    clmpi_get_local_sent_clock(&tmp_interim_min_clock);
-#endif
+
 
     /*local_sent_clock is sent clock value, so the local_clock is local_sent_clock + 1*/
     //    tmp_interim_min_clock++;
@@ -523,11 +521,9 @@ N      CDC events flow:
       cit     = test_table->ordered_event_list.cbegin();
       cit_end = test_table->ordered_event_list.cend();
       size_t local_clock_dbg;
-#ifdef RS_DBG
-      clmpi_get_local_clock(&local_clock_dbg);
-#else
-      clmpi_get_local_sent_clock(&local_clock_dbg);
-#endif
+
+      repmi_clock_get_local_clock(&local_clock_dbg);
+
 
 
       REMPI_DBGI(REMPI_DBG_REPLAY, "INTRM update: local_clock: %lu", local_clock_dbg);
