@@ -189,6 +189,7 @@ class rempi_encoder
   bool is_event_pooled(rempi_event* replaying_event);
   rempi_event* pop_event_pool(rempi_event* replaying_event);
   rempi_mutex progress_decoding_mtx;
+  rempi_encoder_input_format *input_format;
   
 
   /* === For CDC replay ===*/
@@ -220,6 +221,7 @@ class rempi_encoder
       : mode(mode) 
       , record_path(record_path)
       , total_write_size(0)
+      , input_format(NULL)
       , mc_length(-1)
       , mc_recv_ranks(NULL)
       , num_of_recv_msg_in_next_event(NULL)
@@ -236,14 +238,14 @@ class rempi_encoder
     void set_record_path(string record_path);
 
     /*For only record*/
-    virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
-    virtual void encode(rempi_encoder_input_format &input_format);
-    virtual void write_record_file(rempi_encoder_input_format *input_format);
+    virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format *input_format);
+    virtual void encode();
+    virtual void write_record_file();
     /*For only replay*/
     virtual bool read_record_file(rempi_encoder_input_format *input_format);
-    virtual void decode(rempi_encoder_input_format &input_format);
+    virtual void decode();
+    virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events);
     virtual int progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id);
-    virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
 
 
@@ -286,14 +288,13 @@ class rempi_encoder_basic : public rempi_encoder
     void close_record_file();
 
     /*For only record*/
-    virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
-    virtual void encode(rempi_encoder_input_format &input_format);
-    virtual void write_record_file(rempi_encoder_input_format *input_format);
+    virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format *input_format);
+    virtual void encode();
+    virtual void write_record_file();
     /*For only replay*/
     virtual bool read_record_file(rempi_encoder_input_format *input_format);
-    virtual void decode(rempi_encoder_input_format &input_format);
-    virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
-
+    virtual void decode();
+    virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events);
 
 
     virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
@@ -350,10 +351,10 @@ class rempi_encoder_cdc : public rempi_encoder
 
 
   rempi_clock_delta_compression *cdc;
-  virtual void compress_non_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
-  virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
-  virtual void decompress_non_matched_events(rempi_encoder_input_format &input_format);
-  virtual void decompress_matched_events(rempi_encoder_input_format &input_format);
+  virtual void compress_non_matched_events(rempi_encoder_input_format_test_table  *test_table);
+  virtual void compress_matched_events(rempi_encoder_input_format_test_table  *test_table);
+  virtual void decompress_non_matched_events();
+  virtual void decompress_matched_events();
   virtual void write_footer();
   virtual void read_footer();
 
@@ -370,18 +371,19 @@ class rempi_encoder_cdc : public rempi_encoder
 
   /*For common*/
   virtual rempi_encoder_input_format* create_encoder_input_format();
-  void write_record_file(rempi_encoder_input_format &input_format);
+
   /*For only record*/
-  virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
-  virtual void encode(rempi_encoder_input_format &input_format);
+  virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format *input_format);
+  virtual void encode();
+  void write_record_file();
   /*For only replay*/
   virtual bool read_record_file(rempi_encoder_input_format *input_format);
-  virtual void decode(rempi_encoder_input_format &input_format);
+  virtual void decode();
+  void insert_encoder_input_format_chunk_recv_test_id(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, bool *is_finished, int *has_new_event, int recv_test_id);
+
 
   virtual int progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id);
-  void insert_encoder_input_format_chunk_recv_test_id(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, rempi_encoder_input_format *input_format, bool *is_finished, int *has_new_event, int recv_test_id);
-  virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
-
+  virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events);
   virtual void fetch_remote_look_ahead_send_clocks();
   virtual int update_local_look_ahead_recv_clock(
 						 unordered_set<int> *probed_message_source_set, 
@@ -418,8 +420,8 @@ class rempi_encoder_rep : public rempi_encoder_cdc
    : rempi_encoder_cdc(mode, record_path) { };
 
 
-  virtual void compress_non_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
-  virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
+  virtual void compress_non_matched_events(rempi_encoder_input_format_test_table  *test_table);
+  virtual void compress_matched_events(rempi_encoder_input_format_test_table  *test_table);
 
  protected:
   virtual bool cdc_decode_ordering(rempi_event_list<rempi_event*> *recording_events, list<rempi_event*> *event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> *replay_event_list, int test_id, int local_min_id_rank, size_t local_min_id_clock);

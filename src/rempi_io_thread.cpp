@@ -44,15 +44,15 @@ void rempi_io_thread::write_record()
     double s, e;
 
     /*Get a sequence of events, ...  */
-    is_extracted = encoder->extract_encoder_input_format_chunk(*recording_events, *input_format);
+    is_extracted = encoder->extract_encoder_input_format_chunk(*recording_events, input_format);
 
     if (is_extracted) {
       /*If I get the sequence, encode(compress) the seuence*/
       s = rempi_get_time();
-      encoder->encode(*input_format);
+      encoder->encode();
       //      input_format->debug_print();
       /*Then, write to file.*/
-      encoder->write_record_file(*input_format);
+      encoder->write_record_file();
       count++;
       e = rempi_get_time();
       delete input_format; //TODO: also delete iternal data in this variable
@@ -98,15 +98,15 @@ void rempi_io_thread::read_record_lite()
   input_format = encoder->create_encoder_input_format();
 
   while(1) {
-    is_no_more_record = encoder->read_record_file(*input_format);
+    is_no_more_record = encoder->read_record_file(input_format);
     if (is_no_more_record) {
       /*If replayed all recorded events, ...*/
       replaying_events->close_push();
       delete input_format;
       break;
     } else {
-      encoder->decode(*input_format);
-      encoder->insert_encoder_input_format_chunk(*recording_events, *replaying_events, *input_format);
+      encoder->decode();
+      encoder->insert_encoder_input_format_chunk(*recording_events, *replaying_events);
       delete input_format;
       input_format = encoder->create_encoder_input_format();
     }
