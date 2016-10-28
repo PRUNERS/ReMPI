@@ -83,18 +83,27 @@ int rempi_recorder_cdc::rempi_pf(int source,
   return ret;
 }
 
-int rempi_recorder_cdc::record_init(int *argc, char ***argv, int rank) 
+void rempi_recorder_cdc::init(int rank)
 {
   string id;
+  string path;
 
   //fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   rempi_clock_init();
-  id = std::to_string((long long int)rank);
   replaying_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
   recording_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
-  record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode, (rempi_encoder**)&mc_encoder); //0: recording mode
-  record_thread->start();
-  
+  id = std::to_string((long long int)rank);
+  path = rempi_record_dir_path + "/rank_" + id + ".rempi";
+  mc_encoder = new rempi_encoder_cdc(rempi_mode, path);
+  return;
+}
+
+int rempi_recorder_cdc::record_init(int *argc, char ***argv, int rank) 
+{
+
+  this->init(rank);
+  record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, rempi_mode, mc_encoder);
+  record_thread->start();  
   return 0;
 }
 
@@ -103,13 +112,12 @@ int rempi_recorder_cdc::replay_init(int *argc, char ***argv, int rank)
   string id;
   string path;
 
-  rempi_clock_init();
+
+
+  this->init(rank);
+  read_record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, rempi_mode, mc_encoder); //1: replay mode
+
   id = std::to_string((long long int)rank);
-  /*recording_event_list is needed for CDC, and when switching from repla mode to recording mode */
-  recording_event_list = new rempi_event_list<rempi_event*>(10000000, 100); 
-  replaying_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
-  read_record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, id, rempi_mode, (rempi_encoder**)&mc_encoder); //1: replay mode
-  //  REMPI_DBG("io thread is not runnig");
   path = rempi_record_dir_path + "/rank_" + id + ".rempi";
   mc_encoder->set_record_path(path);
   ((rempi_encoder_cdc*)mc_encoder)->init_cp(path.c_str());
@@ -137,17 +145,17 @@ int rempi_recorder_cdc::record_isend(mpi_const void *buf,
   int resultlen;
   int matching_set_id;
 
+#ifdef REMPI_DBG_REPLAY
+  size_t sent_clock;
+  rempi_clock_get_local_clock(&sent_clock);
+  REMPI_DBGI(REMPI_DBG_REPLAY, "Record: Sent (rank:%d tag:%d clock:%lu)", dest, tag, sent_clock);
+#endif
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
   rempi_clock_mpi_isend(buf, count, datatype, dest, tag, comm, request, send_function_type);
 
   rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request, REMPI_SEND_REQUEST, &matching_set_id);
 
-#ifdef REMPI_DBG_REPLAY
-  size_t sent_clock;
-  PNMPIMOD_get_local_clock(&sent_clock);
-  sent_clock--;
-  REMPI_DBGI(REMPI_DBG_REPLAY, "Record: Sent (rank:%d tag:%d clock:%lu)", dest, tag, sent_clock);
-#endif
+
   return ret;
 }
 
@@ -278,8 +286,7 @@ MPI_Fint rempi_recorder_cdc::replay_request_c2f(MPI_Request request)
 #endif
 
 
-
-int rempi_recorder_cdc::dequeue_replay_event_set(vector<rempi_event*> &replaying_event_vec, int matching_set_id)
+int rempi_recorder_cdc::dequeue_replay_event_set(int incount, MPI_Request array_of_requests[], int *request_info, int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec) 
 {
   int event_list_status;
   int is_completed = 0;
@@ -309,11 +316,11 @@ int rempi_recorder_cdc::progress_recv_and_safe_update_local_look_ahead_recv_cloc
   int is_updated;
   int has_recv_msg;
 
+
   if (do_fetch == REMPI_RECORDER_DO_FETCH_REMOTE_LOOK_AHEAD_SEND_CLOCKS) mc_encoder->fetch_remote_look_ahead_send_clocks();
 
-  /* ======================================================== */
-  /* Step 2: Test message receives (Update: Message Buffer)   */
-  /* ======================================================== */
+
+
   do {
     has_recv_msg = progress_recv_requests(matching_set_id, incount, array_of_requests);
   } while (has_recv_msg == 1);
@@ -324,7 +331,8 @@ int rempi_recorder_cdc::progress_recv_and_safe_update_local_look_ahead_recv_cloc
   return is_updated;
 }
 
-int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_requests, vector<rempi_event*> &replaying_event_vec, int matching_set_id)
+int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_requests, int request_info[], 
+					vector<rempi_event*> &replaying_event_vec, int matching_set_id, int matching_function_type)
 {
   rempi_event *replaying_event = NULL;
   int interval = 0;
@@ -334,6 +342,8 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
 
   /*This call is necessary, but call this just in case*/
   mc_encoder->update_local_look_ahead_send_clock(REMPI_ENCODER_REPLAYING_TYPE_ANY, REMPI_ENCODER_NO_MATCHING_SET_ID);
+
+
 
   while (!is_completed) {
     this->progress_recv_and_safe_update_local_look_ahead_recv_clock(
@@ -345,7 +355,7 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
 #ifdef REMPI_MAIN_THREAD_PROGRESS
     mc_encoder->progress_decoding(recording_event_list, replaying_event_list, matching_set_id);
 #endif
-    is_completed = this->dequeue_replay_event_set(replaying_event_vec, matching_set_id);
+  is_completed = this->dequeue_replay_event_set(incount, array_of_requests, request_info, matching_set_id, matching_function_type, replaying_event_vec);
 
     if (!is_completed) {
       /*

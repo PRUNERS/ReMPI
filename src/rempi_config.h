@@ -20,6 +20,9 @@ extern int rempi_mode;
 extern string rempi_record_dir_path;
 
 #define REMPI_ENV_NAME_ENCODE "REMPI_ENCODE"
+#define REMPI_ENV_REMPI_ENCODE_BASIC (0)
+#define REMPI_ENV_REMPI_ENCODE_CDC   (4)
+#define REMPI_ENV_REMPI_ENCODE_REP   (7)
 extern int rempi_encode;
 
 #define REMPI_ENV_NAME_GZIP   "REMPI_GZIP"

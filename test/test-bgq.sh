@@ -29,6 +29,13 @@ cd -
 exit
 
 
+bin="./rempi_test_master_workerx"
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 REMPI_MAX=10000000 srun -n ${num_procs} ${bin}
+exit
+
+
+
+
 
 bin="./rempi_test_unitsx matching"
 REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 srun -n ${num_procs} ${memcheck} ${bin}
@@ -39,9 +46,7 @@ exit
 
 
 
-bin="./rempi_test_master_workerx"
-REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 REMPI_MAX=10000000 srun -n ${num_procs} ${bin}
-exit
+
 
 bin="./rempi_test_mini_mcb 10 0 1000"
 REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=1 REMPI_MAX=10000000 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}

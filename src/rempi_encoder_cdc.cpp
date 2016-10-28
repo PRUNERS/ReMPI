@@ -392,6 +392,7 @@ void rempi_encoder_cdc::fetch_remote_look_ahead_send_clocks()
 void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
 					     int *local_min_id_rank,
 					     size_t *local_min_id_clock, int recv_test_id)
+
 {
   unordered_map<int, size_t> *solid_mc_next_clocks_umap;
   int epoch_rank_vec_size  = test_table->epoch_rank_vec.size();
@@ -519,6 +520,7 @@ int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *pr
   int howto_update;
   int matching_set_id;
 
+  //  REMPI_DBG("solid_mc_size: %lu", solid_mc_next_clocks_umap_umap.size());
 
   for (unordered_map<int, unordered_map<int, size_t>*>::iterator it = solid_mc_next_clocks_umap_umap.begin(), 
 	 it_end = solid_mc_next_clocks_umap_umap.end(); 
@@ -881,7 +883,7 @@ int rempi_encoder_cdc::progress_decoding(rempi_event_list<rempi_event*> *recordi
     //    decoding_state_old = decoding_state;
     switch (decoding_state) {
     case REMPI_DECODE_STATUS_OPEN: //0
-      this->open_record_file(record_path);
+      this->open_record_file();
       decoding_state = REMPI_DECODE_STATUS_CREATE_READ;
       break;
     case REMPI_DECODE_STATUS_CREATE_READ: //1
@@ -1152,29 +1154,33 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     test_table->compressed_unmatched_events_id_size = *(size_t*)decoding_address;
     decoding_address += sizeof(test_table->compressed_unmatched_events_id_size);
     /*----------- id   ------------*/
-    test_table->compressed_unmatched_events_id      = decoding_address;
-    rempi_copy_vec((size_t*)test_table->compressed_unmatched_events_id, test_table->compressed_unmatched_events_id_size / sizeof(size_t),
-		   test_table->unmatched_events_id_vec);
-    compression_util.decompress_by_linear_prediction(test_table->unmatched_events_id_vec);
-    decoding_address += test_table->compressed_unmatched_events_id_size;
+    if (test_table->compressed_unmatched_events_id_size > 0) {
+      test_table->compressed_unmatched_events_id      = decoding_address;
+      rempi_copy_vec((size_t*)test_table->compressed_unmatched_events_id, test_table->compressed_unmatched_events_id_size / sizeof(size_t),
+		     test_table->unmatched_events_id_vec);
+      compression_util.decompress_by_linear_prediction(test_table->unmatched_events_id_vec);
+      decoding_address += test_table->compressed_unmatched_events_id_size;
+    }
     /*===  (2) count */
     /*----------- size ------------*/
     test_table->compressed_unmatched_events_count_size = *(size_t*)decoding_address;
     decoding_address += sizeof(test_table->compressed_unmatched_events_count_size);
     /*----------- count   ------------*/
-    test_table->compressed_unmatched_events_count      = decoding_address;
-    rempi_copy_vec((size_t*)test_table->compressed_unmatched_events_count, test_table->compressed_unmatched_events_count_size / sizeof(size_t),
-		   test_table->unmatched_events_count_vec);
-    decoding_address += test_table->compressed_unmatched_events_count_size;
-    {
-      for (int i = 0, n = test_table->unmatched_events_id_vec.size(); i < n; i++) {
-	size_t id    = test_table->unmatched_events_id_vec[i];
-	size_t count = test_table->unmatched_events_count_vec[i];
-	test_table->unmatched_events_umap[id] = count;
+    if (test_table->compressed_unmatched_events_count_size > 0) {
+      test_table->compressed_unmatched_events_count      = decoding_address;
+      rempi_copy_vec((size_t*)test_table->compressed_unmatched_events_count, test_table->compressed_unmatched_events_count_size / sizeof(size_t),
+		     test_table->unmatched_events_count_vec);
+      decoding_address += test_table->compressed_unmatched_events_count_size;
+      {
+	for (int i = 0, n = test_table->unmatched_events_id_vec.size(); i < n; i++) {
+	  size_t id    = test_table->unmatched_events_id_vec[i];
+	  size_t count = test_table->unmatched_events_count_vec[i];
+	  test_table->unmatched_events_umap[id] = count;
+	}
       }
+      test_table->unmatched_events_id_vec.clear();
+      test_table->unmatched_events_count_vec.clear();
     }
-    test_table->unmatched_events_id_vec.clear();
-    test_table->unmatched_events_count_vec.clear();
     /*===============================*/
     
 
@@ -1182,8 +1188,6 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
     /*=== Decode matched_events ===*/
     /*----------- size ------------*/
     test_table->compressed_matched_events_size      = *(size_t*)decoding_address;
-
-    //    REMPI_DBGI(3, "matched size: %lu", test_table->compressed_matched_events_size);
     decoding_address += sizeof(test_table->compressed_matched_events_size);
 
     if (test_table->compressed_matched_events_size > 0) {
@@ -1207,6 +1211,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
       if (test_table->matched_events_id_vec.size() != test_table->matched_events_delay_vec.size()) {
 	REMPI_ERR("matched_id_vec.size != matched_delay_vec.size()");
       }
+      decoding_address += test_table->compressed_matched_events_size;
     } else {
       test_table->compressed_matched_events = NULL;
     }
@@ -1228,7 +1233,7 @@ void rempi_encoder_cdc::decode(rempi_encoder_input_format &input_format)
 
 
     /*   ------------ */
-    decoding_address += test_table->compressed_matched_events_size;
+
 
     /*===============================*/
   } /* -- End of while */
@@ -1396,7 +1401,6 @@ void rempi_encoder_cdc::cdc_prepare_decode_indices(
 }
 
 
-static int first = 1, first2=1;
 
 bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> *recording_events, list<rempi_event*> *event_list, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> *replay_event_list, int test_id, int local_min_id_rank, size_t local_min_id_clock)
 {

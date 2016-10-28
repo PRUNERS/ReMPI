@@ -311,6 +311,7 @@ static int probe_msg()
   int flag;
   MPI_Status status;
   
+
   probed_message_source_set.clear();
   pred_ranks = rempi_cp_get_pred_ranks(&pred_ranks_length);
   for (int i = 0; i < pred_ranks_length; i++) {

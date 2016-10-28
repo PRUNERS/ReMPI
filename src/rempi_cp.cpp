@@ -339,6 +339,7 @@ void rempi_cp_gather_clocks()
     }
   }
 
+
   // for (int i = 0; i < 2; i++) {
   //   REMPI_DBGI(0, "rempi_cp_gather_pc[%d]: %d", i, rempi_cp_gather_pc[i]);
   // }

@@ -31,34 +31,6 @@ do { \
 } while(0) \
 
 
-// #define HANDLE_NON_RECV_REQUESTS(incount, array_of_requests, matching_func, func) \
-// do { \
-//   int recv_request_count; \
-//   int null_request_count; \
-//   int ret; \
-//   REMPI_DBGI(9, "MF call: %s: incount: %d", func, incount);			\
-//   recv_request_count = rempi_reqmg_get_recv_request_count(incount, array_of_requests); \
-//   REMPI_DBGI(9, "MDD MF call: %s: incount: %d", func, incount);	\
-//   null_request_count = rempi_reqmg_get_null_request_count(incount, array_of_requests); \
-//   REMPI_DBGI(9, "END MF call: %s: incount: %d", func, incount);	\
-//   if  (null_request_count > 0) { \
-//     REMPI_DBGI(9, "Warning: MPI_REQUEST_NULL is used: %p/%d (at %s)", MPI_REQUEST_NULL, incount, func); \
-//     if (recv_request_count == 0) { \
-//       REMPI_DBGI(9, "Warning: Calling with MPI_REQUEST_NULL");	\
-//         return matching_func;		       \
-//     } \
-//   } else if(recv_request_count == 0) { \
-//     if (incount > 0)  REMPI_DBGI(9, "Untraced request call: %p (at %s)", array_of_requests[0], func); \
-//     ret = matching_func; \
-//     REMPI_DBGI(9, " ... Done");			\
-//     return ret; \
-//   } else if (recv_request_count != incount) {		\
-//     REMPI_DBG("ReMPI requires array_of_requests to be all send requests OR all recv requests: " \
-//               "recv_req_count: %d, incount: %d", recv_request_count, incount); \
-//     REMPI_ASSERT(1 == 0); \
-//   } \
-// } while(0)			\
-
 int send_to0 = 0;
 
 
@@ -130,8 +102,6 @@ int rempi_re::re_isend(
 		       MPI_Request *request)
 {
   int ret;
-  int resultlen;
-  char comm_id[REMPI_COMM_ID_LENGTH];
 
   if (comm != MPI_COMM_WORLD) {
     REMPI_ERR("Current ReMPI accept only MPI_COMM_WORLD");
@@ -158,8 +128,7 @@ int rempi_re::re_irecv(
 {
   int ret;
   char comm_id[REMPI_COMM_ID_LENGTH];
-  //  int comm_id_int;
-  int resultlen;
+
   if (comm != MPI_COMM_WORLD) {
     REMPI_ERR("Current ReMPI does not multiple communicators");
   }
@@ -222,7 +191,6 @@ int rempi_re::re_test(
 int rempi_re::re_testany(int count, MPI_Request array_of_requests[],
 		       int *index, int *flag, MPI_Status *status)
 { 
-  int ret;
   int status_flag;
 
   status = rempi_status_allocate(count, status, &status_flag);
@@ -296,7 +264,6 @@ int rempi_re::re_wait(
 		    MPI_Status *status)
 {
   int ret;
-  int flag = 1;
   int status_flag;
 
   status = rempi_status_allocate(1, status, &status_flag);
@@ -318,7 +285,6 @@ int rempi_re::re_waitany(
 		       int *index, MPI_Status *status)
 {
   int ret;
-  int flag = 1;
   int status_flag;
 
   status = rempi_status_allocate(count, status, &status_flag);
@@ -402,7 +368,6 @@ int rempi_re::re_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Statu
 {
   int ret;
   char comm_id[REMPI_COMM_ID_LENGTH];
-  int resultlen;
   int status_flag;
 
   status = rempi_status_allocate(1, status, &status_flag);

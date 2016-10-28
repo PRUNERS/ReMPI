@@ -186,14 +186,15 @@ void rempi_encoder::set_record_path(string path)
 
 
 int ct = 0;
-void rempi_encoder::open_record_file(string record_path)
+void rempi_encoder::open_record_file()
 {
 
   //  REMPI_DBG("open: %s ||%d", record_path.c_str(), ct++);
-  if (mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    record_fs.open(record_path.c_str(), ios::out);
-  } else if (mode == REMPI_ENV_REMPI_MODE_REPLAY) {
-    record_fs.open(record_path.c_str(), ios::in);
+
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    record_fs.open(this->record_path.c_str(), ios::out);
+  } else if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
+    record_fs.open(this->record_path.c_str(), ios::in);
   } else {
     REMPI_ERR("Unknown record replay mode");
   }

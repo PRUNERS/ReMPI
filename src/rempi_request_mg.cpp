@@ -11,6 +11,7 @@
 #include "rempi_config.h"
 #include "rempi_util.h"
 #include "rempi_request_mg.h"
+#include "rempi_clock.h"
 
 #define REMPI_REQMG_MPI_CALL_TYPE_SEND (0)
 #define REMPI_REQMG_MPI_CALL_TYPE_RECV (1)
@@ -37,7 +38,7 @@ vector<vector<rempi_matching_id*>*> rempi_matching_id_vec_vec;
 /*Index: test_id, Value: set_id */
 unordered_map<int, int> test_id_to_set_id;
 unordered_map<MPI_Request, rempi_reqmg_recv_args*> request_to_recv_args_umap;
-unordered_map<MPI_Request, int>request_to_send_id_umap;
+unordered_map<MPI_Request, rempi_reqmg_send_args*>request_to_send_id_umap;
 unordered_map<string, int> test_ids_map;
 int next_test_id_to_assign = 0;
 
@@ -52,6 +53,8 @@ int mpi_request_id = 1015;
 list<rempi_reqmg_recv_args*> posted_recv_requests;
 list<rempi_reqmg_recv_args*> matched_non_identified_recv_requests;
 list<rempi_reqmg_recv_args*> matched_identified_recv_requests;
+
+
 
 static int is_contained(int source, int tag, int comm_id, vector<rempi_matching_id*> *vec) {
   for (vector<rempi_matching_id*>::const_iterator cit = vec->cbegin(),
@@ -115,12 +118,13 @@ static int rempi_reqmg_assign_matching_set_id_to_recv(int matching_set_id, int i
 {
   rempi_reqmg_recv_args *recv_args;
   for (int i = 0; i < incount; i++) {
-    if (request_to_recv_args_umap.find(array_of_requests[i]) == request_to_recv_args_umap.end() &&
-	request_to_send_id_umap.find(array_of_requests[i])   == request_to_send_id_umap.end()) {
-      if (array_of_requests[i] != MPI_REQUEST_NULL) {
+    if (request_to_recv_args_umap.find(array_of_requests[i]) == request_to_recv_args_umap.end()) {
+
+      if (array_of_requests[i] != MPI_REQUEST_NULL && 	request_to_send_id_umap.find(array_of_requests[i])  == request_to_send_id_umap.end() ) {
 	REMPI_ERR("No such recv MPI_Request: %p", array_of_requests[i], MPI_REQUEST_NULL);
       }
     } else {
+      //      REMPI_DBG("id: %d, incount: %d, request: %p", matching_set_id, incount, array_of_requests[i]);
       recv_args = request_to_recv_args_umap.at(array_of_requests[i]);
       if (recv_args->matching_set_id != REMPI_REQMG_MATCHING_SET_ID_UNKNOWN) {
 	if (recv_args->matching_set_id != matching_set_id) {
@@ -259,6 +263,7 @@ static int rempi_reqmg_get_matching_set_id_0(int *matching_set_id)
 
 static int rempi_reqmg_get_matching_set_id_1(int *matching_set_id, int *mpi_call_id, int mpi_call_type, int incount, MPI_Request array_of_requests[])
 {
+  int request_type;
   *mpi_call_id = get_mpi_call_id();
   if (mpi_call_id_to_matching_set_id.find(*mpi_call_id) != 
       mpi_call_id_to_matching_set_id.end()) {
@@ -269,9 +274,10 @@ static int rempi_reqmg_get_matching_set_id_1(int *matching_set_id, int *mpi_call
     //    REMPI_DBGI(2, "%d -> %d (type: %d)", *mpi_call_id, *matching_set_id, mpi_call_type);
     return 0;
   } else {
-    if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY && mpi_call_type == REMPI_REQMG_MPI_CALL_TYPE_MF) {
-      REMPI_ERR("No matching set id is assined in a record mode for mpi_call_id=%d (type: %d)", *mpi_call_id, mpi_call_type);
-    }
+    // if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY && 
+    // 	mpi_call_type == REMPI_REQMG_MPI_CALL_TYPE_MF) {
+    //   REMPI_ERR("No matching set id is assined in a record mode for mpi_call_id=%d (type: %d)", *mpi_call_id, mpi_call_type);
+    // }
   }
 
 
@@ -681,7 +687,15 @@ static int rempi_reqmg_register_recv_request(void *buf, int count, MPI_Datatype 
 static int rempi_reqmg_register_send_request(mpi_const void *buf, int count, MPI_Datatype datatype, int rank,
 					     int tag, MPI_Comm comm, MPI_Request *request)
 {
-  request_to_send_id_umap[*request] = rank;
+  size_t clock;
+
+  /* 
+     "clock" is not actually send clock because this clock is already ticked after MPI_Send/Isend 
+     But, the purpose of getting clock here is to assigne "increasing id number" to each send request
+     so that rempi_recorder_rep knows which send request should be completed first at least.
+  */
+  rempi_clock_get_local_clock(&clock);  
+  request_to_send_id_umap[*request] = new rempi_reqmg_send_args(rank, clock);
   //  REMPI_DBG("send req: %p  --> rank: %d", *request, rank);
   return 0;
 }
@@ -723,7 +737,22 @@ static int rempi_reqmg_is_record_and_replay(int length, int *request_info, int s
     }
   }
 #else
-  if (send_count > 0) return 0;
+  if (rempi_encode == REMPI_ENV_REMPI_ENCODE_CDC) {
+    if (send_count > 0) return 0;
+  } else if (rempi_encode == REMPI_ENV_REMPI_ENCODE_REP){
+    if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+      if (send_count > 0) return 0;
+    } else {
+      if (ignore_count > 0) {
+        if (send_count + recv_count + null_count == 0) {
+      	return 0;
+        } else {
+      	REMPI_ERR("Ignore requests and send/recv requests are tested by a singe MF: (%d %d %d %d)",
+      		  send_count, recv_count, null_count, ignore_count);
+        }
+      }
+    }
+  }
 #endif
   return 1;
 }
@@ -803,7 +832,7 @@ int rempi_reqmg_get_recv_request_count(int incount, MPI_Request *requests)
 
 void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendcount, int *recvcount, int *nullcount, int *request_info, int *is_record_and_replay, int *matching_set_id)
 {
-  unordered_map<MPI_Request, int>::iterator send_endit = request_to_send_id_umap.end();
+  unordered_map<MPI_Request, rempi_reqmg_send_args*>::iterator send_endit = request_to_send_id_umap.end();
   unordered_map<MPI_Request, rempi_reqmg_recv_args*>::iterator recv_endit = request_to_recv_args_umap.end();
   int mpi_call_id;
   int ignore;
@@ -859,7 +888,7 @@ rempi_reqmg_recv_args* rempi_reqmg_get_recv_args(MPI_Request *request)
 
 void rempi_reqmg_get_request_type(MPI_Request *request, int *request_type)
 {
-  unordered_map<MPI_Request, int>::iterator send_endit = request_to_send_id_umap.end();
+  unordered_map<MPI_Request, rempi_reqmg_send_args*>::iterator send_endit = request_to_send_id_umap.end();
   unordered_map<MPI_Request, rempi_reqmg_recv_args*>::iterator recv_endit = request_to_recv_args_umap.end();
   if(request_to_send_id_umap.find(*request) != send_endit) {
     *request_type = REMPI_SEND_REQUEST;
@@ -883,7 +912,7 @@ void rempi_reqmg_store_send_statuses(int incount, MPI_Request *requests, int *re
     if(request_info[i] == REMPI_SEND_REQUEST) {
       //statuses[i].MPI_SOURCE = request_to_send_id_umap[requests[i]];
       //      statuses[i].MPI_SOURCE = request_to_send_id_umap.at(requests[i]);
-      statuses[i].MPI_SOURCE = request_to_send_id_umap.at(requests[i]);
+      statuses[i].MPI_SOURCE = request_to_send_id_umap.at(requests[i])->dest;
       //      request_to_send_id_umap.at(requests[i]);
       // for (int j = 0; j < incount; j++) {
       // 	REMPI_DBGI(3, "store reqeust: %p (loop: %d)", requests[j], i);
@@ -951,6 +980,14 @@ int rempi_reqmg_get_matching_set_id_map(int **mpi_call_ids, int **matching_set_i
   }
   
   return 0;
+}
+
+size_t rempi_reqmg_get_send_request_clock(MPI_Request *request)
+{
+  if (request_to_send_id_umap.find(*request) == request_to_send_id_umap.end()) {
+    REMPI_ERR("No such request: %p", *request);
+  }
+  return request_to_send_id_umap.at(*request)->clock;
 }
 
 int rempi_reqmg_set_matching_set_id_map(int *mpi_call_ids, int *matching_set_ids, int length)
