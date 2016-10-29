@@ -1,0 +1,319 @@
+#include <mpi.h>
+
+#if MPI_VERSION == 3 && !defined(REMPI_LITE)
+
+#include <stdio.h>
+#include <string.h>
+
+#include <unordered_map>
+#include <string>
+
+
+#include "rempi_recorder.h"
+#include "rempi_msg_buffer.h"
+#include "rempi_event.h"
+#include "rempi_event_list.h"
+#include "rempi_io_thread.h"
+#include "rempi_send_mf.h"
+#include "rempi_util.h"
+#include "rempi_err.h"
+#include "rempi_config.h"
+#include "rempi_mem.h"
+#include "rempi_request_mg.h"
+#include "rempi_cp.h"
+#include "rempi_mf.h"
+#include "rempi_clock.h"
+
+#define COMPLETE_MF_SEND           (0)
+#define COMPLETE_MF_UNMATCHED_RECV (1)
+#define COMPLETE_MF_MATCHED_RECV   (2)
+
+static int local_rank = -1;
+
+void rempi_recorder_rep::init(int rank)
+{ 
+  string id;
+  string path;
+
+  local_rank = rank;
+  rempi_clock_init();
+  replaying_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
+  recording_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
+  id = std::to_string((long long int)rank);
+  path = rempi_record_dir_path + "/rank_" + id + ".rempi";
+  mc_encoder = new rempi_encoder_rep(rempi_mode, path);
+  return;
+}
+
+
+/* 1. Finish all send request */
+/* 2. if (local_clock > next recv event clock || blocking_mf) => matched */
+/* 3. else (local_clock < next recv event clock && non-blocking): -> unmatched */
+
+int rempi_recorder_rep::dequeue_matched_events(int matching_set_id)
+{
+  int event_list_status;
+  list<rempi_event*> *matched_recv_event_list;
+  rempi_event* replaying_event;
+  if (matched_recv_event_list_umap.find(matching_set_id) == matched_recv_event_list_umap.end()) {
+    matched_recv_event_list_umap[matching_set_id] = new list<rempi_event*>;
+  }
+  matched_recv_event_list = matched_recv_event_list_umap[matching_set_id];
+
+  while ((replaying_event = replaying_event_list->dequeue_replay(matching_set_id, event_list_status)) != NULL) {
+#ifdef REMPI_DBG_REPLAY
+    REMPI_DBGI(REMPI_DBG_REPLAY, "RPQ->REPVEC  : (count: %d, with_next: %d, flag: %d, source: %d, clock: %d) matching_set_id: %d",
+               replaying_event->get_event_counts(), replaying_event->get_is_testsome(), replaying_event->get_flag(),
+               replaying_event->get_source(), replaying_event->get_clock(), matching_set_id);
+#endif
+    matched_recv_event_list->push_back(replaying_event);
+  }
+
+  return 0;
+}
+
+int rempi_recorder_rep::complete_mf_send_single(int incount, MPI_Request array_of_requests[], int *request_info,
+						int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec)
+{
+  rempi_event *replaying_event;
+  int matched_index;
+  size_t min_clock = -1;
+  int is_completed;
+  size_t clock;
+
+
+  for (int index = 0; index < incount; index++) {
+    if (request_info[index] == REMPI_SEND_REQUEST) {
+      clock = rempi_reqmg_get_send_request_clock(&array_of_requests[index]);
+      if (min_clock == -1 || clock < min_clock) {
+	min_clock     = clock;
+	matched_index = index;
+      }
+    }
+  }
+  
+  if (min_clock != -1) {
+    replaying_event = rempi_event::create_test_event(1,
+						     1,
+						     REMPI_MPI_EVENT_INPUT_IGNORE,
+						     REMPI_MPI_EVENT_NOT_WITH_NEXT,
+						     matched_index,
+						     min_clock,
+						     matching_set_id);
+    replaying_event_vec.push_back(replaying_event);
+    is_completed = 1;
+  } else {
+    is_completed = 0;
+  }
+  return is_completed;
+}
+
+int rempi_recorder_rep::complete_mf_send_all(int incount, MPI_Request array_of_requests[], int *request_info,
+		     int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec)
+{
+  int is_completed = 0;
+  REMPI_ERR("MPI_TESTALL/Waitall in not supported");
+  return is_completed;
+}
+
+
+int rempi_recorder_rep::complete_mf_send(int incount, MPI_Request array_of_requests[], int *request_info,
+		     int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec)
+{
+  int is_completed = 0;
+  size_t clock;
+  switch(matching_function_type) {
+  case REMPI_MPI_TESTALL:
+  case REMPI_MPI_WAITALL:
+    is_completed = complete_mf_send_all(incount, array_of_requests, request_info, matching_set_id, matching_function_type, replaying_event_vec);
+    break;
+  default:
+    is_completed = complete_mf_send_single(incount, array_of_requests, request_info, matching_set_id, matching_function_type, replaying_event_vec);
+    break;
+  }
+  return is_completed;
+}
+
+int rempi_recorder_rep::is_behind_time(int matching_set_id)
+{
+  size_t look_ahead_recv_clock, recved_clock, local_clock;
+  int    look_ahead_recv_rank, recved_rank;
+  list<rempi_event*> *matched_recv_event_list;
+  rempi_event *next_matched_event;
+  int compare;
+
+  rempi_clock_get_local_clock(&local_clock);
+
+  matched_recv_event_list = matched_recv_event_list_umap.at(matching_set_id);
+  if (matched_recv_event_list->size() > 0) {
+    next_matched_event = matched_recv_event_list->front();
+    recved_clock       = next_matched_event->get_clock();
+    recved_rank        = next_matched_event->get_source();
+    compare = compare_clock(local_clock, local_rank, recved_clock, recved_rank);
+    if (compare > 0) {
+      return 1;
+    } else if (compare == 0) {
+      REMPI_ERR("Receving same clock <clock:%lu, rank:%d)", local_clock, local_rank);
+    } 
+    return 0;
+  }   
+  mc_encoder->compute_look_ahead_recv_clock(&look_ahead_recv_clock, &look_ahead_recv_rank, matching_set_id);    
+  compare = compare_clock(local_clock, local_rank, look_ahead_recv_clock, look_ahead_recv_rank);
+  if (compare > 0) {
+    return 1;
+  } else if (compare == 0) {
+    REMPI_ERR("May receve same clock <clock:%lu, rank:%d)", local_clock, local_rank);
+  }
+
+  return 0;
+}
+
+int rempi_recorder_rep::complete_mf_unmatched_recv_all(int incount, MPI_Request array_of_requests[], int *request_info,
+			       int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec)
+{
+  REMPI_ERR("MPI_Testall/Waitall is not supported");
+  return 0;
+}
+
+int rempi_recorder_rep::complete_mf_unmatched_recv_single(int incount, MPI_Request array_of_requests[], int *request_info,
+			       int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec)
+{
+  int is_completed = 0;
+  size_t local_clock;
+  rempi_event* replaying_event;
+  rempi_event* *matched_event;
+
+
+
+  if (is_behind_time(matching_set_id)) {
+    replaying_event = rempi_event::create_test_event(1, 0,
+  						     REMPI_MPI_EVENT_INPUT_IGNORE,
+  						     REMPI_MPI_EVENT_INPUT_IGNORE,
+  						     REMPI_MPI_EVENT_INPUT_IGNORE,
+  						     REMPI_MPI_EVENT_INPUT_IGNORE,
+  						     REMPI_MPI_EVENT_INPUT_IGNORE);
+    replaying_event_vec.push_back(replaying_event);
+    is_completed = 1;
+  } else {
+    is_completed = 0;
+  }
+
+  return is_completed;
+}
+
+int rempi_recorder_rep::complete_mf_unmatched_recv(int incount, MPI_Request array_of_requests[], int *request_info,
+			       int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec)
+{
+  int is_completed = 0;
+  switch(matching_function_type) {
+  case REMPI_MPI_WAIT:
+  case REMPI_MPI_WAITANY:
+  case REMPI_MPI_WAITSOME:
+  case REMPI_MPI_WAITALL:
+    break;
+  case REMPI_MPI_TEST:
+  case REMPI_MPI_TESTANY:
+  case REMPI_MPI_TESTSOME:
+    is_completed = complete_mf_unmatched_recv_single(incount, array_of_requests, request_info, matching_set_id, matching_function_type, replaying_event_vec);
+    break;
+  case REMPI_MPI_TESTALL:
+    is_completed = complete_mf_unmatched_recv_all(incount, array_of_requests, request_info, matching_set_id, matching_function_type, replaying_event_vec);
+    break;
+  default:
+    REMPI_ERR("No such matching function type");
+    break;
+  }
+  return is_completed;
+}
+
+int rempi_recorder_rep::complete_mf_matched_recv_single(int incount, MPI_Request array_of_requests[], int *request_info,
+				    int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec)
+{
+  int is_completed = 0;
+  size_t recved_clock, local_clock;
+  int recved_rank;
+  int compare;
+  list<rempi_event*> *matched_recv_event_list;
+  rempi_event *next_matched_event;
+
+  matched_recv_event_list = matched_recv_event_list_umap.at(matching_set_id);
+
+  if (matched_recv_event_list->size() > 0) {
+    rempi_clock_get_local_clock(&local_clock);  
+    next_matched_event = matched_recv_event_list->front();
+    recved_clock       = next_matched_event->get_clock();
+    recved_rank        = next_matched_event->get_source();
+    compare = compare_clock(local_clock, local_rank, recved_clock, recved_rank);
+    if (compare >= 0) {
+      REMPI_ERR("Clock is not correct <local_clock:%lu, local_rank:%d> <recved_clock:%lu, recved_rank:%d>", 
+		local_clock, local_rank, recved_clock, recved_rank);
+    } 
+    replaying_event_vec.push_back(next_matched_event);
+    matched_recv_event_list->pop_front();
+    is_completed = 1;
+
+  }     
+  return is_completed;
+}
+int rempi_recorder_rep::complete_mf_matched_recv_all(int incount, MPI_Request array_of_requests[], int *request_info,
+			     int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec)
+{
+  REMPI_ERR("Not supported");
+  return 0;
+}
+
+int rempi_recorder_rep::complete_mf_matched_recv(int incount, MPI_Request array_of_requests[], int *request_info,
+			     int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec)
+{
+  int is_completed = 0;
+  switch(matching_function_type) {
+  case REMPI_MPI_WAIT:
+  case REMPI_MPI_WAITANY:
+  case REMPI_MPI_WAITSOME:
+  case REMPI_MPI_TEST:
+  case REMPI_MPI_TESTANY:
+  case REMPI_MPI_TESTSOME:
+    is_completed = complete_mf_matched_recv_single(incount, array_of_requests, request_info, matching_set_id, matching_function_type, replaying_event_vec);
+    break;
+  case REMPI_MPI_WAITALL:
+  case REMPI_MPI_TESTALL:
+    is_completed = complete_mf_matched_recv_all(incount, array_of_requests, request_info, matching_set_id, matching_function_type, replaying_event_vec);
+    break;
+  default:
+    REMPI_ERR("No such matching function type");
+    break;
+  }
+  
+  return is_completed;
+}
+
+
+int rempi_recorder_rep::dequeue_replay_event_set(int incount, MPI_Request array_of_requests[], int *request_info, int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec)
+{
+  int howto_complete;
+  rempi_event *handle_event = NULL;
+  int is_completed;
+
+  this->dequeue_matched_events(matching_set_id);
+
+  howto_complete = COMPLETE_MF_SEND;
+  switch(howto_complete) {
+  case COMPLETE_MF_SEND:
+    is_completed = complete_mf_send(incount, array_of_requests, request_info, matching_set_id, matching_function_type, replaying_event_vec);
+    if (is_completed) break;
+  case COMPLETE_MF_UNMATCHED_RECV:
+    is_completed = complete_mf_unmatched_recv(incount, array_of_requests, request_info, matching_set_id, matching_function_type, replaying_event_vec);
+    if (is_completed) break;
+  case COMPLETE_MF_MATCHED_RECV:
+    is_completed = complete_mf_matched_recv(incount, array_of_requests, request_info, matching_set_id, matching_function_type, replaying_event_vec);
+    break;
+  default:
+    REMPI_ERR("Unknow event handling");
+  }  
+
+  return is_completed;
+}
+
+
+
+#endif /* MPI_LITE */

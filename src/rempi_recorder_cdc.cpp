@@ -94,12 +94,14 @@ void rempi_recorder_cdc::init(int rank)
   recording_event_list = new rempi_event_list<rempi_event*>(10000000, 100);
   id = std::to_string((long long int)rank);
   path = rempi_record_dir_path + "/rank_" + id + ".rempi";
+  
   mc_encoder = new rempi_encoder_cdc(rempi_mode, path);
   return;
 }
 
 int rempi_recorder_cdc::record_init(int *argc, char ***argv, int rank) 
 {
+
 
   this->init(rank);
   record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, rempi_mode, mc_encoder);
@@ -308,6 +310,19 @@ int rempi_recorder_cdc::dequeue_replay_event_set(int incount, MPI_Request array_
   return is_completed;
 }
 
+/* left < right: 1, left == right: 0 left > rigth: -1 */
+int rempi_recorder_cdc::compare_clock(size_t left_clock, int left_rank, size_t right_clock, int right_rank)
+{
+  if (left_clock < right_clock) {
+    return 1;
+  } else if (left_clock == right_clock) {
+    if (left_rank <  right_clock) return 1;
+    if (left_rank == right_clock) return 0;
+    if (left_rank >  right_clock) return -1;
+  }
+  return -1;
+}
+
 
 
 int rempi_recorder_cdc::progress_recv_and_safe_update_local_look_ahead_recv_clock(int do_fetch, 
@@ -351,11 +366,10 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
 								    REMPI_RECORDER_DO_FETCH_REMOTE_LOOK_AHEAD_SEND_CLOCKS:
 								    REMPI_RECORDER_DO_NOT_FETCH_REMOTE_LOOK_AHEAD_SEND_CLOCKS,
 								    incount, array_of_requests, matching_set_id);
-
 #ifdef REMPI_MAIN_THREAD_PROGRESS
     mc_encoder->progress_decoding(recording_event_list, replaying_event_list, matching_set_id);
 #endif
-  is_completed = this->dequeue_replay_event_set(incount, array_of_requests, request_info, matching_set_id, matching_function_type, replaying_event_vec);
+    is_completed = this->dequeue_replay_event_set(incount, array_of_requests, request_info, matching_set_id, matching_function_type, replaying_event_vec);
 
     if (!is_completed) {
       /*
@@ -402,6 +416,7 @@ int rempi_recorder_cdc::replay_mf_input(
       if (outcount != NULL) {
 	*outcount = 0;
       }
+      rempi_clock_sync_clock(0, array_of_indices, pre_allocated_clocks, request_info, matching_function_type);
       return 0;
     }
 
@@ -421,7 +436,7 @@ int rempi_recorder_cdc::replay_mf_input(
 	REMPI_ASSERT(0);
       }
       rempi_reqmg_deregister_request(&array_of_requests[index], REMPI_SEND_REQUEST);      
-      REMPI_ERR("send wait");
+      if (rempi_encode == REMPI_ENV_REMPI_ENCODE_CDC) REMPI_ERR("send wait");
       PMPI_Wait(&array_of_requests[index], &array_of_statuses[local_outcount]);
     } else if (request_info[index] == REMPI_RECV_REQUEST) {
       int requested_source, requested_tag;
@@ -434,9 +449,9 @@ int rempi_recorder_cdc::replay_mf_input(
 			  &array_of_statuses[local_outcount]);
       rempi_reqmg_deregister_request(&array_of_requests[index], REMPI_RECV_REQUEST);
       //      clmpi_sync_clock(replaying_test_event->get_clock()); 
-      rempi_clock_sync_clock(replaying_test_event->get_clock(), REMPI_RECV_REQUEST);
+      //      rempi_clock_sync_clock(replaying_test_event->get_clock(), REMPI_RECV_REQUEST);
       mc_encoder->update_local_look_ahead_send_clock(REMPI_ENCODER_REPLAYING_TYPE_ANY, REMPI_ENCODER_NO_MATCHING_SET_ID);
-
+      pre_allocated_clocks[local_outcount] = replaying_test_event->get_clock();
     } else if (request_info[index] == REMPI_NULL_REQUEST) {
       REMPI_ERR("MPI_REQUEST_NULL does not match any message: %d", request_info[index]);
     } else {
@@ -456,7 +471,8 @@ int rempi_recorder_cdc::replay_mf_input(
 		 matching_function_type == REMPI_MPI_WAITSOME)? local_outcount:1;
   }
 
-
+  int matched_count = rempi_mpi_get_matched_count(incount, outcount, matching_function_type);
+  rempi_clock_sync_clock(matched_count, array_of_indices, pre_allocated_clocks, request_info, matching_function_type);
   return MPI_SUCCESS;
 }
 

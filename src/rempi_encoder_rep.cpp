@@ -24,9 +24,6 @@
 /* ==================================== */
 /*      CLASS rempi_encoder_rep         */
 /* ==================================== */
-
-
-
 void rempi_encoder_rep::compress_non_matched_events(rempi_encoder_input_format_test_table *test_table)
 {
   char *write_buff;
@@ -127,7 +124,6 @@ void rempi_encoder_rep::add_to_ordered_list(list<rempi_event*> *event_list)
 
 bool rempi_encoder_rep::cdc_decode_ordering(rempi_event_list<rempi_event*> *recording_events, list<rempi_event*> *event_list, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> *replay_event_list, int test_id, int local_min_id_rank, size_t local_min_id_clock)
 {
-  vector<rempi_event*> replay_event_vec;
   bool is_reached_epoch_line;
 #ifdef REMPI_DBG_REPLAY
   bool is_ordered_event_list_updated = false;
@@ -254,17 +250,17 @@ bool rempi_encoder_rep::cdc_decode_ordering(rempi_event_list<rempi_event*> *reco
        cit != cit_end;
        cit++) {
     rempi_event *replaying_event = *cit;
-    replay_event_vec.push_back(replaying_event);
+    replay_event_list->push_back(replaying_event);
+#ifdef REMPI_DBG_REPLAY    
+    REMPI_DBGI(REMPI_DBG_REPLAY, "Final   RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)",
+	       replaying_event->get_event_counts(), replaying_event->get_is_testsome(), replaying_event->get_flag(),
+	       replaying_event->get_source(), replaying_event->get_clock());
+#endif
   }
   test_table->solid_ordered_event_list.clear();
   
 
 #ifdef REMPI_DBG_REPLAY
-  for (int i = 0, n = replay_event_vec.size(); i < n; i++) {
-    REMPI_DBGI(REMPI_DBG_REPLAY, "Final   RPQv ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)",
-	       replay_event_vec[i]->get_event_counts(), replay_event_vec[i]->get_is_testsome(), replay_event_vec[i]->get_flag(),
-	       replay_event_vec[i]->get_source(), replay_event_vec[i]->get_clock());
-  }
   if (test_table->ordered_event_list.size() > 0 || test_table->solid_ordered_event_list.size() > 0) {
     REMPI_DBGI(REMPI_DBG_REPLAY, "LIST Queue Update: Local_min (rank: %d, clock: %lu): test_id: %d",
 	       local_min_id_rank, local_min_id_clock, test_id);

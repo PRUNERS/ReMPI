@@ -271,7 +271,7 @@ static int rempi_reqmg_get_matching_set_id_1(int *matching_set_id, int *mpi_call
     if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
       rempi_reqmg_assign_matching_set_id_to_recv(*matching_set_id, incount, array_of_requests);
     }
-    //    REMPI_DBGI(2, "%d -> %d (type: %d)", *mpi_call_id, *matching_set_id, mpi_call_type);
+    //    REMPI_DBG("%d -> %d (type: %d)", *mpi_call_id, *matching_set_id, mpi_call_type);
     return 0;
   } else {
     // if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY && 
@@ -292,7 +292,7 @@ static int rempi_reqmg_get_matching_set_id_1(int *matching_set_id, int *mpi_call
     *matching_set_id = rempi_reqmg_assign_matching_set_id(*mpi_call_id, incount, array_of_requests);
     break;
   }
-  //  REMPI_DBGI(2, "%d -> %d (type: %d)", *mpi_call_id, *matching_set_id, mpi_call_type);
+  //  REMPI_DBG("%d -> %d (type: %d)", *mpi_call_id, *matching_set_id, mpi_call_type);
   return 0;
 }
 
@@ -976,7 +976,7 @@ int rempi_reqmg_get_matching_set_id_map(int **mpi_call_ids, int **matching_set_i
   for (int index = 0; it != it_end; it++, index++) {
     (*mpi_call_ids)[index]     = it->first;
     (*matching_set_ids)[index] = it->second;
-    //    REMPI_DBGI(0, "mpi_call_id: %d, matching_set_id: %d", it->first, it->second);
+    //    REMPI_DBG("mpi_call_id: %d, matching_set_id: %d", it->first, it->second);
   }
   
   return 0;

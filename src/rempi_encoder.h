@@ -250,9 +250,9 @@ class rempi_encoder
 
 
 
-    virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
-				      int *local_min_id_rank, 
+    virtual void compute_look_ahead_recv_clock(
 				      size_t *local_min_id_clock,
+				      int *local_min_id_rank, 
 				      int recv_test_id);
     virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/
 
@@ -297,9 +297,9 @@ class rempi_encoder_basic : public rempi_encoder
     virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events);
 
 
-    virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
-				      int *local_min_id_rank, 
+    virtual void compute_look_ahead_recv_clock(
 				      size_t *local_min_id_clock,
+				      int *local_min_id_rank, 
 				      int recv_test_id);
     virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/
 
@@ -396,9 +396,9 @@ class rempi_encoder_cdc : public rempi_encoder
 						  int replaying_event_type,
 						  int matching_set_id);
 
-  virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
-				    int *local_min_id_rank, 
+  virtual void compute_look_ahead_recv_clock(
 				    size_t *local_min_id_clock,
+				    int *local_min_id_rank, 
 				    int recv_test_id);
   virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/    
   void close_record_file();

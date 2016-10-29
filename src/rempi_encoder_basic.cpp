@@ -502,7 +502,7 @@ void rempi_encoder_basic::set_fd_clock_state(int flag)
   return;
 }
 
-void rempi_encoder_basic::compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock, int recv_test_id)
+void rempi_encoder_basic::compute_look_ahead_recv_clock(size_t *local_min_id_clock, int *local_min_id_rank, int recv_test_id)
 {
   //  REMPI_ERR("please remove this REMPI_ERR later");
   return;

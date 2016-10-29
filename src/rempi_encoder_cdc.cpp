@@ -348,7 +348,7 @@ rempi_encoder_cdc::rempi_encoder_cdc(int mode, string record_path)
   if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
     this->read_footer();
   }
-
+  
   
   global_local_min_id.rank = -1;
   global_local_min_id.clock = 0;
@@ -389,12 +389,14 @@ void rempi_encoder_cdc::fetch_remote_look_ahead_send_clocks()
 }
 
   
-void rempi_encoder_cdc::compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
+void rempi_encoder_cdc::compute_look_ahead_recv_clock(
+					     size_t *local_min_id_clock, 
 					     int *local_min_id_rank,
-					     size_t *local_min_id_clock, int recv_test_id)
+					     int recv_test_id)
 
 {
   unordered_map<int, size_t> *solid_mc_next_clocks_umap;
+  rempi_encoder_input_format_test_table *test_table = input_format->test_tables_map.at(recv_test_id);
   int epoch_rank_vec_size  = test_table->epoch_rank_vec.size();
   int epoch_clock_vec_size = test_table->epoch_clock_vec.size();
   if (epoch_rank_vec_size == 0 || epoch_clock_vec_size == 0) {
@@ -551,10 +553,9 @@ int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *pr
 
 	break;
       case REMPI_ENCODER_LOOK_AHEAD_CLOCK_UPDATE:
-	if (solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) < rempi_cp_get_gather_clock(mc_recv_ranks[index]) || 
-	    rempi_cp_get_gather_clock(mc_recv_ranks[index]) == REMPI_CLOCK_COLLECTIVE_CLOCK) {
+	is_updated = solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) < rempi_cp_get_gather_clock(mc_recv_ranks[index]);
+	if (is_updated || rempi_cp_get_gather_clock(mc_recv_ranks[index]) == REMPI_CLOCK_COLLECTIVE_CLOCK) {
 	  solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) = rempi_cp_get_gather_clock(mc_recv_ranks[index]);
-	  is_updated = 1;
 	}
 	break;
       }
@@ -757,68 +758,6 @@ void rempi_encoder_cdc::encode()
   }
   return;
 }
-
-// void rempi_encoder_cdc::write_record_file(rempi_encoder_input_format &input_format)
-// {
-//   size_t total_compressed_size = 0;
-//   size_t compressed_size = 0;
-//   map<int, rempi_encoder_input_format_test_table*>::iterator test_tables_map_it;
-//   for (test_tables_map_it  = input_format->test_tables_map.begin();
-//        test_tables_map_it != input_format->test_tables_map.end();
-//        test_tables_map_it++) {
-//     rempi_encoder_input_format_test_table *test_table;
-//     test_table = test_tables_map_it->second;
-
-//     compressed_size = 0;
-//     /* Count */
-//     record_fs.write((char*)&test_table->count, sizeof(test_table->count));
-//     compressed_size += sizeof(test_table->count);
-
-//     /* with_previous */
-//     record_fs.write(   (char*)&test_table->compressed_with_previous_size, 
-// 		        sizeof(test_table->compressed_with_previous_size));
-//     compressed_size +=  sizeof(test_table->compressed_with_previous_size);
-//     record_fs.write(           test_table->compressed_with_previous, 
-// 			       test_table->compressed_with_previous_size);
-//     compressed_size +=         test_table->compressed_with_previous_size;
-
-
-//     /* unmatched */
-//     record_fs.write(  (char*)&test_table->compressed_unmatched_events_id_size, 
-// 		       sizeof(test_table->compressed_unmatched_events_id_size));
-//     compressed_size += sizeof(test_table->compressed_unmatched_events_id_size);  
-//     record_fs.write(          test_table->compressed_unmatched_events_id,    
-// 			      test_table->compressed_unmatched_events_id_size);
-//     compressed_size +=        test_table->compressed_unmatched_events_id_size;
-
-//     record_fs.write(  (char*)&test_table->compressed_unmatched_events_count_size, 
-// 		       sizeof(test_table->compressed_unmatched_events_count_size));
-//     compressed_size += sizeof(test_table->compressed_unmatched_events_count_size);  
-//     record_fs.write(          test_table->compressed_unmatched_events_count, 
-// 			      test_table->compressed_unmatched_events_count_size);
-//     compressed_size +=        test_table->compressed_unmatched_events_count_size;
-
-
-//     /* matched */
-//     record_fs.write(  (char*)&test_table->compressed_matched_events_size, 
-// 		       sizeof(test_table->compressed_matched_events_size));
-//     compressed_size += sizeof(test_table->compressed_matched_events_size);  
-//     record_fs.write(          test_table->compressed_matched_events, 
-// 			      test_table->compressed_matched_events_size);
-//     compressed_size +=        test_table->compressed_matched_events_size;
-//     //TODO: delete encoded_event
-
-//     // REMPI_DBG("Original size: count:%5d x 8 bytes x 2(matched/unmatched)= %d bytes,  Compressed size: %lu bytes", 
-//     // 	      test_table->count, test_table->count * 8 * 2, compressed_size);
-//     total_compressed_size += compressed_size;
-//     REMPI_DBG("compressed_size: %lu", compressed_size);
-//   }
-//   REMPI_DBG("xOriginal size: count:%5d(matched/unmatched entry) x 8 bytes= %d bytes,  Compressed size: %lu bytes , %d %lu", 
-// 	    input_format->total_length, input_format->total_length * 8 , total_compressed_size, 
-// 	    input_format->total_length*8, total_compressed_size);
-//   //  REMPI_DBG("TOTAL Original: %d ", total_countb);
-// }   
-
 
 void rempi_encoder_cdc::write_record_file()
 {
@@ -2027,7 +1966,7 @@ void rempi_encoder_cdc::read_footer()
   int fd;
   size_t chunk_size = 1;
   size_t read_count = 1;
-
+  size_t read_total = 0;
   size_t rempi_cp_pred_rank_count;
   int *rempi_cp_pred_ranks;
 
@@ -2036,17 +1975,23 @@ void rempi_encoder_cdc::read_footer()
   int *rempi_reqmg_matching_set_ids;
 
 
+  
   fd = open(record_path.c_str(), O_RDONLY);
-  while(chunk_size != 0 && read_count != 0) {
+  while(chunk_size != 0) {
     read_count = read(fd, &chunk_size, sizeof(size_t));
+    //    REMPI_DBG("chunk_size: %lu: read_count: %lu", chunk_size, read_count);
     lseek(fd, chunk_size, SEEK_CUR);
+    read_total += read_count;
+    if (read_count == 0) REMPI_ERR("Record is broken or Record read error");
   }
+  
 
-  //  REMPI_DBGI(0, "size: %lu", chunk_size);
+
+  //  REMPI_DBGI(0, "size: %lu (total: %lu)", chunk_size, read_total);
   if (chunk_size == 0) {
     /* rempi_cp_pred_ranks */
     read_count = read(fd, &rempi_cp_pred_rank_count, sizeof(size_t));
-    //    REMPI_DBGI(0, "count: %lu", rempi_cp_pred_rank_count);
+    //    REMPI_DBGI(0, "read_count: %lu bytes, count: %lu", read_count, rempi_cp_pred_rank_count);
     if (rempi_cp_pred_rank_count > 0) {
       rempi_cp_pred_ranks = (int*)rempi_malloc(rempi_cp_pred_rank_count * sizeof(int));
       read_count = read(fd, rempi_cp_pred_ranks, rempi_cp_pred_rank_count * sizeof(int));
@@ -2155,7 +2100,7 @@ void rempi_encoder_cdc::close_record_file()
     matched_events_list_umap[recv_test_id]  = new list<rempi_event*>();
   }
 
-  this->compute_local_min_id(input_format->test_tables_map.at(recv_test_id), &local_min_id_rank, &local_min_id_clock, recv_test_id);
+  this->compute_look_ahead_recv_clock(&local_min_id_clock, &local_min_id_rank, recv_test_id);
   while (recording_events->front_replay(recv_test_id) != NULL) {      
     /*If a message(event) arrives,  */
     rempi_event *matched_event;

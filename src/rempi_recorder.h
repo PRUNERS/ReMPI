@@ -221,9 +221,13 @@ class rempi_recorder_cdc : public rempi_recorder
 
  protected:
   rempi_encoder_cdc *mc_encoder;// = NULL;
+
+  /* left < right: 1, left == right: 0 left > rigth: -1 */
+  int compare_clock(size_t left_clock, int left_rank, size_t right_clock, int right_rank);
+
   int progress_recv_and_safe_update_local_look_ahead_recv_clock(int do_fetch,
 								int incount, MPI_Request *array_of_requests, int message_set_id);
-  int dequeue_replay_event_set(int incount, MPI_Request array_of_requests[], int *request_info, int matching_set_id, int matching_function_type, 
+  virtual int dequeue_replay_event_set(int incount, MPI_Request array_of_requests[], int *request_info, int matching_set_id, int matching_function_type, 
 			       vector<rempi_event*> &replaying_event_vec);
 
 
@@ -348,8 +352,8 @@ class rempi_recorder_rep : public rempi_recorder_cdc
 {
  private:
   unordered_map<int, list<rempi_event*>*> matched_recv_event_list_umap;
-  int dequeque_matched_events(int matching_set_id);
-
+  int is_behind_time(int matching_set_id);
+  int dequeue_matched_events(int matching_set_id);
   int complete_mf_send_single(int incount, MPI_Request array_of_requests[], int *request_info, 
 		       int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec);
   int complete_mf_send_all(int incount, MPI_Request array_of_requests[], int *request_info, 

@@ -355,6 +355,7 @@ MPI_Request rempi_msgb_allocate_request(int request_type)
 int rempi_msgb_register_recv(void *buf, int count, MPI_Datatype datatype, int source,
                                  int tag, MPI_Comm comm, MPI_Request *request, int matching_set_id)
 {
+
   activate_recv(count, datatype, source, tag, comm, request, matching_set_id, REMPI_MSGB_REQUEST_TYPE_USER_REQUESTED);
   return 0;
 }
@@ -363,6 +364,7 @@ int rempi_msgb_progress_recv()
 {
   int is_active_recv_progressed, is_inactive_recv_progressed;
 
+
   /* To avoid out-of-order message receive, 
      if a request is matched, check all requests */
   do {
@@ -370,7 +372,6 @@ int rempi_msgb_progress_recv()
     is_inactive_recv_progressed = progress_inactive_recv();
     probe_msg();
   } while(is_active_recv_progressed || is_inactive_recv_progressed);
-
 
   if (is_active_recv_progressed || is_inactive_recv_progressed) {
     print_recv_list(); 
