@@ -266,10 +266,13 @@ class rempi_recorder_cdc : public rempi_recorder
 			      int matching_function_type);
 
 
+
  public:
+
   rempi_recorder_cdc()
     : rempi_recorder()
     {}
+
 
   virtual void init(int rank);
   int record_init(int *argc, char ***argv, int rank);
@@ -348,7 +351,9 @@ class rempi_recorder_cdc : public rempi_recorder
 class rempi_recorder_rep : public rempi_recorder_cdc
 {
  private:
+  int exclusion_flags[PRE_ALLOCATED_REQUEST_LENGTH];
   unordered_map<int, list<rempi_event*>*> matched_recv_event_list_umap;
+
   int is_behind_time(int matching_set_id);
   int dequeue_matched_events(int matching_set_id);
   int complete_mf_send_single(int incount, MPI_Request array_of_requests[], int *request_info, 
@@ -365,7 +370,7 @@ class rempi_recorder_rep : public rempi_recorder_cdc
   int complete_mf_unmatched_recv(int incount, MPI_Request array_of_requests[], int *request_info, 
 		       int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec);
 
-  int get_mf_matched_index(int incount, MPI_Request array_of_requests[], int *request_info, int recved_rank, size_t recved_clock, int matching_set_id, int matching_function_type);
+  int get_mf_matched_index(int incount, MPI_Request array_of_requests[], int *request_info, int exclusion_flags[],int recved_rank, size_t recved_clock, int matching_set_id, int matching_function_type);
   int complete_mf_matched_recv_all(int incount, MPI_Request array_of_requests[], int *request_info, 
 		       int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec);
   int complete_mf_matched_recv_single(int incount, MPI_Request array_of_requests[], int *request_info, 
@@ -384,7 +389,9 @@ class rempi_recorder_rep : public rempi_recorder_cdc
 
   rempi_recorder_rep()
     : rempi_recorder_cdc()
-    {}
+    {
+      //      matched_recv_event_list_umap.find(0);
+    }
 
 
 
