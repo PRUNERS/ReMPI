@@ -211,7 +211,6 @@ class rempi_recorder {
 class rempi_recorder_cdc : public rempi_recorder
 {
  private:
-
   size_t pre_allocated_clocks[PRE_ALLOCATED_REQUEST_LENGTH];
   int progress_decode();
   int progress_recv_requests(int global_test_id,
@@ -265,8 +264,6 @@ class rempi_recorder_cdc : public rempi_recorder
 			      vector<rempi_event*> &replaying_event_vec, 
 			      int matching_set_id,
 			      int matching_function_type);
-
-  
 
 
  public:
@@ -368,6 +365,7 @@ class rempi_recorder_rep : public rempi_recorder_cdc
   int complete_mf_unmatched_recv(int incount, MPI_Request array_of_requests[], int *request_info, 
 		       int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec);
 
+  int get_mf_matched_index(int incount, MPI_Request array_of_requests[], int *request_info, int recved_rank, size_t recved_clock, int matching_set_id, int matching_function_type);
   int complete_mf_matched_recv_all(int incount, MPI_Request array_of_requests[], int *request_info, 
 		       int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec);
   int complete_mf_matched_recv_single(int incount, MPI_Request array_of_requests[], int *request_info, 

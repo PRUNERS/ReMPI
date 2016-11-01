@@ -223,10 +223,12 @@ void rempi_encoder_cdc_input_format::format()
 	test_table->epoch_umap[sorted_events_vec[i]->get_source()] = sorted_events_vec[i]->get_clock();
       } else {
 	if (test_table->epoch_umap[sorted_events_vec[i]->get_source()] >= sorted_events_vec[i]->get_clock()) {
-	  REMPI_ERR("Later message has smaller clock than earlier message: epoch line clock of rank:%d clock:%d but clock:%d", 
-		    sorted_events_vec[i]->get_source(), 
-		    test_table->epoch_umap[sorted_events_vec[i]->get_source()],sorted_events_vec[i]->get_clock()
-		    );
+	  if (sorted_events_vec[i]->get_clock() != REMPI_MPI_EVENT_INPUT_IGNORE) {
+	    REMPI_ERR("Later message has smaller clock than earlier message: epoch line clock of rank:%d clock:%d but clock:%d", 
+		      sorted_events_vec[i]->get_source(), 
+		      test_table->epoch_umap[sorted_events_vec[i]->get_source()],sorted_events_vec[i]->get_clock()
+		      );
+	  }
 	}
 	test_table->epoch_umap[sorted_events_vec[i]->get_source()] = sorted_events_vec[i]->get_clock();
       }
@@ -739,6 +741,7 @@ bool rempi_encoder_cdc::extract_encoder_input_format_chunk(rempi_event_list<remp
 
 void rempi_encoder_cdc::encode()
 {
+
   map<int, rempi_encoder_input_format_test_table*>::iterator test_tables_map_it;
   for (test_tables_map_it  = input_format->test_tables_map.begin();
        test_tables_map_it != input_format->test_tables_map.end();
@@ -773,7 +776,6 @@ void rempi_encoder_cdc::write_record_file()
   for (int i = 0; i < input_format->write_size_queue_vec.size(); i++) {
     total_original_size += input_format->write_size_queue_vec[i];
   }
-  //  REMPI_DBG("total_size: %lu", total_original_size);
 
   
   if(rempi_gzip) {
@@ -902,7 +904,6 @@ bool rempi_encoder_cdc::read_record_file(rempi_encoder_input_format *input_forma
 
   this->input_format = input_format;
 
-
   record_fs.read((char*)&chunk_size, sizeof(chunk_size));
   read_size = record_fs.gcount();
   if (read_size == 0) {
@@ -995,8 +996,8 @@ void rempi_encoder_cdc::decode()
     decompressed_record += input_format->write_size_queue_vec[i];
     //    sum += input_format->write_size_queue_vec[i];
   }
-  //  REMPI_DBG("decording_address: %lu, decompressed_record %lu", decoding_address, decompressed_record);
-  //  REMPI_DBG("total size: %lu, total size: %lu", input_format->decompressed_size, sum);
+  // REMPI_DBGI(0,"decording_address: %lu, decompressed_record %lu", decoding_address, decompressed_record);
+  // REMPI_DBGI(0, "total size: %lu", input_format->decompressed_size);
 
 
   int test_id = -1;
@@ -1009,6 +1010,7 @@ void rempi_encoder_cdc::decode()
     test_table = new rempi_encoder_input_format_test_table(test_id);
     input_format->test_tables_map[test_id] = test_table;
 
+    //    REMPI_DBGI(0, "id: %d -> %p", test_id, test_table);
     /*=== Decode count  ===*/
     test_table->count = *(int*)decoding_address;
     decoding_address += sizeof(test_table->count);
@@ -2047,7 +2049,6 @@ void rempi_encoder_cdc::write_footer()
 	   it_end = rempi_encoder_input_format_test_table::all_epoch_rank_uset.end();
 	 it != it_end; it++) {
       int rank = *it;
-      //      REMPI_DBGI(0, "rank: %d", rank);
       record_fs.write((char*)&rank, sizeof(int));
     }
     /* =================================== */

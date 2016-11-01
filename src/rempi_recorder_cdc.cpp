@@ -445,7 +445,8 @@ int rempi_recorder_cdc::replay_mf_input(
 
       rempi_reqmg_get_matching_id(&array_of_requests[index], &requested_source, &requested_tag, &requested_comm);
       rempi_reqmg_get_buffer(&array_of_requests[index], &requested_buffer);
-      rempi_msgb_recv_msg(requested_buffer, replaying_test_event->get_rank(), requested_tag, requested_comm, replaying_test_event->get_msg_id(),
+      rempi_msgb_recv_msg(requested_buffer, replaying_test_event->get_rank(), requested_tag, requested_comm, 
+			  replaying_test_event->get_msg_id(), replaying_test_event->get_matching_group_id(),
 			  &array_of_statuses[local_outcount]);
       rempi_reqmg_deregister_request(&array_of_requests[index], REMPI_RECV_REQUEST);
       //      clmpi_sync_clock(replaying_test_event->get_clock()); 
@@ -453,7 +454,8 @@ int rempi_recorder_cdc::replay_mf_input(
       mc_encoder->update_local_look_ahead_send_clock(REMPI_ENCODER_REPLAYING_TYPE_ANY, REMPI_ENCODER_NO_MATCHING_SET_ID);
       pre_allocated_clocks[local_outcount] = replaying_test_event->get_clock();
     } else if (request_info[index] == REMPI_NULL_REQUEST) {
-      REMPI_ERR("MPI_REQUEST_NULL does not match any message: %d", request_info[index]);
+      REMPI_ERR("MPI_REQUEST_NULL does not match any message: %d (replaying rank: %d, replaying clock: %lu)", 
+		request_info[index], replaying_test_event->get_rank(), replaying_test_event->get_clock());
     } else {
       REMPI_ERR("Trying replaying with Ignored MPI_Request: %d", request_info[index]);
     }

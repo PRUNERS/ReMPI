@@ -28,6 +28,7 @@ void rempi_encoder_rep::compress_non_matched_events(rempi_encoder_input_format_t
 {
   char *write_buff;
   size_t write_size;
+  
 
   /*=== matching set id === */
   input_format->write_queue_vec.push_back((char*)&test_table->matching_set_id);
@@ -113,6 +114,56 @@ void rempi_encoder_rep::compress_matched_events(rempi_encoder_input_format_test_
 
   return;
 }
+
+// bool rempi_encoder_rep::extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format *input_format)
+// {
+//   rempi_event *event_dequeued = NULL;
+//   bool is_ready_for_encoding = false;
+//   rempi_test
+
+//   this->input_format = input_format;
+
+//   while (1) {
+//     /*Append events to current check as many as possible*/
+//     if (events.front() == NULL) {
+//       break;
+//     } else if (input_format->length() > rempi_max_event_length) {
+//       if (input_format->last_added_event->get_with_next() == REMPI_MPI_EVENT_NOT_WITH_NEXT) break;
+//     }
+//     event_dequeued = events.pop();
+
+//     if (event_dequeued->get_msg_id() !=  REMPI_MPI_EVENT_INPUT_IGNORE) {
+//       rempi_encoder_input_format_test_table *test_table;
+//       input_format->test_tables_map.at(recv_test_id);
+//       test_table = input_format->event_dequeued->get_matching_group_id());
+      
+//       if (test_table->epoch_umap.find(sorted_events_vec[i]->get_source()) == test_table->epoch_umap.end()) {
+//         test_table->epoch_umap[sorted_events_vec[i]->get_source()] = sorted_events_vec[i]->get_clock();
+//       } else {
+//         if (test_table->epoch_umap[sorted_events_vec[i]->get_source()] >= sorted_events_vec[i]->get_clock()) {
+//           REMPI_ERR("Later message has smaller clock than earlier message: epoch line clock of rank:%d clock:%d but clock:%d",
+//                     sorted_events_vec[i]->get_source(),
+//                     test_table->epoch_umap[sorted_events_vec[i]->get_source()],sorted_events_vec[i]->get_clock()
+//                     );
+//         }
+//         test_table->epoch_umap[sorted_events_vec[i]->get_source()] = sorted_events_vec[i]->get_clock();
+//       }
+
+//       rempi_encoder_input_format_test_table::all_epoch_rank_uset.insert(event_dequeued->get_source());
+//     }
+//     delete event_dequeued;
+//   }
+
+//   if (events.is_push_closed_())  {
+//     is_ready_for_encoding = true;
+//   } else if (input_format->length() > rempi_max_event_length) {
+//     if (input_format->last_added_event->get_with_next() == REMPI_MPI_EVENT_NOT_WITH_NEXT) {
+//       is_ready_for_encoding = true;
+//     }
+//   }
+//   return is_ready_for_encoding; /*true*/
+// }
+
 
 
 

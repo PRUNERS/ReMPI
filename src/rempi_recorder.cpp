@@ -399,6 +399,8 @@ int rempi_recorder::record_mf(
   if (is_record_and_replay) {
     rempi_reqmg_store_send_statuses(incount, array_of_requests, request_info, tmp_statuses);
   }
+  
+
 
   for (int i = 0; i < incount; i++) tmp_requests[i] = array_of_requests[i];
 
@@ -460,6 +462,9 @@ int rempi_recorder::record_mf(
 	/*MF: Single or All */
 	matched_index = i;
       }
+
+      // REMPI_DBGI(1, "request_info[%d] = %d", 0, request_info[0]);
+      // REMPI_DBGI(1, " index: %d", matched_index);
       if (i == matched_count - 1) {
 	is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
       }
@@ -467,6 +472,7 @@ int rempi_recorder::record_mf(
       if (request_info[matched_index] == REMPI_SEND_REQUEST) {
 	rank = tmp_statuses[matched_index].MPI_SOURCE;
 	rempi_reqmg_deregister_request(&tmp_requests[matched_index], REMPI_SEND_REQUEST);
+	if (msg_id != NULL) msg_id[i] = REMPI_MPI_EVENT_INPUT_IGNORE; /*To distingisu between send or recv event in encoder_cdc */
       } else if (request_info[matched_index] == REMPI_RECV_REQUEST) {
 	rank = array_of_statuses[i].MPI_SOURCE;
 	{
@@ -499,6 +505,7 @@ int rempi_recorder::record_mf(
 						    global_test_id);
 	//	if (msg_id[i] < 10) {REMPI_ERR("clock is wrong: %lu", msg_id[i]);}
 	if (test_event != NULL) {
+
 #ifdef REMPI_DBG_REPLAY
 	  REMPI_DBGI(REMPI_DBG_REPLAY, "= Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
 	  	     test_event->get_event_counts(),

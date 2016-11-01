@@ -79,6 +79,19 @@ void rempi_set_configuration(int *argc, char ***argv)
     env_int = atoi(env);
     rempi_max_event_length = env_int;
   }
+  
+  switch(rempi_encode) {
+  case REMPI_ENV_REMPI_ENCODE_BASIC:
+    //    REMPI_DBG("Ignoring %s", REMPI_ENV_NAME_TEST_ID);
+    rempi_is_test_id = 0;
+    break;
+  case REMPI_ENV_REMPI_ENCODE_CDC:
+    break;
+  case REMPI_ENV_REMPI_ENCODE_REP:
+    //    REMPI_DBG("Ignoring %s", REMPI_ENV_NAME_GZIP);
+    rempi_gzip = 0;
+    break;
+  }
 
   // if (rempi_mode == 1 && rempi_is_test_id == 1) {
   //   REMPI_DBG("REMPI_MODE=1 & REMPI_IS_TEST_IS=1 is not supported yet");

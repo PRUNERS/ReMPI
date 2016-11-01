@@ -80,6 +80,7 @@ int rempi_recorder_rep::complete_mf_send_single(int incount, MPI_Request array_o
   size_t min_clock = -1;
   int is_completed;
   size_t clock;
+  int dest;
 
 
   for (int index = 0; index < incount; index++) {
@@ -93,9 +94,10 @@ int rempi_recorder_rep::complete_mf_send_single(int incount, MPI_Request array_o
   }
   
   if (min_clock != -1) {
+    dest = rempi_reqmg_get_send_request_dest(&array_of_requests[matched_index]);
     replaying_event = rempi_event::create_test_event(1,
 						     1,
-						     REMPI_MPI_EVENT_INPUT_IGNORE,
+						     dest,
 						     REMPI_MPI_EVENT_NOT_WITH_NEXT,
 						     matched_index,
 						     min_clock,
@@ -226,6 +228,32 @@ int rempi_recorder_rep::complete_mf_unmatched_recv(int incount, MPI_Request arra
   return is_completed;
 }
 
+int rempi_recorder_rep::get_mf_matched_index(int incount, MPI_Request array_of_requests[], int *request_info, int recved_rank, size_t recved_clock, int matching_set_id, int matching_function_type)
+{
+  int matched_index = -1;
+  int requested_source, requested_tag;
+  MPI_Comm requested_comm;
+  int matched_condition;
+  int matched_tag;
+  MPI_Comm matched_comm;
+
+  if (!rempi_msgb_get_tag_comm(recved_rank, recved_clock, &matched_tag, &matched_comm)) {
+    REMPI_ERR("No such matched message");
+  }
+
+  for (int i = 0; i < incount; i++) {
+    if (request_info[i] == REMPI_RECV_REQUEST) {
+      rempi_reqmg_get_matching_id(&array_of_requests[i], &requested_source, &requested_tag, &requested_comm);
+      matched_condition = rempi_msgb_is_matched(requested_source, requested_tag, requested_comm, 
+						recved_rank, matched_tag, matched_comm);
+      if (matched_condition != REMPI_MSGB_REQUEST_MATCHED_TYPE_NOT_MATCHED) {
+	matched_index = i;
+      }
+    }
+  }
+  return matched_index;
+}
+
 int rempi_recorder_rep::complete_mf_matched_recv_single(int incount, MPI_Request array_of_requests[], int *request_info,
 				    int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec)
 {
@@ -235,6 +263,7 @@ int rempi_recorder_rep::complete_mf_matched_recv_single(int incount, MPI_Request
   int compare;
   list<rempi_event*> *matched_recv_event_list;
   rempi_event *next_matched_event;
+  int matched_index;
 
   matched_recv_event_list = matched_recv_event_list_umap.at(matching_set_id);
 
@@ -248,10 +277,13 @@ int rempi_recorder_rep::complete_mf_matched_recv_single(int incount, MPI_Request
       REMPI_ERR("Clock is not correct <local_clock:%lu, local_rank:%d> <recved_clock:%lu, recved_rank:%d>", 
 		local_clock, local_rank, recved_clock, recved_rank);
     } 
+    if ((matched_index = get_mf_matched_index(incount, array_of_requests, request_info, recved_rank, recved_clock, matching_set_id, matching_function_type)) < 0) {
+      REMPI_ERR("No such matched message");
+    }
+    next_matched_event->set_index(matched_index);    
     replaying_event_vec.push_back(next_matched_event);
     matched_recv_event_list->pop_front();
     is_completed = 1;
-
   }     
   return is_completed;
 }

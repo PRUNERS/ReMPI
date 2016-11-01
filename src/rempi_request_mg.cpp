@@ -78,7 +78,7 @@ static int get_mpi_call_id()
   mpi_call_id_string = rempi_btrace_string();
   if (mpi_call_id_umap.find(mpi_call_id_string) == mpi_call_id_umap.end()) {
     mpi_call_id = next_mpi_call_id;
-    //    REMPI_DBG("callstack (%d): %s", mpi_call_id, mpi_call_id_string.c_str());    
+    //    REMPI_DBGI(0, "callstack (%d): %s", mpi_call_id, mpi_call_id_string.c_str());    
     mpi_call_id_umap[mpi_call_id_string] = mpi_call_id;
     next_mpi_call_id++;
 
@@ -271,7 +271,7 @@ static int rempi_reqmg_get_matching_set_id_1(int *matching_set_id, int *mpi_call
     if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
       rempi_reqmg_assign_matching_set_id_to_recv(*matching_set_id, incount, array_of_requests);
     }
-    //    REMPI_DBG("%d -> %d (type: %d)", *mpi_call_id, *matching_set_id, mpi_call_type);
+    //
     return 0;
   } else {
     // if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY && 
@@ -740,9 +740,14 @@ static int rempi_reqmg_is_record_and_replay(int length, int *request_info, int s
   if (rempi_encode == REMPI_ENV_REMPI_ENCODE_CDC) {
     if (send_count > 0) return 0;
   } else if (rempi_encode == REMPI_ENV_REMPI_ENCODE_REP){
-    if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-      if (send_count > 0) return 0;
-    } else {
+    /* is_record_and_replay must be consistent between record and replay 
+        for consistent mpi_call_id (thereby matching_set_id) assignment
+    */
+
+    // if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    //   if (send_count > 0) return 0;
+    // } else {
+
       if (ignore_count > 0) {
         if (send_count + recv_count + null_count == 0) {
       	return 0;
@@ -751,7 +756,7 @@ static int rempi_reqmg_is_record_and_replay(int length, int *request_info, int s
       		  send_count, recv_count, null_count, ignore_count);
         }
       }
-    }
+      //         }
   }
 #endif
   return 1;
@@ -873,6 +878,7 @@ void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendc
 
   if (*is_record_and_replay) {
     rempi_reqmg_get_matching_set_id(matching_set_id, &mpi_call_id, REMPI_REQMG_MPI_CALL_TYPE_MF, incount, requests);
+    //    REMPI_DBGI(0, "call_id: %d to set_id: %d", mpi_call_id, *matching_set_id);
   }
   //  *matching_set_id = rempi_reqmg_get_test_id(requests, incount);
 
@@ -988,6 +994,14 @@ size_t rempi_reqmg_get_send_request_clock(MPI_Request *request)
     REMPI_ERR("No such request: %p", *request);
   }
   return request_to_send_id_umap.at(*request)->clock;
+}
+
+int rempi_reqmg_get_send_request_dest(MPI_Request *request)
+{
+  if (request_to_send_id_umap.find(*request) == request_to_send_id_umap.end()) {
+    REMPI_ERR("No such request: %p", *request);
+  }
+  return request_to_send_id_umap.at(*request)->dest;
 }
 
 int rempi_reqmg_set_matching_set_id_map(int *mpi_call_ids, int *matching_set_ids, int length)

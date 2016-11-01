@@ -218,11 +218,11 @@ void neighbor_communication()
 
 
   for (i = 0; i < NUM_KV_PER_RANK; i++) {
-    MPI_Irecv(&recv_kv[i], 8, MPI_CHAR, (my_rank + size - (i + 1))        % size, 0, MPI_COMM_WORLD, &request[i]);
+    MPI_Irecv(&recv_kv[i], 8, MPI_CHAR, (my_rank + size - (i + 1))        % size, 33, MPI_COMM_WORLD, &request[i]);
   }
 
   for (i = 0; i < NUM_KV_PER_RANK; i++) {
-    MPI_Isend(&sendrecv_kv[i], 8, MPI_CHAR, (my_rank + (i + 1))        % size, 0, MPI_COMM_WORLD, &send_req);
+    MPI_Isend(&sendrecv_kv[i], 8, MPI_CHAR, (my_rank + (i + 1))        % size, 33, MPI_COMM_WORLD, &send_req);
     flag = 0;
     while (flag == 0) {
       MPI_Test(&send_req, &flag, &send_stat); 
@@ -253,13 +253,13 @@ void neighbor_communication()
       memcpy(&sendrecv_kv[recv_index], &recv_kv[recv_index], sizeof(struct key_val));
       recv_msg_count[recv_index]++;
       if (recv_msg_count[recv_index] < neighbor_comm_steps) {
-	MPI_Irecv(&recv_kv[recv_index], 8, MPI_CHAR, (my_rank + size - (recv_index + 1)) % size, 0, MPI_COMM_WORLD, &request[recv_index]);
+	MPI_Irecv(&recv_kv[recv_index], 8, MPI_CHAR, (my_rank + size - (recv_index + 1)) % size, 33, MPI_COMM_WORLD, &request[recv_index]);
       }
 
 
       if (send_msg_count[recv_index] < neighbor_comm_steps) {
 	sendrecv_kv[recv_index].val = get_hash(sendrecv_kv[recv_index].val + hash_count++, MAX_VAL);
-	MPI_Isend(&sendrecv_kv[recv_index], 8, MPI_CHAR, (my_rank + (recv_index + 1)) % size, 0, MPI_COMM_WORLD, &send_req);
+	MPI_Isend(&sendrecv_kv[recv_index], 8, MPI_CHAR, (my_rank + (recv_index + 1)) % size, 33, MPI_COMM_WORLD, &send_req);
 	flag = 0;
 	while (flag == 0) {
 	  MPI_Test(&send_req, &flag, &send_stat);
@@ -373,7 +373,6 @@ int main(int argc, char *argv[])
 #ifdef USE_BIN_REDUCTION
     bin_reduction_end();
 #endif
-    rempi_test_dbg_print("====== Finalizing: %d ========", k);
     MPI_Barrier(MPI_COMM_WORLD); /*<= korehazushitemo daizyoubuni shi ro !!! MPI_Cancel problem*/
     if (my_rank == 0) rempi_test_dbgi_print(0, " Step %d -- end", k);
   } // end: for

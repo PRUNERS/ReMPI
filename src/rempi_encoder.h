@@ -425,6 +425,9 @@ class rempi_encoder_rep : public rempi_encoder_cdc
 
  protected:
   virtual bool cdc_decode_ordering(rempi_event_list<rempi_event*> *recording_events, list<rempi_event*> *event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> *replay_event_list, int test_id, int local_min_id_rank, size_t local_min_id_clock);
+  
+ public:
+  //  virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format *input_format);
 
 };
 

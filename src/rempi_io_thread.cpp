@@ -47,6 +47,7 @@ void rempi_io_thread::write_record()
     is_extracted = encoder->extract_encoder_input_format_chunk(*recording_events, input_format);
 
     if (is_extracted) {
+
       /*If I get the sequence, encode(compress) the seuence*/
       s = rempi_get_time();
       encoder->encode();
