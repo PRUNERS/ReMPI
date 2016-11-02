@@ -507,10 +507,11 @@ int rempi_recorder::record_mf(
 	if (test_event != NULL) {
 
 #ifdef REMPI_DBG_REPLAY
-	  REMPI_DBGI(REMPI_DBG_REPLAY, "= Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
+	  REMPI_DBGI(REMPI_DBG_REPLAY, "= Record : (count: %d, flag: %d, rank: %d(tag: %d), with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
 	  	     test_event->get_event_counts(),
 	  	     test_event->get_flag(),
 	  	     test_event->get_rank(),
+		     array_of_statuses[i].MPI_TAG,
 	  	     test_event->get_with_next(),
 	  	     test_event->get_index(),
 	  	     test_event->get_msg_id(),

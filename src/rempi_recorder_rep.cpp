@@ -183,7 +183,8 @@ int rempi_recorder_rep::is_behind_time(int matching_set_id)
   }   
   mc_encoder->compute_look_ahead_recv_clock(&look_ahead_recv_clock, &look_ahead_recv_rank, matching_set_id);    
   compare = compare_clock(local_clock, local_rank, look_ahead_recv_clock, look_ahead_recv_rank);
-  if (compare > 0) {
+
+  if (compare > 0 || look_ahead_recv_clock != REMPI_CLOCK_COLLECTIVE_CLOCK) {
     return 1;
   } else if (compare == 0) {
     REMPI_ERR("May receve same clock <clock:%lu, rank:%d)", local_clock, local_rank);
@@ -262,15 +263,20 @@ int rempi_recorder_rep::get_mf_matched_index(int incount, MPI_Request array_of_r
 
 
   for (int i = 0; i < incount; i++) {
+    REMPI_DBGI(1, "index: %d, count: %d", i, incount);
     if (request_info[i] == REMPI_RECV_REQUEST && !exclusion_flags[i]) {
       rempi_reqmg_get_matching_id(&array_of_requests[i], &requested_source, &requested_tag, &requested_comm);
+      REMPI_DBGI(1, "requested_rank: %d, requested_tag: %d, recved_rank: %d, matched_tag: %d (sid: %d)", 
+      		 requested_source, requested_tag, recved_rank, matched_tag, matching_set_id);
       matched_condition = rempi_msgb_is_matched(requested_source, requested_tag, requested_comm, 
 						recved_rank, matched_tag, matched_comm);
       if (matched_condition != REMPI_MSGB_REQUEST_MATCHED_TYPE_NOT_MATCHED) {
 	matched_index = i;
+	break;
       }
     }
   }
+  //  REMPI_DBGI(0, "matched_index: %d, rank: %d, clock: %lu", matched_index, recved_rank, recved_clock);
   return matched_index;
 }
 
@@ -289,11 +295,13 @@ int rempi_recorder_rep::complete_mf_matched_recv_single(int incount, MPI_Request
 
   for (int i = 0; i < incount; i++) exclusion_flags[i] = 0;
 
+
   if (matched_recv_event_list->size() > 0) {
     rempi_clock_get_local_clock(&local_clock);  
     next_matched_event = matched_recv_event_list->front();
     recved_clock       = next_matched_event->get_clock();
     recved_rank        = next_matched_event->get_source();
+
     compare = compare_clock(local_clock, local_rank, recved_clock, recved_rank);
     if (compare >= 0) {
       if (matching_function_type == REMPI_MPI_TEST ||
@@ -304,8 +312,10 @@ int rempi_recorder_rep::complete_mf_matched_recv_single(int incount, MPI_Request
 		  local_clock, local_rank, recved_clock, recved_rank);
       }
     } 
+
     if ((matched_index = get_mf_matched_index(incount, array_of_requests, request_info, exclusion_flags, recved_rank, recved_clock, matching_set_id, matching_function_type)) < 0) {
-      REMPI_ERR("No such matched message: ");
+      //      REMPI_ERR("No such matched message: rank: %d, clock: %lu", recved_rank, recved_clock);
+      return is_completed;
     }
     next_matched_event->set_index(matched_index);    
     replaying_event_vec.push_back(next_matched_event);
@@ -409,6 +419,7 @@ int rempi_recorder_rep::dequeue_replay_event_set(int incount, MPI_Request array_
   default:
     REMPI_ERR("Unknow event handling");
   }  
+
 
   return is_completed;
 }

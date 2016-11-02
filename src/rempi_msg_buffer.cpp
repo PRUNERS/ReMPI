@@ -430,7 +430,7 @@ int rempi_msgb_recv_msg(void* dest_buffer, int replayed_rank, int requested_tag,
 
       memcpy(dest_buffer, recv_args->buffer, datatype_size * count);
 #ifdef REMPI_DBG_REPLAY
-      REMPI_DBG("Replay: dest_buff: %d (byte: %d)", rempi_compute_hash(dest_buffer, datatype_size * count), byte);
+      REMPI_DBGI(REMPI_DBG_REPLAY, "Replay: dest_buff: %d (byte: %d)", rempi_compute_hash(dest_buffer, datatype_size * count), byte);
 #endif
       *replaying_status = inactive_request->status;
       inactive_recv_list.erase(it);

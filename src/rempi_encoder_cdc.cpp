@@ -1245,9 +1245,9 @@ void rempi_encoder_cdc::decode()
     REMPI_ERR("Inconsistent size: decoded size: %lu, decompressed size: %lu", decoding_address, decompressed_record);
   }
 
-  if (test_id > REMPI_MAX_RECV_TEST_ID) {
-    REMPI_ERR("The number of test_id exceeded the limit");
-  }
+  // if (test_id > REMPI_MAX_RECV_TEST_ID) {
+  //   REMPI_ERR("The number of test_id exceeded the limit");
+  // }
 
   
 //  input_format->debug_print();
