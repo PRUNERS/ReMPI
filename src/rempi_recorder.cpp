@@ -865,7 +865,7 @@ int rempi_recorder::record_finalize(void)
     REMPI_ERR("Unkonw rempi mode: %d", rempi_mode);
   }
   record_thread->join();
-  REMPI_DBGI(0, "validation code: %u", validation_code);
+  REMPI_PRTI(0, "validation code: %u", validation_code);
 
   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   return 0;
@@ -878,7 +878,7 @@ int rempi_recorder::replay_finalize(void)
 
   ret = PMPI_Finalize();
   read_record_thread->join();
-  REMPI_DBGI(0, "validation code: %u", validation_code);
+  REMPI_PRTI(0, "validation code: %u", validation_code);
   //TODO:
   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   return 0;
