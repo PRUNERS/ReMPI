@@ -20,6 +20,9 @@ extern int rempi_mode;
 extern string rempi_record_dir_path;
 
 #define REMPI_ENV_NAME_ENCODE "REMPI_ENCODE"
+#define REMPI_ENV_REMPI_ENCODE_BASIC (0)
+#define REMPI_ENV_REMPI_ENCODE_CDC   (4)
+#define REMPI_ENV_REMPI_ENCODE_REP   (7)
 extern int rempi_encode;
 
 #define REMPI_ENV_NAME_GZIP   "REMPI_GZIP"
@@ -33,16 +36,12 @@ extern int rempi_is_test_id;
 extern int rempi_max_event_length;
 
 
-//#define REMPI_DBG_REPLAY (-1)
+#define REMPI_DBG_REPLAY (1)
 
 //#define REMPI_DBG_LOG
 #define REMPI_DBG_LOG_BUF_SIZE (512)
 #define REMPI_DBG_LOG_BUF_LENGTH (1024 * 1)
 
-#define CP_DBG
-#define RS_DBG
-#define DEV_CLOCK
-//#define ENABLE_TEST
 
 //#define REMPI_DBG_ASSERT (-1)
 

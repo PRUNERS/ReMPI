@@ -14,62 +14,13 @@ rempi_mutex rempi_io_thread::mtx;
 
 
 rempi_io_thread::rempi_io_thread(rempi_event_list<rempi_event*> *recording_events, 
-				 rempi_event_list<rempi_event*> *replaying_events, 
-				 string id, int mode,
-				 rempi_encoder **mc_encoder)
-:recording_events(recording_events), replaying_events(replaying_events), id(id), mode(mode)
+				 rempi_event_list<rempi_event*> *replaying_events,
+				 int mode,
+				 rempi_encoder *mc_encoder)
+:recording_events(recording_events), replaying_events(replaying_events), mode(mode)
 {
-  record_path = rempi_record_dir_path + "/rank_" + id + ".rempi";
-  encoder = NULL;
-#if !defined(REMPI_LITE)
-  if (rempi_encode == 0) {
-    REMPI_ERR("No such encode: %d", rempi_encode)
-    encoder = new rempi_encoder(mode, record_path);                       //  (1): Simple record (count, flag, rank with_next and clock)
-  } else if (rempi_encode == 1) {
-    REMPI_ERR("No such encode: %d", rempi_encode);
-    //    encoder = new rempi_encoder_simple_zlib(mode, record_path);           //  (2): (1) + format change
-  } else if (rempi_encode == 2) {
-    REMPI_ERR("No such encode: %d", rempi_encode);
-    //    encoder = new rempi_encoder_zlib(mode, record_path);                  //  (3): (2) + distingusishing different test/testsome
-  } 
-#if MPI_VERSION == 3
-  else if (rempi_encode == 3) {
-    REMPI_ERR("No such encode: %d", rempi_encode);
-    //    encoder = new rempi_encoder_cdc_row_wise_diff(mode, record_path);     //  (4): (3) + row_wise diff
-  } else if (rempi_encode == 4) {
-    encoder = new rempi_encoder_cdc(mode, record_path);                   //  (5): (3) + edit distance (two values for an only permutated message)
-  } else if (rempi_encode == 5) {
-    REMPI_ERR("No such encode: %d", rempi_encode);
-    //    encoder = new rempi_encoder_cdc(mode, record_path);                   //  (5): (3) + edit distance (two values for an only permutated message)
-  } else if (rempi_encode == 6) {
-    REMPI_ERR("No such encode: %d", rempi_encode);
-    //    encoder = new rempi_encoder_cdc_permutation_diff(mode, record_path);  //  (6): (3) + edit distance (one value for each message)
-  }  else if (rempi_encode == 7) {
-    encoder = new rempi_encoder_rep(mode, record_path);                 //  (7): Reproducibile MPI
-  }
-#endif 
-  else {
-    REMPI_ERR("No such encode");
-  }
-
-#else 
-  if (rempi_encode == 0) {
-    encoder = new rempi_encoder_basic(mode, record_path);                 //  (1): Simple record (count, flag, rank with_next and clock)
-    if (rempi_is_test_id) {
-      rempi_is_test_id = 0;
-      REMPI_DBGI(0, "REMPI_TEST_ID is ignored");
-    }
-
-  } else if (rempi_encode == 8) {
-    encoder = new rempi_encoder(mode, record_path);
-  }  else {
-    REMPI_ERR("No such encoding mode");
-  }
-#endif
-
-  if (mc_encoder != NULL) {
-    *mc_encoder = encoder;
-  }
+  encoder = mc_encoder;
+  return;
 }
 
 
@@ -82,7 +33,7 @@ rempi_io_thread::~rempi_io_thread()
 int count = 0;
 void rempi_io_thread::write_record()
 {
-  encoder->open_record_file(record_path);
+  encoder->open_record_file();
   rempi_encoder_input_format *input_format = NULL;
   input_format = encoder->create_encoder_input_format();
 
@@ -93,15 +44,16 @@ void rempi_io_thread::write_record()
     double s, e;
 
     /*Get a sequence of events, ...  */
-    is_extracted = encoder->extract_encoder_input_format_chunk(*recording_events, *input_format);
+    is_extracted = encoder->extract_encoder_input_format_chunk(*recording_events, input_format);
 
     if (is_extracted) {
+
       /*If I get the sequence, encode(compress) the seuence*/
       s = rempi_get_time();
-      encoder->encode(*input_format);
+      encoder->encode();
       //      input_format->debug_print();
       /*Then, write to file.*/
-      encoder->write_record_file(*input_format);
+      encoder->write_record_file();
       count++;
       e = rempi_get_time();
       delete input_format; //TODO: also delete iternal data in this variable
@@ -143,19 +95,19 @@ void rempi_io_thread::read_record_lite()
   bool is_no_more_record;
 
 
-  encoder->open_record_file(record_path);
+  encoder->open_record_file();
   input_format = encoder->create_encoder_input_format();
 
   while(1) {
-    is_no_more_record = encoder->read_record_file(*input_format);
+    is_no_more_record = encoder->read_record_file(input_format);
     if (is_no_more_record) {
       /*If replayed all recorded events, ...*/
       replaying_events->close_push();
       delete input_format;
       break;
     } else {
-      encoder->decode(*input_format);
-      encoder->insert_encoder_input_format_chunk(*recording_events, *replaying_events, *input_format);
+      encoder->decode();
+      encoder->insert_encoder_input_format_chunk(*recording_events, *replaying_events);
       delete input_format;
       input_format = encoder->create_encoder_input_format();
     }
@@ -209,7 +161,7 @@ void rempi_io_thread::run()
   if (mode == 0) {
     write_record();
   } else if (mode == 1) {
-    if (rempi_encode == 0) {
+    if (rempi_encode == REMPI_ENV_REMPI_ENCODE_BASIC) {
       read_record_lite();
     } else {
       read_record();

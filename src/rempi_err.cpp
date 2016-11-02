@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 #include <execinfo.h>
 #include <unistd.h>
 #include <assert.h>
@@ -8,6 +9,7 @@
 
 #include <string>
 #include <queue>
+
 
 #include "rempi_err.h"
 #include "rempi_mem.h"
@@ -195,8 +197,14 @@ string rempi_btrace_string()
     You can translate the address to function name by
     addr2line -f -e ./a.out <address>
   */
-  for (j = 0; j < nptrs; j++)
-    trace_string += strings[j] ;
+  for (j = nptrs-1; j >= 0; j--) {
+    //  for (j = 0; j < nptrs; j++) {
+    if (strstr(strings[j], "rempi")) break;
+    trace_string += strings[j];
+  }
+  if (j == -1) {
+    REMPI_ERR("call stack symbols cannot be not retrieved: compiling withoug -g option ?  ");
+  }
   free(strings);
   return trace_string;
 }

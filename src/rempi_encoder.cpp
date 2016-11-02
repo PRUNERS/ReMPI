@@ -186,14 +186,15 @@ void rempi_encoder::set_record_path(string path)
 
 
 int ct = 0;
-void rempi_encoder::open_record_file(string record_path)
+void rempi_encoder::open_record_file()
 {
 
   //  REMPI_DBG("open: %s ||%d", record_path.c_str(), ct++);
-  if (mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    record_fs.open(record_path.c_str(), ios::out);
-  } else if (mode == REMPI_ENV_REMPI_MODE_REPLAY) {
-    record_fs.open(record_path.c_str(), ios::in);
+
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    record_fs.open(this->record_path.c_str(), ios::out);
+  } else if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
+    record_fs.open(this->record_path.c_str(), ios::in);
   } else {
     REMPI_ERR("Unknown record replay mode");
   }
@@ -241,42 +242,46 @@ rempi_encoder_input_format* rempi_encoder::create_encoder_input_format()
 //   return is_extracted;
 // }
 
-bool rempi_encoder::extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format)
+bool rempi_encoder::extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format *input_format)
 {
   rempi_event *event_dequeued;
   bool is_ready_for_encoding = false;
 
+  // if (this->input_format != NULL)  {
+  //   REMPI_ERR("input_format is not freeed, and is not NULL");
+  // }
+  this->input_format = input_format;
 
   while (1) {
     /*Append events to current check as many as possible*/
     if (events.front() == NULL) break;
     event_dequeued = events.pop();
     //REMPI_DBG("event: source: %d", event_dequeued->get_source());
-    input_format.add(event_dequeued);
+    input_format->add(event_dequeued);
   }
 
-  //  REMPI_DBG("input_format.length() %d", input_format.length());
-  if (input_format.length() == 0) {
+  //  REMPI_DBG("input_format->length() %d", input_format->length());
+  if (input_format->length() == 0) {
     return is_ready_for_encoding; /*false*/
   }
 
 
-  if (input_format.length() > rempi_max_event_length || events.is_push_closed_()) {
+  if (input_format->length() > rempi_max_event_length || events.is_push_closed_()) {
     /*If got enough chunck size, OR the end of run*/
     while (1) {
       /*Append events to current check as many as possible*/
       if (events.front() == NULL) break;
       event_dequeued = events.pop();
-      input_format.add(event_dequeued);
+      input_format->add(event_dequeued);
     }
-    input_format.format();
+    input_format->format();
     is_ready_for_encoding = true;
   }
   return is_ready_for_encoding; /*true*/
 }
 
 
-void rempi_encoder::encode(rempi_encoder_input_format &input_format)
+void rempi_encoder::encode()
 {
   size_t original_size, compressed_size;
   rempi_event *encoding_event;
@@ -284,7 +289,7 @@ void rempi_encoder::encode(rempi_encoder_input_format &input_format)
   int *original_buff, original_buff_offset;
   int recoding_inputs_num = rempi_event::record_num; // count, flag, rank, with_next and clock
 
-  test_table = input_format.test_tables_map[0];
+  test_table = input_format->test_tables_map[0];
 
   original_size = rempi_event::max_size * test_table->events_vec.size();
   original_buff = (int*)malloc(original_size);
@@ -295,7 +300,7 @@ void rempi_encoder::encode(rempi_encoder_input_format &input_format)
 
     /*TODO
       Call "delete encoding_event" here to reduce memory footprint.
-      Now, encoding_evet is freed by input_format.dealocate
+      Now, encoding_evet is freed by input_format->dealocate
      */ 
 
     // REMPI_DBG("Encoded  : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)", 
@@ -331,18 +336,18 @@ void rempi_encoder::encode(rempi_encoder_input_format &input_format)
   return;
 }
 
-void rempi_encoder::write_record_file(rempi_encoder_input_format &input_format)
+void rempi_encoder::write_record_file()
 {
   char* whole_data;
   size_t whole_data_size;
   rempi_event *encoding_event;
   rempi_encoder_input_format_test_table *test_table;
 
-  if (input_format.test_tables_map.size() > 1) {
-    REMPI_ERR("test_table_size is %d", input_format.test_tables_map.size());
+  if (input_format->test_tables_map.size() > 1) {
+    REMPI_ERR("test_table_size is %d", input_format->test_tables_map.size());
   }
 
-  test_table = input_format.test_tables_map[0];
+  test_table = input_format->test_tables_map[0];
   whole_data      = test_table->compressed_matched_events;
   whole_data_size = test_table->compressed_matched_events_size;
   record_fs.write(whole_data, whole_data_size);
@@ -370,14 +375,15 @@ void rempi_encoder::close_record_file()
 }
 
 /*File to vector */
-bool rempi_encoder::read_record_file(rempi_encoder_input_format &input_format)
+bool rempi_encoder::read_record_file(rempi_encoder_input_format *input_format)
 {
   char* decoding_event_sequence;
   int* decoding_event_sequence_int;
   rempi_event* decoded_event;
   size_t size;
   bool is_no_more_record = false;
-  
+
+  this->input_format = input_format;
 
   /*TODO: 
     Currently read only one event at one this function call, 
@@ -420,14 +426,14 @@ bool rempi_encoder::read_record_file(rempi_encoder_input_format &input_format)
 #endif
 
   free(decoding_event_sequence);
-  input_format.add(decoded_event, 0);
+  input_format->add(decoded_event, 0);
   is_no_more_record = false;
   total_write_size += size;
   return is_no_more_record;
 }
 
 
-void rempi_encoder::decode(rempi_encoder_input_format &input_format)
+void rempi_encoder::decode()
 {
   if (rempi_gzip) {
     REMPI_ERR("gzip is not supported yet");
@@ -444,7 +450,7 @@ void rempi_encoder::decode(rempi_encoder_input_format &input_format)
 //   rempi_encoder_input_format_test_table *test_table;
 
 //   /*Get decoded event to replay*/
-//   test_table = input_format.test_tables_map[0];
+//   test_table = input_format->test_tables_map[0];
 //   decoded_event = test_table->events_vec[0];
 //   test_table->events_vec.pop_back();
 
@@ -506,14 +512,14 @@ int rempi_encoder::progress_decoding(rempi_event_list<rempi_event*> *recording_e
 }
 
 /*vector to event_list*/
-void rempi_encoder::insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format)
+void rempi_encoder::insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events)
 {
   size_t size;
   rempi_event *decoded_event;
   rempi_encoder_input_format_test_table *test_table;
 
   /*Get decoded event to replay*/
-  test_table = input_format.test_tables_map[0];
+  test_table = input_format->test_tables_map[0];
   decoded_event = test_table->events_vec[0];
   test_table->events_vec.pop_back();/*events_vec has only one event (pop_back == pop_front)*/
 
@@ -566,7 +572,7 @@ void rempi_encoder::set_fd_clock_state(int flag)
   return;
 }
 
-void rempi_encoder::compute_local_min_id(rempi_encoder_input_format_test_table *test_table, int *local_min_id_rank, size_t *local_min_id_clock, int recv_test_id)
+void rempi_encoder::compute_look_ahead_recv_clock(size_t *local_min_id_clock, int *local_min_id_rank,  int recv_test_id)
 {
   //  REMPI_ERR("please remove this REMPI_ERR later");
   return;

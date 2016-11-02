@@ -238,7 +238,6 @@ static void rempi_cp_init_pred_ranks(const char* path)
   //  REMPI_DBG("separator: %d", chunk_size);
   if (chunk_size == 0) {
     count = read(fd, &rempi_pred_rank_count, sizeof(size_t));
-    //    REMPI_DBG("rank_count: %d, read_count: %lu", rempi_pred_rank_count, count);
     if (rempi_pred_rank_count > 0) {
       rempi_pred_ranks = (int*)rempi_malloc(rempi_pred_rank_count * sizeof(int));
       count = read(fd, rempi_pred_ranks, rempi_pred_rank_count * sizeof(int));
@@ -248,11 +247,9 @@ static void rempi_cp_init_pred_ranks(const char* path)
     }
   }  
 
-  // int a, b;
-  // count = read(fd, &a, sizeof(int));
-  // REMPI_DBG("rest size: %lu %d", count, a);
-  // count = read(fd, &b, sizeof(int));
-  // REMPI_DBG("rest size: %lu %d", count, b);
+  // for (int i = 0; i < rempi_pred_rank_count; i++) {
+  //   REMPI_DBGI(0, "pred_rank: %d", rempi_pred_ranks[i]);
+  // }
 
   close(fd);
 
@@ -338,6 +335,7 @@ void rempi_cp_gather_clocks()
       fprintf(stderr, "PMPI_Win_flush_local_all failed\n");
     }
   }
+
 
   // for (int i = 0; i < 2; i++) {
   //   REMPI_DBGI(0, "rempi_cp_gather_pc[%d]: %d", i, rempi_cp_gather_pc[i]);

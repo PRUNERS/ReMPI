@@ -126,9 +126,10 @@ class rempi_encoder_input_format
 {
  public:
   rempi_event *last_added_event;
+  size_t total_length;// = 0;
   char* decompressed_record_char;
 
-  size_t total_length;// = 0;
+
   
   /*Used for CDC*/  
   map<int, rempi_encoder_input_format_test_table*> test_tables_map;  
@@ -137,11 +138,6 @@ class rempi_encoder_input_format
   int    mc_length;//       = -1;
   /*All source ranks in all receive MPI functions*/
   int    *mc_recv_ranks;//  = NULL;
-#ifndef CP_DBG
-  /*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*/
-  size_t *mc_next_clocks;// = NULL;
-  size_t *tmp_mc_next_clocks;
-#endif
   /* ======================*/  
 
   /*vector to write to file*/
@@ -156,10 +152,6 @@ class rempi_encoder_input_format
     , decompressed_record_char(NULL)
     , mc_length(-1)
     , mc_recv_ranks(NULL)
-#ifndef CP_DBG
-    , mc_next_clocks(NULL)
-    , tmp_mc_next_clocks(NULL) 
-#endif
     {}
 
   ~rempi_encoder_input_format() 
@@ -187,16 +179,18 @@ class rempi_encoder
     size_t clock;
   };
   
-  size_t total_write_size;
+
   int mode;
   string record_path;
+  size_t total_write_size;
   fstream record_fs;
   rempi_compression_util<size_t> compression_util;
   list<rempi_event*> matched_event_pool;
   bool is_event_pooled(rempi_event* replaying_event);
   rempi_event* pop_event_pool(rempi_event* replaying_event);
-
   rempi_mutex progress_decoding_mtx;
+  rempi_encoder_input_format *input_format;
+  
 
   /* === For CDC replay ===*/
   unordered_map<int, list<rempi_event*>*> matched_events_list_umap;  
@@ -204,17 +198,7 @@ class rempi_encoder
   /*All source ranks in all receive MPI functions*/
   unordered_map<int, unordered_map<int, size_t>*> solid_mc_next_clocks_umap_umap; 
   int    *mc_recv_ranks;//  = NULL; 
-
   unordered_map<int, size_t> interim_min_clock_in_next_event_umap;
-#ifndef CP_DBG
-  int    mc_flag;//         = 0; /*if mc_flag == 1: main thread execute frontier detection*/
-  /*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*/
-  size_t *mc_next_clocks;// = NULL;
-  /* temporal array until in-flight message checking*/
-  size_t *tmp_mc_next_clocks;  
-  /* If no in-flight message, copyed from tmp_mc_next_clocks to solid_ordered_event_list*/
-#endif
-
   //    unordered_map<int, size_t> solid_mc_next_clocks_umap; 
   /* ======================*/
   vector<size_t> write_size_vec;
@@ -231,50 +215,44 @@ class rempi_encoder
     size_t *dequeued_count;// = NULL;
     size_t tmp_fd_next_clock; /*Temporal variable for set_fd_clock_state*/
 
-
-
     rempi_event_list<rempi_event*> *events;
 
  rempi_encoder(int mode, string record_path)
       : mode(mode) 
       , record_path(record_path)
+      , total_write_size(0)
+      , input_format(NULL)
       , mc_length(-1)
       , mc_recv_ranks(NULL)
-#ifndef CP_DBG
-      , mc_flag(0)
-      , mc_next_clocks(NULL) 
-      , tmp_mc_next_clocks(NULL) 
-#endif
       , num_of_recv_msg_in_next_event(NULL)
       , dequeued_count(NULL)
       , tmp_fd_next_clock(0)
-      , total_write_size(0)
-      {}
+      {      };
 
     /*Common for record & replay*/
     virtual rempi_encoder_input_format* create_encoder_input_format();
 
-    void open_record_file(string record_path);
+    void open_record_file();
 
     virtual void close_record_file();
     void set_record_path(string record_path);
 
     /*For only record*/
-    virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
-    virtual void encode(rempi_encoder_input_format &input_format);
-    virtual void write_record_file(rempi_encoder_input_format &input_format);
+    virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format *input_format);
+    virtual void encode();
+    virtual void write_record_file();
     /*For only replay*/
-    virtual bool read_record_file(rempi_encoder_input_format &input_format);
-    virtual void decode(rempi_encoder_input_format &input_format);
+    virtual bool read_record_file(rempi_encoder_input_format *input_format);
+    virtual void decode();
+    virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events);
     virtual int progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id);
-    virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
 
 
 
 
-    virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
-				      int *local_min_id_rank, 
+    virtual void compute_look_ahead_recv_clock(
 				      size_t *local_min_id_clock,
+				      int *local_min_id_rank, 
 				      int recv_test_id);
     virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/
 
@@ -299,35 +277,9 @@ class rempi_encoder_cdc_input_format: public rempi_encoder_input_format
 
 class rempi_encoder_basic : public rempi_encoder
 {
-
- /* protected: */
- /*    size_t total_write_size; */
- /*    int mode; */
- /*    string record_path; */
- /*    fstream record_fs; */
- /*    rempi_compression_util<size_t> compression_util; */
- /*    list<rempi_event*> matched_event_pool; */
- /*    bool is_event_pooled(rempi_event* replaying_event); */
- /*    rempi_event* pop_event_pool(rempi_event* replaying_event); */
-
-
- /*    /\* === For CDC replay ===*\/ */
- /*    int    mc_flag;//         = 0; /\*if mc_flag == 1: main thread execute frontier detection*\/ */
- /*    int    mc_length;//       = 0; */
- /*    /\*All source ranks in all receive MPI functions*\/ */
- /*    int    *mc_recv_ranks;//  = NULL;  */
- /*    /\*List of all next_clocks of recv_ranks, rank recv_ranks[i]'s next_clocks is next_clocks[i]*\/ */
- /*    size_t *mc_next_clocks;// = NULL; */
- /*    /\* temporal array until in-flight message checking*\/ */
- /*    size_t *tmp_mc_next_clocks;   */
- /*    /\* If no in-flight message, copyed from tmp_mc_next_clocks to solid_ordered_event_list*\/ */
- /*    unordered_map<int, size_t> solid_mc_next_clocks_umap;  */
- /*    /\* ======================*\/ */
-
- /*    vector<size_t> write_size_vec; */
-
  public:
   rempi_encoder_basic(int mode, string record_path);
+
 
     /*Common for record & replay*/
     virtual rempi_encoder_input_format* create_encoder_input_format();
@@ -336,19 +288,18 @@ class rempi_encoder_basic : public rempi_encoder
     void close_record_file();
 
     /*For only record*/
-    virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
-    virtual void encode(rempi_encoder_input_format &input_format);
-    virtual void write_record_file(rempi_encoder_input_format &input_format);
+    virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format *input_format);
+    virtual void encode();
+    virtual void write_record_file();
     /*For only replay*/
-    virtual bool read_record_file(rempi_encoder_input_format &input_format);
-    virtual void decode(rempi_encoder_input_format &input_format);
-    virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
+    virtual bool read_record_file(rempi_encoder_input_format *input_format);
+    virtual void decode();
+    virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events);
 
 
-
-    virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
-				      int *local_min_id_rank, 
+    virtual void compute_look_ahead_recv_clock(
 				      size_t *local_min_id_clock,
+				      int *local_min_id_rank, 
 				      int recv_test_id);
     virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/
 
@@ -400,18 +351,16 @@ class rempi_encoder_cdc : public rempi_encoder
 
 
   rempi_clock_delta_compression *cdc;
-  virtual void compress_non_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
-  virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
-  virtual void decompress_non_matched_events(rempi_encoder_input_format &input_format);
-  virtual void decompress_matched_events(rempi_encoder_input_format &input_format);
+  virtual void compress_non_matched_events(rempi_encoder_input_format_test_table  *test_table);
+  virtual void compress_matched_events(rempi_encoder_input_format_test_table  *test_table);
+  virtual void decompress_non_matched_events();
+  virtual void decompress_matched_events();
   virtual void write_footer();
   virtual void read_footer();
 
  public:
 
-#ifndef CP_DBG
-  struct frontier_detection_clocks *fd_clocks;// = NULL;
-#endif
+
 
 
 
@@ -422,18 +371,19 @@ class rempi_encoder_cdc : public rempi_encoder
 
   /*For common*/
   virtual rempi_encoder_input_format* create_encoder_input_format();
-  void write_record_file(rempi_encoder_input_format &input_format);
+
   /*For only record*/
-  virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format &input_format);
-  virtual void encode(rempi_encoder_input_format &input_format);
+  virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format *input_format);
+  virtual void encode();
+  void write_record_file();
   /*For only replay*/
-  virtual bool read_record_file(rempi_encoder_input_format &input_format);
-  virtual void decode(rempi_encoder_input_format &input_format);
+  virtual bool read_record_file(rempi_encoder_input_format *input_format);
+  virtual void decode();
+  void insert_encoder_input_format_chunk_recv_test_id(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, bool *is_finished, int *has_new_event, int recv_test_id);
+
 
   virtual int progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id);
-  void insert_encoder_input_format_chunk_recv_test_id(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, rempi_encoder_input_format *input_format, bool *is_finished, int *has_new_event, int recv_test_id);
-  virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events, rempi_encoder_input_format &input_format);
-
+  virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events);
   virtual void fetch_remote_look_ahead_send_clocks();
   virtual int update_local_look_ahead_recv_clock(
 						 unordered_set<int> *probed_message_source_set, 
@@ -446,9 +396,9 @@ class rempi_encoder_cdc : public rempi_encoder
 						  int replaying_event_type,
 						  int matching_set_id);
 
-  virtual void compute_local_min_id(rempi_encoder_input_format_test_table *test_table, 
-				    int *local_min_id_rank, 
+  virtual void compute_look_ahead_recv_clock(
 				    size_t *local_min_id_clock,
+				    int *local_min_id_rank, 
 				    int recv_test_id);
   virtual void set_fd_clock_state(int flag); /*flag: 1 during collective, flag: 0 during not collective*/    
   void close_record_file();
@@ -461,56 +411,27 @@ class rempi_encoder_cdc : public rempi_encoder
 #if MPI_VERSION == 3 && !defined(REMPI_LITE)
 class rempi_encoder_rep : public rempi_encoder_cdc
 {
+ private:
+  void add_to_ordered_list(list<rempi_event*> *event_list);
+
+
  public:
  rempi_encoder_rep(int mode, string record_path)
-   : rempi_encoder_cdc(mode, record_path) {}
+   : rempi_encoder_cdc(mode, record_path) { };
 
-  virtual void compress_non_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
-  virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table);
+
+  virtual void compress_non_matched_events(rempi_encoder_input_format_test_table  *test_table);
+  virtual void compress_matched_events(rempi_encoder_input_format_test_table  *test_table);
 
  protected:
   virtual bool cdc_decode_ordering(rempi_event_list<rempi_event*> *recording_events, list<rempi_event*> *event_vec, rempi_encoder_input_format_test_table* test_table, list<rempi_event*> *replay_event_list, int test_id, int local_min_id_rank, size_t local_min_id_clock);
+  
+ public:
+  //  virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format *input_format);
 
 };
 
 
-/* class rempi_encoder_cdc_row_wise_diff : public rempi_encoder_cdc */
-/* { */
-/*  protected: */
-/*   virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table); */
-/*  public: */
-/*   rempi_encoder_cdc_row_wise_diff(int mode, string record_path); */
-/*   /\*For only replay*\/ */
-/*   virtual vector<rempi_event*> decode(char *serialized, size_t *size); */
-/* }; */
-
-
-/* class rempi_encoder_zlib : public rempi_encoder_cdc */
-/* { */
-/*  protected: */
-/*   virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table); */
-/*  public: */
-/*   rempi_encoder_zlib(int mode, string record_path); */
-/*     /\*For only replay*\/ */
-/*     virtual vector<rempi_event*> decode(char *serialized, size_t *size); */
-/* }; */
-
-/* class rempi_encoder_simple_zlib : public rempi_encoder_zlib */
-/* { */
-/*  public: */
-/*   rempi_encoder_simple_zlib(int mode, string record_path); */
-/*   virtual rempi_encoder_input_format* create_encoder_input_format(); */
-/* }; */
-
-/* class rempi_encoder_cdc_permutation_diff : public rempi_encoder_cdc */
-/* { */
-/*  protected: */
-/*   virtual void compress_matched_events(rempi_encoder_input_format &input_format, rempi_encoder_input_format_test_table  *test_table); */
-/*  public: */
-/*   rempi_encoder_cdc_permutation_diff(int mode, string record_pathb); */
-/*     /\*For only replay*\/ */
-/*     virtual vector<rempi_event*> decode(char *serialized, size_t *size); */
-/* }; */
 
 #endif /* MPI_VERSION == 3*/
 
