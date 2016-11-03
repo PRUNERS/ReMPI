@@ -255,14 +255,14 @@ static void print_configuration()
 {
   if (!is_printed) {
     is_printed = 1;
-    REMPI_DBGI(0, "========== ReMPI Configuration ==========");
-    REMPI_DBGI(0, "%16s:  %d", REMPI_ENV_NAME_MODE, rempi_mode);
-    REMPI_DBGI(0, "%16s:  %s", REMPI_ENV_NAME_DIR,  rempi_record_dir_path.c_str());
-    REMPI_DBGI(0, "%16s:  %d", REMPI_ENV_NAME_ENCODE, rempi_encode);
-    REMPI_DBGI(0, "%16s:  %d", REMPI_ENV_NAME_GZIP,  rempi_gzip);
-    REMPI_DBGI(0, "%16s:  %d", REMPI_ENV_NAME_TEST_ID, rempi_is_test_id);
-    REMPI_DBGI(0, "%16s:  %d", REMPI_ENV_NAME_MAX_EVENT_LENGTH, rempi_max_event_length);
-    REMPI_DBGI(0, "==========================================");
+    REMPI_PRTI(0, "========== ReMPI Configuration ==========");
+    REMPI_PRTI(0, "%16s:  %d", REMPI_ENV_NAME_MODE, rempi_mode);
+    REMPI_PRTI(0, "%16s:  %s", REMPI_ENV_NAME_DIR,  rempi_record_dir_path.c_str());
+    REMPI_PRTI(0, "%16s:  %d", REMPI_ENV_NAME_ENCODE, rempi_encode);
+    REMPI_PRTI(0, "%16s:  %d", REMPI_ENV_NAME_GZIP,  rempi_gzip);
+    REMPI_PRTI(0, "%16s:  %d", REMPI_ENV_NAME_TEST_ID, rempi_is_test_id);
+    REMPI_PRTI(0, "%16s:  %d", REMPI_ENV_NAME_MAX_EVENT_LENGTH, rempi_max_event_length);
+    REMPI_PRTI(0, "==========================================");
   }
 }
 

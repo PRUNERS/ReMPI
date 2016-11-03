@@ -50,7 +50,7 @@ void rempi_set_configuration(int *argc, char ***argv)
   }
 
   if (NULL == (env = getenv(REMPI_ENV_NAME_ENCODE))) {
-    rempi_dbg("Apply default value (%d) for %s (%s:%s:%d)", rempi_encode, REMPI_ENV_NAME_ENCODE, __FILE__, __func__, __LINE__);
+    //    rempi_dbg("Apply default value (%d) for %s (%s:%s:%d)", rempi_encode, REMPI_ENV_NAME_ENCODE, __FILE__, __func__, __LINE__);
     rempi_encode = 0;
   } else {
     env_int = atoi(env);
@@ -58,7 +58,7 @@ void rempi_set_configuration(int *argc, char ***argv)
    }
 
   if (NULL == (env = getenv(REMPI_ENV_NAME_GZIP))) {
-    rempi_dbg("Apply default value (%d) for %s (%s:%s:%d)", rempi_gzip, REMPI_ENV_NAME_GZIP, __FILE__, __func__, __LINE__);
+    //    rempi_dbg("Apply default value (%d) for %s (%s:%s:%d)", rempi_gzip, REMPI_ENV_NAME_GZIP, __FILE__, __func__, __LINE__);
     rempi_gzip = 1;
   } else {
     env_int = atoi(env);
@@ -66,7 +66,7 @@ void rempi_set_configuration(int *argc, char ***argv)
   }
 
   if (NULL == (env = getenv(REMPI_ENV_NAME_TEST_ID))) {
-    rempi_dbg("Apply default value (%d) for %s (%s:%s:%d)", rempi_is_test_id, REMPI_ENV_NAME_TEST_ID, __FILE__, __func__, __LINE__);
+    //    rempi_dbg("Apply default value (%d) for %s (%s:%s:%d)", rempi_is_test_id, REMPI_ENV_NAME_TEST_ID, __FILE__, __func__, __LINE__);
     rempi_is_test_id = 1;
   } else {
     env_int = atoi(env);

@@ -104,7 +104,9 @@ void rempi_dbg(const char* fmt, ...) {
 }
 
 void rempi_print(const char* fmt, ...) {
-  REMPI_OUTPUT(stdout, "", fmt);
+  pthread_mutex_lock (&print_mutex);
+  REMPI_OUTPUT(stderr, "", fmt);
+  pthread_mutex_unlock (&print_mutex);
   return;
 }
 
