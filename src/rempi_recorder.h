@@ -43,7 +43,6 @@ class rempi_recorder {
   rempi_event_list<rempi_event*> *recording_event_list, *replaying_event_list;
   rempi_io_thread *record_thread, *read_record_thread;
   /*TODO: Fix bug in PNMPI fo rmulti-threaded, and remove this outputing*/
-
   unsigned int validation_code; /*integer to check if correctly replayed the reocrded events*/
   void update_validation_code(int incount, int *outcount, int matched_count, int *array_of_indices, MPI_Status *array_of_statuses, int* request_info);
 
