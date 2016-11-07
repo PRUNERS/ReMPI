@@ -492,6 +492,7 @@ int rempi_encoder_cdc::howto_update_look_ahead_recv_clock(int recv_rank, int mat
        So compare wit "max_recved_clock + 1"
     */
       if (max_recved_clock + 1 < solid_mc_next_clocks_umap->at(recv_rank)) {
+	/* solid_mc_next_clocks is already bigger thatn max_recved_clock. we do not need to update it */
 	howto_update = REMPI_ENCODER_NO_UPDATE;
 	*why = 6;
       }

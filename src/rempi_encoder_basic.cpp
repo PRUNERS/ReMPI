@@ -146,17 +146,6 @@ void rempi_encoder_basic::encode()
     	      encoding_event->get_matching_group_id());
 #endif
 
-    // for (int j = 0; i < rempi_event::record_num; i++) {
-    //   REMPI_DBG("  %d", *(original_buff + original_buff_offset + i));
-    // }
-
-
-#ifdef REMPI_DBG_REPLAY
-    REMPI_DBG("Encoded  : (count: %d, with_next: %d, flag: %d, source: %d, clock: %d)", 
-	       encoding_event->get_event_counts(), encoding_event->get_is_testsome(), encoding_event->get_flag(), 
-	       encoding_event->get_source(), encoding_event->get_clock());
-#endif 
-
     delete encoding_event;
 
   }
@@ -467,14 +456,15 @@ void rempi_encoder_basic::insert_encoder_input_format_chunk(rempi_event_list<rem
     decoded_event = test_table->events_vec[i];
 
 #ifdef REMPI_DBG_REPLAY
-    REMPI_DBG("Decoded  : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)", 
-	      decoded_event->get_event_counts(), 
-	      decoded_event->get_flag(),
-	      decoded_event->get_rank(),
-	      decoded_event->get_with_next(),
-	      decoded_event->get_index(),
-	      decoded_event->get_msg_id(),
-	      decoded_event->get_matching_group_id());
+    REMPI_DBGI(REMPI_DBG_REPLAY, "Decoded  : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d, type: %d)", 
+	       decoded_event->get_event_counts(), 
+	       decoded_event->get_flag(),
+	       decoded_event->get_rank(),
+	       decoded_event->get_with_next(),
+	       decoded_event->get_index(),
+	       decoded_event->get_msg_id(),
+	       decoded_event->get_matching_group_id(),
+	       decoded_event->get_type());
 #endif
     replaying_events.enqueue_replay(decoded_event, 0);
   }

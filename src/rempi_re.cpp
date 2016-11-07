@@ -386,6 +386,12 @@ int rempi_re::re_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Statu
 int rempi_re::re_cancel(MPI_Request *request)
 {
   int ret;
+  int requested_source, requested_tag;
+  MPI_Comm requested_comm;
+  
+  // rempi_reqmg_get_matching_id(request, &requested_source, &requested_tag, &requested_comm);
+  // REMPI_DBG("cancel: %d", requested_tag);
+
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     ret = recorder->record_cancel(request);
   } else {

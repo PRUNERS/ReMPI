@@ -14,6 +14,7 @@
 #include "rempi_err.h"
 #include "rempi_mem.h"
 #include "rempi_config.h"
+#include "rempi_util.h"
 
 #define DEBUG_STDOUT stderr
 
@@ -209,6 +210,27 @@ string rempi_btrace_string()
   }
   free(strings);
   return trace_string;
+}
+
+#define CALLSTACK_DEPTH (1024)
+static void *call_stack_buff[CALLSTACK_DEPTH];
+size_t rempi_btrace_hash()
+{
+  int j, nptrs;
+  char** strings;
+  size_t hash  = 827;
+
+  nptrs = backtrace(call_stack_buff, CALLSTACK_DEPTH);
+  strings = backtrace_symbols(call_stack_buff, nptrs);
+  for (int i = nptrs-1; i >= 0; i--) {
+    hash += (hash << 5) + rempi_compute_hash(strings[i], strlen(strings[i]));
+    //    REMPI_DBG(" = hash: %lu = call_stack %d: %s", hash, nptrs - i, strings[i]);
+    if (strstr(strings[i], "librempi")) break;
+  }
+  //  REMPI_DBG("hash: %lu", hash);
+  free(strings);
+
+  return hash;
 }
 
 void rempi_btrace() 

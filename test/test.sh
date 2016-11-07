@@ -12,7 +12,7 @@ dir=${prefix}/
 mkdir -p ${dir}
 #io_watchdog="--io-watchdog"
 #librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
-
+#memcheck="valgrind --tool=memcheck --xml=yes --xml-file=`echo $$`.mc --partial-loads-ok=yes --error-limit=no --leak-check=full --show-reachable=yes --max-stackframe=16777216 --num-callers=20 --child-silent-after-fork=yes --track-origins=yes"
 
 # ===== MCB test ========
 par=`expr 80 \* $num_procs`
@@ -24,11 +24,17 @@ make cleanc
 #librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
 #REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
 librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
-REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=0 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=0 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${memcheck}  ${bin}
 #srun ${io_watchdog} -n ${num_procs} ${bin}
 cd -
 exit
 
+
+#bin="./rempi_test_mini_mcb 10 1 1000"
+bin="./rempi_test_mini_mcb 2 1 1"
+librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=0 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+exit
 
 bin="./rempi_test_units matching"
 librempi=../src/.libs/librempix.so
@@ -38,11 +44,7 @@ REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD
 exit
 
 
-#bin="./rempi_test_mini_mcb 10 1 1000"
-bin="./rempi_test_mini_mcb 2 1 1"
-librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
-REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=0 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-exit
+
 
 bin="./rempi_test_master_worker"
 librempi=../src/.libs/librempix.so

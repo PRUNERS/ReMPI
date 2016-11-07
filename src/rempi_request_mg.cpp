@@ -73,35 +73,40 @@ static int is_contained(int source, int tag, int comm_id, vector<rempi_matching_
 
 static int get_mpi_call_id()
 {
+#if 1
+  int hash = (int)rempi_btrace_hash();
+  return hash;
+#else
+
   string mpi_call_id_string;
   int mpi_call_id;
   mpi_call_id_string = rempi_btrace_string();
   if (mpi_call_id_umap.find(mpi_call_id_string) == mpi_call_id_umap.end()) {
     //mpi_call_id = next_mpi_call_id;
-    //    REMPI_DBGI(0, "callstack (%d): %s", mpi_call_id, mpi_call_id_string.c_str());    
     mpi_call_id = rempi_compute_hash((void*)mpi_call_id_string.c_str(), strlen(mpi_call_id_string.c_str()));
+    //    REMPI_DBG("callstack (%d): %s", mpi_call_id, mpi_call_id_string.c_str());    
+    //    REMPI_DBG("callstack (%d):", mpi_call_id);
     mpi_call_id_umap[mpi_call_id_string] = mpi_call_id;
     next_mpi_call_id++;
 
   } else {
     mpi_call_id = mpi_call_id_umap.at(mpi_call_id_string);
-  }
-  
-
+  } 
   return mpi_call_id;
+#endif
 }
 
 
-static int get_recv_id()
-{
-  string recv_id_string;
-  recv_id_string = rempi_btrace_string();
-  if (recv_id_umap.find(recv_id_string) == recv_id_umap.end()) {
-    recv_id_umap[recv_id_string] = next_recv_id_to_assign;
-    next_recv_id_to_assign++;
-  }
-  return recv_id_umap[recv_id_string];
-}
+// static int get_recv_id()
+// {
+//   string recv_id_string;
+//   recv_id_string = rempi_btrace_string();
+//   if (recv_id_umap.find(recv_id_string) == recv_id_umap.end()) {
+//     recv_id_umap[recv_id_string] = next_recv_id_to_assign;
+//     next_recv_id_to_assign++;
+//   }
+//   return recv_id_umap[recv_id_string];
+// }
 
 static int add_matching_id(int matching_set_id, int source, int tag, int comm_id)
 {
@@ -274,13 +279,13 @@ static int rempi_reqmg_get_matching_set_id_1(int *matching_set_id, int *mpi_call
       rempi_reqmg_assign_matching_set_id_to_recv(*matching_set_id, incount, array_of_requests);
     }
     //
-    //    REMPI_DBGI(1, "call_id: %d set_id: %d", *mpi_call_id, *matching_set_id);
+    //REMPI_DBGI(1, "call_id: %d set_id: %d", *mpi_call_id, *matching_set_id);
 
     return 0;
   } else {
     // if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY && 
     // 	mpi_call_type == REMPI_REQMG_MPI_CALL_TYPE_MF) {
-    //   REMPI_ERR("No matching set id is assined in a record mode for mpi_call_id=%d (type: %d)", *mpi_call_id, mpi_call_type);
+    //    REMPI_ERR("No matching set id is assined in a record mode for mpi_call_id=%d (type: %d)", *mpi_call_id, mpi_call_type);
     // }
   }
 
@@ -383,6 +388,7 @@ static int rempi_reqmg_register_recv_request(void *buf, int count, MPI_Datatype 
 
   //   *request = (MPI_Request)(mpi_request_id++);
   rempi_reqmg_get_matching_set_id(matching_set_id, &mpi_call_id, REMPI_REQMG_MPI_CALL_TYPE_RECV, 0, NULL);
+  //  REMPI_DBG("callstack tag: %d: cid: %d sid: %d", tag, mpi_call_id, *matching_set_id);
   request_to_recv_args_umap[*request] = new rempi_reqmg_recv_args(buf, count, datatype, source, tag, comm, *request, mpi_call_id, *matching_set_id);
   //   PMPI_Type_size(datatype, &size);
   //pooled_buffer = rempi_malloc(size * count);
@@ -724,7 +730,7 @@ static int rempi_reqmg_deregister_send_request(MPI_Request *request)
   int is_erased;
   is_erased = request_to_send_id_umap.erase(*request);
   if (is_erased != 1) {
-    REMPI_ERR("Request %p cannnot be deregistered", *request);
+    REMPI_ERR("Request %p cannot be deregistered (MPI_REQUEST_NULL: %p)", *request, MPI_REQUEST_NULL);
   }
   return 1;
 }
@@ -807,6 +813,7 @@ int rempi_reqmg_deregister_request(MPI_Request *request, int request_type)
 
 int rempi_reqmg_get_test_id(MPI_Request *request, int incount)
 {
+  REMPI_ERR("Non supprted");
   double s, e;
   int matching_set_id;
   if (rempi_is_test_id == 2) {

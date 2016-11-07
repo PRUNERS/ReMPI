@@ -37,6 +37,7 @@ class rempi_recorder {
  protected:
 
   vector<rempi_event*> replaying_event_vec; /*TODO: vector => list*/
+  list<rempi_event*> recording_event_set_list; /*TODO: vector => list*/
 
   unordered_map<MPI_Request, rempi_event*> request_to_recv_event_umap;
   rempi_event_list<rempi_event*> *recording_event_list, *replaying_event_list;
@@ -44,7 +45,7 @@ class rempi_recorder {
   /*TODO: Fix bug in PNMPI fo rmulti-threaded, and remove this outputing*/
 
   unsigned int validation_code; /*integer to check if correctly replayed the reocrded events*/
-  void update_validation_code(int incount, int *outcount, int *array_of_indices, MPI_Status *array_of_statuses, int* request_info);
+  void update_validation_code(int incount, int *outcount, int matched_count, int *array_of_indices, MPI_Status *array_of_statuses, int* request_info);
 
   int request_info[PRE_ALLOCATED_REQUEST_LENGTH];
   MPI_Status  tmp_statuses[PRE_ALLOCATED_REQUEST_LENGTH];
