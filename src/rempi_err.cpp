@@ -223,9 +223,10 @@ size_t rempi_btrace_hash()
   nptrs = backtrace(call_stack_buff, CALLSTACK_DEPTH);
   strings = backtrace_symbols(call_stack_buff, nptrs);
   for (int i = nptrs-1; i >= 0; i--) {
-    hash += (hash << 5) + rempi_compute_hash(strings[i], strlen(strings[i]));
-    //    REMPI_DBG(" = hash: %lu = call_stack %d: %s", hash, nptrs - i, strings[i]);
     if (strstr(strings[i], "librempi")) break;
+    hash += (hash << 5) + rempi_compute_hash(strings[i], strlen(strings[i]));
+    //    REMPI_DBG(" = hash: %d = call_stack %d: %s", (int)hash, nptrs - i, strings[i]);
+
   }
   //  REMPI_DBG("hash: %lu", hash);
   free(strings);

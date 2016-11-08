@@ -14,9 +14,10 @@ mkdir -p ${dir}
 #librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
 #memcheck="valgrind --tool=memcheck --xml=yes --xml-file=`echo $$`.mc --partial-loads-ok=yes --error-limit=no --leak-check=full --show-reachable=yes --max-stackframe=16777216 --num-callers=20 --child-silent-after-fork=yes --track-origins=yes"
 
+
 # ===== MCB test ========
 par=`expr 80 \* $num_procs`
-bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 "
+bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 --weakScaling"
 cd /g/g90/sato5/repo/MCBdouble/run-decks/
 make cleanc
 #librempi=/g/g90/sato5/repo/rempi/src/.libs/librempi.so

@@ -944,7 +944,6 @@ int rempi_recorder::replay_mf(
   
 
   
-  
   if (incount > PRE_ALLOCATED_REQUEST_LENGTH) {
     REMPI_ERR("incount: %d is larger than buffer", incount);
   }  
@@ -979,6 +978,8 @@ int rempi_recorder::replay_mf(
   replaying_event_vec.clear();
   this->get_next_events(incount, array_of_requests, request_info, replaying_event_vec, matching_set_id, matching_function_type);
   this->replay_mf_input(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, replaying_event_vec, matching_set_id, matching_function_type);
+
+
   
   for (int j = 0; j < replaying_event_vec.size(); j++) {
     // REMPI_DBGI(1, "= Replay: (count: %d, with_next: %d, index: %d, flag: %d, source: %d, clock: %d): matching_set_id: %d ",

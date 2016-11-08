@@ -316,9 +316,9 @@ int rempi_recorder_cdc::compare_clock(size_t left_clock, int left_rank, size_t r
   if (left_clock < right_clock) {
     return 1;
   } else if (left_clock == right_clock) {
-    if (left_rank <  right_clock) return 1;
-    if (left_rank == right_clock) return 0;
-    if (left_rank >  right_clock) return -1;
+    if (left_rank <  right_rank) return 1;
+    if (left_rank == right_rank) return 0;
+    if (left_rank >  right_rank) return -1;
   }
   return -1;
 }
