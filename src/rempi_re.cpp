@@ -103,9 +103,9 @@ int rempi_re::re_isend(
 {
   int ret;
 
-  if (comm != MPI_COMM_WORLD) {
-    REMPI_ERR("Current ReMPI accept only MPI_COMM_WORLD");
-  }
+  // if (comm != MPI_COMM_WORLD) {
+  //   REMPI_ERR("Current ReMPI accept only MPI_COMM_WORLD");
+  // }
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     recorder->record_isend(buf, count, datatype, dest, tag, comm, request, -1);
@@ -129,9 +129,9 @@ int rempi_re::re_irecv(
   int ret;
   char comm_id[REMPI_COMM_ID_LENGTH];
 
-  if (comm != MPI_COMM_WORLD) {
-    REMPI_ERR("Current ReMPI does not multiple communicators");
-  }
+  // if (comm != MPI_COMM_WORLD) {
+  //   REMPI_ERR("Current ReMPI does not multiple communicators");
+  // }
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     // ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
