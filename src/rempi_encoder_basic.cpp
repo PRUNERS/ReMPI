@@ -101,7 +101,9 @@ bool rempi_encoder_basic::extract_encoder_input_format_chunk(rempi_event_list<re
       //      REMPI_DBG("event: source: %d (type: %d): %p %p", event_dequeued->get_source(), event_dequeued->get_type(), event_dequeued->request, event_dequeued);
       if (event_dequeued->get_type() == REMPI_MPI_EVENT_TYPE_RECV) {
 	while(event_dequeued->get_rank() == MPI_ANY_SOURCE) {
-	  if (events.is_push_closed_()) break;
+	  if (events.is_push_closed_()) {
+	    REMPI_DBG("Will dumping");
+	  } 
 	  usleep(1);
 	}
       }
@@ -198,15 +200,15 @@ void rempi_encoder_basic::write_record_file()
   return;
 }
 
-void rempi_encoder_basic::close_record_file()
-{
-  // size_t total_write_size = 0;
-  // for (int i = 0, n = write_size_vec.size(); i < n; i++) {
-  //   total_write_size += write_size_vec[i];
-  // }
-  //  REMPI_DBG("EVAL Total I/O size: |%lu|", total_write_size);
-  record_fs.close();
-}
+// void rempi_encoder_basic::close_record_file()
+// {
+//   // size_t total_write_size = 0;
+//   // for (int i = 0, n = write_size_vec.size(); i < n; i++) {
+//   //   total_write_size += write_size_vec[i];
+//   // }
+//   //  REMPI_DBG("EVAL Total I/O size: |%lu|", total_write_size);
+//   record_fs.close();
+// }
 
 #if 1
 /*File to vector */

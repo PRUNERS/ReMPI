@@ -8,7 +8,7 @@
 #include "rempi_err.h"
 #include "rempi_config.h"
 
-rempi_io_thread *registered_record_thread;
+rempi_io_thread *registered_record_thread = NULL;
 rempi_event_list<rempi_event*> *registered_recording_event_list;
 unsigned int *registered_validation_code;
 int registered_my_rank;
@@ -42,15 +42,13 @@ void rempi_sig_handler_run(int signum)
 {
   if (first_signal < 0) {
     first_signal = signum;
-    REMPI_DBG("Get sigmal: %d", signum);
-    REMPI_PRT("Dumping record file");
+    REMPI_PRT("Get sigmal: %d", signum);
     registered_recording_event_list->push_all();
-    REMPI_PRT("Syncing with IO thread");
+    REMPI_PRT("Syncing with IO thread: %p", registered_record_thread);
     registered_record_thread->join();  
     //  if (registered_my_rank == 0) REMPI_PRT("Calling MPI_Finalize");
     //  PMPI_Finalize();
     REMPI_PRT(" ... done");
-    sleep(1);
     if (registered_my_rank == 0) while(1);
     rempi_sig_handler_postprocess();
   } else {

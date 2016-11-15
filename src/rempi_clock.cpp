@@ -1,4 +1,5 @@
 #include <mpi.h>
+#include <stddef.h>
 
 #if MPI_VERSION == 3 && !defined(REMPI_LITE)
 

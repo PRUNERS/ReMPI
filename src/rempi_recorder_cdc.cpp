@@ -105,6 +105,7 @@ int rempi_recorder_cdc::record_init(int *argc, char ***argv, int rank)
 
   this->init(rank);
   record_thread = new rempi_io_thread(recording_event_list, replaying_event_list, rempi_mode, mc_encoder);
+  rempi_sig_handler_init(rank, record_thread, recording_event_list, &validation_code);
   record_thread->start();  
   return 0;
 }
@@ -124,6 +125,9 @@ int rempi_recorder_cdc::replay_init(int *argc, char ***argv, int rank)
   mc_encoder->set_record_path(path);
   ((rempi_encoder_cdc*)mc_encoder)->init_cp(path.c_str());
   rempi_msgb_init(recording_event_list, replaying_event_list);
+  rempi_sig_handler_init(rank, record_thread, recording_event_list, &validation_code);
+
+
 
 #ifdef REMPI_MULTI_THREAD
   read_record_thread->start();
@@ -320,6 +324,7 @@ int rempi_recorder_cdc::compare_clock(size_t left_clock, int left_rank, size_t r
     if (left_rank == right_rank) return 0;
     if (left_rank >  right_rank) return -1;
   }
+
   return -1;
 }
 
@@ -380,8 +385,6 @@ int rempi_recorder_cdc::get_next_events(int incount, MPI_Request *array_of_reque
       */
       mc_encoder->update_local_look_ahead_send_clock(REMPI_ENCODER_REPLAYING_TYPE_RECV, matching_set_id);
     }
-
-
   } /* while (with_next == REMPI_MPI_EVENT_WITH_NEXT) */  
 
   return 0;

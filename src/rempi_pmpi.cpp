@@ -1768,7 +1768,6 @@ _EXTERN_C_ int MPI_Isend(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, i
   int _wrap_py_return_val = 0;
   {
     _wrap_py_return_val = rempi_record_replay->re_isend(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
-    //    REMPI_DBG("buf: %p, request: %p %p at %s", arg_0, *arg_6, arg_6, __func__);
   }
   REMPI_POSTPRINT;
   return _wrap_py_return_val;

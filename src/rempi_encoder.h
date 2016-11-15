@@ -190,6 +190,7 @@ class rempi_encoder
   rempi_event* pop_event_pool(rempi_event* replaying_event);
   rempi_mutex progress_decoding_mtx;
   rempi_encoder_input_format *input_format;
+  int file_closed;
   
 
   /* === For CDC replay ===*/
@@ -227,6 +228,7 @@ class rempi_encoder
       , num_of_recv_msg_in_next_event(NULL)
       , dequeued_count(NULL)
       , tmp_fd_next_clock(0)
+      , file_closed(0)
       {      };
 
     /*Common for record & replay*/
@@ -246,7 +248,7 @@ class rempi_encoder
     virtual void decode();
     virtual void insert_encoder_input_format_chunk(rempi_event_list<rempi_event*> &recording_events, rempi_event_list<rempi_event*> &replaying_events);
     virtual int progress_decoding(rempi_event_list<rempi_event*> *recording_events, rempi_event_list<rempi_event*> *replaying_events, int recv_test_id);
-
+    int is_file_closed();
 
 
 
@@ -285,7 +287,7 @@ class rempi_encoder_basic : public rempi_encoder
     virtual rempi_encoder_input_format* create_encoder_input_format();
 
     void open_record_file(string record_path);
-    void close_record_file();
+    //    void close_record_file();
 
     /*For only record*/
     virtual bool extract_encoder_input_format_chunk(rempi_event_list<rempi_event*> &events, rempi_encoder_input_format *input_format);

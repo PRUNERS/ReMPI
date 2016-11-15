@@ -996,6 +996,7 @@ void rempi_reqmg_store_send_statuses(int incount, MPI_Request *requests, int *re
       //statuses[i].MPI_SOURCE = request_to_send_id_umap[requests[i]];
       //      statuses[i].MPI_SOURCE = request_to_send_id_umap.at(requests[i]);
       statuses[i].MPI_SOURCE = request_to_send_id_umap.at(requests[i])->dest;
+      //      REMPI_DBG("rank %d (request: %p, index: %d)", statuses[i].MPI_SOURCE, requests[i], i);
       //      request_to_send_id_umap.at(requests[i]);
       // for (int j = 0; j < incount; j++) {
       // 	REMPI_DBGI(3, "store reqeust: %p (loop: %d)", requests[j], i);
@@ -1084,7 +1085,7 @@ int rempi_reqmg_get_send_request_dest(MPI_Request *request)
 int rempi_reqmg_set_matching_set_id_map(int *mpi_call_ids, int *matching_set_ids, int length)
 {
   for (int i = 0; i < length; i++) {
-    REMPI_DBGI(1, "mpi_call_id: %d, matching_set_id: %d", mpi_call_ids[i], matching_set_ids[i]);
+    //    REMPI_DBGI(1, "mpi_call_id: %d, matching_set_id: %d", mpi_call_ids[i], matching_set_ids[i]);
     mpi_call_id_to_matching_set_id[mpi_call_ids[i]] = matching_set_ids[i];
   }
   return 0;
