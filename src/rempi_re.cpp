@@ -346,7 +346,7 @@ int rempi_re::re_waitall(
 int rempi_re::re_probe(int source, int tag, MPI_Comm comm, MPI_Status *status)
 {
   int ret;
-  int flag;
+  int flag = 0;
   char comm_id[REMPI_COMM_ID_LENGTH];
   int resultlen;
   int status_flag;
@@ -358,7 +358,7 @@ int rempi_re::re_probe(int source, int tag, MPI_Comm comm, MPI_Status *status)
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     recorder->record_pf(source, tag, comm, NULL, status, REMPI_MPI_PROBE);
   } else {
-    recorder->replay_pf(source, tag, comm, &flag, status, (int)comm_id[0]);
+    recorder->replay_pf(source, tag, comm, NULL, status, (int)comm_id[0]);
   }
   if (status_flag) rempi_status_free(status);
   return ret;

@@ -47,6 +47,7 @@
 #define MPI_Status_NULL_id   (701)
 #define MPI_Status_ignore_id (702)
 
+
 #define TEST_MATCHING_FUNC
 #define TEST_PROBE_FUNC
 #define TEST_ISEND_FUNC
@@ -54,6 +55,7 @@
 #define TEST_START_FUNC
 #define TEST_NULL_STATUS
 #define TEST_SENDRECV_REQ
+#define TEST_COMM_DUP
 
 
 #define rempi_test_dbg_print(format, ...)				\
@@ -217,14 +219,14 @@ void rempi_test_send_init_with_random_sleep(int send_init_type, int start_type)
   }
 }
 
-void rempi_test_mpi_sends_with_random_sleep()
+void rempi_test_mpi_sends_with_random_sleep(MPI_Comm comm)
 {
   int i;
 
   for (i = 0; i < NUM_TEST_MSG; i++) {
     //    rempi_test_randome_sleep();
     //    rempi_test_dbg_print("sending to 0");
-    MPI_Send(&i, 1, MPI_INT, 0, my_rank, MPI_COMM_WORLD);
+    MPI_Send(&i, 1, MPI_INT, 0, my_rank, comm);
     //    rempi_test_dbg_print("sent to 0");
   }
 }
@@ -291,7 +293,7 @@ void rempi_test_probe(int probe_type)
 {
   int i, j;
   if (my_rank != 0) {
-    rempi_test_mpi_sends_with_random_sleep();
+    rempi_test_mpi_sends_with_random_sleep(MPI_COMM_WORLD);
     return;
   }
 
@@ -333,7 +335,7 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
 
   int i, j;
   if (my_rank != 0) {
-    rempi_test_mpi_sends_with_random_sleep();
+    rempi_test_mpi_sends_with_random_sleep(MPI_COMM_WORLD);
     return;
   }
 
@@ -478,7 +480,7 @@ void rempi_test_null_status(int status_type)
 {
   int i, j;
   if (my_rank != 0) {
-    rempi_test_mpi_sends_with_random_sleep();
+    rempi_test_mpi_sends_with_random_sleep(MPI_COMM_WORLD);
     return;
   }
 
@@ -654,6 +656,88 @@ void rempi_test_sendrecv_req(int matching_type)
 
 
   return;
+}
+
+
+void rempi_test_comm_dup()
+{
+  MPI_Comm comm_dup;
+  int num_sender = size - 1;
+  int num_send_msgs = num_sender * NUM_TEST_MSG;
+  int recv_msg_count = 0, matched_count = 0;
+  MPI_Request *requests;
+  MPI_Status *statuses;
+  int *recv_vals;
+  int *matched_indices;
+  int matched_index;
+  int i;
+  
+
+  MPI_Comm_dup(MPI_COMM_WORLD, &comm_dup);
+  if (my_rank != 0) {
+    rempi_test_mpi_sends_with_random_sleep(comm_dup);
+    rempi_test_mpi_sends_with_random_sleep(MPI_COMM_WORLD);
+  } else {
+
+    requests   = (MPI_Request*)malloc(sizeof(MPI_Request) * (num_sender));
+    statuses   = (MPI_Status*)malloc(sizeof(MPI_Status) * (num_sender));
+    recv_vals  = (int*)malloc(sizeof(int) * (num_sender));
+    matched_indices = (int*)malloc(sizeof(int) * (num_sender));
+
+    for (i = 0; i < num_sender; i++) {
+      MPI_Irecv(&recv_vals[i], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[i]);
+    }
+    recv_msg_count = 0;
+    while (recv_msg_count < num_send_msgs) {
+      while (1) {
+        matched_count = 0;
+        MPI_Testsome(num_sender, requests, &matched_count, matched_indices, statuses);
+        if (matched_count > 0) {
+          recv_msg_count += matched_count;
+          break;
+        }
+      }
+      for (i = 0; i < matched_count; i++) {
+        matched_index = matched_indices[i];
+	MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[matched_index]);
+      }
+    }
+
+    for (i = 0; i < num_sender; i++) {
+      MPI_Cancel(&requests[i]);
+    }
+
+    for (i = 0; i < num_sender; i++) {
+      MPI_Irecv(&recv_vals[i], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, comm_dup, &requests[i]);
+    }
+    recv_msg_count = 0;
+    while (recv_msg_count < num_send_msgs) {
+      while (1) {
+        matched_count = 0;
+        MPI_Testsome(num_sender, requests, &matched_count, matched_indices, statuses);
+        if (matched_count > 0) {
+          recv_msg_count += matched_count;
+          break;
+        }
+      }
+      for (i = 0; i < matched_count; i++) {
+        matched_index = matched_indices[i];
+	MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, comm_dup, &requests[matched_index]);
+      }
+    }
+
+    for (i = 0; i < num_sender; i++) {
+      MPI_Cancel(&requests[i]);
+    }
+
+
+    
+    free(requests);
+    free(statuses);
+    free(recv_vals);
+    free(matched_indices);
+    
+  }
 
 }
 
@@ -765,6 +849,14 @@ int main(int argc, char *argv[])
 	rempi_test_sendrecv_req(sendrecv_req_ids[i]);
 	MPI_Barrier(MPI_COMM_WORLD);
       }
+      if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
+    }
+
+    if (!strcmp(test_name, "comm_dup") || is_all) {
+#if defined(TEST_COMM_DUP)
+      if (my_rank == 0) fprintf(stdout, "Start testing comm dup ... \n"); fflush(stdout);
+      rempi_test_comm_dup();
       if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
 #endif
     }

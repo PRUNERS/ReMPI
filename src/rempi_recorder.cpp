@@ -558,7 +558,7 @@ int rempi_recorder::record_mf(
  }
 	//	for () {}
 
-   update_validation_code(incount, outcount, matched_count, array_of_indices, array_of_statuses, request_info);
+ update_validation_code(incount, outcount, matched_count, array_of_indices, array_of_statuses, request_info);
  
  return ret;
 }
@@ -754,7 +754,7 @@ int rempi_recorder::record_pf(int source,
 
   if (flag == NULL) {
     /*MPI_Probe*/
-    record_flag = 1;
+    record_flag = 1;    
     record_source = status->MPI_SOURCE;
   } else if (*flag == 0) {
     /*MPI_Iprobe unmatched*/
@@ -875,31 +875,11 @@ int rempi_recorder::replay_mf_input(
 
   if (outcount != NULL) {
     *outcount = local_outcount;
+    if (matching_function_type == REMPI_MPI_TESTALL) {
+      *outcount = 1;
+    }
   }
 
-  // if (outcount == NULL) {
-  //   if (local_outcount != 0) {
-  //     /*print*/
-  //     for (int j = 0; j < replaying_event_vec.size(); j++) {
-  // 	REMPI_DBGI(0, "= dbg Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): matching_set_id: %d func: %d",
-  // 		   replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
-  // 		   replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), matching_set_id, matching_function_type);
-  //     }
-  //     exit(1);
-  //   }
-  // } else {
-  //   if (*outcount != local_outcount) {
-  //     /*print*/
-  //     for (int j = 0; j < replaying_event_vec.size(); j++) {
-  // 	REMPI_DBGI(0, "= dbg Replay: (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): matching_set_id: %d ",
-  // 		   replaying_event_vec[j]->get_event_counts(), replaying_event_vec[j]->get_is_testsome(), replaying_event_vec[j]->get_flag(),
-  // 		   replaying_event_vec[j]->get_source(), replaying_event_vec[j]->get_clock(), matching_set_id);
-	
-  //     }
-  //     exit(1);
-  //   }
-  // }
-  
 
 
   return 0;
@@ -1025,7 +1005,7 @@ int rempi_recorder::replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI
 
 
   /*Matched*/
-  *flag = 0;
+  if (flag != NULL) *flag = 0;
   while (has_next_event == REMPI_MPI_EVENT_WITH_NEXT) {
     while ((replaying_test_event = replaying_event_list->dequeue_replay(test_id, replay_queue_status)) == NULL);
     // REMPI_DBGI(0, "Replay : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d)",
@@ -1042,7 +1022,7 @@ int rempi_recorder::replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI
       delete replaying_test_event;
       return MPI_SUCCESS;
     }
-    *flag = 1;
+    if (flag != NULL) *flag = 1;
 
     if ((source != MPI_ANY_SOURCE && source != replaying_test_event->get_source())) {
       REMPI_ERR("Replaying probe event from rank %d, but src of this probe request is rank %d (MPI_ANY_SOURCE: %d)", 
