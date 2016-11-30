@@ -24,6 +24,7 @@
 #include "rempi_cp.h"
 #include "rempi_mf.h"
 #include "rempi_clock.h"
+#include "rempi_sig_handler.h"
 
 #define  PNMPI_MODULE_REMPI "rempi"
 
