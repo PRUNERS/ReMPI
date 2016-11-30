@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include <iostream>
 
@@ -47,7 +49,9 @@ void rempi_set_configuration(int *argc, char ***argv)
     rempi_record_dir_path =  ".";
   } else {
     rempi_record_dir_path = env;
+    mkdir(env, S_IRWXU);
   }
+
 
   if (NULL == (env = getenv(REMPI_ENV_NAME_ENCODE))) {
     //    rempi_dbg("Apply default value (%d) for %s (%s:%s:%d)", rempi_encode, REMPI_ENV_NAME_ENCODE, __FILE__, __func__, __LINE__);
