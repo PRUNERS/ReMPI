@@ -80,7 +80,6 @@ int main(int argc, char *argv[])
     }
   }
 
-  rempi_test_dbg_print("rank: %d: finisehd", rank);
   end = MPI_Wtime();
   MPI_Finalize();
   //  overall_end = MPI_Wtime();

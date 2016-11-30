@@ -10,7 +10,6 @@
 #include "rempi_err.h"
 #include "rempi_mem.h"
 #include "rempi_mpi_init.h"
-#include "rempi_send.h"
 #include "rempi_config.h"
 #include "rempi_type.h"
 #include "rempi_status.h"

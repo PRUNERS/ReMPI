@@ -14,7 +14,6 @@
 #include "rempi_event.h"
 #include "rempi_event_list.h"
 #include "rempi_io_thread.h"
-#include "rempi_send_mf.h"
 #include "rempi_util.h"
 #include "rempi_err.h"
 #include "rempi_config.h"

@@ -132,7 +132,6 @@ int rempi_recorder::record_isend(mpi_const void *buf,
   int resultlen;
   int matching_set_id;
 
-
   ret = rempi_mpi_isend(buf, count, datatype, dest, tag, comm, request, send_function_type);
   rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request, REMPI_SEND_REQUEST, &matching_set_id);
   return ret;

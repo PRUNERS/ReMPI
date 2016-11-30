@@ -19,7 +19,7 @@ srun rm ${dir}/* 2> /dev/null
 
 bin="./rempi_test_master_worker"
 REMPI_MODE=0 REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-REMPI_MODE=1 REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}                   
+REMPI_MODE=1 REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}                   
 srun rm ${dir}/* 2> /dev/null
 
 # MCB w/ gzip
