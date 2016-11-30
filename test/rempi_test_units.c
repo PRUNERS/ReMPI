@@ -111,7 +111,7 @@ int start_ids[] = {
 };
 
 int status_ids[] = {
-  MPI_Status_NULL_id,
+  //  MPI_Status_NULL_id, // it failes in mvapich2-intel-2.2
   MPI_Status_ignore_id
 };
 
@@ -121,6 +121,26 @@ int sendrecv_req_ids[] = {
   MPI_Testsome_id,
   MPI_Testall_id,
   MPI_Wait_id,
+  MPI_Waitany_id,
+  MPI_Waitsome_id,
+  MPI_Waitall_id
+};
+
+int request_null_ids[] = {
+  MPI_Test_id,
+  MPI_Testany_id,
+  MPI_Testsome_id,
+  MPI_Testall_id,
+  MPI_Wait_id,
+  MPI_Waitany_id,
+  MPI_Waitsome_id,
+  MPI_Waitall_id
+};
+
+int zero_incount_ids[] = {
+  MPI_Testany_id,
+  MPI_Testsome_id,
+  MPI_Testall_id,
   MPI_Waitany_id,
   MPI_Waitsome_id,
   MPI_Waitall_id
@@ -743,6 +763,227 @@ void rempi_test_comm_dup()
 
 
 
+#define REQUEST_NULL_LEN (4)
+void rempi_test_request_null(int matching_type)
+{
+  int i;
+  int flag;
+  int matched_count;
+  int matched_index;
+  int matched_indices[REQUEST_NULL_LEN];
+  MPI_Status status;
+  MPI_Status statuses[REQUEST_NULL_LEN];
+  MPI_Request request = MPI_REQUEST_NULL;
+  MPI_Request requests[REQUEST_NULL_LEN] = {
+    MPI_REQUEST_NULL, 
+    MPI_REQUEST_NULL,
+    MPI_REQUEST_NULL,
+    MPI_REQUEST_NULL};
+
+  if (my_rank != 0) return;
+
+
+
+  switch(matching_type) {
+  case MPI_Test_id:
+    memset(&status, 0, sizeof(MPI_Status));
+    MPI_Test(&request, &flag, &status);
+    if (flag != 1 || status.MPI_SOURCE != MPI_ANY_SOURCE || status.MPI_TAG != MPI_ANY_TAG) {
+      rempi_test_dbg_print("MPI_Test: flag: %d", flag);      
+      exit(1); 
+    }
+    break;
+  case MPI_Testany_id:
+    memset(&status, 0, sizeof(MPI_Status));
+    MPI_Testany(REQUEST_NULL_LEN, requests, &matched_index, &flag, &status);
+    if (matched_index != MPI_UNDEFINED || flag != 1 || 
+	status.MPI_SOURCE != MPI_ANY_SOURCE || status.MPI_TAG != MPI_ANY_TAG) {
+      rempi_test_dbg_print("MPI_Testany: matched_index: %d, flag: %d (source: %d, tag: %d)", 
+			   matched_index, flag, status.MPI_SOURCE, status.MPI_TAG);
+      exit(1);
+    }
+    break;
+  case MPI_Testsome_id:
+    memset(statuses, 0, sizeof(MPI_Status) * REQUEST_NULL_LEN);
+    MPI_Testsome(REQUEST_NULL_LEN, requests, &matched_count, matched_indices, statuses);
+    if (matched_count != MPI_UNDEFINED) {
+      rempi_test_dbg_print("MPI_Testsome: matched_count: %d", matched_count);
+      exit(1);
+    }
+    for (i = 0; i < REQUEST_NULL_LEN; i++) {
+      if (statuses[i].MPI_SOURCE != 0 || statuses[i].MPI_TAG != 0) {
+	rempi_test_dbg_print("MPI_Testsome: index: %d (source: %d, tag: %d)", i,  statuses[i].MPI_SOURCE, statuses[i].MPI_TAG);
+	exit(1);
+      }
+    }
+    break;
+  case MPI_Testall_id:
+    memset(statuses, 0, sizeof(MPI_Status) * REQUEST_NULL_LEN);
+    MPI_Testall(REQUEST_NULL_LEN, requests, &flag, statuses);
+    if (flag != 1) {
+      rempi_test_dbg_print("MPI_Testall: flag: %d", flag);
+      exit(1);
+    }
+
+    for (i = 0; i < REQUEST_NULL_LEN; i++) {
+      if (statuses[i].MPI_SOURCE != MPI_ANY_SOURCE || statuses[i].MPI_TAG != MPI_ANY_TAG) {
+	rempi_test_dbg_print("MPI_Testall: index: %d (source: %d, tag: %d)", i,  statuses[i].MPI_SOURCE, statuses[i].MPI_TAG);
+	exit(1);
+      }
+    }
+
+    break;
+  case MPI_Wait_id:
+    memset(&status, 0, sizeof(MPI_Status));
+    MPI_Wait(&request, &status);
+    if (status.MPI_SOURCE != MPI_ANY_SOURCE || status.MPI_TAG != MPI_ANY_TAG) {
+      rempi_test_dbg_print("MPI_Wait: (source: %d, tag: %d)", status.MPI_SOURCE, status.MPI_TAG);
+      exit(1);
+    }
+    break;
+  case MPI_Waitany_id:
+    memset(&status, 0, sizeof(MPI_Status));
+    MPI_Waitany(REQUEST_NULL_LEN, requests, &matched_index, &status);
+    if (matched_index != MPI_UNDEFINED || status.MPI_SOURCE != MPI_ANY_SOURCE || status.MPI_TAG != MPI_ANY_TAG) {
+      rempi_test_dbg_print("MPI_Waitany: matched_index: %d (source: %d, tag: %d)", 
+			   matched_index, status.MPI_SOURCE, status.MPI_TAG);
+      exit(1);
+    }
+    break;
+  case MPI_Waitsome_id:
+    memset(statuses, 0, sizeof(MPI_Status) * REQUEST_NULL_LEN);
+    MPI_Waitsome(REQUEST_NULL_LEN, requests, &matched_count, matched_indices, statuses);
+    if (matched_count != MPI_UNDEFINED) {
+      rempi_test_dbg_print("MPI_Waitsome: matched_count: %d", matched_count);
+      exit(1);
+    }
+    for (i = 0; i < REQUEST_NULL_LEN; i++) {
+      if (statuses[i].MPI_SOURCE != 0 || statuses[i].MPI_TAG != 0) {
+	rempi_test_dbg_print("MPI_Testsome: index: %d (source: %d, tag: %d)", i,  statuses[i].MPI_SOURCE, statuses[i].MPI_TAG);
+	exit(1);
+      }
+    }
+    break;
+  case MPI_Waitall_id:
+    memset(statuses, 0, sizeof(MPI_Status) * REQUEST_NULL_LEN);
+    MPI_Waitall(REQUEST_NULL_LEN, requests, statuses);
+    for (i = 0; i < REQUEST_NULL_LEN; i++) {
+      if (statuses[i].MPI_SOURCE != MPI_ANY_SOURCE || statuses[i].MPI_TAG != MPI_ANY_TAG) {
+	rempi_test_dbg_print("MPI_Waitall: index: %d (source: %d, tag: %d)", i,  statuses[i].MPI_SOURCE, statuses[i].MPI_TAG);
+	exit(1);
+      }
+    }
+    break;
+  default:
+    rempi_test_dbg_print("Invalid matching_type: %d", matching_type);
+    exit(1);    
+  };
+
+  return;
+}
+
+void rempi_test_zero_incount(int matching_type)
+{
+  int i;
+  int flag;
+  int matched_count;
+  int matched_index;
+  int matched_indices[REQUEST_NULL_LEN];
+  MPI_Status status;
+  MPI_Status statuses[REQUEST_NULL_LEN];
+  MPI_Request request = MPI_REQUEST_NULL;
+  MPI_Request requests[REQUEST_NULL_LEN] = {
+    MPI_REQUEST_NULL, 
+    MPI_REQUEST_NULL,
+    MPI_REQUEST_NULL,
+    MPI_REQUEST_NULL};
+
+  if (my_rank != 0) return;
+
+
+
+  switch(matching_type) {
+  case MPI_Testany_id:
+    memset(&status, 0, sizeof(MPI_Status));
+    MPI_Testany(0, requests, &matched_index, &flag, &status);
+    if (matched_index != MPI_UNDEFINED || flag != 1 || 
+    	status.MPI_SOURCE != MPI_ANY_SOURCE || status.MPI_TAG != MPI_ANY_TAG) {
+      rempi_test_dbg_print("MPI_Testany: matched_index: %d, flag: %d (source: %d, tag: %d)", 
+			   matched_index, flag, status.MPI_SOURCE, status.MPI_TAG);
+      exit(1);
+    }
+    break;
+  case MPI_Testsome_id:
+    memset(statuses, 0, sizeof(MPI_Status) * REQUEST_NULL_LEN);
+    MPI_Testsome(0, requests, &matched_count, matched_indices, statuses);
+    if (matched_count != MPI_UNDEFINED) {
+      rempi_test_dbg_print("MPI_Testsome: matched_count: %d", matched_count);
+      exit(1);
+    }
+    for (i = 0; i < REQUEST_NULL_LEN; i++) {
+      if (statuses[i].MPI_SOURCE != 0 || statuses[i].MPI_TAG != 0) {
+	rempi_test_dbg_print("MPI_Testsome: index: %d (source: %d, tag: %d)", i,  statuses[i].MPI_SOURCE, statuses[i].MPI_TAG);
+      	exit(1);
+      }
+    }
+    break;
+  case MPI_Testall_id:
+    memset(statuses, 0, sizeof(MPI_Status) * REQUEST_NULL_LEN);
+    MPI_Testall(0, requests, &flag, statuses);
+    if (flag != 1) {
+      rempi_test_dbg_print("MPI_Testall: flag: %d", flag);
+      exit(1);
+    }
+
+    for (i = 0; i < REQUEST_NULL_LEN; i++) {
+      if (statuses[i].MPI_SOURCE != 0 || statuses[i].MPI_TAG != 0) {
+	rempi_test_dbg_print("MPI_Testall: index: %d (source: %d, tag: %d)", i,  statuses[i].MPI_SOURCE, statuses[i].MPI_TAG);
+      	exit(1);
+      }
+    }
+
+    break;
+  case MPI_Waitany_id:
+    memset(&status, 0, sizeof(MPI_Status));
+    MPI_Waitany(0, requests, &matched_index, &status);
+    if (matched_index != MPI_UNDEFINED || status.MPI_SOURCE != MPI_ANY_SOURCE || status.MPI_TAG != MPI_ANY_TAG) {
+      rempi_test_dbg_print("MPI_Waitany: matched_index: %d (source: %d, tag: %d)", 
+			   matched_index, status.MPI_SOURCE, status.MPI_TAG);
+      exit(1);
+    }
+    break;
+  case MPI_Waitsome_id:
+    memset(statuses, 0, sizeof(MPI_Status) * REQUEST_NULL_LEN);
+    MPI_Waitsome(0, requests, &matched_count, matched_indices, statuses);
+    if (matched_count != MPI_UNDEFINED) {
+      rempi_test_dbg_print("MPI_Waitsome: matched_count: %d", matched_count);
+      exit(1);
+    }
+    for (i = 0; i < REQUEST_NULL_LEN; i++) {
+      if (statuses[i].MPI_SOURCE != 0 || statuses[i].MPI_TAG != 0) {
+	rempi_test_dbg_print("MPI_Testsome: index: %d (source: %d, tag: %d)", i,  statuses[i].MPI_SOURCE, statuses[i].MPI_TAG);
+      	exit(1);
+      }
+    }
+    break;
+  case MPI_Waitall_id:
+    memset(statuses, 0, sizeof(MPI_Status) * REQUEST_NULL_LEN);
+    MPI_Waitall(0, requests, statuses);
+    for (i = 0; i < REQUEST_NULL_LEN; i++) {
+      if (statuses[i].MPI_SOURCE != 0 || statuses[i].MPI_TAG != 0) {
+	rempi_test_dbg_print("MPI_Waitall: index: %d (source: %d, tag: %d)", i,  statuses[i].MPI_SOURCE, statuses[i].MPI_TAG);
+      	exit(1);
+      }
+    }
+    break;
+  default:
+    rempi_test_dbg_print("Invalid matching_type: %d", matching_type);
+    exit(1);    
+  };
+
+  return;
+}
+
 
 
 
@@ -857,6 +1098,26 @@ int main(int argc, char *argv[])
 #if defined(TEST_COMM_DUP)
       if (my_rank == 0) fprintf(stdout, "Start testing comm dup ... \n"); fflush(stdout);
       rempi_test_comm_dup();
+      if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
+    }
+
+    if (!strcmp(test_name, "request_null") || is_all) {
+#if defined(TEST_COMM_DUP)
+      if (my_rank == 0) fprintf(stdout, "Start testing request null ... \n"); fflush(stdout);
+      for (i = 0; i < sizeof(request_null_ids)/sizeof(int); i++) {
+	rempi_test_request_null(request_null_ids[i]);
+      }
+      if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
+    }
+
+    if (!strcmp(test_name, "zero_incount") || is_all) {
+#if defined(TEST_COMM_DUP)
+      if (my_rank == 0) fprintf(stdout, "Start testing zero incount ... \n"); fflush(stdout);
+      for (i = 0; i < sizeof(zero_incount_ids)/sizeof(int); i++) {
+	rempi_test_zero_incount(zero_incount_ids[i]);
+      }
       if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
 #endif
     }

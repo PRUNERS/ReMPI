@@ -48,9 +48,11 @@ int rempi_mpi_mf(int incount,
 }
 
 
-int rempi_mpi_get_matched_count(int incount, int *outcount, int matching_function_type)
+int rempi_mpi_get_matched_count(int incount, int *outcount, int nullcount, int matching_function_type)
 {
   int matched_count;
+  if (incount == 0 || incount == nullcount) return 0;
+
   switch(matching_function_type) {
   case REMPI_MPI_TEST:
     matched_count = *outcount;

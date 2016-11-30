@@ -53,10 +53,14 @@ int rempi_recorder_cdc::rempi_mf(int incount,
   int ret;
   int recv_clock_length;
   int matched_count;
+  int nullcount = 0;
   recv_clock_length = (matching_function_type == REMPI_MPI_WAITANY || matching_function_type == REMPI_MPI_TESTANY)? 1:incount;
   rempi_clock_register_recv_clocks(pre_allocated_clocks, recv_clock_length);
   ret = rempi_mpi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, matching_function_type);
-  matched_count = rempi_mpi_get_matched_count(incount, outcount, matching_function_type);
+  for (int i = 0; i < incount; i++) { 
+    if (request_info[i] == REMPI_NULL_REQUEST) nullcount++;
+  }
+  matched_count = rempi_mpi_get_matched_count(incount, outcount, nullcount, matching_function_type);
   rempi_clock_sync_clock(matched_count, array_of_indices, pre_allocated_clocks, request_info, matching_function_type);
   if (msg_id != NULL) {
     *msg_id =  pre_allocated_clocks;
@@ -473,7 +477,11 @@ int rempi_recorder_cdc::replay_mf_input(
 		 matching_function_type == REMPI_MPI_WAITSOME)? local_outcount:1;
   }
 
-  int matched_count = rempi_mpi_get_matched_count(incount, outcount, matching_function_type);
+  int nullcount = 0;
+  for (int i = 0; i < incount; i++) { 
+    if (request_info[i] == REMPI_NULL_REQUEST) nullcount++;
+  }
+  int matched_count = rempi_mpi_get_matched_count(incount, outcount, nullcount, matching_function_type);
   rempi_clock_sync_clock(matched_count, array_of_indices, pre_allocated_clocks, request_info, matching_function_type);
   return MPI_SUCCESS;
 }

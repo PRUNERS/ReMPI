@@ -416,10 +416,14 @@ int rempi_recorder::record_mf(
 
   ret = this->rempi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, 
 		       &msg_id, request_info, matching_function_type);
-  matched_count = rempi_mpi_get_matched_count(incount, outcount, matching_function_type);
+  matched_count = rempi_mpi_get_matched_count(incount, outcount, nullcount, matching_function_type);
   
   
-  if (is_record_and_replay == 0) {
+  if (is_record_and_replay == 0 || incount == 0 || incount == nullcount) {
+    /* 
+       incount == 0 => it's deterministic 
+       incount == nullcount => it's deterministic
+    */
     for (int i = 0; i < matched_count; i++) {
       matched_index = (array_of_indices==NULL)? i:array_of_indices[i];
       rempi_reqmg_deregister_request(&tmp_requests[matched_index], request_info[matched_index]);
@@ -930,11 +934,11 @@ int rempi_recorder::replay_mf(
   }  
   rempi_reqmg_get_request_info(incount, array_of_requests, &sendcount, &recvcount, &nullcount, request_info, &is_record_and_replay, &matching_set_id);
 
-  if (is_record_and_replay == 0) {
+  if (is_record_and_replay == 0 || incount == 0 || incount == nullcount) {
     /*this mf function is not replayed*/
     for (int i = 0; i < incount; i++) tmp_requests[i] = array_of_requests[i];
     ret = this->rempi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, &msg_id, request_info,  matching_function_type);
-    matched_count = rempi_mpi_get_matched_count(incount, outcount, matching_function_type);
+    matched_count = rempi_mpi_get_matched_count(incount, outcount, nullcount, matching_function_type);
 
     for (int i = 0; i < matched_count; i++) {
       matched_index = (array_of_indices==NULL)? i:array_of_indices[i];
@@ -983,7 +987,7 @@ int rempi_recorder::replay_mf(
   }
 
 
-  matched_count = rempi_mpi_get_matched_count(incount, outcount, matching_function_type);
+  matched_count = rempi_mpi_get_matched_count(incount, outcount, nullcount, matching_function_type);
   update_validation_code(incount, outcount, matched_count, array_of_indices, array_of_statuses, request_info);
 
 
