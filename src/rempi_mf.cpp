@@ -1,8 +1,33 @@
 
 #include <mpi.h>
 
+#include "rempi_mf.h"
 #include "rempi_config.h"
 #include "rempi_err.h"
+
+int rempi_mpi_isend(mpi_const void *buf,
+		     int count,
+		     MPI_Datatype datatype,
+		     int dest,
+		     int tag,
+		     MPI_Comm comm,
+		     MPI_Request *request,
+		     int send_function_type)
+{
+  switch(send_function_type) {
+  case REMPI_MPI_ISEND:
+    return PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
+  case REMPI_MPI_IBSEND:
+    return PMPI_Ibsend(buf, count, datatype, dest, tag, comm, request);
+  case REMPI_MPI_IRSEND:
+    return PMPI_Irsend(buf, count, datatype, dest, tag, comm, request);
+  case REMPI_MPI_ISSEND:
+    return PMPI_Issend(buf, count, datatype, dest, tag, comm, request);
+  default:
+    REMPI_ERR("No such Send: %d", send_function_type);
+  }
+  return MPI_ERR_UNKNOWN;
+}
 
 int rempi_mpi_mf(int incount,
 		 MPI_Request array_of_requests[],

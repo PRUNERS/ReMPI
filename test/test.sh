@@ -12,14 +12,15 @@ num_procs=$2
 dir=${prefix}/
 mkdir -p ${dir}
 #io_watchdog="--io-watchdog"
+#totalview=totalview
 #librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
 #memcheck="valgrind --tool=memcheck --xml=yes --xml-file=`echo $$`.mc --partial-loads-ok=yes --error-limit=no --leak-check=full --show-reachable=yes --max-stackframe=16777216 --num-callers=20 --child-silent-after-fork=yes --track-origins=yes"
 
-bin="./rempi_test_units zero_incount"
+bin="./rempi_test_units"
 librempi=../src/.libs/librempi.so
 #REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
 #REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} ${totalview} srun -n ${num_procs} ${bin}
 exit
 
 # ===== MCB test ========

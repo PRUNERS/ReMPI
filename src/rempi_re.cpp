@@ -99,7 +99,8 @@ int rempi_re::re_isend(
 		       int dest,
 		       int tag,
 		       MPI_Comm comm,
-		       MPI_Request *request)
+		       MPI_Request *request,
+		       int send_function_type)
 {
   int ret;
 
@@ -108,9 +109,9 @@ int rempi_re::re_isend(
   // }
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
-    recorder->record_isend(buf, count, datatype, dest, tag, comm, request, -1);
+    recorder->record_isend(buf, count, datatype, dest, tag, comm, request, send_function_type);
   } else {
-    recorder->replay_isend(buf, count, datatype, dest, tag, comm, request, -1);
+    recorder->replay_isend(buf, count, datatype, dest, tag, comm, request, send_function_type);
   }
 
   return ret;

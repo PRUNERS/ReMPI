@@ -68,6 +68,10 @@ extern int rempi_max_event_length;
 #define REMPI_MPI_WAITALL   (7)
 #define REMPI_MPI_PROBE     (8)
 #define REMPI_MPI_IPROBE    (9)
+#define REMPI_MPI_ISEND      (10)
+#define REMPI_MPI_IBSEND     (11)
+#define REMPI_MPI_IRSEND     (12)
+#define REMPI_MPI_ISSEND     (13)
 
 #define REMPI_MATCHING_SET_ID_UNKNOWN (-1)
 #define REMPI_MATCHING_SET_ID_IGNORE (-2)
