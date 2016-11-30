@@ -92,8 +92,9 @@ void rempi_erri(int r, const char* fmt, ...)
 
 void rempi_alert(const char* fmt, ...)
 {
+  pthread_mutex_lock (&print_mutex);
   REMPI_OUTPUT(stderr, "ALERT", fmt);
-  exit(1);
+  pthread_mutex_unlock (&print_mutex);
   return;
 }
 
@@ -223,9 +224,10 @@ size_t rempi_btrace_hash()
   nptrs = backtrace(call_stack_buff, CALLSTACK_DEPTH);
   strings = backtrace_symbols(call_stack_buff, nptrs);
   for (int i = nptrs-1; i >= 0; i--) {
+    if (strstr(strings[i], "rempi")) break;
     hash += (hash << 5) + rempi_compute_hash(strings[i], strlen(strings[i]));
-    //    REMPI_DBG(" = hash: %lu = call_stack %d: %s", hash, nptrs - i, strings[i]);
-    if (strstr(strings[i], "librempi")) break;
+    //    REMPI_DBG(" = hash: %d = call_stack %d: %s", (int)hash, nptrs - i, strings[i]);
+
   }
   //  REMPI_DBG("hash: %lu", hash);
   free(strings);

@@ -12,6 +12,14 @@ extern int rempi_my_rank;
   } while(0)          \
 
 
+#define REMPI_ALT(err_fmt, ...)  \
+  rempi_alert(" "              \
+	    err_fmt	     \
+	    " (%s:%s:%d)",   \
+            ## __VA_ARGS__,     \
+            __FILE__, __func__, __LINE__);
+
+
 /*if __VA_ARGS__ is empty, the previous comma can be removed by "##" statement*/
 #define REMPI_ERR(err_fmt, ...)  \
   rempi_err(" "              \

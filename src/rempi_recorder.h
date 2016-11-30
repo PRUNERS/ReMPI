@@ -86,6 +86,8 @@ class rempi_recorder {
 			      vector<rempi_event*> &replaying_event_vec, 
 			      int matching_set_id,
 			      int matching_function_type);
+  void print_event(rempi_event* e);
+  void print_event_vec(vector<rempi_event*> &event_vec);
 
 
  public:

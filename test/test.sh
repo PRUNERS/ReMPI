@@ -2,9 +2,11 @@
 
 #prefix=/g/g90/sato5/repo/rempi
 #prefix=/tmp
+
 #prefix=/l/ssd
 #prefix=/p/lscratchf/sato5/rempi/
 prefix=./rempi_record/
+
 
 mode=$1
 num_procs=$2
@@ -16,16 +18,15 @@ mkdir -p ${dir}
 #librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
 #memcheck="valgrind --tool=memcheck --xml=yes --xml-file=`echo $$`.mc --partial-loads-ok=yes --error-limit=no --leak-check=full --show-reachable=yes --max-stackframe=16777216 --num-callers=20 --child-silent-after-fork=yes --track-origins=yes"
 
-bin="./rempi_test_units"
-librempi=../src/.libs/librempi.so
-#REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-#REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-REMPI_MODE=$mode REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} ${totalview} srun -n ${num_procs} ${bin}
+
+bin="./rempi_test_msg_race 0 2 10000 2 0"
+librempi=/g/g90/sato5/repo/rempi/src/.libs/librempi.so
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun --io-watchdog=conf=.io-watchdogrc -n ${num_procs} ${bin}
 exit
 
 # ===== MCB test ========
 par=`expr 80 \* $num_procs`
-bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 "
+bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 --weakScaling"
 cd /g/g90/sato5/repo/MCBdouble/run-decks/
 make cleanc
 #librempi=/g/g90/sato5/repo/rempi/src/.libs/librempi.so

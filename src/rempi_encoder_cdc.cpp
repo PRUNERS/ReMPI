@@ -398,7 +398,11 @@ void rempi_encoder_cdc::compute_look_ahead_recv_clock(
 
 {
   unordered_map<int, size_t> *solid_mc_next_clocks_umap;
-  rempi_encoder_input_format_test_table *test_table = input_format->test_tables_map.at(recv_test_id);
+  rempi_encoder_input_format_test_table *test_table;
+  if (input_format->test_tables_map.find(recv_test_id) == input_format->test_tables_map.end()) {
+    REMPI_ERR("No such matching_test_id: %d", recv_test_id);
+  }
+  test_table = input_format->test_tables_map.at(recv_test_id);
   int epoch_rank_vec_size  = test_table->epoch_rank_vec.size();
   int epoch_clock_vec_size = test_table->epoch_clock_vec.size();
   if (epoch_rank_vec_size == 0 || epoch_clock_vec_size == 0) {
@@ -409,16 +413,17 @@ void rempi_encoder_cdc::compute_look_ahead_recv_clock(
     return;
   }
   solid_mc_next_clocks_umap = this->solid_mc_next_clocks_umap_umap[recv_test_id];
-
   *local_min_id_rank  = test_table->epoch_rank_vec[0];
   if (solid_mc_next_clocks_umap->find(*local_min_id_rank) == 
       solid_mc_next_clocks_umap->end()) {
     REMPI_ERR("No such rank: %d", *local_min_id_rank);
   }
+
   *local_min_id_clock = solid_mc_next_clocks_umap->at(*local_min_id_rank);
   for (int i = 0; i < epoch_rank_vec_size; i++) {
     int    tmp_rank  =  test_table->epoch_rank_vec[i];
     size_t tmp_clock =  solid_mc_next_clocks_umap->at(tmp_rank);
+
 
     /* =========== added for set_fd_clock_state ============ */
     if (tmp_clock == REMPI_CLOCK_COLLECTIVE_CLOCK) { 
@@ -441,7 +446,6 @@ void rempi_encoder_cdc::compute_look_ahead_recv_clock(
       }
     }
   }
-
 
   return;
 }
@@ -904,6 +908,7 @@ bool rempi_encoder_cdc::read_record_file(rempi_encoder_input_format *input_forma
   bool is_no_more_record; 
 
   this->input_format = input_format;
+  //  REMPI_DBG("input_format: %p", input_format);
 
   record_fs.read((char*)&chunk_size, sizeof(chunk_size));
   read_size = record_fs.gcount();

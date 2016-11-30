@@ -166,7 +166,6 @@ int rempi_recorder_rep::is_behind_time(int matching_set_id)
   int compare;
 
   rempi_clock_get_local_clock(&local_clock);
-
   matched_recv_event_list = matched_recv_event_list_umap.at(matching_set_id);
   if (matched_recv_event_list->size() > 0) {
     next_matched_event = matched_recv_event_list->front();
@@ -183,10 +182,13 @@ int rempi_recorder_rep::is_behind_time(int matching_set_id)
   mc_encoder->compute_look_ahead_recv_clock(&look_ahead_recv_clock, &look_ahead_recv_rank, matching_set_id);    
   compare = compare_clock(local_clock, local_rank, look_ahead_recv_clock, look_ahead_recv_rank);
 
-  if (compare > 0 || look_ahead_recv_clock != REMPI_CLOCK_COLLECTIVE_CLOCK) {
+
+  //  if (compare > 0 || look_ahead_recv_clock != REMPI_CLOCK_COLLECTIVE_CLOCK) {
+  if (compare > 0 || look_ahead_recv_clock == REMPI_CLOCK_COLLECTIVE_CLOCK) {
     return 1;
   } else if (compare == 0) {
-    REMPI_ERR("May receve same clock <clock:%lu, rank:%d)", local_clock, local_rank);
+    REMPI_ERR("May receve same clock (clock:%lu, rank:%d, LA_clock: %lu, LA_rank: %d)", 
+	      local_clock, local_rank, look_ahead_recv_clock, look_ahead_recv_rank);
   }
 
   return 0;
@@ -219,6 +221,9 @@ int rempi_recorder_rep::complete_mf_unmatched_recv_single(int incount, MPI_Reque
     is_completed = 0;
   }
 
+  // list<rempi_event*> *matched_recv_event_list;
+  // matched_recv_event_list = matched_recv_event_list_umap.at(matching_set_id);
+  // REMPI_DBG("size: %lu (SID: %d)", matched_recv_event_list->size(), matching_set_id);
   return is_completed;
 }
 
@@ -262,11 +267,11 @@ int rempi_recorder_rep::get_mf_matched_index(int incount, MPI_Request array_of_r
 
 
   for (int i = 0; i < incount; i++) {
-    REMPI_DBGI(1, "index: %d, count: %d", i, incount);
+    //    REMPI_DBGI(1, "index: %d, count: %d", i, incount);
     if (request_info[i] == REMPI_RECV_REQUEST && !exclusion_flags[i]) {
       rempi_reqmg_get_matching_id(&array_of_requests[i], &requested_source, &requested_tag, &requested_comm);
-      REMPI_DBGI(1, "requested_rank: %d, requested_tag: %d, recved_rank: %d, matched_tag: %d (sid: %d)", 
-      		 requested_source, requested_tag, recved_rank, matched_tag, matching_set_id);
+      // REMPI_DBGI(1, "requested_rank: %d, requested_tag: %d, recved_rank: %d, matched_tag: %d (sid: %d)", 
+      // 		 requested_source, requested_tag, recved_rank, matched_tag, matching_set_id);
       matched_condition = rempi_msgb_is_matched(requested_source, requested_tag, requested_comm, 
 						recved_rank, matched_tag, matched_comm);
       if (matched_condition != REMPI_MSGB_REQUEST_MATCHED_TYPE_NOT_MATCHED) {
@@ -401,6 +406,8 @@ int rempi_recorder_rep::dequeue_replay_event_set(int incount, MPI_Request array_
   int howto_complete;
   rempi_event *handle_event = NULL;
   int is_completed;
+
+
 
   this->dequeue_matched_events(matching_set_id);
 

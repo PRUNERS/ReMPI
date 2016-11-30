@@ -1,4 +1,18 @@
 #!/bin/sh
-REMPI_MODE=0 REMPI_DIR=/tmp REMPI_ENCODE=0 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=/g/g90/sato5/repo/rempi/lib/librempilite.so srun -n 64  --io-watchdog --ntasks=64 --nodes=4-4 --ntasks-per-node=16 ./rempi_test_hypre_parasails
-#REMPI_MODE=0 REMPI_DIR=/tmp REMPI_ENCODE=0 REMPI_GZIP=0 REMPI_TEST_ID=0 LD_PRELOAD=/g/g90/sato5/repo/rempi/lib/librempilite.so srun -n 64  --io-watchdog --ntasks=64 --nodes=4-4 --ntasks-per-node=16 ./rempi_test_hypre_parasails
-#srun -n 64 --ntasks=64 --nodes=4-4 --ntasks-per-node=16 ./rempi_test_hypre_parasails
+
+
+rm -rf /p/lscratchv/sato5/test/.rempi/*
+./test-bgq.sh 0 16 > log16r
+du -sh /p/lscratchv/sato5/test/.rempi/ >> log16r
+rm -rf /p/lscratchv/sato5/test/.rempi/*
+exit
+
+./test-bgq.sh 0 32 > log32r
+du -sh /p/lscratchv/sato5/test/.rempi/ >> log32r
+rm -rf /p/lscratchv/sato5/test/.rempi/*
+
+
+./test-bgq.sh 0 64 > log64r
+du -sh /p/lscratchv/sato5/test/.rempi/ >> log64r
+rm -rf /p/lscratchv/sato5/test/.rempi/*
+

@@ -311,27 +311,27 @@ bool rempi_encoder_rep::cdc_decode_ordering(rempi_event_list<rempi_event*> *reco
   test_table->solid_ordered_event_list.clear();
   
 
-#ifdef REMPI_DBG_REPLAY
-  if (test_table->ordered_event_list.size() > 0 || test_table->solid_ordered_event_list.size() > 0) {
-    REMPI_DBGI(REMPI_DBG_REPLAY, "LIST Queue Update: Local_min (rank: %d, clock: %lu): test_id: %d",
-	       local_min_id_rank, local_min_id_clock, test_id);
-  }
-  for (list<rempi_event*>::iterator it = test_table->ordered_event_list.begin(), 
-	 it_end = test_table->ordered_event_list.end();
-       it != it_end; it++) {
-    //  for (rempi_event *e: test_table->ordered_event_list) {
-    rempi_event *e = *it;
-    REMPI_DBGI(REMPI_DBG_REPLAY, "       list (rank: %d, clock: %lu)", e->get_source(), e->get_clock());
-  }
-  for (list<rempi_event*>::iterator it = test_table->solid_ordered_event_list.begin(), 
-	 it_end = test_table->solid_ordered_event_list.end();
-       it != it_end; it++) {
-    //  for (rempi_event *e: test_table->solid_ordered_event_list) {
-    rempi_event *e = *it;
+// #ifdef REMPI_DBG_REPLAY
+//   if (test_table->ordered_event_list.size() > 0 || test_table->solid_ordered_event_list.size() > 0) {
+//     REMPI_DBGI(REMPI_DBG_REPLAY, "LIST Queue Update: Local_min (rank: %d, clock: %lu): test_id: %d",
+// 	       local_min_id_rank, local_min_id_clock, test_id);
+//   }
+//   for (list<rempi_event*>::iterator it = test_table->ordered_event_list.begin(), 
+// 	 it_end = test_table->ordered_event_list.end();
+//        it != it_end; it++) {
+//     //  for (rempi_event *e: test_table->ordered_event_list) {
+//     rempi_event *e = *it;
+//     REMPI_DBGI(REMPI_DBG_REPLAY, "       list (rank: %d, clock: %lu)", e->get_source(), e->get_clock());
+//   }
+//   for (list<rempi_event*>::iterator it = test_table->solid_ordered_event_list.begin(), 
+// 	 it_end = test_table->solid_ordered_event_list.end();
+//        it != it_end; it++) {
+//     //  for (rempi_event *e: test_table->solid_ordered_event_list) {
+//     rempi_event *e = *it;
 
-    REMPI_DBGI(REMPI_DBG_REPLAY, "      slist (rank: %d, clock: %lu, order: %lu)", e->get_source(), e->get_clock(), e->clock_order);
-  }
-#endif
+//     REMPI_DBGI(REMPI_DBG_REPLAY, "      slist (rank: %d, clock: %lu, order: %lu)", e->get_source(), e->get_clock(), e->clock_order);
+//   }
+// #endif
   return 0;
 }
 

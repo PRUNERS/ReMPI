@@ -364,6 +364,11 @@ void rempi_encoder::write_footer()
 void rempi_encoder::read_footer()
 {}
 
+int rempi_encoder::is_file_closed()
+{
+  return file_closed;
+}
+
 void rempi_encoder::close_record_file()
 {
   // size_t total_write_size = 0;
@@ -372,6 +377,7 @@ void rempi_encoder::close_record_file()
   // }
   //  REMPI_DBG("EVAL Total I/O size: |%lu|", total_write_size);
   record_fs.close();
+  file_closed = 1;
 }
 
 /*File to vector */
