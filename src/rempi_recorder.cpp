@@ -155,6 +155,7 @@ int rempi_recorder::record_isend(mpi_const void *buf,
   int resultlen;
   int matching_set_id;
 
+  //  REMPI_DBG("Send: Rank %d (TAG: %d)", dest, tag);
   ret = rempi_mpi_isend(buf, count, datatype, dest, tag, comm, request, send_function_type);
   rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request, REMPI_SEND_REQUEST, &matching_set_id);
   return ret;
@@ -452,11 +453,11 @@ int rempi_recorder::record_mf(
 
   for (int i = 0; i < incount; i++) tmp_requests[i] = array_of_requests[i];
 
+
   ret = this->rempi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, 
 		       &msg_id, request_info, matching_function_type);
   matched_count = rempi_mpi_get_matched_count(incount, outcount, nullcount, matching_function_type);
-  
-  
+
   if (is_record_and_replay == 0 || incount == 0 || incount == nullcount) {
     /* 
        incount == 0 => it's deterministic 
@@ -601,6 +602,8 @@ int rempi_recorder::record_mf(
 	//	for () {}
 
  update_validation_code(incount, outcount, matched_count, array_of_indices, array_of_statuses, request_info);
+
+
  
  return ret;
 }
@@ -847,6 +850,7 @@ int rempi_recorder::replay_mf_input(
   MPI_Status status;
   int index = 0;
 
+  status.MPI_ERROR = 0;
 
   for (int i = 0, n = replaying_event_vec.size(); i < n; i++) {
     replaying_test_event = replaying_event_vec[i];
@@ -900,6 +904,7 @@ int rempi_recorder::replay_mf_input(
 		  array_of_requests[index], index);
       }
       array_of_statuses[local_outcount] = status;
+      //      if (status.MPI_ERROR != 0) REMPI_ERR("err: ret: %d, erro: %d, MPI_SUCCESS: %d", ret, status.MPI_ERROR, MPI_SUCCESS);
 
 
     } else if (request_info[index] == REMPI_NULL_REQUEST) {
@@ -1112,7 +1117,9 @@ int rempi_recorder::post_process_collective()
 int rempi_recorder::record_finalize(void)
 {
   int ret;
+  size_t global_validation_code;
 
+  ret = PMPI_Allreduce(&validation_code, &global_validation_code, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
   ret = PMPI_Finalize();
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
@@ -1126,7 +1133,8 @@ int rempi_recorder::record_finalize(void)
     REMPI_ERR("Unkonw rempi mode: %d", rempi_mode);
   }
   record_thread->join();
-  REMPI_PRTI(0, "validation code: %u", validation_code);
+  REMPI_PRTI(0, "Global validation code: %u", global_validation_code);
+
 
   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   return 0;
@@ -1135,11 +1143,13 @@ int rempi_recorder::record_finalize(void)
 int rempi_recorder::replay_finalize(void)
 {
   int ret;
+  size_t global_validation_code;
 
-
+  ret = PMPI_Allreduce(&validation_code, &global_validation_code, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
   ret = PMPI_Finalize();
   read_record_thread->join();
-  REMPI_PRTI(0, "validation code: %u", validation_code);
+  //  REMPI_PRTI(0, "validation code: %u", validation_code);
+  REMPI_PRTI(0, "Global validation code: %u", global_validation_code);
   //TODO:
   //  fprintf(stderr, "ReMPI: Function call (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
   return 0;

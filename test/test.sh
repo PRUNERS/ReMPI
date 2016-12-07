@@ -14,12 +14,45 @@ num_procs=$2
 dir=${prefix}/
 mkdir -p ${dir}
 #io_watchdog="--io-watchdog"
-#totalview=totalview
+totalview=totalview
 #librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
 #memcheck="valgrind --tool=memcheck --xml=yes --xml-file=`echo $$`.mc --partial-loads-ok=yes --error-limit=no --leak-check=full --show-reachable=yes --max-stackframe=16777216 --num-callers=20 --child-silent-after-fork=yes --track-origins=yes"
+#memcheck=memcheck-para
+
+# ======== Totalview =================
+bin="./rempi_test_units"
+
+#${totalview} srun -a -n ${num_procs} ${memcheck} ./run.sh
+REMPI_MODE=${mode} \
+REMPI_DIR=${prefix} \
+REMPI_ENCODE=0 \
+${totalview} -args env  LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempi.so srun -n ${num_procs} ${memcheck} ${bin}
+
+
+exit
+
+
+#bin="./rempi_test_units late_irecv"
+#REMPI_ENCODE=4 \
+bin="./rempi_test_units"
+REMPI_ENCODE=0 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${prefix} srun -a -n ${num_procs} ${memcheck} ${bin}
+exit
+
+
+
+
+# ===== Enzo ============
+bin="./enzo ../run/GravitySolver/GravityTest/GravityTest.enzo"
+cd /g/g90/sato5/Benchmarks/external/enzo-dev/bin/
+REMPI_ENCODE=7 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${prefix} srun -n ${num_procs} ${bin}
+cd -
+exit
 
 # ===== MCB test ========
-par=`expr 80 \* $num_procs`
 bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 --weakScaling"
 cd /g/g90/sato5/repo/MCBdouble/run-decks/
 make cleanc
@@ -32,6 +65,30 @@ REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=0 REMPI_TEST_ID=1 
 #srun ${io_watchdog} -n ${num_procs} ${bin}
 cd -
 exit
+
+
+
+# ========== NPB LU ==============
+#bin=/g/g90/sato5/Benchmarks/external/NPB3.3.1/NPB3.3-MPI/bin/lu.C.$num_procs
+bin=/g/g90/sato5/Benchmarks/external/NPB2.4.1/NPB2.4-MPI/bin/lu.C.$num_procs
+#bin=/g/g90/sato5/Benchmarks/external/NPB2.3/NPB2.3-MPI/bin/lu.C.$num_procs
+librempi=/g/g90/sato5/repo/rempi/src/.libs/librempi.so
+REMPI_MODE=${mode} REMPI_DIR=${dir} LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
+#librempi=../src/.libs/librempix.so
+#REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=0 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${memcheck}  ${bin}
+exit
+
+# ========== NPB MG ==============
+#bin=/g/g90/sato5/Benchmarks/external/NPB3.3.1/NPB3.3-MPI/bin/mg.C.$num_procs
+bin=/g/g90/sato5/Benchmarks/external/NPB2.4.1/NPB2.4-MPI/bin/mg.C.$num_procs
+#bin=/g/g90/sato5/Benchmarks/external/NPB2.3/NPB2.3-MPI/bin/mg.C.$num_procs
+librempi=/g/g90/sato5/repo/rempi/src/.libs/librempi.so
+REMPI_MODE=${mode} REMPI_DIR=${dir} LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
+#librempi=../src/.libs/librempix.so
+#REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=0 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${memcheck}  ${bin}
+exit
+
+
 
 
 bin="./rempi_test_master_worker"

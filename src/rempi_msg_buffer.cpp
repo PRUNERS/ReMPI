@@ -189,7 +189,7 @@ static int progress_inactive_recv()
       PMPI_Get_count(&status, recv_args->datatype, &count);
 #if 0
       if (recv_args->count == count) {
-	if (recv_args->matching_set_id == REMPI_REQMG_MATCHING_SET_ID_UNKNOWN) REMPI_ERR("Gocha !!");
+	if (recv_args->matching_set_id == REMPI_REQMG_MATCHING_SET_ID_UNKNOWN) REMPI_ERR("ReMPI error ");
 	activate_recv(recv_args->count, recv_args->datatype, recv_args->source, recv_args->tag, recv_args->comm, &msgb_request->app_request, 
 		      recv_args->matching_set_id, REMPI_MSGB_REQUEST_TYPE_REMPI_REQUESTED);
 	is_progressed = 1;
@@ -288,13 +288,13 @@ static int progress_active_recv()
     } else 
 #if 0
       if (progress_active_recv_in_inactive_unknown_recv(msgb_request)) {
-      it = active_recv_list.erase(it);
-      is_progressed = 1;
-    } else 
+	it = active_recv_list.erase(it);
+	is_progressed = 1;
+      } else 
 #endif
 	{
-      it++;
-    }
+	  it++;
+	}
   }
   return is_progressed;
 }

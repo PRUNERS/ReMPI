@@ -984,7 +984,22 @@ void rempi_test_zero_incount(int matching_type)
   return;
 }
 
+void rempi_test_late_irecv()
+{
+  int val = my_rank;
+  MPI_Request requests[2];
+  if (my_rank == 0) {
+    sleep(1);
+    MPI_Recv(&val, 1, MPI_INT, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(&val, 1, MPI_INT, 1, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  } else if (my_rank == 1) {
+    MPI_Isend(&val, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &requests[0]);
+    MPI_Isend(&val, 1, MPI_INT, 0, 1, MPI_COMM_WORLD, &requests[1]);
+    MPI_Waitall(2, requests, MPI_STATUS_IGNORE);
+  }
+  return;
 
+}
 
 
 int main(int argc, char *argv[])
@@ -1098,6 +1113,7 @@ int main(int argc, char *argv[])
 #if defined(TEST_COMM_DUP)
       if (my_rank == 0) fprintf(stdout, "Start testing comm dup ... \n"); fflush(stdout);
       rempi_test_comm_dup();
+      MPI_Barrier(MPI_COMM_WORLD);
       if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
 #endif
     }
@@ -1107,6 +1123,7 @@ int main(int argc, char *argv[])
       if (my_rank == 0) fprintf(stdout, "Start testing request null ... \n"); fflush(stdout);
       for (i = 0; i < sizeof(request_null_ids)/sizeof(int); i++) {
 	rempi_test_request_null(request_null_ids[i]);
+	MPI_Barrier(MPI_COMM_WORLD);
       }
       if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
 #endif
@@ -1117,7 +1134,17 @@ int main(int argc, char *argv[])
       if (my_rank == 0) fprintf(stdout, "Start testing zero incount ... \n"); fflush(stdout);
       for (i = 0; i < sizeof(zero_incount_ids)/sizeof(int); i++) {
 	rempi_test_zero_incount(zero_incount_ids[i]);
+	MPI_Barrier(MPI_COMM_WORLD);
       }
+      if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
+    }
+
+    if (!strcmp(test_name, "late_irecv") || is_all) {
+#if defined(TEST_COMM_DUP)
+      if (my_rank == 0) fprintf(stdout, "Start testing late irecv ... \n"); fflush(stdout);
+      rempi_test_late_irecv();
+      MPI_Barrier(MPI_COMM_WORLD);
       if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
 #endif
     }

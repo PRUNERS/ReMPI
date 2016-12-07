@@ -10,7 +10,7 @@
 
 rempi_io_thread *registered_record_thread = NULL;
 rempi_event_list<rempi_event*> *registered_recording_event_list;
-unsigned int *registered_validation_code;
+size_t *registered_validation_code;
 int registered_my_rank;
 int first_signal = -1;
 sighandler_t rempi_sig_handler_sigsegv_default;
@@ -60,7 +60,7 @@ void rempi_sig_handler_run(int signum)
 }
 
 
-void rempi_sig_handler_init(int rank, rempi_io_thread *record_thread, rempi_event_list<rempi_event*> *recording_event_list, unsigned int *validation_code)
+void rempi_sig_handler_init(int rank, rempi_io_thread *record_thread, rempi_event_list<rempi_event*> *recording_event_list, size_t *validation_code)
 {
   registered_my_rank = rank;
   registered_record_thread = record_thread;

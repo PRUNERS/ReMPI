@@ -83,8 +83,9 @@ void rempi_debug(const char* fmt, ...);
 std::string rempi_btrace_string();
 void rempi_btrace();
 size_t rempi_btrace_hash();
-
+char* rempi_err_mpi_msg(int err);
 
 void rempi_exit(int no);
+
 
 #endif

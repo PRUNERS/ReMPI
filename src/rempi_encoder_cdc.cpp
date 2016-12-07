@@ -529,8 +529,6 @@ int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *pr
   int howto_update;
   int matching_set_id;
 
-  //  REMPI_DBG("solid_mc_size: %lu", solid_mc_next_clocks_umap_umap.size());
-
   for (unordered_map<int, unordered_map<int, size_t>*>::iterator it = solid_mc_next_clocks_umap_umap.begin(), 
 	 it_end = solid_mc_next_clocks_umap_umap.end(); 
        it != it_end; it++) {
@@ -548,6 +546,7 @@ int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *pr
 							solid_mc_next_clocks_umap,
 							replaying_matching_set_id, 
 							&why[index]);
+
       switch(howto_update) {
       case REMPI_ENCODER_NO_UPDATE:
 	break;
@@ -1375,6 +1374,7 @@ bool rempi_encoder_cdc::cdc_decode_ordering(rempi_event_list<rempi_event*> *reco
     REMPI_ERR("replay_event_list is not empty, and the replaying events are not passed to replaying_events");
   }
 
+
   /*First, check if unmatched replay or not*/
   if (test_table->unmatched_events_umap.find(test_table->replayed_matched_event_index)
       != test_table->unmatched_events_umap.end()) {
@@ -1440,15 +1440,19 @@ N      CDC events flow:
 
    */
   /* =========================================================*/
-  
+
+
   /* ====== Operation A  ========*/
   /* 1. Put events to list */
+
   if (!event_list->empty()) {
+
 
     for (list<rempi_event*>::iterator it = event_list->begin(),
 	   it_end = event_list->end();
 	 it != it_end; ) {
       rempi_event *event = *it;
+
 
       if (!test_table->within_epoch(event)) {
 	/* This event should be decoded in the next epoch */
@@ -1456,6 +1460,7 @@ N      CDC events flow:
 	continue;
       }
     
+
 
       test_table->ordered_event_list.push_back(event);
       /*2. update pending_msg_count_umap, epoch_line_umap */
@@ -2114,7 +2119,6 @@ void rempi_encoder_cdc::close_record_file()
     int event_list_status;
     matched_event = recording_events->dequeue_replay(recv_test_id, event_list_status);
     matched_events_list_umap[recv_test_id]->push_back(matched_event);
-
   } 
 
   if (matched_events_list_umap[recv_test_id]->size() != 0) *has_new_event = 1;

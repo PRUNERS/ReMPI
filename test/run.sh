@@ -1,5 +1,8 @@
 #!/bin/sh
 
+bin="./rempi_test_units"
+REMPI_ENCODE=0 REMPI_MODE=${mode} REMPI_DIR=${prefix} LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempi.so ${bin}
+exit
 
 rm -rf /p/lscratchv/sato5/test/.rempi/*
 ./test-bgq.sh 0 16 > log16r

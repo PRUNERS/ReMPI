@@ -171,6 +171,7 @@ int rempi_recorder_rep::is_behind_time(int matching_set_id)
     next_matched_event = matched_recv_event_list->front();
     recved_clock       = next_matched_event->get_clock();
     recved_rank        = next_matched_event->get_source();
+    REMPI_DBGI(0, "local: %lu, recved: %lu", local_clock, recved_clock);
     compare = compare_clock(local_clock, local_rank, recved_clock, recved_rank);
     if (compare > 0) {
       return 1;
@@ -180,6 +181,7 @@ int rempi_recorder_rep::is_behind_time(int matching_set_id)
     return 0;
   }   
   mc_encoder->compute_look_ahead_recv_clock(&look_ahead_recv_clock, &look_ahead_recv_rank, matching_set_id);    
+  REMPI_DBGI(0, "local: %lu, look_ahead_recved: %lu", local_clock, recved_clock);
   compare = compare_clock(local_clock, local_rank, look_ahead_recv_clock, look_ahead_recv_rank);
 
 
@@ -299,6 +301,8 @@ int rempi_recorder_rep::complete_mf_matched_recv_single(int incount, MPI_Request
 
   for (int i = 0; i < incount; i++) exclusion_flags[i] = 0;
 
+  //  REMPI_DBGI(0, "matched single: size: %lu", matched_recv_event_list->size());
+
 
   if (matched_recv_event_list->size() > 0) {
     rempi_clock_get_local_clock(&local_clock);  
@@ -406,8 +410,6 @@ int rempi_recorder_rep::dequeue_replay_event_set(int incount, MPI_Request array_
   int howto_complete;
   rempi_event *handle_event = NULL;
   int is_completed;
-
-
 
   this->dequeue_matched_events(matching_set_id);
 

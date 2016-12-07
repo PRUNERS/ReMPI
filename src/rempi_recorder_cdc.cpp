@@ -59,6 +59,7 @@ int rempi_recorder_cdc::rempi_mf(int incount,
   ret = rempi_mpi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, matching_function_type);
   for (int i = 0; i < incount; i++) { 
     if (request_info[i] == REMPI_NULL_REQUEST) nullcount++;
+    array_of_statuses[i].MPI_ERROR = MPI_SUCCESS;
   }
   matched_count = rempi_mpi_get_matched_count(incount, outcount, nullcount, matching_function_type);
   rempi_clock_sync_clock(matched_count, array_of_indices, pre_allocated_clocks, request_info, matching_function_type);
@@ -408,7 +409,6 @@ int rempi_recorder_cdc::replay_mf_input(
 {
   rempi_event *replaying_test_event;
   int local_outcount = 0;
-  MPI_Status status;
   int index = 0;
 
 

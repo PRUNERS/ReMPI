@@ -41,11 +41,6 @@ int rempi_mpi_mf(int incount,
     return PMPI_Test(array_of_requests, outcount, array_of_statuses);
     break;
   case REMPI_MPI_TESTANY:
-    //    int i;
-    // for (i = 0; i < incount; i++) {
-    //   REMPI_DBGI(3, "incount: %d, requests: %p, indices: %p, statuses: %p", 
-    // 		 incount, array_of_requests[i], *array_of_indices, *array_of_statuses);
-    //    }
     return PMPI_Testany(incount, array_of_requests, array_of_indices, outcount, array_of_statuses);
     break;
   case REMPI_MPI_TESTSOME:

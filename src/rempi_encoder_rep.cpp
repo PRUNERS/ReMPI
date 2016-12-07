@@ -187,7 +187,9 @@ bool rempi_encoder_rep::cdc_decode_ordering(rempi_event_list<rempi_event*> *reco
   }
 
 
+  //  REMPI_DBG("or size: %lu", event_list->size());
   if (!event_list->empty()) {
+    //    REMPI_DBG("or asize: %lu", event_list->size());
     for (list<rempi_event*>::iterator it = event_list->begin(),
 	   it_end = event_list->end();
 	 it != it_end; ) {

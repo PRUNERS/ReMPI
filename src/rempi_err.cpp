@@ -10,6 +10,8 @@
 #include <string>
 #include <queue>
 
+#include <mpi.h>
+
 
 #include "rempi_err.h"
 #include "rempi_mem.h"
@@ -30,13 +32,13 @@ queue<char*> rempi_log_q;
 char header[128];
 char message[1024];
 
-#define REMPI_OUTPUT(stream, label, fmt)		\
-  do { \
-    va_list argp; \
-    va_start(argp, fmt); \
+#define REMPI_OUTPUT(stream, label, fmt)	\
+  do {						\
+    va_list argp;				\
+    va_start(argp, fmt);			\
     rempi_set_header_message(label, fmt, argp); \
-    va_end(argp); \
-    rempi_print_header_message(DEBUG_STDOUT); \
+    va_end(argp);				\
+    rempi_print_header_message(DEBUG_STDOUT);	\
   } while(0)
 
 static void rempi_set_header_message(const char* label, const char* fmt, va_list argp)
@@ -265,4 +267,55 @@ void rempi_btracei(int r)
   if (rempi_my_rank != r) return;
   rempi_btrace();
   return;
+}
+
+char* rempi_err_mpi_msg(int err) 
+{
+  switch(err) {
+  case MPI_SUCCESS:
+    return "Successful return code";
+  case MPI_ERR_BUFFER:
+    return "Invalid buffer pointer";
+  case MPI_ERR_COUNT:
+    return "Invalid count argument";
+  case MPI_ERR_TYPE:
+    return "Invalid datatype argument";
+  case MPI_ERR_TAG:
+    return "Invalid tag argument";
+  case MPI_ERR_COMM:
+    return "Invalid communicator";
+  case MPI_ERR_RANK:
+    return "Invalid rank";
+  case MPI_ERR_ROOT:
+    return "Invalid root";
+  case MPI_ERR_GROUP:
+    return "Null group passed to function";
+  case MPI_ERR_OP:
+    return "Invalid operation";
+  case MPI_ERR_TOPOLOGY:
+    return "Invalid topology";
+  case MPI_ERR_DIMS:
+    return "Illegal dimension argument";
+  case MPI_ERR_ARG:
+    return "Invalid argument";
+  case MPI_ERR_UNKNOWN:
+    return "Unknown error";
+  case MPI_ERR_TRUNCATE:
+    return "message truncated on receive";
+  case MPI_ERR_OTHER:
+    return "Other error; use Error_string";
+  case MPI_ERR_INTERN:
+    return "internal error code";
+  case MPI_ERR_IN_STATUS:
+    return "Look in status for error value";
+  case MPI_ERR_PENDING:
+    return "Pending request";
+  case MPI_ERR_REQUEST:
+    return "illegal mpi_request handle";
+  case MPI_ERR_LASTCODE:
+    return "Last error code -- always at end";
+  default:
+    return "Unknown error";
+  }
+  return NULL;
 }
