@@ -2,14 +2,14 @@
 AM_CFLAGS = -fPIC -g -Wall -pthread -std=c++0x -I$(clmpi_DIR)/include/ -lstdc++ -I$(libz_a_INCLUDE)
 AM_CXXFLAGS = $(AM_CFLAGS)
 
-rempi_SOURCES_main =  \
+rempi_SOURCES =  \
 		rempi_pmpi.cpp \
 		rempi_err.cpp \
 		rempi_mem.cpp \
 		rempi_util.cpp \
 		rempi_compression_util.cpp \
 		rempi_config.cpp \
-                 rempi_re.cpp \
+                rempi_re.cpp \
 	        rempi_sig_handler.cpp \
 	        rempi_status.cpp \
 	        rempi_mf.cpp \
@@ -31,28 +31,6 @@ rempi_SOURCES_main =  \
 		rempi_thread.cpp \
 		rempi_io_thread.cpp \
 		rempi_mutex.cpp
-
-rempi_SOURCES =  \
-		rempi_pmpi.cpp \
-		rempi_err.cpp \
-		rempi_mem.cpp \
-		rempi_util.cpp \
-		rempi_compression_util.cpp \
-		rempi_config.cpp \
-	        rempi_sig_handler.cpp \
-	        rempi_status.cpp \
-	        rempi_mf.cpp \
-		rempi_mpi_init.cpp \
-		rempi_request_mg.cpp \
-		rempi_event_list.cpp \
-		rempi_event.cpp \
-		rempi_cp.cpp \
-		rempi_clock.cpp \
-		rempi_thread.cpp \
-		rempi_mutex.cpp
-
-
-
 
 lib_LTLIBRARIES = librempi.la
 librempi_la_SOURCES  = $(rempi_SOURCES)

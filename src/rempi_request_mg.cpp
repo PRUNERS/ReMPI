@@ -5,9 +5,6 @@
 #include <vector>
 #include <unordered_map>
 #include <list>
-using namespace std;
-
-
 
 #include "rempi_err.h"
 #include "rempi_mem.h"
@@ -16,13 +13,12 @@ using namespace std;
 #include "rempi_request_mg.h"
 #include "rempi_clock.h"
 
-
-
 #define REMPI_REQMG_MPI_CALL_TYPE_SEND (0)
 #define REMPI_REQMG_MPI_CALL_TYPE_RECV (1)
 #define REMPI_REQMG_MPI_CALL_TYPE_MF   (2)
 
 
+using namespace std;
 
 class matching_id {
 public:
@@ -49,27 +45,21 @@ unordered_map<size_t, matching_id*>matching_id_hash_to_matching_id;
 
 
 /*Index: recv_id, Value: matchingset_id */
-//vector<int> recv_id_to_set_id;
-
+vector<int> recv_id_to_set_id;
 /*Index: matching_set_id, Value: elements of the matching set*/
 vector<vector<rempi_matching_id*>*> rempi_matching_id_vec_vec;
-
 /*Index: test_id, Value: set_id */
 unordered_map<int, int> test_id_to_set_id;
 unordered_map<MPI_Request, rempi_reqmg_recv_args*> request_to_recv_args_umap;
-unordered_map<MPI_Request, rempi_reqmg_send_args*> request_to_send_id_umap;
+unordered_map<MPI_Request, rempi_reqmg_send_args*>request_to_send_id_umap;
 unordered_map<string, int> test_ids_map;
-
 int next_test_id_to_assign = 0;
 
 /*Key: id, Value: Recv MPI_Request */
 // unordered_map<int, MPI_Request*>recv_request_id_to_recv_request_umap;
 // int next_recv_request_id_to_assign = 0;
 
-
 char comm_id[REMPI_COMM_ID_LENGTH];
-
-
 
 int mpi_request_id = 1015;
 
@@ -399,7 +389,6 @@ static int rempi_reqmg_get_matching_set_id(int *matching_set_id, int *mpi_call_i
 }
 
 
-#if 0
 static int get_matching_set_id(MPI_Request *request, int count)
 {
   int recv_id = -1;
@@ -427,7 +416,6 @@ static int get_matching_set_id(MPI_Request *request, int count)
   }
   return  matching_set_id;
 }
-#endif
 
 static int assign_matching_set_id(int recv_id, int source, int tag, int comm_id)
 {
@@ -894,8 +882,7 @@ int rempi_reqmg_get_test_id(MPI_Request *request, int incount)
   double s, e;
   int matching_set_id;
   if (rempi_is_test_id == 2) {
-    REMPI_ERR("rempi_is_test_id: %d is not supported", rempi_is_test_id);
-    //    matching_set_id =  get_matching_set_id(request, incount);
+    matching_set_id =  get_matching_set_id(request, incount);
   } else if (rempi_is_test_id == 0) {
     matching_set_id = 0;
   } else if  (rempi_is_test_id == 1) {
@@ -1103,6 +1090,3 @@ int rempi_reqmg_set_matching_set_id_map(int *mpi_call_ids, int *matching_set_ids
   }
   return 0;
 }
-
-
-
