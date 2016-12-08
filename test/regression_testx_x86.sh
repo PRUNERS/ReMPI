@@ -2,7 +2,7 @@
 
 num_procs=$1
 
-dir=/p/lscratchf/sato5/rempi/.rempi
+dir=./rempi_record
 librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
 mkdir -p $dir
 

@@ -19,39 +19,7 @@ mkdir -p ${dir}
 #memcheck="valgrind --tool=memcheck --xml=yes --xml-file=`echo $$`.mc --partial-loads-ok=yes --error-limit=no --leak-check=full --show-reachable=yes --max-stackframe=16777216 --num-callers=20 --child-silent-after-fork=yes --track-origins=yes"
 #memcheck=memcheck-para
 
-# ======== Totalview =================
-bin="./rempi_test_units"
 
-#${totalview} srun -a -n ${num_procs} ${memcheck} ./run.sh
-REMPI_MODE=${mode} \
-REMPI_DIR=${prefix} \
-REMPI_ENCODE=0 \
-#${totalview} -args env  
-LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempi.so srun -n ${num_procs} ${memcheck} ${bin}
-
-
-exit
-
-
-#bin="./rempi_test_units late_irecv"
-#REMPI_ENCODE=4 \
-bin="./rempi_test_units"
-REMPI_ENCODE=0 \
-LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
-REMPI_MODE=${mode} REMPI_DIR=${prefix} srun -a -n ${num_procs} ${memcheck} ${bin}
-exit
-
-
-
-
-# ===== Enzo ============
-bin="./enzo ../run/GravitySolver/GravityTest/GravityTest.enzo"
-cd /g/g90/sato5/Benchmarks/external/enzo-dev/bin/
-REMPI_ENCODE=7 \
-LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
-REMPI_MODE=${mode} REMPI_DIR=${prefix} srun -n ${num_procs} ${bin}
-cd -
-exit
 
 # ===== MCB test ========
 bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 --weakScaling"
@@ -66,6 +34,27 @@ REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=0 REMPI_TEST_ID=1 
 #srun ${io_watchdog} -n ${num_procs} ${bin}
 cd -
 exit
+
+
+#bin="./rempi_test_units late_irecv"
+#REMPI_ENCODE=4 \
+bin="./rempi_test_units"
+REMPI_ENCODE=0 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${prefix} srun -n ${num_procs} ${memcheck} ${bin}
+exit
+
+
+# ===== Enzo ============
+bin="./enzo ../run/GravitySolver/GravityTest/GravityTest.enzo"
+cd /g/g90/sato5/Benchmarks/external/enzo-dev/bin/
+REMPI_ENCODE=7 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${prefix} srun -n ${num_procs} ${bin}
+cd -
+exit
+
+
 
 
 

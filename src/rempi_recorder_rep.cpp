@@ -181,7 +181,6 @@ int rempi_recorder_rep::is_behind_time(int matching_set_id)
     return 0;
   }   
   mc_encoder->compute_look_ahead_recv_clock(&look_ahead_recv_clock, &look_ahead_recv_rank, matching_set_id);    
-  REMPI_DBGI(0, "local: %lu, look_ahead_recved: %lu", local_clock, recved_clock);
   compare = compare_clock(local_clock, local_rank, look_ahead_recv_clock, look_ahead_recv_rank);
 
 
