@@ -171,7 +171,7 @@ int rempi_recorder_rep::is_behind_time(int matching_set_id)
     next_matched_event = matched_recv_event_list->front();
     recved_clock       = next_matched_event->get_clock();
     recved_rank        = next_matched_event->get_source();
-    REMPI_DBGI(0, "local: %lu, recved: %lu", local_clock, recved_clock);
+    //    REMPI_DBGI(0, "local: %lu, recved: %lu", local_clock, recved_clock);
     compare = compare_clock(local_clock, local_rank, recved_clock, recved_rank);
     if (compare > 0) {
       return 1;

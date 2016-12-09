@@ -59,7 +59,15 @@ int rempi_recorder_cdc::rempi_mf(int incount,
   ret = rempi_mpi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, matching_function_type);
   for (int i = 0; i < incount; i++) { 
     if (request_info[i] == REMPI_NULL_REQUEST) nullcount++;
-    array_of_statuses[i].MPI_ERROR = MPI_SUCCESS;
+    //    array_of_statuses[i].MPI_ERROR = MPI_SUCCESS;
+  }
+  if (matching_function_type == REMPI_MPI_TESTANY ||
+      matching_function_type == REMPI_MPI_WAITANY) {
+    array_of_statuses[0].MPI_ERROR = MPI_SUCCESS;
+  } else {
+    for (int i = 0; i < incount; i++) { 
+      array_of_statuses[i].MPI_ERROR = MPI_SUCCESS;
+    }
   }
   matched_count = rempi_mpi_get_matched_count(incount, outcount, nullcount, matching_function_type);
   rempi_clock_sync_clock(matched_count, array_of_indices, pre_allocated_clocks, request_info, matching_function_type);
@@ -69,6 +77,7 @@ int rempi_recorder_cdc::rempi_mf(int incount,
   //  rempi_clock_
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) mc_encoder->update_local_look_ahead_send_clock(REMPI_ENCODER_REPLAYING_TYPE_ANY, REMPI_ENCODER_NO_MATCHING_SET_ID);
+
   return ret;
 }
 

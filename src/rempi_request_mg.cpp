@@ -300,7 +300,7 @@ static int rempi_reqmg_get_matching_set_id_0(int *matching_set_id)
   return 0;
 }
 
-static int rempi_reqmg_get_matching_set_id_1(int *matching_set_id, int *mpi_call_id, int mpi_call_type, int incount, MPI_Request array_of_requests[])
+static int rempi_reqmg_get_matching_set_id_1(int *matching_set_id, int *mpi_call_id, int mpi_call_type, int source, int tag, MPI_Comm comm, int incount, MPI_Request array_of_requests[])
 {
   int request_type;
   *mpi_call_id = get_mpi_call_id();
@@ -339,6 +339,8 @@ static int rempi_reqmg_get_matching_set_id_1(int *matching_set_id, int *mpi_call
   return 0;
 }
 
+
+
 static int rempi_reqmg_assign_matching_set_id_2(int source, int tag, MPI_Comm comm) 
 {
   size_t hash;
@@ -366,6 +368,51 @@ static int rempi_reqmg_get_matching_set_id_2(int *matching_set_id, int *mpi_call
   return 0;
 }
 
+static int rempi_reqmg_get_matching_set_id_3(int *matching_set_id, int *mpi_call_id, int mpi_call_type, int source, int tag, MPI_Comm comm, int incount, MPI_Request array_of_requests[])
+{
+  int request_type;
+  *mpi_call_id = get_mpi_call_id();
+  //  if (*mpi_call_id == 9 && rempi_my_rank == 1) REMPI_ASSERT(0);
+  if (mpi_call_id_to_matching_set_id.find(*mpi_call_id) != 
+      mpi_call_id_to_matching_set_id.end()) {
+    *matching_set_id = mpi_call_id_to_matching_set_id.at(*mpi_call_id);
+    if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+      rempi_reqmg_assign_matching_set_id_to_recv(*matching_set_id, incount, array_of_requests);
+    }
+    //
+    //REMPI_DBGI(1, "call_id: %d set_id: %d", *mpi_call_id, *matching_set_id);
+
+    return 0;
+  } else {
+    // if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY && 
+    // 	mpi_call_type == REMPI_REQMG_MPI_CALL_TYPE_MF) {
+    //    REMPI_ERR("No matching set id is assined in a record mode for mpi_call_id=%d (type: %d)", *mpi_call_id, mpi_call_type);
+    // }
+  }
+
+
+  switch(mpi_call_type) {
+  case REMPI_REQMG_MPI_CALL_TYPE_SEND:
+    *matching_set_id = REMPI_REQMG_MATCHING_SET_ID_UNKNOWN; // Send is not assigned
+    break;
+  case REMPI_REQMG_MPI_CALL_TYPE_RECV:
+    /*
+      If we assign the set_id here, an error occur when:
+         MPI_Recv1(req1); => set_id=1
+         MPI_Recv2(req2); => set_id=2
+	 MPI_Waitall(req1, req2) => set_id=1or2 ?
+     */
+    *matching_set_id = REMPI_REQMG_MATCHING_SET_ID_UNKNOWN; // not assigned yet //next_matching_set_id++; /* Assign new id */
+    break;
+  case REMPI_REQMG_MPI_CALL_TYPE_MF:
+    *matching_set_id = rempi_reqmg_assign_matching_set_id(*mpi_call_id, incount, array_of_requests);
+    break;
+  }
+
+  //  REMPI_DBG("%d -> %d (type: %d)", *mpi_call_id, *matching_set_id, mpi_call_type);
+  return 0;
+}
+
 static int rempi_reqmg_get_matching_set_id(int *matching_set_id, int *mpi_call_id, int mpi_call_type, int source, int tag, MPI_Comm comm, int incount, MPI_Request array_of_requests[])
 {
   switch(rempi_is_test_id) {
@@ -373,10 +420,13 @@ static int rempi_reqmg_get_matching_set_id(int *matching_set_id, int *mpi_call_i
     rempi_reqmg_get_matching_set_id_0(matching_set_id);
     break;
   case 1:
-    /*Record: ReMPI cannot change matching set id assigment */
-    rempi_reqmg_get_matching_set_id_1(matching_set_id, mpi_call_id, mpi_call_type, incount, array_of_requests);
+    rempi_reqmg_get_matching_set_id_3(matching_set_id, mpi_call_id, mpi_call_type, source, tag, comm, incount, array_of_requests);
     break;
   case 2:
+    /*Record: ReMPI cannot change matching set id assigment */
+    rempi_reqmg_get_matching_set_id_1(matching_set_id, mpi_call_id, mpi_call_type, source, tag, comm, incount, array_of_requests);
+    break;
+  case 3:
     /*Record: ReMPI can change matching set id assigment */
     rempi_reqmg_get_matching_set_id_2(matching_set_id, mpi_call_id, mpi_call_type, source, tag, comm, incount, array_of_requests);
     break;

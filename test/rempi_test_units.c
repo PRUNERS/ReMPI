@@ -988,6 +988,7 @@ void rempi_test_late_irecv()
 {
   int val = my_rank;
   MPI_Request requests[2];
+
   if (my_rank == 0) {
     sleep(1);
     MPI_Recv(&val, 1, MPI_INT, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -995,6 +996,17 @@ void rempi_test_late_irecv()
   } else if (my_rank == 1) {
     MPI_Isend(&val, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &requests[0]);
     MPI_Isend(&val, 1, MPI_INT, 0, 1, MPI_COMM_WORLD, &requests[1]);
+    MPI_Waitall(2, requests, MPI_STATUS_IGNORE);
+  }
+
+
+  if (my_rank == 0) {
+    sleep(1);
+    MPI_Recv(&val, 1, MPI_INT, 1, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(&val, 1, MPI_INT, 1, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  } else if (my_rank == 1) {
+    MPI_Isend(&val, 1, MPI_INT, 0, 2, MPI_COMM_WORLD, &requests[0]);
+    MPI_Isend(&val, 1, MPI_INT, 0, 3, MPI_COMM_WORLD, &requests[1]);
     MPI_Waitall(2, requests, MPI_STATUS_IGNORE);
   }
   return;
