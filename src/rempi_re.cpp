@@ -38,10 +38,11 @@ int rempi_re::init_after_pmpi_init(int *argc, char ***argv)
 {
   signal(SIGSEGV, SIG_DFL);
 
-  char comm_id[REMPI_COMM_ID_LENGTH];
-  comm_id[0] = 0;
+  //  char comm_id[REMPI_COMM_ID_LENGTH];
+  //  comm_id[0] = 0;
   PMPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-  PMPI_Comm_set_name(MPI_COMM_WORLD, comm_id);
+  //  PMPI_Comm_set_name(MPI_COMM_WORLD, comm_id);
+  rempi_mpi_comm_get_id(MPI_COMM_WORLD);
 
   rempi_err_init(my_rank);
   //  rempi_set_configuration(argc, argv);
@@ -128,7 +129,7 @@ int rempi_re::re_irecv(
 		 MPI_Request *request)
 {
   int ret;
-  char comm_id[REMPI_COMM_ID_LENGTH];
+  //  char comm_id[REMPI_COMM_ID_LENGTH];
 
   // if (comm != MPI_COMM_WORLD) {
   //   REMPI_ERR("Current ReMPI does not multiple communicators");
@@ -137,10 +138,10 @@ int rempi_re::re_irecv(
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     // ret = PMPI_Irecv(buf, count, datatype, source, tag, comm, request);
     // rempi_reqmg_register_recv_request(request, source, tag, (int)comm_id[0]);
-    ret = recorder->record_irecv(buf, count, datatype, source, tag, (int)comm_id[0], comm, request);
+    ret = recorder->record_irecv(buf, count, datatype, source, tag, 0, comm, request);
   } else {
     /*TODO: Really need datatype ??*/
-    ret = recorder->replay_irecv(buf, count, datatype, source, tag, (int)comm_id[0], comm, request);
+    ret = recorder->replay_irecv(buf, count, datatype, source, tag, 0, comm, request);
   }
 
   return ret;
@@ -348,18 +349,19 @@ int rempi_re::re_probe(int source, int tag, MPI_Comm comm, MPI_Status *status)
 {
   int ret;
   int flag = 0;
-  char comm_id[REMPI_COMM_ID_LENGTH];
+  //  char comm_id[REMPI_COMM_ID_LENGTH];
+  int comm_id;
   int resultlen;
   int status_flag;
 
-  PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);
+  //  PMPI_Comm_get_name(MPI_COMM_WORLD, comm_id, &resultlen);
 
   status = rempi_status_allocate(1, status, &status_flag);  
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     recorder->record_pf(source, tag, comm, NULL, status, REMPI_MPI_PROBE);
   } else {
-    recorder->replay_pf(source, tag, comm, NULL, status, (int)comm_id[0]);
+    recorder->replay_pf(source, tag, comm, NULL, status, REMPI_MPI_PROBE);
   }
   if (status_flag) rempi_status_free(status);
   return ret;
@@ -368,7 +370,7 @@ int rempi_re::re_probe(int source, int tag, MPI_Comm comm, MPI_Status *status)
 int rempi_re::re_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status)
 {
   int ret;
-  char comm_id[REMPI_COMM_ID_LENGTH];
+  //  char comm_id[REMPI_COMM_ID_LENGTH];
   int status_flag;
 
   status = rempi_status_allocate(1, status, &status_flag);
@@ -376,7 +378,7 @@ int rempi_re::re_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Statu
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     recorder->record_pf(source, tag, comm, flag, status, REMPI_MPI_IPROBE);
   } else {
-    recorder->replay_pf(source, tag, comm, flag, status, (int)comm_id[0]);
+    recorder->replay_pf(source, tag, comm, flag, status, REMPI_MPI_IPROBE);
   }
   if (status_flag) rempi_status_free(status);
 

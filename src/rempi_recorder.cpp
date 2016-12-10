@@ -1048,7 +1048,7 @@ int rempi_recorder::replay_mf(
   return MPI_SUCCESS;
 }
 
-int rempi_recorder::replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int comm_id)
+int rempi_recorder::replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int probe_function_type)
 {
   rempi_event *replaying_test_event;
   int has_next_event = REMPI_MPI_EVENT_WITH_NEXT;

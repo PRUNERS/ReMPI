@@ -1,5 +1,11 @@
 #include <mpi.h>
+
+#include <unordered_set>
+
 #include "rempi_err.h"
+#include "rempi_config.h"
+
+using namespace std;
 
 #ifndef _EXTERN_C_
 #ifdef __cplusplus
@@ -97,4 +103,47 @@ int rempi_mpi_init_thread(int *argc, char ***argv, int required, int *provided, 
 
   }
   return _wrap_py_return_val;
+}
+
+
+unordered_set<MPI_Comm> named_comm_set;
+int next_comm_id = 1;
+char comm_name[REMPI_COMM_ID_LENGTH];
+int comm_name_length;
+int rempi_mpi_comm_get_id(MPI_Comm comm)
+{
+  int id;
+  if (comm == NULL) {
+    REMPI_ASSERT(0);
+    REMPI_ERR("communicator is NULL");
+  }
+
+  if (named_comm_set.find(comm) != named_comm_set.end()) {
+    PMPI_Comm_get_name(comm, comm_name, &comm_name_length);
+    id = atoi(comm_name);
+  } else {
+    sprintf(comm_name, "%d", next_comm_id);
+    PMPI_Comm_set_name(comm, comm_name);
+    named_comm_set.insert(comm);
+    id = next_comm_id++;
+  }
+  return id;
+}
+
+
+size_t rempi_mpi_get_msg_id(MPI_Comm comm, int tag)
+{
+  size_t id;
+  int comm_id;
+  
+  if (sizeof(int) != 4 || sizeof(size_t) != 8) {
+    REMPI_ERR("Type size error: sizeof(int) = %lu, sizeof(size_t) = %lu", 
+	      sizeof(int), sizeof(size_t));
+  }
+  comm_id = rempi_mpi_comm_get_id(comm);
+  id  = comm_id;
+  id  = id << 32;
+  id  = id | tag;
+  //  REMPI_DBGI(0, "%d + %d -> %p", comm_id, tag, id);
+  return id;
 }

@@ -225,11 +225,14 @@ size_t rempi_btrace_hash()
 
   nptrs = backtrace(call_stack_buff, CALLSTACK_DEPTH);
   strings = backtrace_symbols(call_stack_buff, nptrs);
+  //  REMPI_DBGI(0, "nptrs: %d", nptrs);
   for (int i = nptrs-1; i >= 0; i--) {
-    if (strstr(strings[i], "rempi")) break;
+    /*
+      Note: this is supposed to be used in only record mode. 
+      So commenting out this:     if (strstr(strings[i], "rempi")) break;
+    */
+    //    if (strstr(strings[i], "rempi")) break;
     hash += (hash << 5) + rempi_compute_hash(strings[i], strlen(strings[i]));
-    //    REMPI_DBG(" = hash: %d = call_stack %d: %s", (int)hash, nptrs - i, strings[i]);
-
   }
   //  REMPI_DBG("hash: %lu", hash);
   free(strings);
