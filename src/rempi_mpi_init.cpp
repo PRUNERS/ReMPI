@@ -145,5 +145,6 @@ size_t rempi_mpi_get_msg_id(MPI_Comm comm, int tag)
   id  = id << 32;
   id  = id | tag;
   //  REMPI_DBGI(0, "%d + %d -> %p", comm_id, tag, id);
+  //  if (tag == 1) REMPI_ASSERT(0);
   return id;
 }

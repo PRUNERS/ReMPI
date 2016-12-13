@@ -201,7 +201,6 @@ int rempi_recorder_cdc::replay_isend(mpi_const void *buf,
   REMPI_DBGI(REMPI_DBG_REPLAY, "Replay: Sending (rank:%d tag:%d clock:%lu)", dest, tag, sent_clock);
 #endif
 
-
   ret = PMPI_Isend(buf, count, datatype, dest, tag, comm, request);
   rempi_clock_mpi_isend(buf, count, datatype, dest, tag, comm, request, send_function_type);
 

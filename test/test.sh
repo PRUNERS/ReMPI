@@ -20,39 +20,6 @@ mkdir -p ${dir}
 #memcheck=memcheck-para
 
 
-bin="./rempi_test_units late_irecv"
-REMPI_ENCODE=7 \
-LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
-REMPI_MODE=${mode} REMPI_DIR=${prefix} srun -n ${num_procs} ${memcheck} ${bin}
-exit
-
-# ===== MCB test ========
-par=`expr 800 \* $num_procs`
-bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 --weakScaling"
-cd /g/g90/sato5/repo/MCBdouble/run-decks/
-make cleanc
-#librempi=/g/g90/sato5/repo/rempi/src/.libs/librempi.so
-#REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
-#librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
-#REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
-librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
-REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=0 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${memcheck}  ${bin}
-#srun ${io_watchdog} -n ${num_procs} ${bin}
-cd -
-exit
-
-
-
-
-
-
-
-
-
-
-
-
-
 # ===== Enzo ============
 bin="./enzo ../run/GravitySolver/GravityTest/GravityTest.enzo"
 cd /g/g90/sato5/Benchmarks/external/enzo-dev/bin/
@@ -61,6 +28,45 @@ LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
 REMPI_MODE=${mode} REMPI_DIR=${prefix} srun -n ${num_procs} ${bin}
 cd -
 exit
+
+
+# ===== MCB test ========
+par=`expr 800 \* $num_procs`
+bin="../src/MCBenchmark-linux_x86_64.exe --nCores=1 --nThreadCore=1 --numParticles=$par --nZonesX=400 --nZonesY=400 --distributedSource --mirrorBoundary --sigmaA 1 --sigmaS 20 --weakScaling"
+cd /g/g90/sato5/repo/MCBdouble/run-decks/
+make cleanc
+#librempi=/g/g90/sato5/repo/rempi/src/.libs/librempi.so
+#REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=0 REMPI_GZIP=1 REMPI_TEST_ID=0 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
+librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
+REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${bin}
+#librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
+#REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=0 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun ${io_watchdog} -n ${num_procs} ${memcheck}  ${bin}
+#srun ${io_watchdog} -n ${num_procs} ${bin}
+cd -
+exit
+
+
+#bin="./rempi_test_units late_irecv"
+bin="./rempi_test_units matching"
+REMPI_ENCODE=7 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${prefix} srun -n ${num_procs} ${memcheck} ${bin}
+exit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

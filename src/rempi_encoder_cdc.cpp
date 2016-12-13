@@ -32,6 +32,7 @@
 #define REMPI_DECODE_STATUS_CLOSE   (4)
 #define REMPI_DECODE_STATUS_COMPLETE   (5)
 
+#define MAX_MC_LENGTH (1024)
 
 unordered_set<int> rempi_encoder_input_format_test_table::all_epoch_rank_uset;
 
@@ -517,7 +518,8 @@ int rempi_encoder_cdc::howto_update_look_ahead_recv_clock(int recv_rank, int mat
 
 */
 
-static int why[1024];
+
+static int why[MAX_MC_LENGTH];
 int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *probed_message_source_set, 
 							  unordered_set<int> *pending_message_source_set, 
 							  unordered_map<int, size_t> *recv_message_source_umap, 
@@ -1197,6 +1199,7 @@ void rempi_encoder_cdc::decode()
     input_format->mc_length          = mc_recv_ranks_uset.size();
 
 
+
     for (unordered_set<int>::const_iterator cit = mc_recv_ranks_uset.cbegin(),
 	   cit_end = mc_recv_ranks_uset.cend();
 	 cit != cit_end;
@@ -1238,7 +1241,9 @@ void rempi_encoder_cdc::decode()
 
     this->mc_recv_ranks        = input_format->mc_recv_ranks;
     this->mc_length      = input_format->mc_length;
-
+    if (this->mc_length > MAX_MC_LENGTH) {
+      REMPI_ERR("mc_lenth > %d", MAX_MC_LENGTH);
+    }
 
 
   }

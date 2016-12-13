@@ -137,6 +137,8 @@ int rempi_reqmg_register_request(mpi_const void *buf, int count, MPI_Datatype da
 int rempi_reqmg_deregister_request(MPI_Request *request, int request_type);
 /* =========== */
 
+void rempi_reqmg_report_message_matching(MPI_Request *request, MPI_Status *status);
+
 
 /* Check and progress receiving messages */
 int rempi_reqmg_progress_recv(int matching_set_id, int incount, MPI_Request array_of_requests[]);
@@ -154,9 +156,11 @@ int rempi_reqmg_get_matching_id(MPI_Request *request, int *rank, int *tag, MPI_C
 int rempi_reqmg_get_buffer(MPI_Request *request, void** buffer);
 
 /* Get/Set matching set ids */
-int rempi_reqmg_get_matching_set_id(MPI_Request *requet);
+//int rempi_reqmg_get_matching_set_id(MPI_Request *requet);
+size_t rempi_reqmg_get_matching_set_id(int tag, MPI_Comm comm);
 int rempi_reqmg_get_matching_set_id_map(size_t **msg_ids, int **matching_set_ids, int *length);
 int rempi_reqmg_set_matching_set_id_map(size_t *msg_ids, int *matching_set_ids, int length);
+
 
 rempi_reqmg_recv_args* rempi_reqmg_get_recv_args(MPI_Request *request);
 size_t rempi_reqmg_get_send_request_clock(MPI_Request *request);

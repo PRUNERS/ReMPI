@@ -155,7 +155,7 @@ int rempi_recorder::record_isend(mpi_const void *buf,
   int resultlen;
   int matching_set_id;
 
-  //  REMPI_DBG("Send: Rank %d (TAG: %d)", dest, tag);
+  //REMPI_DBG("Send: Rank %d (TAG: %d)", dest, tag);
   ret = rempi_mpi_isend(buf, count, datatype, dest, tag, comm, request, send_function_type);
   rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request, REMPI_SEND_REQUEST, &matching_set_id);
   return ret;
@@ -174,7 +174,6 @@ int rempi_recorder::replay_isend(mpi_const void *buf,
   int matching_set_id;
 
   ret = record_isend(buf, count, datatype, dest, tag, comm , request, send_function_type);
-  //  REMPI_DBG("sending to rank %d with %p", dest, *request);
   rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request,  REMPI_SEND_REQUEST, &matching_set_id);
 
   return ret; 
@@ -537,6 +536,7 @@ int rempi_recorder::record_mf(
 	  PMPI_Type_size(recv_args->datatype, &datatype_size);
 	  PMPI_Get_count(&array_of_statuses[i], recv_args->datatype, &count);
 	}
+	rempi_reqmg_report_message_matching(&tmp_requests[matched_index], &array_of_statuses[i]);
 	rempi_reqmg_deregister_request(&tmp_requests[matched_index], REMPI_RECV_REQUEST);
 	request_to_recv_event_umap.at(tmp_requests[matched_index])->set_rank(rank);
 	request_to_recv_event_umap.erase(tmp_requests[matched_index]);
@@ -609,168 +609,168 @@ int rempi_recorder::record_mf(
 }
 #else
 
-int rempi_recorder::record_mf(
-			      int incount,
-			      MPI_Request array_of_requests[],
-			      int *outcount,
-			      int array_of_indices[],
-			      MPI_Status array_of_statuses[],
-			      int matching_function_type)
-{
-  int ret;
-  int flag;
-  rempi_event *test_event = NULL;
-  int is_with_next;
-  int matched_count;
-  size_t *msg_id;
-  int sendcount, recvcount, nullcount;
-  int was_array_of_indices_null = 0;
-  int is_record_and_replay;
-  int global_test_id;
-  int matched_index;
+// int rempi_recorder::record_mf(
+// 			      int incount,
+// 			      MPI_Request array_of_requests[],
+// 			      int *outcount,
+// 			      int array_of_indices[],
+// 			      MPI_Status array_of_statuses[],
+// 			      int matching_function_type)
+// {
+//   int ret;
+//   int flag;
+//   rempi_event *test_event = NULL;
+//   int is_with_next;
+//   int matched_count;
+//   size_t *msg_id;
+//   int sendcount, recvcount, nullcount;
+//   int was_array_of_indices_null = 0;
+//   int is_record_and_replay;
+//   int global_test_id;
+//   int matched_index;
 
 
-  if (incount > PRE_ALLOCATED_REQUEST_LENGTH) {
-    REMPI_ERR("incount: %d is larger than buffer", incount);
-  }
+//   if (incount > PRE_ALLOCATED_REQUEST_LENGTH) {
+//     REMPI_ERR("incount: %d is larger than buffer", incount);
+//   }
   
-  rempi_reqmg_get_request_info(incount, array_of_requests, &sendcount, &recvcount, &nullcount, request_info, &is_record_and_replay, &global_test_id);
-  if (is_record_and_replay) {
-    rempi_reqmg_store_send_statuses(incount, array_of_requests, request_info, tmp_statuses);
-  }
-  
-
-
-  for (int i = 0; i < incount; i++) tmp_requests[i] = array_of_requests[i];
-
-  ret = this->rempi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, 
-		       &msg_id, request_info, matching_function_type);
-  matched_count = rempi_mpi_get_matched_count(incount, outcount, matching_function_type);
-  
-  
-  if (is_record_and_replay == 0) {
-    for (int i = 0; i < matched_count; i++) {
-      matched_index = (array_of_indices==NULL)? i:array_of_indices[i];
-      rempi_reqmg_deregister_request(&tmp_requests[matched_index], request_info[matched_index]);
-    }
-#ifdef REMPI_DBG_REPLAY
-    //    REMPI_DBGI(REMPI_DBG_REPLAY, "  = Record: Skip: ");
-#endif
-    return ret;
-  }
-
-  //  global_test_id = rempi_reqmg_get_test_id(array_of_requests, incount);
-
+//   rempi_reqmg_get_request_info(incount, array_of_requests, &sendcount, &recvcount, &nullcount, request_info, &is_record_and_replay, &global_test_id);
+//   if (is_record_and_replay) {
+//     rempi_reqmg_store_send_statuses(incount, array_of_requests, request_info, tmp_statuses);
+//   }
   
 
 
-  if (matched_count == 0) {
-    flag = 0;
-    test_event = rempi_event::create_test_event(1, 
-						flag, 
-						REMPI_MPI_EVENT_INPUT_IGNORE, 
-						REMPI_MPI_EVENT_NOT_WITH_NEXT, 
-						REMPI_MPI_EVENT_INPUT_IGNORE, 
-						(msg_id==NULL)? REMPI_MPI_EVENT_INPUT_IGNORE:*msg_id,// => is supposed to be REMPI_MPI_EVENT_INPUT_IGNORE
-						global_test_id);
-    if (test_event != NULL) {
-#ifdef REMPI_DBG_REPLAY
-      REMPI_DBGI(REMPI_DBG_REPLAY, "= Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d, e: %p) MF: %d",
-      		 test_event->get_event_counts(),
-      		 test_event->get_flag(),
-      		 test_event->get_rank(),
-      		 test_event->get_with_next(),
-      		 test_event->get_index(),
-      		 test_event->get_msg_id(),
-      		 test_event->get_matching_group_id(),
-		 test_event,
-      		 matching_function_type);
-#endif
-    } else {
-      REMPI_ERR("test_event is NULL");
-    }
-    recording_event_list->push(test_event);
+//   for (int i = 0; i < incount; i++) tmp_requests[i] = array_of_requests[i];
 
-  } else {
-    flag = 1;
-    is_with_next = REMPI_MPI_EVENT_WITH_NEXT;
-    for (int i = 0; i < matched_count; i++) {
-      int rank = -1;
-      if (array_of_indices != NULL) {
-	/*MF: Some or Any */
-	matched_index = array_of_indices[i];
-      } else {
-	/*MF: Single or All */
-	matched_index = i;
-      }
-
-      // REMPI_DBGI(1, "request_info[%d] = %d", 0, request_info[0]);
-      // REMPI_DBGI(1, " index: %d", matched_index);
-      REMPI_DBGI(REMPI_DBG_REPLAY, "matched_count: %d (i: %d)", matched_count, i);
-      if (i == matched_count - 1) {
-	is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
-      }
-
-      if (request_info[matched_index] == REMPI_SEND_REQUEST) {
-	rank = tmp_statuses[matched_index].MPI_SOURCE;
-	rempi_reqmg_deregister_request(&tmp_requests[matched_index], REMPI_SEND_REQUEST);
-	if (msg_id != NULL) msg_id[i] = REMPI_MPI_EVENT_INPUT_IGNORE; /*To distingisu between send or recv event in encoder_cdc */
-      } else if (request_info[matched_index] == REMPI_RECV_REQUEST) {
-	rank = array_of_statuses[i].MPI_SOURCE;
-	{
-	  rempi_reqmg_recv_args *recv_args;
-	  int datatype_size, count;
-	  recv_args = rempi_reqmg_get_recv_args(&tmp_requests[matched_index]);
-	  PMPI_Type_size(recv_args->datatype, &datatype_size);
-	  PMPI_Get_count(&array_of_statuses[i], recv_args->datatype, &count);
+//   ret = this->rempi_mf(incount, array_of_requests, outcount, array_of_indices, array_of_statuses, 
+// 		       &msg_id, request_info, matching_function_type);
+//   matched_count = rempi_mpi_get_matched_count(incount, outcount, matching_function_type);
+  
+  
+//   if (is_record_and_replay == 0) {
+//     for (int i = 0; i < matched_count; i++) {
+//       matched_index = (array_of_indices==NULL)? i:array_of_indices[i];
+//       rempi_reqmg_deregister_request(&tmp_requests[matched_index], request_info[matched_index]);
+//     }
 // #ifdef REMPI_DBG_REPLAY
-// 	  REMPI_DBGI(REMPI_DBG_REPLAY, "Record: dest_buff: %d", rempi_compute_hash(recv_args->buffer, datatype_size * count));
+//     //    REMPI_DBGI(REMPI_DBG_REPLAY, "  = Record: Skip: ");
 // #endif
-	}
-	rempi_reqmg_deregister_request(&tmp_requests[matched_index], REMPI_RECV_REQUEST);
-	//	REMPI_DBG("update: %p", tmp_requests[matched_index]);
-	//	if (request_to_recv_event_umap.find(tmp_requests[matched_index]) != 
-	//	    request_to_recv_event_umap.end()) {
-	request_to_recv_event_umap.at(tmp_requests[matched_index])->set_rank(rank);
-	request_to_recv_event_umap.erase(tmp_requests[matched_index]);
-	  //	}
-      }
+//     return ret;
+//   }
 
-      if (rank >= 0) {
-	test_event = rempi_event::create_test_event(1, 
-						    flag,
-						    rank,
-						    is_with_next,
-						    matched_index, 
-						    // => is supposed to be REMPI_MPI_EVENT_INPUT_IGNORE
-						    (msg_id==NULL)? REMPI_MPI_EVENT_INPUT_IGNORE:msg_id[i],
-						    global_test_id);
-	//	if (msg_id[i] < 10) {REMPI_ERR("clock is wrong: %lu", msg_id[i]);}
-	if (test_event != NULL) {
+//   //  global_test_id = rempi_reqmg_get_test_id(array_of_requests, incount);
 
-#ifdef REMPI_DBG_REPLAY
-	  REMPI_DBGI(REMPI_DBG_REPLAY, "= Record : (count: %d, flag: %d, rank: %d(tag: %d), with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
-	  	     test_event->get_event_counts(),
-	  	     test_event->get_flag(),
-	  	     test_event->get_rank(),
-		     array_of_statuses[i].MPI_TAG,
-	  	     test_event->get_with_next(),
-	  	     test_event->get_index(),
-	  	     test_event->get_msg_id(),
-	  	     test_event->get_matching_group_id(),
-	  	     matching_function_type);
-	  REMPI_DBGI(REMPI_DBG_REPLAY, "matched_count: %d (i: %d)", matched_count, i);
-#endif
-	}
-	recording_event_list->push(test_event);
-      }
-    }
-  }
+  
 
-  update_validation_code(incount, outcount, matched_count, array_of_indices, array_of_statuses, request_info);
 
-  return ret;
-}
+//   if (matched_count == 0) {
+//     flag = 0;
+//     test_event = rempi_event::create_test_event(1, 
+// 						flag, 
+// 						REMPI_MPI_EVENT_INPUT_IGNORE, 
+// 						REMPI_MPI_EVENT_NOT_WITH_NEXT, 
+// 						REMPI_MPI_EVENT_INPUT_IGNORE, 
+// 						(msg_id==NULL)? REMPI_MPI_EVENT_INPUT_IGNORE:*msg_id,// => is supposed to be REMPI_MPI_EVENT_INPUT_IGNORE
+// 						global_test_id);
+//     if (test_event != NULL) {
+// #ifdef REMPI_DBG_REPLAY
+//       REMPI_DBGI(REMPI_DBG_REPLAY, "= Record : (count: %d, flag: %d, rank: %d, with_next: %d, index: %d, msg_id: %d, gid: %d, e: %p) MF: %d",
+//       		 test_event->get_event_counts(),
+//       		 test_event->get_flag(),
+//       		 test_event->get_rank(),
+//       		 test_event->get_with_next(),
+//       		 test_event->get_index(),
+//       		 test_event->get_msg_id(),
+//       		 test_event->get_matching_group_id(),
+// 		 test_event,
+//       		 matching_function_type);
+// #endif
+//     } else {
+//       REMPI_ERR("test_event is NULL");
+//     }
+//     recording_event_list->push(test_event);
+
+//   } else {
+//     flag = 1;
+//     is_with_next = REMPI_MPI_EVENT_WITH_NEXT;
+//     for (int i = 0; i < matched_count; i++) {
+//       int rank = -1;
+//       if (array_of_indices != NULL) {
+// 	/*MF: Some or Any */
+// 	matched_index = array_of_indices[i];
+//       } else {
+// 	/*MF: Single or All */
+// 	matched_index = i;
+//       }
+
+//       // REMPI_DBGI(1, "request_info[%d] = %d", 0, request_info[0]);
+//       // REMPI_DBGI(1, " index: %d", matched_index);
+//       REMPI_DBGI(REMPI_DBG_REPLAY, "matched_count: %d (i: %d)", matched_count, i);
+//       if (i == matched_count - 1) {
+// 	is_with_next = REMPI_MPI_EVENT_NOT_WITH_NEXT;
+//       }
+
+//       if (request_info[matched_index] == REMPI_SEND_REQUEST) {
+// 	rank = tmp_statuses[matched_index].MPI_SOURCE;
+// 	rempi_reqmg_deregister_request(&tmp_requests[matched_index], REMPI_SEND_REQUEST);
+// 	if (msg_id != NULL) msg_id[i] = REMPI_MPI_EVENT_INPUT_IGNORE; /*To distingisu between send or recv event in encoder_cdc */
+//       } else if (request_info[matched_index] == REMPI_RECV_REQUEST) {
+// 	rank = array_of_statuses[i].MPI_SOURCE;
+// 	{
+// 	  rempi_reqmg_recv_args *recv_args;
+// 	  int datatype_size, count;
+// 	  recv_args = rempi_reqmg_get_recv_args(&tmp_requests[matched_index]);
+// 	  PMPI_Type_size(recv_args->datatype, &datatype_size);
+// 	  PMPI_Get_count(&array_of_statuses[i], recv_args->datatype, &count);
+// // #ifdef REMPI_DBG_REPLAY
+// // 	  REMPI_DBGI(REMPI_DBG_REPLAY, "Record: dest_buff: %d", rempi_compute_hash(recv_args->buffer, datatype_size * count));
+// // #endif
+// 	}
+// 	rempi_reqmg_deregister_request(&tmp_requests[matched_index], REMPI_RECV_REQUEST);
+// 	//	REMPI_DBG("update: %p", tmp_requests[matched_index]);
+// 	//	if (request_to_recv_event_umap.find(tmp_requests[matched_index]) != 
+// 	//	    request_to_recv_event_umap.end()) {
+// 	request_to_recv_event_umap.at(tmp_requests[matched_index])->set_rank(rank);
+// 	request_to_recv_event_umap.erase(tmp_requests[matched_index]);
+// 	  //	}
+//       }
+
+//       if (rank >= 0) {
+// 	test_event = rempi_event::create_test_event(1, 
+// 						    flag,
+// 						    rank,
+// 						    is_with_next,
+// 						    matched_index, 
+// 						    // => is supposed to be REMPI_MPI_EVENT_INPUT_IGNORE
+// 						    (msg_id==NULL)? REMPI_MPI_EVENT_INPUT_IGNORE:msg_id[i],
+// 						    global_test_id);
+// 	//	if (msg_id[i] < 10) {REMPI_ERR("clock is wrong: %lu", msg_id[i]);}
+// 	if (test_event != NULL) {
+
+// #ifdef REMPI_DBG_REPLAY
+// 	  REMPI_DBGI(REMPI_DBG_REPLAY, "= Record : (count: %d, flag: %d, rank: %d(tag: %d), with_next: %d, index: %d, msg_id: %d, gid: %d) MF: %d",
+// 	  	     test_event->get_event_counts(),
+// 	  	     test_event->get_flag(),
+// 	  	     test_event->get_rank(),
+// 		     array_of_statuses[i].MPI_TAG,
+// 	  	     test_event->get_with_next(),
+// 	  	     test_event->get_index(),
+// 	  	     test_event->get_msg_id(),
+// 	  	     test_event->get_matching_group_id(),
+// 	  	     matching_function_type);
+// 	  REMPI_DBGI(REMPI_DBG_REPLAY, "matched_count: %d (i: %d)", matched_count, i);
+// #endif
+// 	}
+// 	recording_event_list->push(test_event);
+//       }
+//     }
+//   }
+
+//   update_validation_code(incount, outcount, matched_count, array_of_indices, array_of_statuses, request_info);
+
+//   return ret;
+// }
 #endif
 
 int rempi_recorder::record_pf(int source,

@@ -119,7 +119,8 @@ static int activate_recv(int count, MPI_Datatype datatype, int source, int tag, 
   rempi_msgb_request *msgb_request;
   rempi_reqmg_recv_args *recv_args;
   MPI_Request real_request;
-      
+
+  //  REMPI_DBGI(0, " ==== Activating: source: %d, tag: %d", source, tag);      
   if (matching_set_id == REMPI_REQMG_MATCHING_SET_ID_UNKNOWN && howto_requested == REMPI_MSGB_REQUEST_TYPE_USER_REQUESTED) {
     /* 
        This request will not be never matched (and canceled by MPI_Cancel).
@@ -142,6 +143,7 @@ static int activate_recv(int count, MPI_Datatype datatype, int source, int tag, 
 					matching_set_id);
   msgb_request = new rempi_msgb_request(recv_args, request, howto_requested);
   active_recv_list.push_back(msgb_request);
+  //  REMPI_DBGI(0, " ==== Activated: source: %d, tag: %d", source, tag);
   //  REMPI_DBGI(0, "request: %p (null: %p)", real_request, MPI_REQUEST_NULL);  
 
   return 1;
@@ -176,31 +178,18 @@ static int progress_inactive_recv()
   MPI_Status status;
   int count;
   int is_progressed = 0;
-
+  REMPI_ERR("Erro");
   for (it = inactive_recv_list.begin(); it != inactive_recv_list.end(); it++) {
     msgb_request = *it;
     recv_args = msgb_request->recv_args;
     flag = 0;
 
-
     PMPI_Iprobe(recv_args->source, recv_args->tag, recv_args->comm, &flag, &status);
     if (flag) {
-      //      REMPI_DBG("size: %lu", inactive_recv_list.size());
       PMPI_Get_count(&status, recv_args->datatype, &count);
-#if 0
-      if (recv_args->count == count) {
-	if (recv_args->matching_set_id == REMPI_REQMG_MATCHING_SET_ID_UNKNOWN) REMPI_ERR("ReMPI error ");
-	activate_recv(recv_args->count, recv_args->datatype, recv_args->source, recv_args->tag, recv_args->comm, &msgb_request->app_request, 
-		      recv_args->matching_set_id, REMPI_MSGB_REQUEST_TYPE_REMPI_REQUESTED);
-	is_progressed = 1;
-      }
-#else
-      //      activate_recv(count, recv_args->datatype, recv_args->source, recv_args->tag, recv_args->comm, &msgb_request->app_request, 
-      //      	REMPI_REQMG_MATCHING_SET_ID_UNKNOWN, REMPI_MSGB_REQUEST_TYPE_REMPI_REQUESTED);
       activate_recv(count, recv_args->datatype, recv_args->source, recv_args->tag, recv_args->comm, &msgb_request->app_request, 
       	recv_args->matching_set_id, REMPI_MSGB_REQUEST_TYPE_REMPI_REQUESTED);
       is_progressed = 1;
-#endif
     }
   }
   return is_progressed;
@@ -218,6 +207,7 @@ static int push_to_send_event_queue(int source, size_t clock, int matching_set_i
 					  matching_set_id);
   update_max_recved_clock(source, clock);
   send_event_queue->enqueue_replay(event, matching_set_id);
+  //  REMPI_DBG("send_event_queu: rank: %d, clock: %lu", source, clock);
   return 0;
 }
 
@@ -227,6 +217,8 @@ static int progress_active_recv_in_inactive_unknown_recv(rempi_msgb_request *msg
   rempi_reqmg_recv_args *recv_args_inactive, *recv_args_active;
   list<rempi_msgb_request*>::iterator it, it_end;
   int matched;
+  
+  REMPI_ERR("Erro");
 
   recv_args_active   = msgb_request_active->recv_args;
   if (recv_args_active->matching_set_id == REMPI_REQMG_MATCHING_SET_ID_UNKNOWN) return 0;
@@ -283,6 +275,8 @@ static int progress_active_recv()
       recved_message_source_set.insert(status.MPI_SOURCE);
       if (recv_args->matching_set_id != REMPI_REQMG_MATCHING_SET_ID_UNKNOWN) {
 	push_to_send_event_queue(status.MPI_SOURCE, msgb_request->clock, recv_args->matching_set_id);
+      } else {
+	REMPI_ERR("Unknown matching_set_id");
       }
       is_progressed = 1;
     } else 
@@ -313,9 +307,16 @@ static int probe_msg()
   pred_ranks = rempi_cp_get_pred_ranks(&pred_ranks_length);
   for (int i = 0; i < pred_ranks_length; i++) {
     for (int j = 0; j < comm_length; j ++) {
-      PMPI_Iprobe(pred_ranks[j], MPI_ANY_TAG, comm[j], &flag, &status);
+      //      REMPI_DBG("Probing: rank %d, pred_ranks: %d", pred_ranks[j], pred_ranks_length);
+      PMPI_Iprobe(pred_ranks[i], MPI_ANY_TAG, comm[j], &flag, &status);
       if (flag) { 
-	probed_message_source_set.insert(pred_ranks[j]);
+	int count;
+	int matching_set_id;
+	PMPI_Get_count(&status, MPI_BYTE, &count);
+	matching_set_id = rempi_reqmg_get_matching_set_id(status.MPI_TAG, comm[j]);
+	activate_recv(count, MPI_BYTE, status.MPI_SOURCE, status.MPI_TAG, comm[j], &REMPI_REQUEST_NULL,
+		      matching_set_id, REMPI_MSGB_REQUEST_TYPE_REMPI_REQUESTED);
+	probed_message_source_set.insert(pred_ranks[i]);
       }
     }
   }
@@ -365,10 +366,12 @@ int rempi_msgb_progress_recv()
      if a request is matched, check all requests */
   do {
     is_active_recv_progressed = progress_active_recv();
-    is_inactive_recv_progressed = progress_inactive_recv();
+    //is_inactive_recv_progressed = progress_inactive_recv();
     probe_msg();
-    if (is_active_recv_progressed || is_inactive_recv_progressed) is_progressed = 1;
-  } while(is_active_recv_progressed || is_inactive_recv_progressed);
+    //    if (is_active_recv_progressed || is_inactive_recv_progressed) is_progressed = 1;
+    if (is_active_recv_progressed) is_progressed = 1;
+    //  } while(is_active_recv_progressed || is_inactive_recv_progressed);
+  } while(is_active_recv_progressed);
 
   if (is_progressed) {
     print_recv_list(); 
@@ -433,6 +436,7 @@ int rempi_msgb_recv_msg(void* dest_buffer, int replayed_rank, int requested_tag,
       REMPI_DBGI(REMPI_DBG_REPLAY, "Replay: dest_buff: %d (byte: %d)", rempi_compute_hash(dest_buffer, datatype_size * count), byte);
 #endif
       *replaying_status = inactive_request->status;
+      replaying_status->MPI_ERROR = 0;
       inactive_recv_list.erase(it);
       rempi_free(recv_args->buffer);
       delete recv_args;
