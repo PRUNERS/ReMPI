@@ -197,6 +197,7 @@ bool rempi_encoder_rep::cdc_decode_ordering(rempi_event_list<rempi_event*> *reco
       test_table->ordered_event_list.push_back(event);
       test_table->current_epoch_line_umap[event->get_source()] = event->get_clock();
 #ifdef REMPI_DBG_REPLAY
+
       REMPI_DBGI(REMPI_DBG_REPLAY, "Local_min: <%d, %lu> resv_test_id: %d", 
 	     local_min_id_rank, local_min_id_clock, test_id);
       REMPI_DBGI(REMPI_DBG_REPLAY, "RCQ -> OEL ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): list size: %d (test_id: %d)",
@@ -269,7 +270,6 @@ bool rempi_encoder_rep::cdc_decode_ordering(rempi_event_list<rempi_event*> *reco
     }
 
 
-    
 #ifdef REMPI_DBG_REPLAY
     if (is_ordered_event_list_updated || is_solid_ordered_event_list_updated) {
       REMPI_DBGI(REMPI_DBG_REPLAY, "LIST Queue Update: Local_min (rank: %d, clock: %lu, is_reached: %d): count: %d, test_id: %d",

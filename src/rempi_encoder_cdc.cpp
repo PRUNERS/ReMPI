@@ -424,7 +424,8 @@ void rempi_encoder_cdc::compute_look_ahead_recv_clock(
   for (int i = 0; i < epoch_rank_vec_size; i++) {
     int    tmp_rank  =  test_table->epoch_rank_vec[i];
     size_t tmp_clock =  solid_mc_next_clocks_umap->at(tmp_rank);
-
+    
+    //    REMPI_DBGI(1, "tmp_rank: %d, tmp_clock: %lu (set_id: %d, size: %lu)", tmp_rank, tmp_clock, recv_test_id, epoch_rank_vec_size);
 
     /* =========== added for set_fd_clock_state ============ */
     if (tmp_clock == REMPI_CLOCK_COLLECTIVE_CLOCK) { 
@@ -447,6 +448,7 @@ void rempi_encoder_cdc::compute_look_ahead_recv_clock(
       }
     }
   }
+  REMPI_DBGI(1, "min_rank: %d, min_clock: %lu", *local_min_id_rank, *local_min_id_clock);
 
   return;
 }
@@ -553,12 +555,10 @@ int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *pr
       case REMPI_ENCODER_NO_UPDATE:
 	break;
       case REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE:
-
 	if (solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) < rempi_msgb_get_max_recved_clock(mc_recv_ranks[index])) {
 	  solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) = rempi_msgb_get_max_recved_clock(mc_recv_ranks[index]);
 	  is_updated = 1;
 	}
-
 	break;
       case REMPI_ENCODER_LOOK_AHEAD_CLOCK_UPDATE:
 	is_updated = solid_mc_next_clocks_umap->at(mc_recv_ranks[index]) < rempi_cp_get_gather_clock(mc_recv_ranks[index]);
@@ -571,7 +571,7 @@ int rempi_encoder_cdc::update_local_look_ahead_recv_clock(unordered_set<int> *pr
 
 #ifdef REMPI_DBG_REPLAY
       if (is_updated) {
-	REMPI_DBGI(REMPI_DBG_REPLAY, "LR-Clock: msid: %d", replaying_matching_set_id);
+	REMPI_DBGI(REMPI_DBG_REPLAY, "LR-Clock: msid: %d, replaying dmsid: %d", matching_set_id, replaying_matching_set_id);
 	for (int index = 0; index < mc_length; index++) {
 	  REMPI_DBGI(REMPI_DBG_REPLAY, "  souce %d: LR-clock: %lu (howto: %d, why: %d)", 
 		     mc_recv_ranks[index], solid_mc_next_clocks_umap->at(mc_recv_ranks[index]), howto_update, why[index]);

@@ -99,11 +99,11 @@ int rempi_recorder::rempi_pf(int source,
 		     MPI_Comm comm,
 		     int *flag,
 		     MPI_Status *status,
-		     size_t *msg_id, // or clock                                                                                                                
-		     int prove_function_type)
+		     size_t *msg_id, // or clock                                                                                                         
+		     int probe_function_type)
 {
   int ret;
-  ret = rempi_mpi_pf(source, tag, comm, flag, status, prove_function_type);
+  ret = rempi_mpi_pf(source, tag, comm, flag, status, probe_function_type);
   *msg_id =  REMPI_MPI_EVENT_INPUT_IGNORE;
   return ret;
 }

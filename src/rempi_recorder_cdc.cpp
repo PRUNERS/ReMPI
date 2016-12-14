@@ -165,6 +165,8 @@ int rempi_recorder_cdc::record_isend(mpi_const void *buf,
   int resultlen;
   int matching_set_id;
 
+  if (comm != MPI_COMM_WORLD) REMPI_ERR("ReMPI only supports MPI_COMM_WORLD");
+
 #ifdef REMPI_DBG_REPLAY
   size_t sent_clock;
   rempi_clock_get_local_clock(&sent_clock);
@@ -509,7 +511,11 @@ int rempi_recorder_cdc::record_pf(int source,
   return 0;
 }
 
-
+int rempi_recorder_cdc::replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int comm_id)
+{
+  REMPI_ERR("Probe/Iprobe is not supported yet");
+  return MPI_SUCCESS;
+}
 
 
 int rempi_recorder_cdc::progress_decode()
@@ -537,11 +543,7 @@ int rempi_recorder_cdc::progress_recv_requests(int recv_test_id,
 
 
 
-int rempi_recorder_cdc::replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int comm_id)
-{
-  REMPI_ERR("Probe/Iprobe is not supported yet");
-  return MPI_SUCCESS;
-}
+
 
 
 int rempi_recorder_cdc::pre_process_collective(MPI_Comm comm)

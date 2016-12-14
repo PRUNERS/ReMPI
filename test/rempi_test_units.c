@@ -999,7 +999,6 @@ void rempi_test_late_irecv()
     MPI_Waitall(2, requests, MPI_STATUS_IGNORE);
   }
 
-
   if (my_rank == 0) {
     sleep(1);
     MPI_Recv(&val, 1, MPI_INT, 1, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -1009,6 +1008,27 @@ void rempi_test_late_irecv()
     MPI_Isend(&val, 1, MPI_INT, 0, 3, MPI_COMM_WORLD, &requests[1]);
     MPI_Waitall(2, requests, MPI_STATUS_IGNORE);
   }
+  return;
+
+}
+
+
+void rempi_test_clock_wait()
+{
+  int val = my_rank;
+  MPI_Request request;
+
+  if (my_rank == 2) {
+    MPI_Send(&val, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
+  } else if (my_rank == 1) {
+    MPI_Recv(&val, 1, MPI_INT, 2, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Send(&val, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    MPI_Recv(&val, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  } else if (my_rank == 0) {
+    MPI_Recv(&val, 1, MPI_INT, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Send(&val, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
+  }
+
   return;
 
 }
@@ -1156,6 +1176,15 @@ int main(int argc, char *argv[])
 #if defined(TEST_COMM_DUP)
       if (my_rank == 0) fprintf(stdout, "Start testing late irecv ... \n"); fflush(stdout);
       rempi_test_late_irecv();
+      MPI_Barrier(MPI_COMM_WORLD);
+      if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
+    }
+
+    if (!strcmp(test_name, "clock_wait") || is_all) {
+#if defined(TEST_COMM_DUP)
+      if (my_rank == 0) fprintf(stdout, "Start testing clock wait ... \n"); fflush(stdout);
+      rempi_test_clock_wait();
       MPI_Barrier(MPI_COMM_WORLD);
       if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
 #endif

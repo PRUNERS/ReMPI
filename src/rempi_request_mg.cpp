@@ -268,8 +268,8 @@ static int rempi_reqmg_assign_matching_set_id_to_recv(int matching_set_id, int i
                                                 +---> MPI_MF (matching_set_id = X)
 						
 	  */
-	  REMPI_ERR("matching set id is already assigned for this recv: old matching_set_id: %d new matching_set_id: %d", 
-		    recv_args->matching_set_id, matching_set_id);
+	  // REMPI_ERR("matching set id is already assigned for this recv: old matching_set_id: %d new matching_set_id: %d", 
+	  // 	    recv_args->matching_set_id, matching_set_id);
 	}
       } else {
 	recv_args->matching_set_id = matching_set_id;
@@ -509,6 +509,8 @@ static int rempi_reqmg_get_matching_set_id_3(int *matching_set_id, int *mpi_call
       *matching_set_id = rempi_reqmg_assign_matching_set_id(*mpi_call_id, incount, array_of_requests);
       break;
     }
+    // size_t msg_id =rempi_mpi_get_msg_id(comm, tag)
+    // comm_tag_to_matching_set_id[msg_id] 
 
   } else if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
     *mpi_call_id = -1;
@@ -949,6 +951,8 @@ static void change_matching_set_id(int old_id, int new_id)
   unordered_map<size_t, int>::iterator it     = comm_tag_to_matching_set_id.begin();
   unordered_map<size_t, int>::iterator it_end = comm_tag_to_matching_set_id.end();
   
+  REMPI_ERR("matching_set_id assigment and (tag, comm) are inconsistent");
+  
   for (; it != it_end; it++) {
     old_set_id = it->second;
     if (old_id == old_set_id) {
@@ -1002,7 +1006,6 @@ int rempi_reqmg_get_matching_set_id_map(size_t **msg_ids, int **matching_set_ids
     assign_matching_set_id_to_msg_id(mpi_call_id, matching_set_id);
   }
 
-
   unordered_map<size_t, int>::iterator it_2     = comm_tag_to_matching_set_id.begin();
   unordered_map<size_t, int>::iterator it_end_2 = comm_tag_to_matching_set_id.end();
   *length = comm_tag_to_matching_set_id.size();
@@ -1013,7 +1016,7 @@ int rempi_reqmg_get_matching_set_id_map(size_t **msg_ids, int **matching_set_ids
     int set_id = it_2->second;
      (*msg_ids)[index]     = msg_id;
      (*matching_set_ids)[index] = set_id;
-     //     REMPI_DBG("msg_id:%p -> set_id:%d", msg_id, set_id);
+     REMPI_DBG("msg_id:%p -> set_id:%d", msg_id, set_id);
     index++;
   }  
   
@@ -1061,7 +1064,7 @@ int rempi_reqmg_get_send_request_dest(MPI_Request *request)
 int rempi_reqmg_set_matching_set_id_map(size_t *msg_ids, int *matching_set_ids, int length)
 {
   for (int i = 0; i < length; i++) {
-    //    REMPI_DBG("msg_id: %p, matching_set_id: %d", msg_ids[i], matching_set_ids[i]);
+    REMPI_DBG("msg_id: %p, matching_set_id: %d", msg_ids[i], matching_set_ids[i]);
     comm_tag_to_matching_set_id[msg_ids[i]] = matching_set_ids[i];
   }
   return 0;

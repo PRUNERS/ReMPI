@@ -12,7 +12,6 @@ mode=$1
 num_procs=$2
 
 dir=${prefix}/
-mkdir -p ${dir}
 #io_watchdog="--io-watchdog"
 #totalview=totalview
 #librempi=/g/g90/sato5/repo/rempi/install/lib/librempi.so
@@ -20,12 +19,74 @@ mkdir -p ${dir}
 #memcheck=memcheck-para
 
 
-# ===== Enzo ============
-bin="./enzo ../run/GravitySolver/GravityTest/GravityTest.enzo"
-cd /g/g90/sato5/Benchmarks/external/enzo-dev/bin/
+# =========== miniFE ============
+cd /g/g90/sato5/Benchmarks/external/miniFE_openmp-2.0-rc3/src/
+bin="./miniFE.x -nx 264 -ny 256 -nz 256"
+#REMPI_ENCODE=0 \
+#LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempi.so \
 REMPI_ENCODE=7 \
 LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
-REMPI_MODE=${mode} REMPI_DIR=${prefix} srun -n ${num_procs} ${bin}
+REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${bin}
+
+cd -
+exit
+
+
+# =========== Unit test ============
+#bin="./rempi_test_units late_irecv"
+#bin="./rempi_test_units matching"
+#bin="./rempi_test_units probe"
+bin="./rempi_test_units clock_wait"
+REMPI_ENCODE=7 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${memcheck} ${bin}
+exit
+
+
+
+
+
+
+
+
+# ===== nekbone ==========
+cd /g/g90/sato5/Benchmarks/external/nekbone-2.3.4/test/example1/
+bin="./nekbone"
+#REMPI_ENCODE=7 \
+#LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_ENCODE=0 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempi.so \
+REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${bin};
+cd -
+exit
+
+# ===== Graph500 ==========
+ cd ~/Benchmarks/external/graph500-mpi-tuned-2d/mpi/
+bin="./graph500_mpi_custom_${num_procs} 32 2"
+#REMPI_ENCODE=7 \
+#LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+#REMPI_ENCODE=0 \
+#LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempi.so \
+REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${bin};
+cd -
+exit
+
+
+# ===== Hash (All-to-All P2P communication) ============
+cd /g/g90/sato5/Benchmarks/external/kmi_hash/tests/
+bin="./BENCH_QUERY"
+REMPI_ENCODE=7 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${bin}
+cd -
+exit
+
+# ===== Enzo ============
+cd /g/g90/sato5/Benchmarks/external/enzo-dev/bin/
+bin="./enzo ../run/GravitySolver/GravityTest/GravityTest.enzo"
+REMPI_ENCODE=7 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${bin}
 cd -
 exit
 
@@ -44,32 +105,6 @@ REMPI_MODE=${mode} REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 
 #srun ${io_watchdog} -n ${num_procs} ${bin}
 cd -
 exit
-
-
-#bin="./rempi_test_units late_irecv"
-bin="./rempi_test_units matching"
-REMPI_ENCODE=7 \
-LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
-REMPI_MODE=${mode} REMPI_DIR=${prefix} srun -n ${num_procs} ${memcheck} ${bin}
-exit
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # ========== NPB LU ==============

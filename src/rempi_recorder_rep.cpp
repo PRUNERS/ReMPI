@@ -185,11 +185,11 @@ int rempi_recorder_rep::is_behind_time(int matching_set_id)
 
 
   //  if (compare > 0 || look_ahead_recv_clock != REMPI_CLOCK_COLLECTIVE_CLOCK) {
-  if (compare > 0 || look_ahead_recv_clock == REMPI_CLOCK_COLLECTIVE_CLOCK) {
+  if (compare >= 0 || look_ahead_recv_clock == REMPI_CLOCK_COLLECTIVE_CLOCK) {
     return 1;
   } else if (compare == 0) {
     REMPI_ERR("May receve same clock (clock:%lu, rank:%d, LA_clock: %lu, LA_rank: %d)", 
-	      local_clock, local_rank, look_ahead_recv_clock, look_ahead_recv_rank);
+     	      local_clock, local_rank, look_ahead_recv_clock, look_ahead_recv_rank);
   }
 
   return 0;
@@ -411,7 +411,6 @@ int rempi_recorder_rep::dequeue_replay_event_set(int incount, MPI_Request array_
   int is_completed;
 
   this->dequeue_matched_events(matching_set_id);
-
   howto_complete = COMPLETE_MF_SEND;
   switch(howto_complete) {
   case COMPLETE_MF_SEND:
@@ -429,6 +428,52 @@ int rempi_recorder_rep::dequeue_replay_event_set(int incount, MPI_Request array_
 
 
   return is_completed;
+}
+
+
+int rempi_recorder_rep::record_pf(int source,
+	      int tag,
+	      MPI_Comm comm,
+	      int *flag,
+	      MPI_Status *status,
+	      int probe_function_type)
+{
+  int ret;
+  ret = rempi_mpi_pf(source, tag, comm, flag, status, probe_function_type);
+  return ret;
+}
+
+int rempi_recorder_rep::replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int probe_function_type)
+{
+
+  int howto_complete;
+  rempi_event *handle_event = NULL;
+  int is_completed;
+
+
+  // this->dequeue_matched_events(matching_set_id);
+  
+  // switch(probe_function_type) {
+  // case REMPI_MPI_IPROBE:
+  //   is_completed = complete_mf_unmatched_recv(incount, array_of_requests, request_info, matching_set_id, matching_function_type, replaying_event_vec);
+  //   if (is_completed) break;
+  // case REMPI_MPI_PROBE:
+
+  //   break;
+  // default:
+  //   REMPI_ERR("Unknow event handling");
+  // }
+
+  
+  return is_completed;
+
+  int tmp_flag;
+  do {
+    rempi_msgb_probe_msg(source, tag, comm, &tmp_flag, status);
+    REMPI_DBGI(0, "probe_type: %d, flag: %d", probe_function_type, tmp_flag);
+  } while (probe_function_type == REMPI_MPI_PROBE && tmp_flag == 0);
+  if (probe_function_type == REMPI_MPI_IPROBE) *flag = tmp_flag;
+  return MPI_SUCCESS;
 }
 
 

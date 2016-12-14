@@ -385,6 +385,15 @@ class rempi_recorder_rep : public rempi_recorder_cdc
   int dequeue_replay_event_set(int incount, MPI_Request array_of_requests[], int *request_info, int matching_set_id, int matching_function_type,
                                vector<rempi_event*> &replaying_event_vec);
 
+  int record_pf(int source,
+		int tag,
+		MPI_Comm comm,
+		int *flag,
+		MPI_Status *status,
+		int prove_function_type);
+
+  int replay_pf(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status, int comm_id);
+
 
  public:
   virtual void init(int rank);
