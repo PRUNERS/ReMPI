@@ -448,7 +448,9 @@ void rempi_encoder_cdc::compute_look_ahead_recv_clock(
       }
     }
   }
+
   //  REMPI_DBGI(1, "min_rank: %d, min_clock: %lu", *local_min_id_rank, *local_min_id_clock);
+
 
   return;
 }
