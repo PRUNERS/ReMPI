@@ -19,6 +19,15 @@ dir=${prefix}/
 #memcheck=memcheck-para
 
 
+# ===== Enzo ============
+cd /g/g90/sato5/Benchmarks/external/enzo-dev/bin/
+bin="./enzo ../run/GravitySolver/GravityTest/GravityTest.enzo"
+REMPI_ENCODE=7 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${bin}
+cd -
+exit
+
 # =========== miniFE ============
 cd /g/g90/sato5/Benchmarks/external/miniFE_openmp-2.0-rc3/src/
 bin="./miniFE.x -nx 264 -ny 256 -nz 256"
@@ -27,7 +36,6 @@ bin="./miniFE.x -nx 264 -ny 256 -nz 256"
 REMPI_ENCODE=7 \
 LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
 REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${bin}
-
 cd -
 exit
 
@@ -41,6 +49,11 @@ REMPI_ENCODE=7 \
 LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
 REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${memcheck} ${bin}
 exit
+
+
+
+
+
 
 
 
@@ -81,14 +94,7 @@ REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${bin}
 cd -
 exit
 
-# ===== Enzo ============
-cd /g/g90/sato5/Benchmarks/external/enzo-dev/bin/
-bin="./enzo ../run/GravitySolver/GravityTest/GravityTest.enzo"
-REMPI_ENCODE=7 \
-LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
-REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${bin}
-cd -
-exit
+
 
 
 # ===== MCB test ========

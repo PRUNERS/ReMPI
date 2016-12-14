@@ -116,10 +116,10 @@ static void add_comms_and_tags_to_mpi_call_id(int mpi_call_id, MPI_Comm comm, in
 }
 
 
-static int get_matching_set_id_from(int tag, MPI_Comm comm, int incount, MPI_Request array_of_requests[], int mpi_call_type)
+static int get_matching_set_id_from(int tag, MPI_Comm comm, int incount, MPI_Request array_of_requests[], int mpi_call_type, int *matching_set_id)
 {
   size_t msg_id; 
-  int  matching_set_id , matching_set_id_tmp;
+  int matching_set_id_tmp;
   int is_set = 0;
   int requested_rank, requested_tag;
   MPI_Comm requested_comm;
@@ -129,9 +129,9 @@ static int get_matching_set_id_from(int tag, MPI_Comm comm, int incount, MPI_Req
   case REMPI_REQMG_MPI_CALL_TYPE_RECV:
     msg_id = rempi_mpi_get_msg_id(comm, tag);  
     if (comm_tag_to_matching_set_id.find(msg_id) == comm_tag_to_matching_set_id.end()) {
-      REMPI_ERR("No such sid: (tag: %d, comm: %p): %p", tag, comm, msg_id);
+      return -1;
     }
-    matching_set_id = comm_tag_to_matching_set_id.at(msg_id);
+    *matching_set_id = comm_tag_to_matching_set_id.at(msg_id);
     break;
   case REMPI_REQMG_MPI_CALL_TYPE_MF:
     for (int i = 0; i < incount; i++) {
@@ -139,25 +139,25 @@ static int get_matching_set_id_from(int tag, MPI_Comm comm, int incount, MPI_Req
         rempi_reqmg_get_matching_id(&array_of_requests[i], &requested_rank, &requested_tag, &requested_comm);
 	msg_id = rempi_mpi_get_msg_id(requested_comm, requested_tag);  
 	if (comm_tag_to_matching_set_id.find(msg_id) == comm_tag_to_matching_set_id.end()) {
-	  REMPI_ERR("No such sid: (tag: %d, comm: %p): %p", tag, comm, msg_id);
+	  return -1;
 	}
 	matching_set_id_tmp = comm_tag_to_matching_set_id.at(msg_id);
-	if (is_set && matching_set_id_tmp != matching_set_id) {
+	if (is_set && matching_set_id_tmp != *matching_set_id) {
 	  REMPI_ERR("Inconsistent matching_set_id");
 	}
-	matching_set_id = matching_set_id_tmp;
+	*matching_set_id = matching_set_id_tmp;
 	is_set = 1;
       }
     }
     break;
   case REMPI_REQMG_MPI_CALL_TYPE_SEND:
-    matching_set_id = REMPI_REQMG_MATCHING_SET_ID_UNKNOWN;
+    *matching_set_id = REMPI_REQMG_MATCHING_SET_ID_UNKNOWN;
     break;
   default:
     REMPI_ERR("No such mpi_call_type: %d", mpi_call_type);
     break;
   }
-  return matching_set_id;
+  return 1;
 }
 
 
@@ -460,10 +460,29 @@ static int rempi_reqmg_get_matching_set_id_2(int *matching_set_id, int *mpi_call
   return 0;
 }
 
+static void map_comm_and_tag_to_matching_set_id(int incount, MPI_Request array_of_requests[], int matching_set_id)
+{
+  int tag;
+  MPI_Comm comm;
+  size_t msg_id;
+  for (int i = 0; i < incount; i++) {
+    rempi_reqmg_get_matching_id(&array_of_requests[i], NULL, &tag, &comm);
+    msg_id = rempi_mpi_get_msg_id(comm, tag);
+    if (comm_tag_to_matching_set_id.find(msg_id) != comm_tag_to_matching_set_id.end()) {
+      if (comm_tag_to_matching_set_id.at(msg_id) != matching_set_id) {
+	REMPI_ERR("Inconsistent matching_set_id assignment");
+      }
+    } else {
+      comm_tag_to_matching_set_id[msg_id] = matching_set_id;
+    }
+  }
+}
+
 static int rempi_reqmg_get_matching_set_id_3(int *matching_set_id, int *mpi_call_id, int mpi_call_type, int source, int tag, MPI_Comm comm, int incount, MPI_Request array_of_requests[])
 {
   int request_type;
-
+  size_t msg_id;
+  int matching_set_id_exist;
 
   if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     *mpi_call_id = get_mpi_call_id();
@@ -506,7 +525,11 @@ static int rempi_reqmg_get_matching_set_id_3(int *matching_set_id, int *mpi_call
       *matching_set_id = REMPI_REQMG_MATCHING_SET_ID_UNKNOWN; // not assigned yet //next_matching_set_id++; /* Assign new id */
       break;
     case REMPI_REQMG_MPI_CALL_TYPE_MF:
-      *matching_set_id = rempi_reqmg_assign_matching_set_id(*mpi_call_id, incount, array_of_requests);
+      matching_set_id_exist = get_matching_set_id_from(tag, comm, incount, array_of_requests, mpi_call_type, matching_set_id);
+      if (matching_set_id_exist < 0) {
+	*matching_set_id = rempi_reqmg_assign_matching_set_id(*mpi_call_id, incount, array_of_requests);
+	map_comm_and_tag_to_matching_set_id(incount, array_of_requests, *matching_set_id);
+      }
       break;
     }
     // size_t msg_id =rempi_mpi_get_msg_id(comm, tag)
@@ -514,7 +537,8 @@ static int rempi_reqmg_get_matching_set_id_3(int *matching_set_id, int *mpi_call
 
   } else if (rempi_mode == REMPI_ENV_REMPI_MODE_REPLAY) {
     *mpi_call_id = -1;
-    *matching_set_id = get_matching_set_id_from(tag, comm, incount, array_of_requests, mpi_call_type);
+    matching_set_id_exist = get_matching_set_id_from(tag, comm, incount, array_of_requests, mpi_call_type, matching_set_id);
+    if (matching_set_id_exist < 0) REMPI_ERR("No such matching set id");
   } else {
     REMPI_ERR("No such REMPI_MODE: %d", rempi_mode);
   }
@@ -901,9 +925,9 @@ int rempi_reqmg_get_matching_id(MPI_Request *request, int *rank, int *tag, MPI_C
   if(request_to_recv_args_umap.find(*request) != 
      request_to_recv_args_umap.end()) {
     recv_args = request_to_recv_args_umap.at(*request);
-    *rank = recv_args->source;
-    *tag  = recv_args->tag;
-    *comm = recv_args->comm;
+    if (rank != NULL) *rank = recv_args->source;
+    if (tag  != NULL) *tag  = recv_args->tag;
+    if (comm != NULL) *comm = recv_args->comm;
   } else {
     REMPI_ERR("No such requst: %p", *request);
   }
