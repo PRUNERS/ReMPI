@@ -477,10 +477,18 @@ int rempi_encoder_cdc::howto_update_look_ahead_recv_clock(int recv_rank, int mat
     */
     howto_update = REMPI_ENCODER_NO_UPDATE;
     *why = 0;
-  } else if (replaying_matching_set_id != matching_set_id) {
-    howto_update = REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE;
-    *why = 1;
-  } else if (rempi_msgb_has_recved_msg(recv_rank)) {
+  } else 
+
+    /* 
+       Becuase now we can deterministically determine matching_set_id from (comm, tag),
+       so this routine is not needed anymore, so commenting out.
+    */
+    // if (replaying_matching_set_id != matching_set_id) {
+    // howto_update = REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE;
+    // *why = 1;
+    // } else 
+
+      if (rempi_msgb_has_recved_msg(recv_rank)) {
     howto_update = REMPI_ENCODER_LAST_RECV_CLOCK_UPDATE;
     *why = 2;
   } else if (rempi_cp_has_in_flight_msgs(recv_rank)) {
@@ -1262,7 +1270,7 @@ void rempi_encoder_cdc::decode()
   // }
 
   
-//  input_format->debug_print();
+  //  input_format->debug_print();
 
   return;
 }

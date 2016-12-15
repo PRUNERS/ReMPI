@@ -643,7 +643,6 @@ static int rempi_reqmg_register_recv_request(void *buf, int count, MPI_Datatype 
   //pooled_buffer = rempi_malloc(size * count);
   //  pooled_request = (MPI_Request*)rempi_malloc(sizeof(MPI_Request));
   //  ret = PMPI_Irecv(pooled_buffer, count, datatype, source, tag, comm, pooled_request);
-  
   //  posted_recv_requests.push_back(new rempi_reqmg_recv_args(pooled_buffer, count, datatype, source, tag, comm, *pooled_request, matching_set_id));
   
   return ret;
@@ -671,7 +670,6 @@ static int rempi_reqmg_deregister_recv_request(MPI_Request *request)
 {
   
   int is_erased;
-  //  REMPI_DBGI(0, "dereg request: %p", *request);
 
   is_erased = request_to_recv_args_umap.erase(*request);
   if (is_erased != 1) {
@@ -690,7 +688,7 @@ static int rempi_reqmg_deregister_send_request(MPI_Request *request)
   return 1;
 }
 
-static int rempi_reqmg_is_record_and_replay(int length, int *request_info, int send_count, int recv_count, int null_count, int ignore_count)
+static int rempi_reqmg_is_record_and_replay(int length, MPI_Request array_of_requests[], int *request_info, int send_count, int recv_count, int null_count, int ignore_count, int matching_function_type)
 {
   //  return send_count + recv_count + null_count > 0;
 #ifdef REMPI_LITE
@@ -705,24 +703,47 @@ static int rempi_reqmg_is_record_and_replay(int length, int *request_info, int s
 #else
   if (rempi_encode == REMPI_ENV_REMPI_ENCODE_CDC) {
     if (send_count > 0) return 0;
+
   } else if (rempi_encode == REMPI_ENV_REMPI_ENCODE_REP){
     /* is_record_and_replay must be consistent between record and replay 
         for consistent mpi_call_id (thereby matching_set_id) assignment
     */
 
+    if (send_count > 0 && recv_count > 0) REMPI_ERR("send_count > 0 and recv_count > 0");
     // if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     //   if (send_count > 0) return 0;
     // } else {
 
-      if (ignore_count > 0) {
-        if (send_count + recv_count + null_count == 0) {
-      	return 0;
-        } else {
+    if (ignore_count > 0) {
+      if (send_count + recv_count + null_count == 0) {
+	return 0;
+      } else {
       	REMPI_ERR("Ignore requests and send/recv requests are tested by a singe MF: (%d %d %d %d)",
       		  send_count, recv_count, null_count, ignore_count);
-        }
       }
-      //         }
+    }
+    
+
+    
+#if 0
+    int is_deterministic = 1;
+    for (int i = 0; i < length; i++) {
+      int requested_rank;
+      if (request_info[i] == REMPI_RECV_REQUEST) {
+	rempi_reqmg_get_matching_id(&array_of_requests[i], &requested_rank, NULL, NULL);
+      } else {
+	requested_rank = 0;
+      }
+      if (requested_rank != MPI_ANY_SOURCE && 
+	  (matching_function_type == REMPI_MPI_WAIT || matching_function_type == REMPI_MPI_WAITALL)) {
+      } else {
+	is_deterministic = 0;
+      }
+    }
+    if (is_deterministic) return 0;
+#endif
+    
+
   }
 #endif
   return 1;
@@ -809,7 +830,7 @@ int rempi_reqmg_get_recv_request_count(int incount, MPI_Request *requests)
   return count;
 }
 
-void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendcount, int *recvcount, int *nullcount, int *request_info, int *is_record_and_replay, int *matching_set_id)
+void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendcount, int *recvcount, int *nullcount, int *request_info, int *is_record_and_replay, int *matching_set_id, int matching_function_type)
 {
   unordered_map<MPI_Request, rempi_reqmg_send_args*>::iterator send_endit = request_to_send_id_umap.end();
   unordered_map<MPI_Request, rempi_reqmg_recv_args*>::iterator recv_endit = request_to_recv_args_umap.end();
@@ -849,14 +870,14 @@ void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendc
     //    REMPI_DBG("request: %p index: %d, info: %d", requests[i], i, request_info[i]);
   }
   REMPI_ASSERT(incount == *sendcount + *recvcount + *nullcount + ignore);
-  *is_record_and_replay = rempi_reqmg_is_record_and_replay(incount, request_info, *sendcount, *recvcount, *nullcount, ignore);
+  *is_record_and_replay = rempi_reqmg_is_record_and_replay(incount, requests, request_info, *sendcount, *recvcount, *nullcount, ignore, matching_function_type);
 
   *matching_set_id = REMPI_REQMG_MATCHING_SET_ID_UNKNOWN;
 
   if (*is_record_and_replay) {
     rempi_reqmg_assign_and_get_matching_set_id(matching_set_id, &mpi_call_id, REMPI_REQMG_MPI_CALL_TYPE_MF, MPI_ANY_SOURCE, MPI_ANY_TAG, NULL, incount, requests);
-    //    REMPI_DBGI(1, "call_id: %d to set_id: %d", mpi_call_id, *matching_set_id);
   }
+
   //  *matching_set_id = rempi_reqmg_get_test_id(requests, incount);
 
   //  REMPI_DBGI(1, "incount:%d, sendcount:%d recvcount:%d nullcount:%d igncount:%d record:%d", incount, *sendcount, *recvcount, *nullcount, ignore, *is_record_and_replay)
@@ -1040,7 +1061,6 @@ int rempi_reqmg_get_matching_set_id_map(size_t **msg_ids, int **matching_set_ids
     int set_id = it_2->second;
      (*msg_ids)[index]     = msg_id;
      (*matching_set_ids)[index] = set_id;
-     REMPI_DBG("msg_id:%p -> set_id:%d", msg_id, set_id);
     index++;
   }  
   

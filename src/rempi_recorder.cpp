@@ -443,12 +443,10 @@ int rempi_recorder::record_mf(
     REMPI_ERR("incount: %d is larger than buffer", incount);
   }
   
-  rempi_reqmg_get_request_info(incount, array_of_requests, &sendcount, &recvcount, &nullcount, request_info, &is_record_and_replay, &global_test_id);
+  rempi_reqmg_get_request_info(incount, array_of_requests, &sendcount, &recvcount, &nullcount, request_info, &is_record_and_replay, &global_test_id, matching_function_type);
   if (is_record_and_replay) {
     rempi_reqmg_store_send_statuses(incount, array_of_requests, request_info, tmp_statuses);
   }
-  
-
 
   for (int i = 0; i < incount; i++) tmp_requests[i] = array_of_requests[i];
 
@@ -465,6 +463,7 @@ int rempi_recorder::record_mf(
     for (int i = 0; i < matched_count; i++) {
       matched_index = (array_of_indices==NULL)? i:array_of_indices[i];
       rempi_reqmg_deregister_request(&tmp_requests[matched_index], request_info[matched_index]);
+      request_to_recv_event_umap.erase(tmp_requests[matched_index]);
     }
 #ifdef REMPI_DBG_REPLAY
     //    REMPI_DBGI(REMPI_DBG_REPLAY, "  = Record: Skip: ");
@@ -984,7 +983,7 @@ int rempi_recorder::replay_mf(
   if (incount > PRE_ALLOCATED_REQUEST_LENGTH) {
     REMPI_ERR("incount: %d is larger than buffer", incount);
   }  
-  rempi_reqmg_get_request_info(incount, array_of_requests, &sendcount, &recvcount, &nullcount, request_info, &is_record_and_replay, &matching_set_id);
+  rempi_reqmg_get_request_info(incount, array_of_requests, &sendcount, &recvcount, &nullcount, request_info, &is_record_and_replay, &matching_set_id, matching_function_type);
 
   if (is_record_and_replay == 0 || incount == 0 || incount == nullcount) {
     /*this mf function is not replayed*/

@@ -18,7 +18,7 @@
 #define REMPI_NULL_REQUEST (153)
 #define REMPI_IGNR_REQUEST (154)
 
-#define REMPI_REQMG_MATCHING_SET_ID_UNKNOWN   (-1)
+#define REMPI_REQMG_MATCHING_SET_ID_UNKNOWN   (-2)
 #define REMPI_REQMG_MPI_CALL_ID_UNKNOWN   (-1)
 
 using namespace std;
@@ -147,7 +147,7 @@ int rempi_reqmg_progress_recv(int matching_set_id, int incount, MPI_Request arra
 int rempi_reqmg_get_test_id(MPI_Request *request, int count);
 
 /* */
-void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendcount, int *recvcount, int *nullcount, int *request_info, int *is_record_and_replay, int *matching_set_id);
+void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendcount, int *recvcount, int *nullcount, int *request_info, int *is_record_and_replay, int *matching_set_id, int matching_functioln_type);
 void rempi_reqmg_get_request_type(MPI_Request *request, int *request_type);
 void rempi_reqmg_store_send_statuses(int incount, MPI_Request *requests, int *request_info, MPI_Status *statuses);
 

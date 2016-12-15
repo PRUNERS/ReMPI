@@ -166,6 +166,26 @@ void rempi_encoder_rep::compress_matched_events(rempi_encoder_input_format_test_
 
 
 
+void rempi_encoder_rep::update_local_look_ahead_send_clock(
+                                                           int replaying_event_type,
+                                                           int matching_set_id)
+{
+  size_t next_clock;
+  if (replaying_event_type == REMPI_ENCODER_REPLAYING_TYPE_RECV) {
+    rempi_clock_get_local_clock(&next_clock);
+  } else if (replaying_event_type == REMPI_ENCODER_REPLAYING_TYPE_ANY){
+    rempi_clock_get_local_clock(&next_clock);
+  } else {
+    REMPI_ERR("Unknow replaying_event_type: %d", replaying_event_type);
+  }
+  if (rempi_cp_get_scatter_clock() < next_clock) {
+    rempi_cp_set_scatter_clock(next_clock);
+  }
+  
+  return;
+}
+
+
 
 
 void rempi_encoder_rep::add_to_ordered_list(list<rempi_event*> *event_list)
@@ -197,7 +217,6 @@ bool rempi_encoder_rep::cdc_decode_ordering(rempi_event_list<rempi_event*> *reco
       test_table->ordered_event_list.push_back(event);
       test_table->current_epoch_line_umap[event->get_source()] = event->get_clock();
 #ifdef REMPI_DBG_REPLAY
-
       REMPI_DBGI(REMPI_DBG_REPLAY, "Local_min: <%d, %lu> resv_test_id: %d", 
 	     local_min_id_rank, local_min_id_clock, test_id);
       REMPI_DBGI(REMPI_DBG_REPLAY, "RCQ -> OEL ; (count: %d, with_next: %d, flag: %d, source: %d, clock: %d): list size: %d (test_id: %d)",
