@@ -415,8 +415,12 @@ int rempi_msgb_recv_msg(void* dest_buffer, int replayed_rank, int requested_tag,
   for (it = inactive_recv_list.begin(); it != inactive_recv_list.end(); it++) {
     inactive_request = *it;
     recv_args = inactive_request->recv_args;
+    // REMPI_DBGI(4, "RecvBF: replaying rank: %d, replaying tag: %d, replaying clock: %lu, replaying msid: %d, "
+    // 	      "inactive request rank: %d, inactive request tag: %d, inactive request clock: %lu, inactive request msid: %d",
+    // 	      replayed_rank, requested_tag, clock, matching_set_id, 
+    // 	      inactive_request->status.MPI_SOURCE, inactive_request->status.MPI_TAG, inactive_request->clock, recv_args->matching_set_id);
 #ifdef REMPI_DBG_REPLAY
-    // REMPI_DBGI(REMPI_DBG_REPLAY, "recv: replaying rank: %d, replaying tag: %d, replaying clock: %lu, replaying msid: %d, "
+    // REMPI_DBGI(REMPI_DBG_REPLAY, "Recv: replaying rank: %d, replaying tag: %d, replaying clock: %lu, replaying msid: %d, "
     // 	      "inactive request rank: %d, inactive request tag: %d, inactive request clock: %lu, inactive request msid: %d",
     // 	      replayed_rank, requested_tag, clock, matching_set_id, 
     // 	      inactive_request->status.MPI_SOURCE, inactive_request->status.MPI_TAG, inactive_request->clock, recv_args->matching_set_id);

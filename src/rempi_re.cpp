@@ -65,7 +65,7 @@ int rempi_re::re_init(int *argc, char ***argv, int fortran_init)
     //TODO: Check if this is same run as the last recording run
     recorder->replay_init(argc, argv, my_rank);
   }
-  return ret;
+  return MPI_SUCCESS;
 }
 
 int rempi_re::re_init_thread(
@@ -88,7 +88,7 @@ int rempi_re::re_init_thread(
     //TODO: Check if this is same run as the last recording run
     recorder->replay_init(argc, argv, my_rank);
   }
-  return ret;
+  return MPI_SUCCESS;
 }
 
 
@@ -117,7 +117,7 @@ int rempi_re::re_isend(
     recorder->replay_isend(buf, count, datatype, dest, tag, comm, request, send_function_type);
   }
 
-  return ret;
+  return MPI_SUCCESS;
 }
 
 
@@ -146,7 +146,7 @@ int rempi_re::re_irecv(
     ret = recorder->replay_irecv(buf, count, datatype, source, tag, 0, comm, request);
   }
 
-  return ret;
+  return MPI_SUCCESS;
 }
 
 
@@ -189,7 +189,7 @@ int rempi_re::re_test(
   print_outputs(1, NULL, status);
   if (status_flag) rempi_status_free(status);
 
-  return ret;
+  return MPI_SUCCESS;
 }
 
 int rempi_re::re_testany(int count, MPI_Request array_of_requests[],
@@ -234,7 +234,7 @@ int rempi_re::re_testsome(
   print_outputs(*outcount, array_of_indices, array_of_statuses);
   if (status_flag) rempi_status_free(array_of_statuses);
 
-  return ret;
+  return MPI_SUCCESS;
 }
 
 
@@ -260,7 +260,7 @@ int rempi_re::re_testall(int count, MPI_Request array_of_requests[],
   }
   if (status_flag) rempi_status_free(array_of_statuses);
 
-  return ret;
+  return MPI_SUCCESS;
 }
 
 int rempi_re::re_wait(
@@ -280,7 +280,7 @@ int rempi_re::re_wait(
 
   print_outputs(1, NULL, status);
   if (status_flag) rempi_status_free(status);
-  return ret;
+  return MPI_SUCCESS;
 }
  
   
@@ -301,7 +301,7 @@ int rempi_re::re_waitany(
 
   print_outputs(1, index, status);
   if (status_flag) rempi_status_free(status);
-  return ret;
+  return MPI_SUCCESS;
 }
   
 int rempi_re::re_waitsome(int incount, MPI_Request array_of_requests[],
@@ -321,7 +321,7 @@ int rempi_re::re_waitsome(int incount, MPI_Request array_of_requests[],
 
   print_outputs(*outcount, array_of_indices, array_of_statuses);
   if (status_flag) rempi_status_free(array_of_statuses);
-  return ret;
+  return MPI_SUCCESS;
 }
   
 int rempi_re::re_waitall(
@@ -343,7 +343,7 @@ int rempi_re::re_waitall(
   print_outputs(incount, NULL, array_of_statuses);
 
   if (status_flag) rempi_status_free(array_of_statuses);
-  return ret;
+  return MPI_SUCCESS;
 }
 
 
@@ -362,7 +362,7 @@ int rempi_re::re_probe(int source, int tag, MPI_Comm comm, MPI_Status *status)
     ret = recorder->replay_pf(source, tag, comm, NULL, status, REMPI_MPI_PROBE);
   }
   if (status_flag) rempi_status_free(status);
-  return ret;
+  return MPI_SUCCESS;
 }
 
 int rempi_re::re_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status)
@@ -380,7 +380,7 @@ int rempi_re::re_iprobe(int source, int tag, MPI_Comm comm, int *flag, MPI_Statu
   }
   if (status_flag) rempi_status_free(status);
 
-  return ret;
+  return MPI_SUCCESS;
 }
 
 
@@ -401,7 +401,7 @@ int rempi_re::re_cancel(MPI_Request *request)
 #ifdef REMPI_DBG_REPLAY
   REMPI_DBGI(REMPI_DBG_REPLAY, "Record/Replay canceled");
 #endif
-  return ret;
+  return MPI_SUCCESS;
 }
 
 int rempi_re::re_request_free(MPI_Request *request)
@@ -418,7 +418,7 @@ int rempi_re::re_request_free(MPI_Request *request)
   } else {
     ret = recorder->replay_request_free(request);
   }
-  return ret;
+  return MPI_SUCCESS;
 }
 
 
@@ -492,7 +492,7 @@ int rempi_re::re_allreduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Da
   recorder->pre_process_collective(arg_5);
   ret = PMPI_Allreduce(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
   recorder->post_process_collective();
-  return ret;  
+  return ret;
 }
 
 int rempi_re::re_reduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, int arg_5, MPI_Comm arg_6)

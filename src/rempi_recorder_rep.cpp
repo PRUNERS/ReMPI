@@ -294,6 +294,7 @@ int rempi_recorder_rep::get_mf_matched_index(int incount, MPI_Request array_of_r
   return matched_index;
 }
 
+#if 1
 int rempi_recorder_rep::complete_mf_matched_recv_single(int incount, MPI_Request array_of_requests[], int *request_info,
 				    int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec)
 {
@@ -304,6 +305,7 @@ int rempi_recorder_rep::complete_mf_matched_recv_single(int incount, MPI_Request
   list<rempi_event*> *matched_recv_event_list;
   rempi_event *next_matched_event;
   int matched_index;
+  list<rempi_event*>::iterator it, it_end;
 
   matched_recv_event_list = matched_recv_event_list_umap.at(matching_set_id);
 
@@ -314,32 +316,89 @@ int rempi_recorder_rep::complete_mf_matched_recv_single(int incount, MPI_Request
 
   if (matched_recv_event_list->size() > 0) {
     rempi_clock_get_local_clock(&local_clock);  
-    next_matched_event = matched_recv_event_list->front();
-    recved_clock       = next_matched_event->get_clock();
-    recved_rank        = next_matched_event->get_source();
 
-    compare = compare_clock(local_clock, local_rank, recved_clock, recved_rank);
-    if (compare >= 0) {
-      if (matching_function_type == REMPI_MPI_TEST ||
-	  matching_function_type == REMPI_MPI_TESTANY ||
-	  matching_function_type == REMPI_MPI_TESTSOME ||
-	  matching_function_type == REMPI_MPI_TESTALL) {
-	REMPI_ERR("Clock is not correct <local_clock:%lu, local_rank:%d> <recved_clock:%lu, recved_rank:%d>", 
-		  local_clock, local_rank, recved_clock, recved_rank);
+    it     = matched_recv_event_list->begin();
+    it_end = matched_recv_event_list->end();
+    for (; it != it_end; it++) {
+      next_matched_event = *it;
+      recved_clock       = next_matched_event->get_clock();
+      recved_rank        = next_matched_event->get_source();
+      
+      // compare = compare_clock(local_clock, local_rank, recved_clock, recved_rank);
+      // if (compare >= 0) {
+      // 	if (matching_function_type == REMPI_MPI_TEST ||
+      // 	    matching_function_type == REMPI_MPI_TESTANY ||
+      // 	    matching_function_type == REMPI_MPI_TESTSOME ||
+      // 	    matching_function_type == REMPI_MPI_TESTALL) {
+      // 	  REMPI_ERR("Clock is not correct <local_clock:%lu, local_rank:%d> <recved_clock:%lu, recved_rank:%d>", 
+      // 		    local_clock, local_rank, recved_clock, recved_rank);
+      // 	}
+      // } 
+      
+      if ((matched_index = get_mf_matched_index(incount, array_of_requests, request_info, exclusion_flags, recved_rank, recved_clock, matching_set_id, matching_function_type)) >= 0) {
+	next_matched_event->set_index(matched_index);    
+	replaying_event_vec.push_back(next_matched_event);
+	//	matched_recv_event_list->pop_front();
+	matched_recv_event_list->erase(it);
+	is_completed = 1;
+	return is_completed;
       }
-    } 
-
-    if ((matched_index = get_mf_matched_index(incount, array_of_requests, request_info, exclusion_flags, recved_rank, recved_clock, matching_set_id, matching_function_type)) < 0) {
-      //      REMPI_ERR("No such matched message: rank: %d, clock: %lu", recved_rank, recved_clock);
-      return is_completed;
     }
-    next_matched_event->set_index(matched_index);    
-    replaying_event_vec.push_back(next_matched_event);
-    matched_recv_event_list->pop_front();
-    is_completed = 1;
   }     
   return is_completed;
 }
+#else
+
+// int rempi_recorder_rep::complete_mf_matched_recv_single(int incount, MPI_Request array_of_requests[], int *request_info,
+// 				    int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec)
+// {
+//   int is_completed = 0;
+//   size_t recved_clock, local_clock;
+//   int recved_rank;
+//   int compare;
+//   list<rempi_event*> *matched_recv_event_list;
+//   rempi_event *next_matched_event;
+//   int matched_index;
+
+//   matched_recv_event_list = matched_recv_event_list_umap.at(matching_set_id);
+
+//   for (int i = 0; i < incount; i++) exclusion_flags[i] = 0;
+
+//   //  REMPI_DBGI(0, "matched single: size: %lu", matched_recv_event_list->size());
+
+
+//   if (matched_recv_event_list->size() > 0) {
+//     rempi_clock_get_local_clock(&local_clock);  
+//     next_matched_event = matched_recv_event_list->front();
+//     recved_clock       = next_matched_event->get_clock();
+//     recved_rank        = next_matched_event->get_source();
+
+//     compare = compare_clock(local_clock, local_rank, recved_clock, recved_rank);
+//     if (compare >= 0) {
+//       if (matching_function_type == REMPI_MPI_TEST ||
+// 	  matching_function_type == REMPI_MPI_TESTANY ||
+// 	  matching_function_type == REMPI_MPI_TESTSOME ||
+// 	  matching_function_type == REMPI_MPI_TESTALL) {
+// 	REMPI_ERR("Clock is not correct <local_clock:%lu, local_rank:%d> <recved_clock:%lu, recved_rank:%d>", 
+// 		  local_clock, local_rank, recved_clock, recved_rank);
+//       }
+//     } 
+
+//     if ((matched_index = get_mf_matched_index(incount, array_of_requests, request_info, exclusion_flags, recved_rank, recved_clock, matching_set_id, matching_function_type)) < 0) {
+//       //      REMPI_ERR("No such matched message: rank: %d, clock: %lu", recved_rank, recved_clock);
+//       return is_completed;
+//     }
+//     next_matched_event->set_index(matched_index);    
+//     replaying_event_vec.push_back(next_matched_event);
+//     matched_recv_event_list->pop_front();
+//     is_completed = 1;
+//   }     
+//   return is_completed;
+// }
+#endif
+
+
+
 int rempi_recorder_rep::complete_mf_matched_recv_all(int incount, MPI_Request array_of_requests[], int *request_info,
 			     int matching_set_id, int matching_function_type, vector<rempi_event*> &replaying_event_vec)
 {

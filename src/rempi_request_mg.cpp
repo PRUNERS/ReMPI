@@ -1108,7 +1108,7 @@ int rempi_reqmg_get_send_request_dest(MPI_Request *request)
 int rempi_reqmg_set_matching_set_id_map(size_t *msg_ids, int *matching_set_ids, int length)
 {
   for (int i = 0; i < length; i++) {
-    REMPI_DBG("msg_id: %p, matching_set_id: %d", msg_ids[i], matching_set_ids[i]);
+    //    REMPI_DBG("msg_id: %p, matching_set_id: %d", msg_ids[i], matching_set_ids[i]);
     comm_tag_to_matching_set_id[msg_ids[i]] = matching_set_ids[i];
   }
   return 0;
