@@ -142,11 +142,29 @@ static int activate_recv(int count, MPI_Datatype datatype, int source, int tag, 
     REMPI_ERR("Unknown matching_set_id");
   }
 
-  if (is_activated_request_by_rempi(count, datatype, source, tag, comm)) {
+  if (is_activated_request_by_rempi(count, datatype, source, tag, comm) && howto_requested == REMPI_MSGB_REQUEST_TYPE_USER_REQUESTED) {
+    //  if (is_activated_request_by_rempi(count, datatype, source, tag, comm)) {
     return 0;
   }
 
   PMPI_Type_size(datatype, &datatype_size);
+  // REMPI_DBG("size: %d: datatype: %d", datatype_size, datatype);
+  // if (datatype == MPI_FLOAT ||
+  //     datatype == MPI_DOUBLE ||
+  //     datatype == MPI_INT ||
+  //     datatype == MPI_LONG ||
+  //     datatype == MPI_LONG_LONG ||
+  //     datatype == MPI_UNSIGNED ||
+  //     datatype == MPI_COMPLEX ||
+  //     datatype == MPI_DOUBLE_COMPLEX) {
+    
+  // } else {
+  //   if (datatype == MPI_BYTE) {
+  //     REMPI_DBG("count: %d", count);
+  //   } else {
+  //     REMPI_ERR("error");
+  //   }
+  // }
   pooled_buf = rempi_malloc(datatype_size * count);
   PMPI_Irecv(pooled_buf, count, datatype, source, tag, comm, &real_request);
   recv_args = new rempi_reqmg_recv_args(pooled_buf, count, datatype, source, tag, comm, real_request, 
@@ -199,7 +217,7 @@ static int progress_inactive_recv()
     if (flag) {
       PMPI_Get_count(&status, recv_args->datatype, &count);
       activate_recv(count, recv_args->datatype, recv_args->source, recv_args->tag, recv_args->comm, &msgb_request->app_request, 
-      	recv_args->matching_set_id, REMPI_MSGB_REQUEST_TYPE_REMPI_REQUESTED);
+		    recv_args->matching_set_id, REMPI_MSGB_REQUEST_TYPE_REMPI_REQUESTED);
       is_progressed = 1;
     }
   }
@@ -270,10 +288,8 @@ static int progress_active_recv()
     flag = 0;
 
     rempi_clock_register_recv_clocks(&clock, 1);
-    //    REMPI_DBGI(0, "test request: %p (soruct: %d)", recv_args->request, recv_args->source);
-    //    REMPI_DBGI(1, "Test");
+    //    REMPI_DBG("count: %d, datatype: %d", recv_args->count, recv_args->datatype);
     PMPI_Test(&recv_args->request, &flag, &status);
-    //    REMPI_DBGI(1, "Test done");
     if (flag) {
 #ifdef REMPI_DBG_REPLAY      
       REMPI_DBGI(REMPI_DBG_REPLAY, "A->     : (source: %d, tag: %d, clock: %d, msid: %d)",
