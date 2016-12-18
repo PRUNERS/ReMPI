@@ -566,7 +566,8 @@ static int rempi_reqmg_assign_and_get_matching_set_id(int *matching_set_id, int 
     rempi_reqmg_get_matching_set_id_2(matching_set_id, mpi_call_id, mpi_call_type, source, tag, comm, incount, array_of_requests);
     break;
   default:
-    REMPI_ERR("No such REMPI_TEST_ID = %d", rempi_is_test_id);
+    *matching_set_id = 0;
+    //    REMPI_ERR("No such REMPI_TEST_ID = %d", rempi_is_test_id);
   }
   return 0;
 }

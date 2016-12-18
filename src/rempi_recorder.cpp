@@ -18,6 +18,7 @@
 #include "rempi_request_mg.h"
 #include "rempi_sig_handler.h"
 #include "rempi_mf.h"
+#include "rempi_stm.h"
 
 
 void rempi_recorder::update_validation_code(int incount, int *outcount, int matched_count, int *array_of_indices, MPI_Status *array_of_statuses, int *request_info)
@@ -175,6 +176,7 @@ int rempi_recorder::replay_isend(mpi_const void *buf,
 
   ret = record_isend(buf, count, datatype, dest, tag, comm , request, send_function_type);
   rempi_reqmg_register_request(buf, count, datatype, dest, tag, comm, request,  REMPI_SEND_REQUEST, &matching_set_id);
+  rempi_stm_send(dest, tag, comm);
 
   return ret; 
 }
@@ -903,6 +905,7 @@ int rempi_recorder::replay_mf_input(
 		  array_of_requests[index], index);
       }
       array_of_statuses[local_outcount] = status;
+      rempi_stm_mf(status.MPI_SOURCE, status.MPI_TAG, NULL);
       //      if (status.MPI_ERROR != 0) REMPI_ERR("err: ret: %d, erro: %d, MPI_SUCCESS: %d", ret, status.MPI_ERROR, MPI_SUCCESS);
 
 
@@ -1036,8 +1039,11 @@ int rempi_recorder::replay_mf(
 	       type,
 	       matching_set_id);
 #endif
+
+
     delete replaying_event_vec[j];
   }
+
 
 
   matched_count = rempi_mpi_get_matched_count(incount, outcount, nullcount, matching_function_type);
