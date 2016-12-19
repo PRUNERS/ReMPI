@@ -1998,7 +1998,10 @@ _EXTERN_C_ int MPI_Bsend(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, i
   REMPI_PREPRINT;
   int _wrap_py_return_val = 0;
   {
-    _wrap_py_return_val = PMPI_Send(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
+    MPI_Request req;
+    MPI_Status stat;
+    _wrap_py_return_val = MPI_Ibsend(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, &req);
+    _wrap_py_return_val = MPI_Wait(&req, &stat);
   }
   REMPI_POSTPRINT;
   return _wrap_py_return_val;
@@ -2042,7 +2045,10 @@ _EXTERN_C_ int MPI_Rsend(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, i
   REMPI_PREPRINT;
   int _wrap_py_return_val = 0;
   {
-    _wrap_py_return_val = PMPI_Send(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
+    MPI_Request req;
+    MPI_Status stat;
+    _wrap_py_return_val = MPI_Irsend(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, &req);
+    _wrap_py_return_val = MPI_Wait(&req, &stat);
   }
   REMPI_POSTPRINT;
   return _wrap_py_return_val;
@@ -2084,7 +2090,10 @@ _EXTERN_C_ int MPI_Ssend(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, i
   REMPI_PREPRINT;
   int _wrap_py_return_val = 0;
   {
-    _wrap_py_return_val = PMPI_Send(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5);
+    MPI_Request req;
+    MPI_Status stat;
+    _wrap_py_return_val = MPI_Issend(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, &req);
+    _wrap_py_return_val = MPI_Wait(&req, &stat);
   }
   REMPI_POSTPRINT;
   return _wrap_py_return_val;
