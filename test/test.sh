@@ -19,6 +19,15 @@ dir=${prefix}/
 #memcheck=memcheck-para
 
 
+# ===== Enzo ============
+cd /g/g90/sato5/Benchmarks/external/enzo-dev/bin/
+bin="./enzo ../run/GravitySolver/GravityTest/GravityTest.enzo"
+REMPI_ENCODE=7 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${bin}
+cd -
+exit
+
 # =========== Unit test ============
 bin="./rempi_test_units matching"
 LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempi.so \
@@ -37,14 +46,7 @@ cd -
 exit
 
 
-# ===== Enzo ============
-cd /g/g90/sato5/Benchmarks/external/enzo-dev/bin/
-bin="./enzo ../run/GravitySolver/GravityTest/GravityTest.enzo"
-REMPI_ENCODE=4 \
-LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
-REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${bin}
-cd -
-exit
+
 
 
 # =========== Unit test ============

@@ -82,7 +82,7 @@ void rempi_set_configuration(int *argc, char ***argv)
   } else {
     env_int = atoi(env);
     rempi_max_event_length = env_int;
-  }
+ }
   
   switch(rempi_encode) {
   case REMPI_ENV_REMPI_ENCODE_BASIC:

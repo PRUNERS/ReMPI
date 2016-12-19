@@ -1,20 +1,54 @@
 #!/usr/bin/env python
 import sys
+import os
 
 try_count = 0
 broken_count = 0
 matched_count = 0
 
 def convert(bin, strace):
-    print strace.split("[")
+    addrs = []
+    while True:
+        start = strace.find("[")
+        if start == -1: return addrs
+        end   = strace.find("]")
+        addr  = strace[start + 1:end]
+        out = os.popen("addr2line -e " + bin + " " + addr).read().strip()
+        addrs.append(out)
+        strace = strace[end + 1:]
+
+    
+def print_and_write(fd, string):
+    print string
+    fd.write(string + "\n")
 
 def output(bin):
+    output_dic = {}
     for key, val in matched_event.items():
         send_st = convert(bin, key[0])
-        recv_st = key[1]
+        recv_st = convert(bin, key[1])
         count   = val[0]
         when    = val[1]
-    #    print when, count, send_st, recv_st
+        output_dic[when] = [when, count, send_st, recv_st]
+
+    fd = open("./stm.out", "w")
+    sep = "============================="
+    for key, value in sorted(output_dic.items()):
+        print_and_write(fd, "=============================")
+        print_and_write(fd, " When: " + str(value[0]) + ",  Count: " + str(value[1]))
+        print_and_write(fd, "=============================")
+        print_and_write(fd, "Send:")
+        for line in value[2]:
+            print_and_write(fd, "    " + line)
+        print_and_write(fd, "--")
+        print_and_write(fd, "Recv:")
+        for line in value[3]:
+            print_and_write(fd, "    " + line)
+        print_and_write(fd, "=============================")
+        print_and_write(fd, "\n\n")
+    fd.close()
+
+
 
 def extract_event(rank, line):
     global try_count
@@ -87,7 +121,7 @@ fds = []
 def open_files(num):
     global fds
     for i in range(num):
-        fd = open("./rank_" + str(i) + ".stmx")
+        fd = open("./rank_" + str(i) + ".stm")
         fds.append(fd)
 
 
