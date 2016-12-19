@@ -4,6 +4,18 @@ import sys
 try_count = 0
 broken_count = 0
 matched_count = 0
+
+def convert(bin, strace):
+    print strace.split("[")
+
+def output(bin):
+    for key, val in matched_event.items():
+        send_st = convert(bin, key[0])
+        recv_st = key[1]
+        count   = val[0]
+        when    = val[1]
+    #    print when, count, send_st, recv_st
+
 def extract_event(rank, line):
     global try_count
     global broken_line
@@ -40,9 +52,9 @@ def add_matched_event(send_event, recv_event):
     matched_count += 1
     tuple  = (send_event["st"], recv_event["st"])
     if matched_event.has_key(tuple) == False:
-        matched_event[tuple] = 1
+        matched_event[tuple] = [1, matched_count]
     else:
-        matched_event[tuple] = matched_event[tuple] + 1
+        matched_event[tuple][0] = matched_event[tuple][0] + 1
     
 
 def message_matching(e1, e2):
@@ -75,7 +87,7 @@ fds = []
 def open_files(num):
     global fds
     for i in range(num):
-        fd = open("./rank_" + str(i) + ".stm")
+        fd = open("./rank_" + str(i) + ".stmx")
         fds.append(fd)
 
 
@@ -128,6 +140,11 @@ def main():
     global matched_count
     num_rank = 64
     event_caches = [[] for j in range(num_rank)]
+    
+    if len(sys.argv) != 2:
+        print "error"
+        exit(1)
+    bin = sys.argv[1]
 
     open_files(num_rank)
 
@@ -137,13 +154,14 @@ def main():
         for rank in range(num_rank):
             done = match_message_of(rank)
             if done == True: done_count += 1
+        print float(read_size) / 1000000000, "GB", 
+        print matched_count, done_count, broken_count, len(orphans), sum_cache()
         if done_count == num_rank:
             break
-        print float(read_size) / 1000000000, "GB", matched_count, done_count, broken_count, sum_cache()
 
-    print "result"            
-    print matched_event
-    print len(orphans)
+    output(bin)
+
+
 
 if __name__ == "__main__":
     main()
