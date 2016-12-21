@@ -166,6 +166,7 @@ static int activate_recv(int count, MPI_Datatype datatype, int source, int tag, 
   //   }
   // }
   pooled_buf = rempi_malloc(datatype_size * count);
+
   PMPI_Irecv(pooled_buf, count, datatype, source, tag, comm, &real_request);
   recv_args = new rempi_reqmg_recv_args(pooled_buf, count, datatype, source, tag, comm, real_request, 
 					REMPI_REQMG_MPI_CALL_ID_UNKNOWN, 
@@ -236,6 +237,7 @@ static int push_to_send_event_queue(int source, size_t clock, int matching_set_i
 					  matching_set_id);
   update_max_recved_clock(source, clock);
   send_event_queue->enqueue_replay(event, matching_set_id);
+  if (clock < 10) REMPI_ERR("send_event_queue: rank: %d, clock: %lu", source, clock);
   //  REMPI_DBGI(0, "send_event_queue: rank: %d, clock: %lu", source, clock);
   return 0;
 }
@@ -480,6 +482,24 @@ int rempi_msgb_recv_msg(void* dest_buffer, int replayed_rank, int requested_tag,
   REMPI_ASSERT(0);
   REMPI_ERR("There is not any matched request");
   return 0;
+}
+
+MPI_Status rempi_msgb_get_inactive_status(int source, int tag, MPI_Comm comm) 
+{
+  rempi_msgb_request *msgb_request;
+  list<rempi_msgb_request*>::iterator it, it_end;
+  int is_matched;
+
+  for (it = inactive_recv_list.begin(); it != inactive_recv_list.end(); it++) {
+    msgb_request = *it;
+    is_matched = rempi_msgb_is_matched(source, tag, comm, 
+				       msgb_request->status.MPI_SOURCE, msgb_request->status.MPI_TAG, msgb_request->recv_args->comm);
+    if (is_matched != REMPI_MSGB_REQUEST_MATCHED_TYPE_NOT_MATCHED) { 
+      return msgb_request->status;
+    }
+  }
+  REMPI_ERR("No such inactive message");
+  return *(MPI_Status*)NULL;
 }
 
 int rempi_msgb_probe_msg(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status)

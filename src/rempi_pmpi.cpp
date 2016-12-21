@@ -953,7 +953,18 @@ _EXTERN_C_ int PMPI_Waitall(int arg_0, MPI_Request *arg_1, MPI_Status *arg_2);
 _EXTERN_C_ int MPI_Waitall(int arg_0, MPI_Request *arg_1, MPI_Status *arg_2) {
   REMPI_PREPRINT;
   int _wrap_py_return_val = 0;
+#ifdef REMPI_HYPRE_TEST
+  for (int i = 0; i < arg_0; i++) {
+    if (arg_2 == MPI_STATUS_IGNORE) {
+      _wrap_py_return_val = MPI_Wait(&arg_1[i], MPI_STATUS_IGNORE);
+    } else {
+      _wrap_py_return_val = MPI_Wait(&arg_1[i], &arg_2[i]);
+    }
+  }
+#else
   _wrap_py_return_val = rempi_record_replay->re_waitall(arg_0, arg_1, arg_2);
+#endif
+
   REMPI_POSTPRINT;
   return _wrap_py_return_val;
 }

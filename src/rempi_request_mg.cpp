@@ -711,6 +711,8 @@ static int rempi_reqmg_is_record_and_replay(int length, MPI_Request array_of_req
     */
 
     if (send_count > 0 && recv_count > 0) REMPI_ERR("send_count > 0 and recv_count > 0");
+
+
     // if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
     //   if (send_count > 0) return 0;
     // } else {
@@ -788,7 +790,9 @@ int rempi_reqmg_deregister_request(MPI_Request *request, int request_type)
     break;
   default:
 #ifndef REMPI_LITE
+#ifndef REMPI_HYPRE_TEST
     REMPI_DBG("Cannot deregister MPI_Request: request_type: %d", request_type);
+#endif
 #endif
     break;
   }
@@ -864,7 +868,9 @@ void rempi_reqmg_get_request_info(int incount, MPI_Request *requests, int *sendc
       request_info[i] = REMPI_IGNR_REQUEST; 
       ignore++;
 #ifndef REMPI_LITE
-      REMPI_ERR("Unknown request: %p index: %d", requests[i], i);
+#ifndef REMPI_HYPRE_TEST
+      REMPI_ERR("Unknown request: %p index: %d: type: %d", requests[i], i, matching_function_type);
+#endif
 #endif
       //
     }

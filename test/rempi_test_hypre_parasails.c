@@ -646,7 +646,9 @@ int main(int argc, char* argv[])
 
   if (argc == 2) {
     num_loop = atoi(argv[1]);
-  } 
+  } else {
+    num_loop = 100;
+  }
 
 #ifdef ENABLE_NOISE
   int noise_calcount = 100000000;

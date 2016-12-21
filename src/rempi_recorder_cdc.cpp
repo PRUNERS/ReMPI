@@ -285,8 +285,12 @@ int rempi_recorder_cdc::replay_cancel(MPI_Request *request)
 
 int rempi_recorder_cdc::replay_request_free(MPI_Request *request)
 {
-  REMPI_ERR("Not supported");
-  return (int)0;
+  int ret;
+  int request_type;
+  rempi_reqmg_get_request_type(request, &request_type);
+  rempi_reqmg_deregister_request(request, request_type);
+  rempi_msgb_cancel_request(request);
+  return MPI_SUCCESS;
 }
 
 

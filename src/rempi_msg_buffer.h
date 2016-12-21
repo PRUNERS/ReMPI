@@ -19,6 +19,7 @@ int rempi_msgb_register_recv(void *buf, int count, MPI_Datatype datatype, int so
 int rempi_msgb_progress_recv();
 int rempi_msgb_cancel_request(MPI_Request *request);
 int rempi_msgb_recv_msg(void* dest_buffer, int replayed_rank, int requested_tag, MPI_Comm requested_comm, size_t clock, int matcing_set_id, MPI_Status *replaying_status);
+MPI_Status rempi_msgb_get_inactive_status(int source, int tag, MPI_Comm comm);
 int rempi_msgb_probe_msg(int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status);
 int rempi_msgb_get_tag_comm(int matched_rank, size_t matched_clock, int *output_tag, MPI_Comm *output_comm);
 

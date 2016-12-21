@@ -5,7 +5,7 @@
 
 #prefix=/l/ssd
 #prefix=/p/lscratchf/sato5/rempi/
-prefix=./rempi_record/
+prefix=./rempi_record_catalyst/
 
 
 mode=$1
@@ -18,20 +18,68 @@ dir=${prefix}/
 #memcheck="valgrind --tool=memcheck --xml=yes --xml-file=`echo $$`.mc --partial-loads-ok=yes --error-limit=no --leak-check=full --show-reachable=yes --max-stackframe=16777216 --num-callers=20 --child-silent-after-fork=yes --track-origins=yes"
 #memcheck=memcheck-para
 
+# =========== Unit test ============
+#bin="./rempi_test_units late_irecv" passed
+#bin="./rempi_test_units matching" passed
+#bin="./rempi_test_units probe" passed
+#bin="./rempi_test_units clock_wait" passed
+bin="./rempi_test_units init_sendrecv" 
+#bin="./rempi_test_units start"
+REMPI_ENCODE=7 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${memcheck} ${bin}
+exit
 
-# ===== Enzo ============
-cd /g/g90/sato5/Benchmarks/external/enzo-dev/bin/
-bin="./enzo ../run/GravitySolver/GravityTest/GravityTest.enzo"
+# ========== Hypre ex5 ===============
+bin="/g/g90/sato5/Benchmarks/external/hypre/hypre-2.10.1/src/examples/ex5 -solver 8 -loop 10"
+REMPI_ENCODE=7 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${memcheck} ${bin}
+exit
+
+# ========== DEVE/ROSS ==============
+module load boost
+cd /g/g90/sato5/Benchmarks/external/deve/deve/run/run-`expr ${num_procs} / 16` &&
+bin="./run.qsub"
+REMPI_ENCODE=7 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${dir} ${bin}
+#REMPI_ENCODE=0 \
+#LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempi.so \
+#REMPI_MODE=${mode} REMPI_DIR=${dir} ${bin}
+cd -
+exit
+
+
+# ========== ParaDis ==============
+cd /g/g90/sato5/Benchmarks/external/paradis/paradis_release_3.3.2_04_15_2016/debug/
+bin="./paradis_catalyst_O_g -d rs0000.secondaryghostfatal.data rs0000.secondaryghostfatal.ctrl"
 REMPI_ENCODE=7 \
 LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
 REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${bin}
 cd -
 exit
 
-# =========== Unit test ============
-bin="./rempi_test_units matching"
-LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempi.so \
+
+# =========== Hypre proxy ============
+bin="./rempi_test_hypre_parasails 1"
+REMPI_ENCODE=7 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
 REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${memcheck} ${bin}
+exit
+
+
+
+
+# ===== Enzo ============
+cd /g/g90/sato5/Benchmarks/external/enzo-dev/bin/
+bin="./enzo ../run/GravitySolver/GravityTest/GravityTest.enzo.rempi"
+#bin="./enzo ../run/GravitySolver/GravityTest/GravityTest.enzo.rempi"
+#bin="./enzo  /g/g90/sato5/Benchmarks/external/enzo-dev/run/GravitySolver/GravityStripTest/GravityStripTest.enzo.rempi"
+REMPI_ENCODE=7 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${bin}
+cd -
 exit
 
 # =========== miniFE ============
@@ -45,19 +93,17 @@ REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${bin}
 cd -
 exit
 
-
-
-
-
 # =========== Unit test ============
-#bin="./rempi_test_units late_irecv"
-#bin="./rempi_test_units matching"
-#bin="./rempi_test_units probe"
-bin="./rempi_test_units clock_wait"
-REMPI_ENCODE=7 \
-LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+bin="./rempi_test_units matching"
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempi.so \
 REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${memcheck} ${bin}
 exit
+
+
+
+
+
+
 
 
 

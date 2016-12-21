@@ -266,15 +266,21 @@ void rempi_test_init_sendrecv(int send_init_type, int send_start_type, int recv_
   MPI_Request requests[TEST_MSG_CHUNK_SIZE];
 
   for (i = 0; i < TEST_MSG_CHUNK_SIZE; i++) {
+    rempi_test_dbg_print("Before MPI_Recv_init: %p", requests[i]);
     MPI_Recv_init(&vals[i], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[i]);
+    rempi_test_dbg_print("After  MPI_Recv_init: %p", requests[i]);
   }
 
   for (i = 0; i < NUM_TEST_MSG / TEST_MSG_CHUNK_SIZE; i++) {
     switch(recv_start_type) {
     case MPI_Start_id:
       for (j = 0; j < TEST_MSG_CHUNK_SIZE; j++) {
+	rempi_test_dbg_print("Before MPI_Start: %p", requests[i]);
 	MPI_Start(&requests[j]);
+	rempi_test_dbg_print("After  MPI_Start: %p", requests[i]);
+	rempi_test_dbg_print("Before MPI_Wait: %p", requests[i]);
 	MPI_Wait(&requests[j], &statuses[j]);
+	rempi_test_dbg_print("After  MPI_Wait: %p", requests[i]);
       }
       break;
     case MPI_Startall_id:

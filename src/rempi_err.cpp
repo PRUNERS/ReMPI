@@ -80,6 +80,9 @@ void rempi_err(const char* fmt, ...)
   rempi_dbg_log_print();
 #endif
   REMPI_OUTPUT(stderr, " ** ERROR **", fmt);
+#ifdef REMPI_ENABLE_CORE_DUMP_ON_ERR
+  REMPI_ASSERT(0);
+#endif  
   exit(15);
   return;
 }
