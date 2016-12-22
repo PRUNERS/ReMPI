@@ -19,6 +19,15 @@ dir=${prefix}/
 #memcheck=memcheck-para
 
 # =========== Unit test ============
+#bin="./rempi_test_units start test_canceled"
+bin="./rempi_test_units test_canceled"
+REMPI_ENCODE=0 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempi.so \
+REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${memcheck} ${bin}
+exit
+
+
+# =========== Unit testx ============
 #bin="./rempi_test_units late_irecv" passed
 #bin="./rempi_test_units matching" passed
 #bin="./rempi_test_units probe" passed

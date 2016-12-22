@@ -142,6 +142,62 @@ int rempi_recorder::replay_init(int *argc, char ***argv, int rank)
   return 0;
 }
 
+int rempi_recorder::record_recv_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6)
+{
+#if 0
+  ret = PMPI_Recv_init(buf, count, datatype, source, tag, comm, request);
+  rempi_reqmg_register_request(buf, count, datatype, source, tag, comm, request, REMPI_RECV_REQUEST, &matching_set_id);
+  e = rempi_event::create_recv_event(MPI_ANY_SOURCE, tag, NULL, request);
+  recording_event_list->push(e);
+  if (request_to_recv_event_umap.find(*request) != request_to_recv_event_umap.end()) {
+    REMPI_ERR("Recv event of request(%p) already exists", *request);
+  }
+  request_to_recv_event_umap[*request] = e;  
+#endif
+  return PMPI_Recv_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+}
+
+int rempi_recorder::replay_recv_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6)
+{
+  return PMPI_Recv_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+}
+
+int rempi_recorder::record_send_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6, int send_function_type)
+{
+  int matching_set_id;
+#if 0
+  ret = rempi_mpi_send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, send_function_type);
+  rempi_reqmg_register_request(arg_0, arg_1, arg_2, arg_e, arg_4, arg_5, arg_6, REMPI_SEND_REQUEST, &matching_set_id);
+#endif
+  return rempi_mpi_send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, send_function_type);
+}
+
+int rempi_recorder::replay_send_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6, int send_function_type)
+{
+  int matching_set_id;
+  return rempi_mpi_send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, send_function_type);
+}
+
+int rempi_recorder::record_start(MPI_Request *arg_0)
+{
+  return PMPI_Start(arg_0);
+}
+
+int rempi_recorder::replay_start(MPI_Request *arg_0)
+{
+  return PMPI_Start(arg_0);
+}
+
+int rempi_recorder::record_startall(int arg_0, MPI_Request *arg_1)
+{
+  return PMPI_Startall(arg_0, arg_1);
+}
+
+int rempi_recorder::replay_startall(int arg_0, MPI_Request *arg_1)
+{
+  return PMPI_Startall(arg_0, arg_1);
+}
+
 
 int rempi_recorder::record_isend(mpi_const void *buf,
 		 int count,
@@ -329,13 +385,15 @@ int rempi_recorder::replay_cancel(MPI_Request *request)
     REMPI_ERR("only recv request can be canceled: request_type: %d", request_type);
   }
   ret = PMPI_Cancel(request);
-  if (request_type == REMPI_RECV_REQUEST) {
-    cancel_request(request);
-    ret = MPI_SUCCESS;
-  } else if (request_type == REMPI_SEND_REQUEST) {
-    cancel_request(request);
-    ret = PMPI_Cancel(request);
-  }
+  cancel_request(request);
+  return MPI_SUCCESS;
+  // if (request_type == REMPI_RECV_REQUEST) {
+  //   cancel_request(request);
+  //   ret = MPI_SUCCESS;
+  // } else if (request_type == REMPI_SEND_REQUEST) {
+  //   cancel_request(request);
+  //   //    ret = PMPI_Cancel(request);
+  // }
   return ret;
 }
 
@@ -350,9 +408,12 @@ void rempi_recorder::cancel_request(MPI_Request *request)
   rempi_reqmg_get_request_type(request, &request_type);
   rempi_reqmg_deregister_request(request, request_type);
 
-  if (request_type == REMPI_RECV_REQUEST) {
-    *request = MPI_REQUEST_NULL;
-  }
+  /*
+    MPI_Cancel does not set MPI_REQUEST_NULL after MPI_Cancel
+   */
+  // if (request_type == REMPI_RECV_REQUEST) {
+  //   *request = MPI_REQUEST_NULL;
+  // }
   return;
 }
 

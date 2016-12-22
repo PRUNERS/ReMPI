@@ -266,21 +266,21 @@ void rempi_test_init_sendrecv(int send_init_type, int send_start_type, int recv_
   MPI_Request requests[TEST_MSG_CHUNK_SIZE];
 
   for (i = 0; i < TEST_MSG_CHUNK_SIZE; i++) {
-    rempi_test_dbg_print("Before MPI_Recv_init: %p", requests[i]);
+    //    rempi_test_dbg_print("Before MPI_Recv_init: %p", requests[i]);
     MPI_Recv_init(&vals[i], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[i]);
-    rempi_test_dbg_print("After  MPI_Recv_init: %p", requests[i]);
+    //    rempi_test_dbg_print("After  MPI_Recv_init: %p", requests[i]);
   }
 
   for (i = 0; i < NUM_TEST_MSG / TEST_MSG_CHUNK_SIZE; i++) {
     switch(recv_start_type) {
     case MPI_Start_id:
       for (j = 0; j < TEST_MSG_CHUNK_SIZE; j++) {
-	rempi_test_dbg_print("Before MPI_Start: %p", requests[i]);
+	//	rempi_test_dbg_print("Before MPI_Start: %p", requests[i]);
 	MPI_Start(&requests[j]);
-	rempi_test_dbg_print("After  MPI_Start: %p", requests[i]);
-	rempi_test_dbg_print("Before MPI_Wait: %p", requests[i]);
+	//	rempi_test_dbg_print("After  MPI_Start: %p", requests[i]);
+	//	rempi_test_dbg_print("Before MPI_Wait: %p", requests[i]);
 	MPI_Wait(&requests[j], &statuses[j]);
-	rempi_test_dbg_print("After  MPI_Wait: %p", requests[i]);
+	//	rempi_test_dbg_print("After  MPI_Wait: %p", requests[i]);
       }
       break;
     case MPI_Startall_id:
@@ -1034,10 +1034,59 @@ void rempi_test_clock_wait()
     MPI_Recv(&val, 1, MPI_INT, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Send(&val, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
   }
-
   return;
-
 }
+
+
+void rempi_test_test_cancelled()
+{
+  int i;
+  if (my_rank != 0) {
+    rempi_test_mpi_sends_with_random_sleep(MPI_COMM_WORLD);
+    return;
+  }
+
+  /*For rank 0*/
+  int *recv_vals;
+  int num_sender = size - 1;
+  int num_send_msgs = num_sender * NUM_TEST_MSG;
+  int flag = 0;
+  int request_index = 0;
+  MPI_Request *requests;
+  MPI_Status status;
+
+
+  requests   = (MPI_Request*)malloc(sizeof(MPI_Request) * (num_sender));
+  recv_vals  = (int*)malloc(sizeof(int) * (num_sender));
+
+  for (i = 0; i < num_sender; i++) {
+    MPI_Irecv(&recv_vals[i], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[i]);
+  }
+
+  for (i = 0; i < num_send_msgs; i++) {
+    MPI_Wait(&requests[request_index], &status);
+    MPI_Irecv(&recv_vals[request_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[request_index]);
+    request_index = (request_index + 1) % num_sender;
+  }
+
+  for (i = 0; i < num_sender; i++) {
+    //    rempi_test_dbg_print("before cancel: %p (MPI_REQUEST_NULL: %p)", requests[i], MPI_REQUEST_NULL);
+    MPI_Cancel(&requests[i]);
+    //    rempi_test_dbg_print("after  cancel: %p", requests[i]);
+    MPI_Wait(&requests[i], &status);
+    //    rempi_test_dbg_print("after    wait: %p", requests[i]);
+    MPI_Test_cancelled(&status, &flag);
+    if (!flag) {
+      rempi_test_dbg_print("Cancel of request failed");
+      exit(14);
+    }
+  }
+
+  free(requests);
+  free(recv_vals);
+  return;
+}
+
 
 
 int main(int argc, char *argv[])
@@ -1061,9 +1110,10 @@ int main(int argc, char *argv[])
       is_all = 1;
       test_name = "all";
     } else {
-      k++;
       test_name = argv[k];
+      if (k == 0) continue;
     }
+    
 
 
     if (!strcmp(test_name, "matching") || is_all) {
@@ -1191,6 +1241,15 @@ int main(int argc, char *argv[])
 #if defined(TEST_COMM_DUP)
       if (my_rank == 0) fprintf(stdout, "Start testing clock wait ... \n"); fflush(stdout);
       rempi_test_clock_wait();
+      MPI_Barrier(MPI_COMM_WORLD);
+      if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
+    }
+
+    if (!strcmp(test_name, "test_canceled") || is_all) {
+#if defined(TEST_COMM_DUP)
+      if (my_rank == 0) fprintf(stdout, "Start testing test_canceled ... \n"); fflush(stdout);
+      rempi_test_test_cancelled();
       MPI_Barrier(MPI_COMM_WORLD);
       if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
 #endif

@@ -2783,7 +2783,7 @@ _EXTERN_C_ int MPI_Recv_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg
   REMPI_PREPRINT;
   int _wrap_py_return_val = 0;
   {
-    _wrap_py_return_val = PMPI_Recv_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+    _wrap_py_return_val = rempi_record_replay->re_recv_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
     //     REMPI_DBGI(9, "request: %p at %s", *arg_6, __func__);
   }    
   REMPI_POSTPRINT;
@@ -2825,12 +2825,12 @@ _EXTERN_C_ void mpi_recv_init__(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *dataty
 
 /* ================== C Wrappers for MPI_Send_init ================== */
 _EXTERN_C_ int PMPI_Send_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
-_EXTERN_C_ int MPI_Send_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) {
+_EXTERN_C_ int MPI_Send_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) 
+{
   REMPI_PREPRINT;
   int _wrap_py_return_val = 0;
   {
-    _wrap_py_return_val = PMPI_Send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
-    //     REMPI_DBGI(9, "request: %p at %s", *arg_6, __func__);
+    _wrap_py_return_val = rempi_record_replay->re_send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, REMPI_MPI_ISEND);
   }    
   REMPI_POSTPRINT;
   return _wrap_py_return_val;
@@ -2867,14 +2867,146 @@ _EXTERN_C_ void mpi_send_init__(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *dataty
 
 /* ================= End Wrappers for MPI_Send_init ================= */
 
+
+
+/* ================== C Wrappers for MPI_Ssend_init ================== */
+_EXTERN_C_ int PMPI_Ssend_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
+_EXTERN_C_ int MPI_Ssend_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) {
+  int _wrap_py_return_val = 0;
+
+  {
+    _wrap_py_return_val = rempi_record_replay->re_send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, REMPI_MPI_ISSEND);
+  }
+  return _wrap_py_return_val;
+}
+
+/* =============== Fortran Wrappers for MPI_Ssend_init =============== */
+static void MPI_Ssend_init_fortran_wrapper(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint\
+					   *arg_6, MPI_Fint *ierr) {
+  int _wrap_py_return_val = 0;
+#if (!defined(MPICH_HAS_C2F) && defined(MPICH_NAME) && (MPICH_NAME == 1)) /* MPICH test */
+  _wrap_py_return_val = MPI_Ssend_init((void*)arg_0, *arg_1, (MPI_Datatype)(*arg_2), *arg_3, *arg_4, (MPI_Comm)(*arg_5), (MPI_Request*)arg_6);
+#else /* MPI-2 safe call */
+  MPI_Request temp_arg_6;
+  temp_arg_6 = MPI_Request_f2c(*arg_6);
+  _wrap_py_return_val = MPI_Ssend_init((void*)arg_0, *arg_1, MPI_Type_f2c(*arg_2), *arg_3, *arg_4, MPI_Comm_f2c(*arg_5), &temp_arg_6);
+  *arg_6 = MPI_Request_c2f(temp_arg_6);
+#endif /* MPICH test */
+  *ierr = _wrap_py_return_val;
+}
+
+_EXTERN_C_ void MPI_SSEND_INIT(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint *arg_6, MPI_Fint *ierr) {
+  MPI_Ssend_init_fortran_wrapper(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, ierr);
+}
+
+_EXTERN_C_ void mpi_ssend_init(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint *arg_6, MPI_Fint *ierr) {
+  MPI_Ssend_init_fortran_wrapper(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, ierr);
+}
+
+_EXTERN_C_ void mpi_ssend_init_(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint *arg_6, MPI_Fint *ierr) {
+  MPI_Ssend_init_fortran_wrapper(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, ierr);
+}
+
+_EXTERN_C_ void mpi_ssend_init__(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint *arg_6, MPI_Fint *ierr) {
+  MPI_Ssend_init_fortran_wrapper(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, ierr);
+}
+/* ================= End Wrappers for MPI_Ssend_init ================= */
+
+
+/* ================== C Wrappers for MPI_Rsend_init ================== */
+_EXTERN_C_ int PMPI_Rsend_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
+_EXTERN_C_ int MPI_Rsend_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) {
+  int _wrap_py_return_val = 0;
+
+  {
+    _wrap_py_return_val = rempi_record_replay->re_send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, REMPI_MPI_IRSEND);
+  }
+  return _wrap_py_return_val;
+}
+
+/* =============== Fortran Wrappers for MPI_Rsend_init =============== */
+static void MPI_Rsend_init_fortran_wrapper(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint *arg_6, MPI_Fint *ierr) {
+  int _wrap_py_return_val = 0;
+#if (!defined(MPICH_HAS_C2F) && defined(MPICH_NAME) && (MPICH_NAME == 1)) /* MPICH test */
+  _wrap_py_return_val = MPI_Rsend_init((void*)arg_0, *arg_1, (MPI_Datatype)(*arg_2), *arg_3, *arg_4, (MPI_Comm)(*arg_5), (MPI_Request*)arg_6);
+#else /* MPI-2 safe call */
+  MPI_Request temp_arg_6;
+  temp_arg_6 = MPI_Request_f2c(*arg_6);
+  _wrap_py_return_val = MPI_Rsend_init((void*)arg_0, *arg_1, MPI_Type_f2c(*arg_2), *arg_3, *arg_4, MPI_Comm_f2c(*arg_5), &temp_arg_6);
+  *arg_6 = MPI_Request_c2f(temp_arg_6);
+#endif /* MPICH test */
+  *ierr = _wrap_py_return_val;
+}
+
+_EXTERN_C_ void MPI_RSEND_INIT(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint *arg_6, MPI_Fint *ierr) {
+  MPI_Rsend_init_fortran_wrapper(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, ierr);
+}
+
+_EXTERN_C_ void mpi_rsend_init(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint *arg_6, MPI_Fint *ierr) {
+  MPI_Rsend_init_fortran_wrapper(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, ierr);
+}
+
+_EXTERN_C_ void mpi_rsend_init_(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint *arg_6, MPI_Fint *ierr) {
+  MPI_Rsend_init_fortran_wrapper(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, ierr);
+}
+
+_EXTERN_C_ void mpi_rsend_init__(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint *arg_6, MPI_Fint *ierr) {
+  MPI_Rsend_init_fortran_wrapper(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, ierr);
+}
+/* ================= End Wrappers for MPI_Rsend_init ================= */
+
+/* ================== C Wrappers for MPI_Bsend_init ================== */
+_EXTERN_C_ int PMPI_Bsend_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
+_EXTERN_C_ int MPI_Bsend_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6) {
+  int _wrap_py_return_val = 0;
+
+  {
+    _wrap_py_return_val = rempi_record_replay->re_send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, REMPI_MPI_IBSEND);
+  }
+  return _wrap_py_return_val;
+}
+
+/* =============== Fortran Wrappers for MPI_Bsend_init =============== */
+static void MPI_Bsend_init_fortran_wrapper(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint *arg_6, MPI_Fint *ierr) {
+  int _wrap_py_return_val = 0;
+#if (!defined(MPICH_HAS_C2F) && defined(MPICH_NAME) && (MPICH_NAME == 1)) /* MPICH test */
+  _wrap_py_return_val = MPI_Bsend_init((void*)arg_0, *arg_1, (MPI_Datatype)(*arg_2), *arg_3, *arg_4, (MPI_Comm)(*arg_5), (MPI_Request*)arg_6);
+#else /* MPI-2 safe call */
+  MPI_Request temp_arg_6;
+  temp_arg_6 = MPI_Request_f2c(*arg_6);
+  _wrap_py_return_val = MPI_Bsend_init((void*)arg_0, *arg_1, MPI_Type_f2c(*arg_2), *arg_3, *arg_4, MPI_Comm_f2c(*arg_5), &temp_arg_6);
+  *arg_6 = MPI_Request_c2f(temp_arg_6);
+#endif /* MPICH test */
+  *ierr = _wrap_py_return_val;
+}
+
+_EXTERN_C_ void MPI_BSEND_INIT(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint *arg_6, MPI_Fint *ierr) {
+  MPI_Bsend_init_fortran_wrapper(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, ierr);
+}
+
+_EXTERN_C_ void mpi_bsend_init(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint *arg_6, MPI_Fint *ierr) {
+  MPI_Bsend_init_fortran_wrapper(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, ierr);
+}
+
+_EXTERN_C_ void mpi_bsend_init_(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint *arg_6, MPI_Fint *ierr) {
+  MPI_Bsend_init_fortran_wrapper(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, ierr);
+}
+
+_EXTERN_C_ void mpi_bsend_init__(MPI_Fint *arg_0, MPI_Fint *arg_1, MPI_Fint *arg_2, MPI_Fint *arg_3, MPI_Fint *arg_4, MPI_Fint *arg_5, MPI_Fint *arg_6, MPI_Fint *ierr) {
+  MPI_Bsend_init_fortran_wrapper(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, ierr);
+}
+
+/* ================= End Wrappers for MPI_Bsend_init ================= */
+
+
 /* ================== C Wrappers for MPI_Start ================== */
 _EXTERN_C_ int PMPI_Start(MPI_Request *arg_0);
-_EXTERN_C_ int MPI_Start(MPI_Request *arg_0) {
+_EXTERN_C_ int MPI_Start(MPI_Request *arg_0) 
+{
   REMPI_PREPRINT;
   int _wrap_py_return_val = 0;
   {
-    _wrap_py_return_val = PMPI_Start(arg_0);
-    //     REMPI_DBGI(9, "request: %p at %s", *arg_0, __func__);
+    _wrap_py_return_val = rempi_record_replay->re_start(arg_0);
   }    
   REMPI_POSTPRINT;
   return _wrap_py_return_val;
@@ -2915,12 +3047,12 @@ _EXTERN_C_ void mpi_start__(MPI_Fint *request, MPI_Fint *ierr) {
 
 /* ================== C Wrappers for MPI_Startall ================== */
 _EXTERN_C_ int PMPI_Startall(int arg_0, MPI_Request *arg_1);
-_EXTERN_C_ int MPI_Startall(int arg_0, MPI_Request *arg_1) {
+_EXTERN_C_ int MPI_Startall(int arg_0, MPI_Request *arg_1) 
+{
   REMPI_PREPRINT;
   int _wrap_py_return_val = 0;
   {
-    _wrap_py_return_val = PMPI_Startall(arg_0, arg_1);
-    //     REMPI_DBGI(9, "request: %p at %s", *arg_1, __func__);
+    _wrap_py_return_val = rempi_record_replay->re_startall(arg_0, arg_1);
   }    
   REMPI_POSTPRINT;
   return _wrap_py_return_val;

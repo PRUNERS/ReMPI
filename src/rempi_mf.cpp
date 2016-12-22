@@ -29,6 +29,24 @@ int rempi_mpi_isend(mpi_const void *buf,
   return MPI_ERR_UNKNOWN;
 }
 
+int rempi_mpi_send_init(mpi_const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request, int send_function_type)
+{
+  switch(send_function_type) {
+  case REMPI_MPI_ISEND:
+    return PMPI_Send_init(buf, count, datatype, dest, tag, comm, request);
+  case REMPI_MPI_IBSEND:
+    return PMPI_Bsend_init(buf, count, datatype, dest, tag, comm, request);
+  case REMPI_MPI_IRSEND:
+    return PMPI_Rsend_init(buf, count, datatype, dest, tag, comm, request);
+  case REMPI_MPI_ISSEND:
+    return PMPI_Ssend_init(buf, count, datatype, dest, tag, comm, request);
+  default:
+    REMPI_ERR("No such Send: %d", send_function_type);
+  }
+  return MPI_ERR_UNKNOWN;
+}
+
+
 int rempi_mpi_mf(int incount,
 		 MPI_Request array_of_requests[],
 		 int *outcount,
@@ -50,6 +68,7 @@ int rempi_mpi_mf(int incount,
     return PMPI_Testall(incount, array_of_requests, outcount, array_of_statuses);
     break;
   case REMPI_MPI_WAIT:
+    //    REMPI_DBG("Wait(rempi_mpi_mf): request: %p, status: %p", array_of_requests[0], array_of_statuses[0]);
     return PMPI_Wait(array_of_requests, array_of_statuses);
     break;
   case REMPI_MPI_WAITANY:
@@ -125,3 +144,5 @@ int rempi_mpi_pf(int source,
   }
   return ret; 
 }
+
+

@@ -123,6 +123,14 @@ class rempi_recorder {
   virtual void init(int rank);
   virtual int record_init(int *argc, char ***argv, int rank);
   virtual int replay_init(int *argc, char ***argv, int rank);
+  virtual int record_recv_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
+  virtual int replay_recv_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
+  virtual int record_send_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6, int send_function_type);
+  virtual int replay_send_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6, int send_function_type);
+  virtual int record_start(MPI_Request *arg_0);
+  virtual int replay_start(MPI_Request *arg_0);
+  virtual int record_startall(int arg_0, MPI_Request *arg_1);
+  virtual int replay_startall(int arg_0, MPI_Request *arg_1);
   virtual int record_irecv(
 			   void *buf,
 			   int count,
@@ -231,6 +239,14 @@ class rempi_recorder_cdc : public rempi_recorder
   virtual int dequeue_replay_event_set(int incount, MPI_Request array_of_requests[], int *request_info, int matching_set_id, int matching_function_type, 
 			       vector<rempi_event*> &replaying_event_vec);
 
+  virtual int record_recv_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
+  virtual int replay_recv_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6);
+  virtual int record_send_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6, int send_function_type);
+  virtual int replay_send_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6, int send_function_type);
+  virtual int record_start(MPI_Request *arg_0);
+  virtual int replay_start(MPI_Request *arg_0);
+  virtual int record_startall(int arg_0, MPI_Request *arg_1);
+  virtual int replay_startall(int arg_0, MPI_Request *arg_1);
 
   virtual int rempi_mf(int incount,
   		       MPI_Request array_of_requests[],

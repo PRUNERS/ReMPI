@@ -12,6 +12,16 @@ int rempi_mpi_isend(mpi_const void *buf,
 		    MPI_Request *request,
 		    int send_function_type);
 
+int rempi_mpi_send_init(mpi_const void *arg_0, 
+			int arg_1, 
+			MPI_Datatype arg_2, 
+			int arg_3, 
+			int arg_4, 
+			MPI_Comm arg_5, 
+			MPI_Request *arg_6, 
+			int send_function_type);
+
+
 int rempi_mpi_mf(int incount,
 	     MPI_Request array_of_requests[],
 	     int *outcount,

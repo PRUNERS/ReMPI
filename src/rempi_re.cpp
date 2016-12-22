@@ -92,6 +92,48 @@ int rempi_re::re_init_thread(
 }
 
 
+int rempi_re::re_recv_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6)
+{
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    recorder->record_recv_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+  } else {
+    recorder->replay_recv_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+  }
+  return MPI_SUCCESS;
+}
+
+int rempi_re::re_send_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6, int send_function_type)
+{
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    recorder->record_send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, send_function_type);
+  } else {
+    recorder->replay_send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, send_function_type);
+  }
+  return MPI_SUCCESS;
+}
+
+int rempi_re::re_start(MPI_Request *arg_0)
+{
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    recorder->record_start(arg_0);
+  } else {
+    recorder->replay_start(arg_0);
+  }
+  return MPI_SUCCESS;
+}
+
+int rempi_re::re_startall(int arg_0, MPI_Request *arg_1)
+{
+  if (rempi_mode == REMPI_ENV_REMPI_MODE_RECORD) {
+    recorder->record_startall(arg_0, arg_1);
+  } else {
+    recorder->replay_startall(arg_0, arg_1);
+  }
+  return MPI_SUCCESS;
+  return MPI_SUCCESS;
+}
+
+
 
 int rempi_re::re_isend(
 		       mpi_const void *buf,

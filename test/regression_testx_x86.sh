@@ -6,15 +6,15 @@ dir=./rempi_record
 librempi=/g/g90/sato5/repo/rempi/src/.libs/librempix.so
 mkdir -p $dir
 
-
 bin="./rempi_test_units matching"
-REMPI_MODE=0 REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-REMPI_MODE=1 REMPI_DIR=${dir} REMPI_ENCODE=4 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}                  srun rm ${dir}/* 2> /dev/null
+REMPI_MODE=0 REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+REMPI_MODE=1 REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}                           
+srun rm ${dir}/* 2> /dev/null
 
-#bin="./rempi_test_units matching late_irecv"
-#REMPI_MODE=0 REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-#REMPI_MODE=1 REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}                           
-#srun rm ${dir}/* 2> /dev/null
+bin="./rempi_test_units late_irecv"
+REMPI_MODE=0 REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
+REMPI_MODE=1 REMPI_DIR=${dir} REMPI_ENCODE=7 REMPI_GZIP=1 REMPI_TEST_ID=1 LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}                           
+srun rm ${dir}/* 2> /dev/null
 
 # Master worker w/ gzip
 bin="./rempi_test_master_worker"

@@ -150,6 +150,50 @@ int rempi_recorder_cdc::replay_init(int *argc, char ***argv, int rank)
   return 0;
 }
 
+int rempi_recorder_cdc::record_recv_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6)
+{
+  return PMPI_Recv_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+}
+
+int rempi_recorder_cdc::replay_recv_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6)
+{
+  return PMPI_Recv_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6);
+}
+
+int rempi_recorder_cdc::record_send_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6, int send_function_type)
+{
+  int matching_set_id;
+  return rempi_mpi_send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, send_function_type);
+}
+
+int rempi_recorder_cdc::replay_send_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6, int send_function_type)
+{
+  int matching_set_id;
+  return rempi_mpi_send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, send_function_type);
+}
+
+int rempi_recorder_cdc::record_start(MPI_Request *arg_0)
+{
+  return PMPI_Start(arg_0);
+}
+
+int rempi_recorder_cdc::replay_start(MPI_Request *arg_0)
+{
+  return PMPI_Start(arg_0);
+}
+
+int rempi_recorder_cdc::record_startall(int arg_0, MPI_Request *arg_1)
+{
+  return PMPI_Startall(arg_0, arg_1);
+}
+
+int rempi_recorder_cdc::replay_startall(int arg_0, MPI_Request *arg_1)
+{
+  return PMPI_Startall(arg_0, arg_1);
+}
+
+
+
 
 int rempi_recorder_cdc::record_isend(mpi_const void *buf,
 				     int count,

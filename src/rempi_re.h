@@ -24,6 +24,10 @@ using namespace std;
 #define REMPI_FUNCTIONS \
   virtual int re_init(int *argc, char ***argv, int fortran_init);			\
   virtual int re_init_thread(int *argc, char ***argv, int required, int *provided, int fortran_init_thraed); \
+  virtual int re_recv_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6); \
+  virtual int re_send_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, int arg_4, MPI_Comm arg_5, MPI_Request *arg_6, int send_function_type); \
+  virtual int re_start(MPI_Request *arg_0); \
+  virtual int re_startall(int arg_0, MPI_Request *arg_1); \
   virtual int re_isend(mpi_const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request, int send_function_type); \
   virtual int re_irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request); \
   virtual int re_cancel(MPI_Request *request); \
