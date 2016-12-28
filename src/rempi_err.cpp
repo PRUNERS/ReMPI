@@ -235,9 +235,10 @@ size_t rempi_btrace_hash()
       So commenting out this:     if (strstr(strings[i], "rempi")) break;
     */
     //    if (strstr(strings[i], "rempi")) break;
+    //    REMPI_DBGI(0, "call_stack: %s", strings[i]);
     hash += (hash << 5) + rempi_compute_hash(strings[i], strlen(strings[i]));
   }
-  //  REMPI_DBG("hash: %lu", hash);
+  //  REMPI_DBGI(0, "hash: %lu", hash);
   free(strings);
 
   return hash;

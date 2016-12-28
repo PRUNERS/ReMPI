@@ -239,14 +239,14 @@ void rempi_test_send_init_with_random_sleep(int send_init_type, int start_type)
   }
 }
 
-void rempi_test_mpi_sends_with_random_sleep(MPI_Comm comm)
+void rempi_test_mpi_sends_with_random_sleep(int tag, MPI_Comm comm)
 {
   int i;
 
   for (i = 0; i < NUM_TEST_MSG; i++) {
     //    rempi_test_randome_sleep();
     //    rempi_test_dbg_print("sending to 0");
-    MPI_Send(&i, 1, MPI_INT, 0, my_rank, comm);
+    MPI_Send(&i, 1, MPI_INT, 0, tag, comm);
     //    rempi_test_dbg_print("sent to 0");
   }
 }
@@ -319,7 +319,7 @@ void rempi_test_probe(int probe_type)
 {
   int i, j;
   if (my_rank != 0) {
-    rempi_test_mpi_sends_with_random_sleep(MPI_COMM_WORLD);
+    rempi_test_mpi_sends_with_random_sleep(my_rank, MPI_COMM_WORLD);
     return;
   }
 
@@ -355,13 +355,19 @@ void rempi_test_probe(int probe_type)
 }
 
 /* Test: matching */
-void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
+void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type, 
+					       int use_any_source,
+					       int use_any_tag)
 {
 
 
   int i, j;
+  int tag;
+
+
   if (my_rank != 0) {
-    rempi_test_mpi_sends_with_random_sleep(MPI_COMM_WORLD);
+    tag    = (use_any_tag)?my_rank:matching_type;
+    rempi_test_mpi_sends_with_random_sleep(tag, MPI_COMM_WORLD);
     return;
   }
 
@@ -378,14 +384,18 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
   MPI_Status  *statuses;
   MPI_Status status;
   int *matched_indices;
-
+  int source; 
 
   requests   = (MPI_Request*)malloc(sizeof(MPI_Request) * (num_sender));
   statuses   = (MPI_Status*)malloc(sizeof(MPI_Status) * (num_sender));
   recv_vals  = (int*)malloc(sizeof(int) * (num_sender));
   matched_indices = (int*)malloc(sizeof(int) * (num_sender));
+  tag    = (use_any_tag)?MPI_ANY_TAG:matching_type;
+
+
   for (i = 0; i < num_sender; i++) {
-    MPI_Irecv(&recv_vals[i], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[i]);
+    source = (use_any_source)?MPI_ANY_SOURCE:(i + 1);
+    MPI_Irecv(&recv_vals[i], 1, MPI_INT, source, tag, MPI_COMM_WORLD, &requests[i]);
   }
 
   switch(matching_type) {
@@ -398,7 +408,8 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
 	  break;
 	}
       }
-      MPI_Irecv(&recv_vals[request_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[request_index]);
+      source = (use_any_source)?MPI_ANY_SOURCE:status.MPI_SOURCE;
+      MPI_Irecv(&recv_vals[request_index], 1, MPI_INT, source, tag, MPI_COMM_WORLD, &requests[request_index]);
       request_index = (request_index + 1) % num_sender;
     }
     break;
@@ -411,7 +422,8 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
 	  break;
 	}
       }
-      MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[matched_index]);
+      source = (use_any_source)?MPI_ANY_SOURCE:status.MPI_SOURCE;
+      MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, source, tag, MPI_COMM_WORLD, &requests[matched_index]);
     }
     break;
   case MPI_Testsome_id:
@@ -428,7 +440,8 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
       for (i = 0; i < matched_count; i++) {
 	matched_index = matched_indices[i];
 	//	rempi_test_dbg_print("            SOURCE: %d, TAG: %d, index: %d, val: %d", statuses[i].MPI_SOURCE, statuses[i].MPI_TAG, matched_index, recv_vals[matched_index]);
-	MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[matched_index]);
+	source = (use_any_source)?MPI_ANY_SOURCE:statuses[i].MPI_SOURCE;
+	MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, source, tag, MPI_COMM_WORLD, &requests[matched_index]);
       }
     }
     break;
@@ -445,22 +458,24 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
       }
       for (i = 0; i < num_sender; i++) {
 	matched_index = i;
-	MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[matched_index]);
+	source = (use_any_source)?MPI_ANY_SOURCE:statuses[i].MPI_SOURCE;
+	MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, &requests[matched_index]);
       }
     }
     break;
   case MPI_Wait_id:
     for (i = 0; i < num_send_msgs; i++) {
       MPI_Wait(&requests[request_index], &status);
-
-      MPI_Irecv(&recv_vals[request_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[request_index]);
+      source = (use_any_source)?MPI_ANY_SOURCE:status.MPI_SOURCE;
+      MPI_Irecv(&recv_vals[request_index], 1, MPI_INT, source, tag, MPI_COMM_WORLD, &requests[request_index]);
       request_index = (request_index + 1) % num_sender;
     }
     break;
   case MPI_Waitany_id:
     for (i = 0; i < num_send_msgs; i++) {
       MPI_Waitany(num_sender, requests, &matched_index, &status);
-      MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[matched_index]);
+      source = (use_any_source)?MPI_ANY_SOURCE:status.MPI_SOURCE;
+      MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, source, tag, MPI_COMM_WORLD, &requests[matched_index]);
     }
     break;
   case MPI_Waitsome_id:
@@ -470,7 +485,8 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
       recv_msg_count += matched_count;
       for (i = 0; i < matched_count; i++) {
 	matched_index = matched_indices[i];
-	MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[matched_index]);
+	source = (use_any_source)?MPI_ANY_SOURCE:statuses[i].MPI_SOURCE;
+	MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, source, tag, MPI_COMM_WORLD, &requests[matched_index]);
       }
     }
     break;
@@ -481,7 +497,8 @@ void rempi_test_mpi_send_and_nonblocking_recvs(int matching_type)
       recv_msg_count += num_sender;
       for (i = 0; i < num_sender; i++) {
 	matched_index = i;
-	MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &requests[matched_index]);
+	source = (use_any_source)?MPI_ANY_SOURCE:statuses[i].MPI_SOURCE;
+	MPI_Irecv(&recv_vals[matched_index], 1, MPI_INT, source, tag, MPI_COMM_WORLD, &requests[matched_index]);
       }
     }
     break;
@@ -506,7 +523,7 @@ void rempi_test_null_status(int status_type)
 {
   int i, j;
   if (my_rank != 0) {
-    rempi_test_mpi_sends_with_random_sleep(MPI_COMM_WORLD);
+    rempi_test_mpi_sends_with_random_sleep(my_rank, MPI_COMM_WORLD);
     return;
   }
 
@@ -701,8 +718,8 @@ void rempi_test_comm_dup()
 
   MPI_Comm_dup(MPI_COMM_WORLD, &comm_dup);
   if (my_rank != 0) {
-    rempi_test_mpi_sends_with_random_sleep(comm_dup);
-    rempi_test_mpi_sends_with_random_sleep(MPI_COMM_WORLD);
+    rempi_test_mpi_sends_with_random_sleep(my_rank, comm_dup);
+    rempi_test_mpi_sends_with_random_sleep(my_rank, MPI_COMM_WORLD);
   } else {
 
     requests   = (MPI_Request*)malloc(sizeof(MPI_Request) * (num_sender));
@@ -1042,7 +1059,7 @@ void rempi_test_test_cancelled()
 {
   int i;
   if (my_rank != 0) {
-    rempi_test_mpi_sends_with_random_sleep(MPI_COMM_WORLD);
+    rempi_test_mpi_sends_with_random_sleep(my_rank, MPI_COMM_WORLD);
     return;
   }
 
@@ -1087,6 +1104,13 @@ void rempi_test_test_cancelled()
   return;
 }
 
+void  rempi_test_test_nd_and_d()
+{
+
+
+}
+
+
 
 
 int main(int argc, char *argv[])
@@ -1120,7 +1144,7 @@ int main(int argc, char *argv[])
 #if defined(TEST_MATCHING_FUNC)
       if (my_rank == 0) fprintf(stdout, "Start testing matching functions ... \n"); fflush(stdout);
       for (i = 0; i < sizeof(matching_ids)/ sizeof(int); i++) {
-	rempi_test_mpi_send_and_nonblocking_recvs(matching_ids[i]);
+	rempi_test_mpi_send_and_nonblocking_recvs(matching_ids[i], 1, 1);
 	MPI_Barrier(MPI_COMM_WORLD);
       }
       if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
@@ -1250,6 +1274,39 @@ int main(int argc, char *argv[])
 #if defined(TEST_COMM_DUP)
       if (my_rank == 0) fprintf(stdout, "Start testing test_canceled ... \n"); fflush(stdout);
       rempi_test_test_cancelled();
+      MPI_Barrier(MPI_COMM_WORLD);
+      if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
+#endif
+    }
+
+
+#define ND_and_D_TEST(index, use_any_tag) \
+    do { \
+      if (index >= sizeof(matching_ids)/ sizeof(int)) continue; \
+      rempi_test_mpi_send_and_nonblocking_recvs(matching_ids[index], 0, use_any_tag); \
+      MPI_Barrier(MPI_COMM_WORLD); \
+    } while(0)
+    
+    if (!strcmp(test_name, "ND_and_D") || is_all) {
+#if defined(TEST_COMM_DUP)
+      if (my_rank == 0) fprintf(stdout, "Start testing ND and D ... \n"); fflush(stdout);
+      ND_and_D_TEST(0, 1); // set_id=1: ND
+      ND_and_D_TEST(0, 0); // set_id=2: ND
+      /* ND_and_D_TEST(1, 1); // set_id=1: ND */
+      /* ND_and_D_TEST(1, 0); // set_id=3: ND */
+      /* ND_and_D_TEST(2, 1); // set_id=1: ND */
+      /* ND_and_D_TEST(2, 0); // set_id=4: ND */
+      /* ND_and_D_TEST(3, 1); // set_id=1: ND */
+      /* ND_and_D_TEST(3, 0); // set_id=5: ND */
+      /* ND_and_D_TEST(4, 1); // set_id=1: ND */
+      /* ND_and_D_TEST(4, 0); // set_id=6:  D */
+      /* ND_and_D_TEST(5, 1); // set_id=1: ND */
+      /* ND_and_D_TEST(5, 0); // set_id=7: ND */
+      /* ND_and_D_TEST(6, 1); // set_id=1: ND */
+      /* ND_and_D_TEST(6, 0); // set_id=8: ND */
+      /* ND_and_D_TEST(7, 1); // set_id=1: ND */
+      /* ND_and_D_TEST(7, 0); // set_id=9:  D */
+
       MPI_Barrier(MPI_COMM_WORLD);
       if (my_rank == 0) fprintf(stdout, "Done\n"); fflush(stdout);
 #endif

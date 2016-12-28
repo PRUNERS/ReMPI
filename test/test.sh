@@ -18,26 +18,32 @@ dir=${prefix}/
 #memcheck="valgrind --tool=memcheck --xml=yes --xml-file=`echo $$`.mc --partial-loads-ok=yes --error-limit=no --leak-check=full --show-reachable=yes --max-stackframe=16777216 --num-callers=20 --child-silent-after-fork=yes --track-origins=yes"
 #memcheck=memcheck-para
 
+
+# =========== Unit testx ============
+#bin="./rempi_test_units late_irecv" passed
+#bin="./rempi_test_units matching" #passed
+#bin="./rempi_test_units probe" passed
+#bin="./rempi_test_units clock_wait" passed
+#bin="./rempi_test_units init_sendrecv" 
+#bin="./rempi_test_units start"
+bin="./rempi_test_units ND_and_D"
+REMPI_ENCODE=7 \
+LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
+REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${memcheck} ${bin}
+exit
+
+
+
 # =========== Unit test ============
+bin="./rempi_test_units ND_and_D"
 #bin="./rempi_test_units start test_canceled"
-bin="./rempi_test_units test_canceled"
+#bin="./rempi_test_units test_canceled"
 REMPI_ENCODE=0 \
 LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempi.so \
 REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${memcheck} ${bin}
 exit
 
 
-# =========== Unit testx ============
-#bin="./rempi_test_units late_irecv" passed
-#bin="./rempi_test_units matching" passed
-#bin="./rempi_test_units probe" passed
-#bin="./rempi_test_units clock_wait" passed
-bin="./rempi_test_units init_sendrecv" 
-#bin="./rempi_test_units start"
-REMPI_ENCODE=7 \
-LD_PRELOAD=/g/g90/sato5/repo/rempi/src/.libs/librempix.so \
-REMPI_MODE=${mode} REMPI_DIR=${dir} srun -n ${num_procs} ${memcheck} ${bin}
-exit
 
 # ========== Hypre ex5 ===============
 bin="/g/g90/sato5/Benchmarks/external/hypre/hypre-2.10.1/src/examples/ex5 -solver 8 -loop 10"

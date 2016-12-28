@@ -1003,7 +1003,7 @@ static void change_matching_set_id(int old_id, int new_id)
   unordered_map<size_t, int>::iterator it     = comm_tag_to_matching_set_id.begin();
   unordered_map<size_t, int>::iterator it_end = comm_tag_to_matching_set_id.end();
   
-  REMPI_ERR("matching_set_id assigment and (tag, comm) are inconsistent");
+  if(rempi_encode != REMPI_ENV_REMPI_ENCODE_REP) REMPI_ERR("matching_set_id assigment and (tag, comm) are inconsistent");
   
   for (; it != it_end; it++) {
     old_set_id = it->second;
@@ -1039,7 +1039,6 @@ static void assign_matching_set_id_to_msg_id(int mpi_call_id, int matching_set_i
       if (old_set_id != matching_set_id) change_matching_set_id(old_set_id, matching_set_id);
     }
     comm_tag_to_matching_set_id[msg_id] = matching_set_id;
-    //    REMPI_DBGI(0, "  map: %p --> %d", msg_id, matching_set_id);
   }    
 }
 
@@ -1070,7 +1069,6 @@ int rempi_reqmg_get_matching_set_id_map(size_t **msg_ids, int **matching_set_ids
      (*matching_set_ids)[index] = set_id;
     index++;
   }  
-  
   return 0;
 }
 
