@@ -62,7 +62,9 @@ For more details, run ./configure -h
 When the `--enable-cdc` option is specified, ReMPI require dependent software below:
 
  * STACKP: A static MPI tool enabling to run multiple PMPI tools.
+   * https://github.com/PRUNER/StackP.git
  * CLMPI: A PMPI tool for piggybacking Lamport clocks.
+   * https://github.com/PRUNER/CLMPI.git 
 
 # Environmental valiables
 
