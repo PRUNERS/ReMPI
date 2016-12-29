@@ -10,7 +10,7 @@ AC_INIT([ReMPI],
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 #AM_INIT_AUTOMAKE([ReMPI], [0.1])
-AM_INIT_AUTOMAKE([foreign -Wall -Werror])
+AM_INIT_AUTOMAKE([foreign -Wall -Werror], [0.1])
 #LT_INIT([shared static])
 
 ### Action Macros
