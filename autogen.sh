@@ -4,6 +4,8 @@
 # libtool macros can be found if libtool is in PATH, but its
 # macros are not in default aclocal search path.
 #
+echo "Touching NEWS README AUTHORS ChangeLog ..."
+touch NEWS README AUTHORS ChangeLog
 echo "Running libtoolize --automake --copy ... "
 libtoolize --automake --copy 
 echo "Running autoreconf --verbose --install"
