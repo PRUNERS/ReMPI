@@ -10,9 +10,7 @@
 
 ### From git repogitory
 
-    -
     $ git clone git@github.com:PRUNERS/ReMPI.git
-    -
     $ cd <rempi directory>
     $ ./autogen.sh
 
