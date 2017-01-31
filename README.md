@@ -11,10 +11,7 @@
 ### From git repogitory
 
     -
-    $ git clone --recursive git@github.com:PRUNERS/ReMPI.git
-    OR
     $ git clone git@github.com:PRUNERS/ReMPI.git
-    $ git submodule update --init
     -
     $ cd <rempi directory>
     $ ./autogen.sh
