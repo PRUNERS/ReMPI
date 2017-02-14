@@ -1,5 +1,5 @@
 
-<img src="files/rempi_logo.png" height="60%" width="60%" alt="ReMPI logo" title="ReMPI" align="center" />
+<img src="files/rempi_logo.png" height="60%" width="60%" alt="ReMPI logo" title="ReMPI" align="middle" />
 
 
 # Introduction
