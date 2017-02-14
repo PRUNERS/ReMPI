@@ -1,6 +1,8 @@
 
+<img src="files/rempi_logo.png" height="60%" width="60%" alt="ReMPI logo" title="ReMPI" align="center" />
+
+
 # Introduction
-<img src="files/rempi_logo.png" alt="ReMPI logo" title="ReMPI" align="left" />
 
  * ReMPI is a record-and-replay tool for MPI applications.
  * (Optional) ReMPI implements Clock Delta Compression (CDC) for compressing records
