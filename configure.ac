@@ -7,6 +7,7 @@ AC_INIT([ReMPI],
         m4_esyscmd([git describe --always | awk '/.*/ {sub(/^v/, ""); printf "%s",$1; exit}']), 
 	[kento@llnl.gov])
 
+AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 #AM_INIT_AUTOMAKE([ReMPI], [0.1])
