@@ -7,6 +7,7 @@ AC_INIT([ReMPI],
         m4_esyscmd([git describe --always | awk '/.*/ {sub(/^v/, ""); printf "%s",$1; exit}']), 
 	[kento@llnl.gov])
 
+AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 #AM_INIT_AUTOMAKE([ReMPI], [0.1])
@@ -71,9 +72,7 @@ if test "$MPIF90" = :; then
    AC_MSG_ERROR([This package needs mpif90.])
 fi
 AC_PROG_FC([mpif90])
-if test "$with_bluegene" = yes; then
-AC_SUBST([FC], [$MPIFC])
-fi
+AC_SUBST([FC], [$MPIF90])
 
 
 #AC_ARG_VAR([CC], [CC for compile])
