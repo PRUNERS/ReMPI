@@ -26,18 +26,29 @@
 
 ### Build (General)
 
-    ./configure --prefix=<path to installation directory> 
-    make 
-    make install
+    $ ./configure --prefix=<path to installation directory> 
+    $ make 
+    $ make install
 
 ### Build (BG/Q)
 
-    ./configure --prefix=<path to installation directory> --with-bluegene --with-zlib-static=/usr/local/tools/zlib-1.2.6/ MPICC=/usr/local/tools/compilers/ibm/mpicxx-fastmpi-mpich-312 MPIFC=/usr/local/tools/compilers/ibm/mpif90-fastmpi-mpich-312
-    make 
-    make install
+    $ ./configure --prefix=<path to installation directory> --with-bluegene --with-zlib-static=/usr/local/tools/zlib-1.2.6/ MPICC=/usr/local/tools/compilers/ibm/mpicxx-fastmpi-mpich-312 MPIFC=/usr/local/tools/compilers/ibm/mpif90-fastmpi-mpich-312
+    $ make 
+    $ make install
 
+## 3. Run with ReMPI
+    $ cd test
+    $ mkdir rempi_record
+    
+Record mode (REMPI_MODE=0)
+    
+    $ REMPI_MODE=0 REMPI_DIR=./rempi_record LD_PRELOAD=<path to installation directory>/lib/librempi.so srun(or mpirun) -n 4 ./rempi_test_units matching
+    
+Replay mode (REMPI_MODE=1)
+    
+    $ REMPI_MODE=1 REMPI_DIR=./rempi_record LD_PRELOAD=<path to installation directory>/lib/librempi.so srun(or mpirun) -n 4 ./rempi_test_units matching
 
-## 3. Run examples
+## 4. Run other examples
 
 Assuming SLURM
 
