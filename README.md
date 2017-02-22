@@ -47,6 +47,8 @@ Record mode (REMPI_MODE=0)
 Replay mode (REMPI_MODE=1)
     
     $ REMPI_MODE=1 REMPI_DIR=./rempi_record LD_PRELOAD=<path to installation directory>/lib/librempi.so srun(or mpirun) -n 4 ./rempi_test_units matching
+    
+"REMPI::<hostname>:  0:  Global validation code: 1939202000" is a hash value computed from MPI events. If you run this example code several times with REMPI_MODE=0, you will see that this hash value changes from run to run. This means this example code is MPI non-deterministic. Once you run this example code and record MPI events with REMPI_MODE=0, you can reproduce this hash value with REMPI_MODE=1. This means MPI events are reproduced.
 
 ## 4. Run other examples
 
