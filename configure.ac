@@ -17,7 +17,6 @@ AM_INIT_AUTOMAKE([foreign -Wall -Werror], [0.1])
 ### Action Macros
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
-AC_PROG_LIBTOOL
 
 AC_SUBST([LIB_CURRENT], [0])
 AC_SUBST([LIB_REVISION], [1])
@@ -57,10 +56,14 @@ LX_FIND_MPI
 test "x$have_F_mpi" = xyes || AC_MSG_ERROR([Failed to find Fortran MPI Wrapper.])
 AC_LANG_POP()
 
+CC="$MPICC"
+CXX="$MPICXX"
+FC="$MPIFC"
 AC_CHECK_PROGS([MAKE], [make], [:])
 if test "$MAKE" = :; then
    AC_MSG_ERROR([This package needs make.])
 fi
+AC_PROG_LIBTOOL
 
 
 

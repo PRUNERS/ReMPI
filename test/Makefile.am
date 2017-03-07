@@ -1,8 +1,5 @@
 SUBDIRS=../src
 
-CC=$(MPICC)
-CXX=$(MPICXX)
-FC=$(MPIFC)
 AM_CFLAGS = -g -rdynamic
 
 if WITH_BLUEGENE	
