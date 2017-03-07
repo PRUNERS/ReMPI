@@ -1,4 +1,6 @@
-
+CC=$(MPICC)
+CXX=$(MPICXX)
+FC=$(MPIFC)
 AM_CFLAGS = -fPIC -g -Wall -pthread -std=c++0x -I$(clmpi_DIR)/include/ -lstdc++ -I$(libz_a_INCLUDE)
 AM_CXXFLAGS = $(AM_CFLAGS)
 
