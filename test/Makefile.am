@@ -1,6 +1,9 @@
 SUBDIRS=../src
 
-AM_CFLAGS = -g -rdynamic  #-lefence
+CC=$(MPICC)
+CXX=$(MPICXX)
+FC=$(MPIFC)
+AM_CFLAGS = -g -rdynamic
 
 if WITH_BLUEGENE	
 LIBS += $(libz_a_LIB) 
