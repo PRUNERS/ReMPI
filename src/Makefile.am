@@ -1,4 +1,4 @@
-AM_CFLAGS = -fPIC -g -Wall -pthread -std=c++0x -I$(clmpi_DIR)/include/ -lstdc++ -I$(libz_a_INCLUDE)
+AM_CFLAGS = -fPIC -g -Wall -pthread -std=c++0x -I$(clmpi_DIR)/include/ -I$(libz_a_INCLUDE) 
 AM_CXXFLAGS = $(AM_CFLAGS)
 
 rempi_SOURCES =  \
@@ -37,7 +37,7 @@ librempi_la_SOURCES  = $(rempi_SOURCES)
 librempi_la_LIBADD =  $(libz_a_LIB)
 librempi_la_CFLAGS = -lz -lstdc++ -lintlc
 librempi_la_CPPFLAGS = -DREMPI_LITE
-librempi_la_LDFLAGS = -version-info @LIB_CURRENT@:@LIB_REVISION@:@LIB_AGE@
+librempi_la_LDFLAGS = -version-info @LIB_CURRENT@:@LIB_REVISION@:@LIB_AGE@ -L/opt/ibm/xlC/13.1.5/lib 
 
 if ENABLE_CDC
 
