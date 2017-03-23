@@ -77,7 +77,7 @@ When the `--enable-cdc` option is specified, ReMPI require dependent software be
  * CLMPI: A PMPI tool for piggybacking Lamport clocks.
    * https://github.com/PRUNER/CLMPI.git 
 
-# Environmental valiables
+# Environmental variables
 
  * `REMPI_MODE`: Record mode OR Replay mode
      * `0`: Record mode
