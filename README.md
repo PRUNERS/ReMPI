@@ -11,7 +11,7 @@
 
 ## 1. Get source code 
 
-### From Spack
+### From Spack (Spack also builds ReMPI)
 
     $ git clone https://github.com/LLNL/spack
     $ spack/bin/spack install rempi
