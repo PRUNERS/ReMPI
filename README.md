@@ -19,7 +19,7 @@
 ### From git repository
 
     $ git clone git@github.com:PRUNERS/ReMPI.git
-    $ cd <rempi directory>
+    $ cd ReMPI
     $ ./autogen.sh
     $ ./configure --prefix=<path to installation directory> 
     $ make 
