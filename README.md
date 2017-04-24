@@ -5,43 +5,43 @@
 # Introduction
 
  * ReMPI is a record-and-replay tool for MPI applications.
- * (Optional) ReMPI implements Clock Delta Compression (CDC) for compressing records
+ * (Optional) ReMPI implements Clock Delta Compression (CDC) for compressing records.
 
 # Quick Start
 
-## 1. Get source code 
+## 1. Building ReMPI 
 
-### From Spack (Spack also builds ReMPI)
+### From Spack
 
     $ git clone https://github.com/LLNL/spack
-    $ spack/bin/spack install rempi
+    $ ./spack/bin/spack install rempi
 
-### From git repogitory
+### From git repository
 
     $ git clone git@github.com:PRUNERS/ReMPI.git
     $ cd <rempi directory>
     $ ./autogen.sh
+    $ ./configure --prefix=<path to installation directory> 
+    $ make 
+    $ make install
 
 ### From tarball
 
     $ tar zxvf ./rempi_xxxxx.tar.bz
     $ cd <rempi directory>
-
-## 2. Build ReMPI
-
-### Build (General)
-
     $ ./configure --prefix=<path to installation directory> 
     $ make 
     $ make install
 
-### Build (BG/Q)
+### Note on building for BG/Q
+
+To build on the IBM BG/Q platform, you will need to add the --with-blugene option and specify the path to zlib with the --with-zlib-static flag. You may also need to specify the MPICC and MPIFC variables. For example:
 
     $ ./configure --prefix=<path to installation directory> --with-bluegene --with-zlib-static=/usr/local/tools/zlib-1.2.6/ MPICC=/usr/local/tools/compilers/ibm/mpicxx-fastmpi-mpich-312 MPIFC=/usr/local/tools/compilers/ibm/mpif90-fastmpi-mpich-312
     $ make 
     $ make install
 
-## 3. Run with ReMPI
+## 2. Running with ReMPI
     $ cd test
     $ mkdir rempi_record
     
@@ -55,16 +55,16 @@ Replay mode (REMPI_MODE=1)
     
 "REMPI::<hostname>:  0:  Global validation code: 1939202000" is a hash value computed from MPI events. If you run this example code several times with REMPI_MODE=0, you will see that this hash value changes from run to run. This means this example code is MPI non-deterministic. Once you run this example code and record MPI events with REMPI_MODE=0, you can reproduce this hash value with REMPI_MODE=1. This means MPI events are reproduced.
 
-## 4. Run other examples
+## 3. Running other examples
 
-Assuming SLURM
+The following example script assumes the resource manager is SLURM and that ReMPI is installed in /usr/local. You must edit the example_x86.sh file othewise.
 
      cd example
      sh ./example_x86.sh 16
      ls -ltr .rempi # lists record files
 
 
-# Configuration Option
+# Configuration Options
 
 For more details, run ./configure -h  
 
@@ -82,7 +82,7 @@ When the `--enable-cdc` option is specified, ReMPI require dependent software be
  * CLMPI: A PMPI tool for piggybacking Lamport clocks.
    * https://github.com/PRUNER/CLMPI.git 
 
-# Environmental variables
+# Environment variables
 
  * `REMPI_MODE`: Record mode OR Replay mode
      * `0`: Record mode
