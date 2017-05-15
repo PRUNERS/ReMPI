@@ -2810,6 +2810,7 @@ _EXTERN_C_ int MPI_Recv_init(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg
     //     REMPI_DBGI(9, "request: %p at %s", *arg_6, __func__);
   }    
   REMPI_POSTPRINT;
+  exit(1);
   return _wrap_py_return_val;
 }
 
@@ -2856,6 +2857,7 @@ _EXTERN_C_ int MPI_Send_init(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_
     _wrap_py_return_val = rempi_record_replay->re_send_init(arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, REMPI_MPI_ISEND);
   }    
   REMPI_POSTPRINT;
+  exit(1);
   return _wrap_py_return_val;
 }
 

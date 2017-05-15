@@ -92,6 +92,7 @@ char* rempi_gethostname() {
 
 void rempi_assert(int b)
 {
+  //  REMPI_DBG("Assert: pid=$d", getpid());
   assert(b);
   return;
 }

@@ -63,6 +63,7 @@ static void rempi_sig_handler_postprocess()
 
 void rempi_sig_handler_run(int signum)
 {
+  return;
   if (first_signal < 0) {
     first_signal = signum;
     REMPI_PRT("Get sigmal: %d", signum);
@@ -89,6 +90,7 @@ void rempi_sig_handler_init(int rank, rempi_io_thread *record_thread, rempi_even
   registered_record_thread = record_thread;
   registered_recording_event_list = recording_event_list;
   registered_validation_code = validation_code;
+
   if (signal(12, rempi_sig_handler_run) == SIG_ERR) {
     REMPI_ERR("signal failed 12");
   }

@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-SUBDIRS = llvm
 AM_CFLAGS = -fPIC -g -Wall -pthread -std=c++0x -I$(clmpi_DIR)/include/ -I$(libz_a_INCLUDE) 
 AM_CXXFLAGS = $(AM_CFLAGS)
 
@@ -117,7 +115,3 @@ endif
 
 # endif
 
-=======
-SUBDIRS = mpi llvm
-ACLOCAL_AMFLAGS = -I m4
->>>>>>> 1c5f25d99afd61625dd8c3a6ea85b688be4cbbb7
