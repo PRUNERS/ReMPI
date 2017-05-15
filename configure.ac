@@ -139,6 +139,7 @@ AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_FILES([
 	Makefile 
 	src/Makefile 
+	src/llvm/Makefile 
 	test/Makefile
 	example/Makefile
 	example/example_x86.sh

@@ -12,7 +12,9 @@ noinst_PROGRAMS = \
 	rempi_test_mini_mcb \
 	rempi_test_hypre_parasails \
 	rempi_test_units \
-	rempi_test_msg_race  	
+	rempi_test_msg_race \
+	reomp_test_units
+ 
 if ENABLE_CDC
 if WITH_BLUEGENE
 noinst_PROGRAMS += \
@@ -46,12 +48,12 @@ rempi_test_msg_racex_LDADD = $(librempix_LIB)
 #$(target_fortranx):
 #	mpif90  -g -c -o rempi_test_master_worker_fortranx rempi_test_master_worker_fortranx.f90 -lmpi
 endif
-
 endif
 
 if WITH_BLUEGENE
 librempi_LIB = ../src/.libs/librempi.a
 endif
+
 rempi_test_master_worker_SOURCES = rempi_test_master_worker.c rempi_test_util.c
 rempi_test_master_worker_LDADD = $(librempi_LIB)
 rempi_test_master_worker_fortran_SOURCES = rempi_test_master_worker_fortran.f90
@@ -64,6 +66,17 @@ rempi_test_units_SOURCES = rempi_test_units.c rempi_test_util.c
 rempi_test_units_LDADD = $(librempi_LIB)
 rempi_test_msg_race_SOURCES = rempi_test_msg_race.c rempi_test_util.c
 rempi_test_msg_race_LDADD = $(librempi_LIB)
+reomp_test_units_SOURCES = reomp_test_units.c rempi_test_util.c
+reomp_test_units_CCFLAGS = -O2 -g -Wall -fopenmp `llvm-config --cflags`
+reomp_test_units_LDFLAGS = -L./ `llvm-config --ldflags` -L ../src/llvm/.libs/ -lreomprr
+reomp_test_units_LLVMIRPASS = ../src/llvm/.libs/libreomp.so 	
+
+reomp_test_units$(EXEEXT): $(reomp_test_units_OBJECTS) $(reomp_test_units_DEPENDENCIES) $(EXTRA_reomp_test_units_DEPENDENCIES) $(reomp_test_units_LLVMIRPASS)
+	@rm -f reomp_test_units$(EXEEXT)
+	clang++ -Xclang -load -Xclang $(reomp_test_units_LLVMIRPASS) $(reomp_test_units_CCFLAGS) $(reomp_test_units_LDFLAGS) -emit-llvm -S -o $@.ll $@.c
+	clang++ -Xclang -load -Xclang $(reomp_test_units_LLVMIRPASS) $(reomp_test_units_CCFLAGS) $(reomp_test_units_LDFLAGS) -o $@.o -c $@.c 2> /dev/null
+	clang++ -Xclang -load -Xclang $(reomp_test_units_LLVMIRPASS) $(reomp_test_units_CCFLAGS) $(reomp_test_units_LDFLAGS) -o $@ $(reomp_test_units_OBJECTS)
+	clang++ $(reomp_test_units_CCFLAGS) $(reomp_test_units_LDFLAGS) -o $@_native $(reomp_test_units_SOURCES) 
 
 
 #target_fortran=rempi_test_master_worker_fortran$(EXEEXT)
