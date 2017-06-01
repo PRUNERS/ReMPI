@@ -23,7 +23,10 @@
 
 #include <list>
 #include <vector>
+
 #include "reomp_IR_pass.h"
+#include "reomp_rr.h"
+#include "reomp_mem.h"
 #include "mutil.h"
 
 
@@ -225,18 +228,28 @@ void ReOMP::extract_omp_function(CallInst *fork_CI, Function **omp_func, list<Va
   return;
 }
 
-void ReOMP::insert_func_after(Instruction *I, BasicBlock *BB, string func_name, vector<Value*> &arg_vec)
+void ReOMP::insert_func(Instruction *I, BasicBlock *BB, int offset, string func_name, vector<Value*> &arg_vec)
 {
   IRBuilder<> builder(I);
-  builder.SetInsertPoint(BB, ++builder.GetInsertPoint());
+  builder.SetInsertPoint(BB, (offset)? ++builder.GetInsertPoint():builder.GetInsertPoint());
   Constant* func = reomp_func_umap.at(func_name);
   builder.CreateCall(func, arg_vec);
   return;
 }
 
-bool ReOMP::insert_rr(BasicBlock *BB, CallInst *kmpc_fork_CI, reomp_omp_rr_data *omp_rr_data)
+void ReOMP::insert_func(Instruction *I, BasicBlock *BB, int offset, string func_name)
 {
-  bool is_created = false;
+  IRBuilder<> builder(I);
+  builder.SetInsertPoint(BB, (offset)? ++builder.GetInsertPoint():builder.GetInsertPoint());
+  //  builder.SetInsertPoint(BB, builder.GetInsertPoint());
+  Constant* func = reomp_func_umap.at(func_name);
+  builder.CreateCall(func);
+  return;
+}
+
+int ReOMP::insert_rr(BasicBlock *BB, CallInst *kmpc_fork_CI, reomp_omp_rr_data *omp_rr_data)
+{
+  int is_created = 0;
   LLVMContext &ctx = BB->getContext();
   vector<Value*> arg_vec;
 
@@ -245,8 +258,8 @@ bool ReOMP::insert_rr(BasicBlock *BB, CallInst *kmpc_fork_CI, reomp_omp_rr_data 
     if (GV->getType()->isPointerTy()) {
       arg_vec.push_back(GV);
       arg_vec.push_back(ConstantInt::get(Type::getInt64Ty(ctx), 0));
-      insert_func_after(kmpc_fork_CI, BB, "reomp_rr", arg_vec);
-      is_created = true;
+      insert_func(kmpc_fork_CI, BB, REOMP_IR_PASS_INSERT_AFTER, "reomp_rr", arg_vec);
+      is_created++;
     }
   }
   
@@ -254,31 +267,125 @@ bool ReOMP::insert_rr(BasicBlock *BB, CallInst *kmpc_fork_CI, reomp_omp_rr_data 
     arg_vec.clear();
     arg_vec.push_back(AG);
     arg_vec.push_back(ConstantInt::get(Type::getInt64Ty(ctx), 0));
-    insert_func_after(kmpc_fork_CI, BB, "reomp_rr", arg_vec);
-    is_created = true;
+    insert_func(kmpc_fork_CI, BB, REOMP_IR_PASS_INSERT_AFTER, "reomp_rr", arg_vec);
+    is_created++;
   }
   return is_created;
 }
 
-howto_type ReOMP::get_howto_handle(Instruction &I, int *meta)
+/* Outer Handlers */
+int ReOMP::handle_function(Function &F)
 {
-  string name;
-  if (CallInst *CI = dyn_cast<CallInst>(&I)) {
-    name = CI->getCalledValue()->getName();
-    if (name == "__kmpc_fork_call") {
-      return HOWTO_TYPE_OMP_FUNC;
-    } else if (name == "malloc") {
-      return HOWTO_TYPE_DYN_ALLOC;
-    } else if (name == "calloc") {
-      return HOWTO_TYPE_DYN_ALLOC;
-    } else if (name == "realloc") {
-      return HOWTO_TYPE_DYN_ALLOC;
+  int modified_counter = 0;
+  modified_counter += ci_mem_memory_hook_on_main(F);
+  return modified_counter;
+}
+
+int ReOMP::ci_mem_memory_hook_on_main(Function &F)
+{
+  int modified_counter = 0;
+  int is_hook_enabled = 0;
+  if (F.getName() == "main") {
+    for (BasicBlock &BB : F) {
+      for (Instruction &I : BB) {
+	if (!is_hook_enabled) {
+	  modified_counter += insert_mem_enable_hook(BB, I);
+	  is_hook_enabled = 1;
+	}
+	if (dyn_cast<ReturnInst>(&I)) {
+	  modified_counter += insert_mem_disable_hook(BB, I);
+	} 
+      }
     }
+  } 
+  return modified_counter;
+}
+
+int ReOMP::handle_basicblock(Function &F, BasicBlock &BB)
+{
+  return 0;
+}
+
+int ReOMP::handle_instruction(Function &F, BasicBlock &BB, Instruction &I)
+{
+  int modified_counter = 0;
+  modified_counter += ci_mem_register_local_var_addr_on_alloca(F, BB, I);
+  modified_counter += ci_rr_insert_rr_on_omp_func(F, BB, I);  
+  return modified_counter;
+}
+
+int ReOMP::ci_rr_insert_rr_on_omp_func(Function &F, BasicBlock &BB, Instruction &I)
+{
+  CallInst *CI;
+  string name;
+  if (!(CI = dyn_cast<CallInst>(&I))) return 0;
+  name = CI->getCalledValue()->getName();
+  if (F.getName().startswith(".omp_outlined.")) return 0;
+  if (!(name == "__kmpc_fork_call")) return 0;
+
+  //  omp_rr_data = create_omp_rr_data();
+  //  get_responsible_data(CI, omp_rr_data);
+  //  insert_rr(&BB, CI, omp_rr_data);
+  vector<Value*> arg_vec;
+  arg_vec.push_back(ConstantPointerNull::get(Type::getInt64PtrTy(*REOMP_CTX)));
+  arg_vec.push_back(ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 0));
+  insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER, "reomp_rr", arg_vec);
+
+  return 1;
+}
+
+
+int ReOMP::ci_mem_register_local_var_addr_on_alloca(Function &F, BasicBlock &BB, Instruction &I)
+{
+  AllocaInst *AI;
+  if (!(AI = dyn_cast<AllocaInst>(&I))) { 
+    return 0;  
   }
+  if (F.getName().startswith(".omp_outlined.")) return 0;
+
+  //  Module *M = F.getParent();
+  //  DataLayout *DL = new DataLayout(REO);
+
+  /* TODO: reuse vector */
+  vector<Value*> arg_vec;
+  size_t type_size;
+
+  arg_vec.push_back(AI);
+  type_size = REOMP_DL->getTypeSizeInBits(AI->getAllocatedType());
+  arg_vec.push_back(ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), type_size));
+  insert_func(AI, &BB, REOMP_IR_PASS_INSERT_AFTER, REOMP_MEM_REGISTER_LOCAL_VAR_ADDR, arg_vec);
+
+  return 1;
+}
+
+howto_type ReOMP::get_howto_handle(Function &F, Instruction &I, int *meta)
+{
+  // string name;
+
+  // if (F.getName() == "main") {
+  //   if (dyn_cast<ReturnInst>(&I)) {
+  //     return HOWTO_TYPE_DISABLE_HOOK;
+  //   } else if (!is_hook_enabled) {
+  //     return HOWTO_TYPE_ENABLE_HOOK;
+  //   }
+  // }  
+
+  // if (CallInst *CI = dyn_cast<CallInst>(&I)) {
+  //   name = CI->getCalledValue()->getName();
+  //   if (name == "__kmpc_fork_call") {
+  //     return HOWTO_TYPE_OMP_FUNC;
+  //   } else if (name == "malloc") {
+  //     return HOWTO_TYPE_DYN_ALLOC;
+  //   } else if (name == "calloc") {
+  //     return HOWTO_TYPE_DYN_ALLOC;
+  //   } else if (name == "realloc") {
+  //     return HOWTO_TYPE_DYN_ALLOC;
+  //   }
+  // }
   return HOWTO_TYPE_OTHERS;
 }
 
-bool ReOMP::handle_omp_func(BasicBlock &BB, Instruction &I)
+int ReOMP::handle_omp_func(BasicBlock &BB, Instruction &I)
 {
   reomp_omp_rr_data *omp_rr_data;
   CallInst *CI;
@@ -288,10 +395,23 @@ bool ReOMP::handle_omp_func(BasicBlock &BB, Instruction &I)
   get_responsible_data(CI, omp_rr_data);
   is_modified = insert_rr(&BB, CI, omp_rr_data);
   free_omp_rr_data(omp_rr_data);
-  return is_modified;
+  return 1;
 }
 
-bool ReOMP::handle_dyn_alloc(BasicBlock &BB, Instruction &I)
+int ReOMP::insert_mem_enable_hook(BasicBlock &BB, Instruction &I)
+{
+  insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_RR_INIT_STR);
+  return 1;
+}
+
+int ReOMP::insert_mem_disable_hook(BasicBlock &BB, Instruction &I)
+{
+  insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_RR_FINALIZE_STR);    
+  return 1;
+}
+
+
+int ReOMP::handle_dyn_alloc(BasicBlock &BB, Instruction &I)
 {
   LLVMContext &ctx = BB.getContext();
   vector<Value*> arg_vec;
@@ -304,56 +424,80 @@ bool ReOMP::handle_dyn_alloc(BasicBlock &BB, Instruction &I)
   errs() << "====" << *Vsize << "\n";
   arg_vec.push_back(Vptr);
   arg_vec.push_back(Vsize);
-  insert_func_after(CI, &BB, "reomp_mem_on_alloc", arg_vec);
-  return true;
+  insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER, "reomp_mem_on_alloc", arg_vec);
+  return 1;
 }
 
 void ReOMP::init_inserted_functions(Module &M)
 {
-  LLVMContext& ctx = M.getContext();
+
+  LLVMContext &ctx = M.getContext();
   reomp_func_umap["reomp_rr"] = M.getOrInsertFunction("reomp_rr", 
 							 Type::getInt64PtrTy(ctx), 
 							 Type::getInt64Ty(ctx), 
 							 NULL);
-  reomp_func_umap["reomp_mem_on_alloc"] = M.getOrInsertFunction("reomp_mem_on_alloc", 
+
+  // reomp_func_umap["reomp_mem_on_alloc"] = M.getOrInsertFunction("reomp_mem_on_alloc", 
+  // 							 Type::getInt64PtrTy(ctx), 
+  // 							 Type::getInt64Ty(ctx), 
+  // 							 NULL);
+
+  // reomp_func_umap["reomp_mem_on_free"] = M.getOrInsertFunction("reomp_mem_on_free", 
+  // 							 Type::getInt64PtrTy(ctx), 
+  //							 NULL);
+
+  reomp_func_umap[REOMP_MEM_REGISTER_LOCAL_VAR_ADDR] = M.getOrInsertFunction(REOMP_MEM_REGISTER_LOCAL_VAR_ADDR,
 							 Type::getInt64PtrTy(ctx), 
 							 Type::getInt64Ty(ctx), 
 							 NULL);
+  
+  reomp_func_umap[REOMP_RR_INIT_STR] = M.getOrInsertFunction(REOMP_RR_INIT_STR,
+							     Type::getVoidTy(ctx),
+							     NULL);
 
-  reomp_func_umap["reomp_mem_on_free"] = M.getOrInsertFunction("reomp_mem_on_free", 
-							 Type::getInt64PtrTy(ctx), 
-							 NULL);
+  reomp_func_umap[REOMP_RR_FINALIZE_STR] = M.getOrInsertFunction(REOMP_RR_FINALIZE_STR,
+							     Type::getVoidTy(ctx),
+							     NULL);
+
+  reomp_func_umap[REOMP_MEM_ENABLE_HOOK] = M.getOrInsertFunction(REOMP_MEM_ENABLE_HOOK, 
+								 Type::getVoidTy(ctx), 
+								 NULL);
+
+  reomp_func_umap[REOMP_MEM_DISABLE_HOOK] = M.getOrInsertFunction(REOMP_MEM_DISABLE_HOOK,
+								 Type::getVoidTy(ctx), 
+								 NULL);
+
+  reomp_func_umap[REOMP_MEM_PRINT_ADDR] = M.getOrInsertFunction(REOMP_MEM_PRINT_ADDR,
+								  Type::getInt64PtrTy(ctx),
+								  NULL);
+
   return;
 }
 
 bool ReOMP::doInitialization(Module &M)
 {
+  REOMP_M   = &M;
+  REOMP_CTX = &(M.getContext());
+  REOMP_DL  = new DataLayout(REOMP_M);
+
+
   init_inserted_functions(M);
+
+
   return true;
 }
 
 bool ReOMP::runOnFunction(Function &F)
 {
-
-  bool is_modified = false;
+  int modified_counter = 0;
+  modified_counter += handle_function(F);
   for (BasicBlock &BB : F) {
+    modified_counter += handle_basicblock(F, BB);
     for (Instruction &I : BB) {
-      howto_type howto = get_howto_handle(I, NULL);
-      switch(howto) {
-      case HOWTO_TYPE_OMP_FUNC:
-	if(handle_omp_func(BB, I)) is_modified = true;
-	break;
-      case HOWTO_TYPE_DYN_ALLOC:
-	if(handle_dyn_alloc(BB, I)) is_modified = true;
-	break;
-      case HOWTO_TYPE_OTHERS:
-	break;
-      default:
-	MUTIL_ERR("Unknown HOWTO_TYPE: %d", howto);
-      }
+      modified_counter += handle_instruction(F, BB, I);
     }
   }
-  return is_modified;
+  return modified_counter > 0;
 }
 
 

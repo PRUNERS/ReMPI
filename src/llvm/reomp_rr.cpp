@@ -16,43 +16,45 @@ FILE *fp = NULL;
 
 static void reomp_record(void* ptr, size_t size) 
 {
-  size_t s;
   if (fp == NULL) {
     fp = fopen("rank_x.reomp", "w");
   }
 
-  fwrite(ptr, sizeof(ptr), 1, fp);
-  if (reomp_mem_is_alloced(*(void**)ptr)) {
-    reomp_mem_get_alloc_size(*(void**)ptr, &s);
-    fwrite(*(void**)(ptr), s, 1, fp);
-  }
-  MUTIL_DBG("writing size: %lu", s);
-  
-
+  reomp_mem_record_or_replay_all_local_vars(fp, 0);
   return;
 }
 
 static void reomp_replay(void* ptr, size_t size)
 {
-  size_t s;
   if (fp == NULL) {
     fp = fopen("rank_x.reomp", "r");
   }
-
-  fread(ptr, sizeof(ptr), 1, fp);
-  if (reomp_mem_is_alloced(*(void**)ptr)) {
-    reomp_mem_get_alloc_size(*(void**)ptr, &s);
-    fread(*(void**)(ptr), s, 1, fp);
-  }
+  reomp_mem_record_or_replay_all_local_vars(fp, 1);
   return;
 }
+
+void reomp_rr_init()
+{
+  reomp_mem_init();
+  reomp_mem_enable_hook();
+  return;
+}
+
+void reomp_rr_finalize()
+{
+  reomp_mem_disable_hook();
+  return;
+}
+
 
 void reomp_rr(void* ptr, size_t size)                                                                                                               
 {
   int tid;
-  
+
+  //reomp_mem_disable_hook();
   tid = omp_get_thread_num();
-  if (tid) return;
+
+  if (tid) goto end;
 
   char *env;
   if (!(env = getenv(MODE))) {
@@ -68,6 +70,9 @@ void reomp_rr(void* ptr, size_t size)
     fprintf(stderr, "REOMP_MODE=<record:0|replay:1>\n");
     exit(0);
   }
+
+end:
+  //  reomp_mem_enable_hook();
 
   return;
 }                                                                                                                                                      

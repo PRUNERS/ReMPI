@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 SUBDIRS = llvm
 AM_CFLAGS = -fPIC -g -Wall -pthread -std=c++0x -I$(clmpi_DIR)/include/ -I$(libz_a_INCLUDE) 
 AM_CXXFLAGS = $(AM_CFLAGS)
@@ -116,8 +115,3 @@ endif
 # 	-rm -f $(librempix_a_LIB) $(librempix_so_LIB) $(librempix_a_OBJECTS) $(librempix_a_LD_OBJECT) $(librempix_a_STACK_PMPI_OBJECT)
 
 # endif
-
-=======
-SUBDIRS = mpi llvm
-ACLOCAL_AMFLAGS = -I m4
->>>>>>> 1c5f25d99afd61625dd8c3a6ea85b688be4cbbb7
