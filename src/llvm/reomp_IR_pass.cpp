@@ -467,6 +467,7 @@ void ReOMP::init_inserted_functions(Module &M)
 								 Type::getVoidTy(ctx), 
 								 NULL);
 
+  /* For debugging ReOMP */
   reomp_func_umap[REOMP_MEM_PRINT_ADDR] = M.getOrInsertFunction(REOMP_MEM_PRINT_ADDR,
 								  Type::getInt64PtrTy(ctx),
 								  NULL);

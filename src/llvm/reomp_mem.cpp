@@ -55,12 +55,16 @@ void reomp_mem_init()
   return;
 }
 
+static int entry_counter = 0;
+
 static void
 reomp_mem_free_hook(void* ptr, const void *caller)
 {
   void *result;
  
-  pthread_mutex_lock(&reomp_mem_mutex_malloc);
+  if (entry_counter == 0) {
+    pthread_mutex_lock(&reomp_mem_mutex_malloc);
+  }
   reomp_mem_disable_hook();
 #ifdef REOMP_USE_MMAP
   if (reomp_mem_memory_alloc.find(ptr) != reomp_mem_memory_alloc.end()) {
@@ -83,6 +87,10 @@ reomp_mem_free_hook(void* ptr, const void *caller)
 }
 
 
+void* malloc(size_t size)
+{
+  reomp_mem_malloc_hook(size);
+}
 
 static void *
 reomp_mem_malloc_hook(size_t size, const void *caller)
