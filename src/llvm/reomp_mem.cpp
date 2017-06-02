@@ -8,6 +8,8 @@
 #include <signal.h>
 #include <errno.h>
 #include <pthread.h>
+#include <dlfcn.h>
+
 
 #include <unordered_map>
 #include <list>
@@ -18,6 +20,8 @@
 #define REOMP_MEM_DUMP    (0)
 #define REOMP_MEM_RESTORE (1)
 //#define REOMP_USE_MMAP
+
+#define LIBC_SO "libc.so"
 
 static int reomp_mem_pagesize = -1;
 
@@ -33,15 +37,22 @@ public:
 unordered_map<void*, size_t> reomp_mem_memory_alloc;
 list<reomp_mem_variable*> reomp_mem_local_variable_list;
 
+static void *(*reomp_mem_real_malloc)(size_t) = NULL;
+static void* reomp_mem_wrap_malloc(size_t);
+static void (*reomp_mem_real_free)(void*) = NULL;
+static void reomp_mem_wrap_free(void*);
+
 static void *reomp_mem_malloc_hook(size_t, const void *);
 static void reomp_mem_free_hook(void*, const void *);
-
 /* Variables to save original hooks. */
 static void *(*old_malloc_hook)(size_t, const void *);
 static void (*old_free_hook)(void *ptr, const void *caller);
 
 /* Override initializing hook from the C library. */
 //void (*volatile __malloc_initialize_hook) (void) = my_init_hook;                                                                                     
+
+static int entry_counter = 0;
+static void* reomp_mem_dl_handle = NULL;
 
 pthread_mutex_t reomp_mem_mutex_malloc;
 pthread_mutex_t reomp_mem_mutex_free;
@@ -50,76 +61,124 @@ pthread_mutex_t reomp_mem_mutex_free;
 void reomp_mem_init()
 {
   reomp_mem_pagesize = sysconf(_SC_PAGE_SIZE);
+  // reomp_mem_real_malloc = NULL;
+  // reomp_mem_real_malloc = (void*(*)(size_t))dlsym(RTLD_NEXT, "malloc");
+
+  // if (!reomp_mem_real_malloc) {
+  //   MUTIL_ERR("dlsym(malloc) failed");
+  // }
+  // reomp_mem_real_free   = (void(*)(void*))dlsym(RTLD_NEXT, "free");
+  // if (!reomp_mem_real_free) {
+  //   MUTIL_ERR("dlsym(free) failed");
+  // }
   pthread_mutex_init(&reomp_mem_mutex_malloc, NULL);
   pthread_mutex_init(&reomp_mem_mutex_free, NULL);
   return;
 }
 
-static int entry_counter = 0;
-
-static void
-reomp_mem_free_hook(void* ptr, const void *caller)
+static void reomp_mem_check_symbol_address(void * addr)
 {
-  void *result;
- 
-  if (entry_counter == 0) {
-    pthread_mutex_lock(&reomp_mem_mutex_malloc);
+  Dl_info dl_info;
+  if (!dladdr(addr, &dl_info)) {
+    MUTIL_ERR("dladdr(failed)");
   }
-  reomp_mem_disable_hook();
-#ifdef REOMP_USE_MMAP
-  if (reomp_mem_memory_alloc.find(ptr) != reomp_mem_memory_alloc.end()) {
-    MUTIL_DBG("free: %p size:%lu", ptr, reomp_mem_memory_alloc.at(ptr));
-    munmap(ptr, reomp_mem_memory_alloc.at(ptr));
-    reomp_mem_memory_alloc.erase(ptr);
-  } else {
-    free(ptr);
+  if (strstr(dl_info.dli_fname, "ld_linux")) {
+    MUTIL_ERR("Could not find real free");
   }
-#else
-  free(ptr);  
-  if (reomp_mem_memory_alloc.find(ptr) != reomp_mem_memory_alloc.end()) {
-    reomp_mem_memory_alloc.erase(ptr);
+  return;  
+}
+
+static void* reomp_mem_get_dl_handle()
+{
+#if 1
+  reomp_mem_dl_handle = RTLD_NEXT;
+#else 
+  if (reomp_mem_dl_handle == NULL) {
+    reomp_mem_dl_handle = dlopen(LIBC_SO, RTLD_LAZY);
+    if (!reomp_mem_dl_handle) {
+      reomp_mem_dl_handle = RTLD_NEXT;
+    }
   }
 #endif
-  reomp_mem_enable_hook();
-  pthread_mutex_unlock(&reomp_mem_mutex_malloc);
-  
+  return reomp_mem_dl_handle;
+}
+
+static void reomp_mem_init_real_free(void)
+{ 
+  void *handle;
+  handle = reomp_mem_get_dl_handle();
+  reomp_mem_real_free   = (void(*)(void*)) dlsym(handle,"free");
+  //  reomp_mem_check_symbol_address((void*)reomp_mem_real_free);
   return;
 }
 
+static void reomp_mem_init_real_malloc(void)
+{ 
+  void *handle;
+  handle = reomp_mem_get_dl_handle();
+  reomp_mem_real_malloc = (void*(*)(size_t))dlsym(handle, "malloc");
+  //  reomp_mem_check_symbol_address((void*)reomp_mem_real_malloc);     
+  return;
+}
 
-void* malloc(size_t size)
+void free(void *ptr)
+{ 
+  if (ptr == NULL) return;
+  if(reomp_mem_real_free==NULL) {
+    reomp_mem_init_real_free();
+  }
+  reomp_mem_real_free(ptr);
+  fprintf(stderr, "free(%p)\n", ptr);
+}
+
+void *malloc(size_t size)
+{ 
+  if(reomp_mem_real_malloc == NULL) {
+    reomp_mem_init_real_malloc();
+   }
+  void *p = NULL;
+  fprintf(stderr, "malloc(%lu)\n", size);
+  p = reomp_mem_real_malloc(size);
+  fprintf(stderr, "%p\n", p);
+  return p;
+}
+
+
+
+
+// void* malloc(size_t size)
+// {
+//   if (reomp_mem_real_malloc == NULL) {
+//     reomp_mem_init_memory_hook();
+//   }
+//   return reomp_mem_real_malloc(size);
+// }
+
+static void *reomp_mem_wrap_malloc(size_t size)
 {
-  reomp_mem_malloc_hook(size);
+  void *ptr;
+#ifdef REOMP_USE_MMAP
+  ptr = mmap(NULL, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+#else
+  fprintf(stderr, "Stop me 5!!\n");
+  //  ptr = aligned_alloc(reomp_mem_pagesize, size);
+  ptr = reomp_mem_real_malloc(size);
+  fprintf(stderr, "Stop me 6!!\n");
+#endif
+  //  reomp_mem_memory_alloc[ptr] = size;
+  return ptr;
 }
 
 static void *
 reomp_mem_malloc_hook(size_t size, const void *caller)
 {
   void *ptr;
-  
-  // pthread_mutex_lock(&reomp_mem_mutex_malloc);
-  //  MUTIL_DBG("malloc enter: %d", omp_get_thread_num());
-  reomp_mem_disable_hook();  
-  //  MUTIL_DBG("malloc enter 1: %d", omp_get_thread_num());
 #ifdef REOMP_USE_MMAP
-  //  ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-  //ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
   ptr = mmap(NULL, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-  //MUTIL_DBG("before mmap: %p size:%lu (caller: %p)", ptr, size, caller);
 #else
-  //  ptr = malloc(size);
   ptr = aligned_alloc(reomp_mem_pagesize, size);
-  //  MUTIL_DBG("before malloc: %p size:%lu (caller: %p)", ptr, size, caller);
 #endif
-  //  MUTIL_DBG("malloc enter 2: %d (%p %lu)", omp_get_thread_num(), ptr, size);
-
   reomp_mem_memory_alloc[ptr] = size;
-  //  MUTIL_DBG("malloc enter 3: %d", omp_get_thread_num());
-  reomp_mem_enable_hook();
-  //  MUTIL_DBG("malloc enter 4: %d", omp_get_thread_num());
-  //  pthread_mutex_unlock(&reomp_mem_mutex_malloc);
-  //  MUTIL_DBG("malloc leave: %d", omp_get_thread_num());
-
   
   return ptr;
 }
@@ -205,6 +264,48 @@ void reomp_mem_record_or_replay_all_local_vars(FILE *fp, int is_replay)
 
  end:
   reomp_mem_enable_hook();  
+  return;
+}
+
+
+static void reomp_mem_wrap_free(void* ptr)
+{
+#ifdef REOMP_USE_MMAP
+  if (reomp_mem_memory_alloc.find(ptr) != reomp_mem_memory_alloc.end()) {
+    MUTIL_DBG("free: %p size:%lu", ptr, reomp_mem_memory_alloc.at(ptr));
+    munmap(ptr, reomp_mem_memory_alloc.at(ptr));
+    reomp_mem_memory_alloc.erase(ptr);
+  } else {
+    free(ptr);
+  }
+#else
+  // reomp_mem_real_free(ptr);  
+  // if (reomp_mem_memory_alloc.find(ptr) != reomp_mem_memory_alloc.end()) {
+  //   reomp_mem_memory_alloc.erase(ptr);
+  // }
+#endif
+  return;
+}
+
+static void
+reomp_mem_free_hook(void* ptr, const void *caller)
+{
+  void *result;
+#ifdef REOMP_USE_MMAP
+  if (reomp_mem_memory_alloc.find(ptr) != reomp_mem_memory_alloc.end()) {
+    MUTIL_DBG("free: %p size:%lu", ptr, reomp_mem_memory_alloc.at(ptr));
+    munmap(ptr, reomp_mem_memory_alloc.at(ptr));
+    reomp_mem_memory_alloc.erase(ptr);
+  } else {
+    free(ptr);
+  }
+#else
+  free(ptr);  
+  if (reomp_mem_memory_alloc.find(ptr) != reomp_mem_memory_alloc.end()) {
+    reomp_mem_memory_alloc.erase(ptr);
+  }
+#endif
+  
   return;
 }
 

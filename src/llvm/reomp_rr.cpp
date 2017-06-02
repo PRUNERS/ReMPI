@@ -35,14 +35,13 @@ static void reomp_replay(void* ptr, size_t size)
 
 void reomp_rr_init()
 {
+  MUTIL_DBG("init");
   reomp_mem_init();
-  reomp_mem_enable_hook();
   return;
 }
 
 void reomp_rr_finalize()
 {
-  reomp_mem_disable_hook();
   return;
 }
 
