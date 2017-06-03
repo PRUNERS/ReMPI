@@ -23,7 +23,7 @@
 
 #define LIBC_SO "libc.so"
 
-static int reomp_mem_pagesize = -1;
+
 
 class reomp_mem_variable {
 public:
@@ -41,6 +41,10 @@ static void *(*reomp_mem_real_malloc)(size_t) = NULL;
 static void* reomp_mem_wrap_malloc(size_t);
 static void (*reomp_mem_real_free)(void*) = NULL;
 static void reomp_mem_wrap_free(void*);
+static void *(*mem_real_calloc)(size_t, size_t) = NULL;
+static void* mem_wrap_calloc(size_t, size_t);
+static void *(*mem_real_realloc)(void*, size_t) = NULL;
+static void* mem_wrap_realloc(void*, size_t);
 
 static void *reomp_mem_malloc_hook(size_t, const void *);
 static void reomp_mem_free_hook(void*, const void *);
@@ -51,7 +55,9 @@ static void (*old_free_hook)(void *ptr, const void *caller);
 /* Override initializing hook from the C library. */
 //void (*volatile __malloc_initialize_hook) (void) = my_init_hook;                                                                                     
 
-static int entry_counter = 0;
+static int reomp_mem_pagesize = -1;
+static int mem_entry_counter = 0;
+static int mem_is_initialized = 0;
 static void* reomp_mem_dl_handle = NULL;
 
 pthread_mutex_t reomp_mem_mutex_malloc;
@@ -61,18 +67,9 @@ pthread_mutex_t reomp_mem_mutex_free;
 void reomp_mem_init()
 {
   reomp_mem_pagesize = sysconf(_SC_PAGE_SIZE);
-  // reomp_mem_real_malloc = NULL;
-  // reomp_mem_real_malloc = (void*(*)(size_t))dlsym(RTLD_NEXT, "malloc");
-
-  // if (!reomp_mem_real_malloc) {
-  //   MUTIL_ERR("dlsym(malloc) failed");
-  // }
-  // reomp_mem_real_free   = (void(*)(void*))dlsym(RTLD_NEXT, "free");
-  // if (!reomp_mem_real_free) {
-  //   MUTIL_ERR("dlsym(free) failed");
-  // }
   pthread_mutex_init(&reomp_mem_mutex_malloc, NULL);
   pthread_mutex_init(&reomp_mem_mutex_free, NULL);
+  mem_is_initialized = 0;
   return;
 }
 
@@ -108,7 +105,7 @@ static void reomp_mem_init_real_free(void)
   void *handle;
   handle = reomp_mem_get_dl_handle();
   reomp_mem_real_free   = (void(*)(void*)) dlsym(handle,"free");
-  //  reomp_mem_check_symbol_address((void*)reomp_mem_real_free);
+  reomp_mem_check_symbol_address((void*)reomp_mem_real_free);
   return;
 }
 
@@ -117,42 +114,120 @@ static void reomp_mem_init_real_malloc(void)
   void *handle;
   handle = reomp_mem_get_dl_handle();
   reomp_mem_real_malloc = (void*(*)(size_t))dlsym(handle, "malloc");
-  //  reomp_mem_check_symbol_address((void*)reomp_mem_real_malloc);     
+  reomp_mem_check_symbol_address((void*)reomp_mem_real_malloc);     
+  return;
+}
+
+static void* mem_temporal_calloc(size_t nmemb, size_t size) 
+{
+  return NULL;
+}
+
+static void mem_init_real_calloc(void)
+{ 
+  void *handle;
+  handle = reomp_mem_get_dl_handle();
+
+  if (!mem_real_calloc) {
+    mem_real_calloc = mem_temporal_calloc;
+    mem_real_calloc = (void*(*)(size_t, size_t))dlsym(handle, "calloc");
+    reomp_mem_check_symbol_address((void*)mem_real_calloc);     
+  }
+  return;
+}
+
+static void mem_init_real_realloc(void)
+{
+  void *handle;
+  handle = reomp_mem_get_dl_handle();
+  mem_real_realloc = (void*(*)(void*, size_t))dlsym(handle, "realloc");
+  reomp_mem_check_symbol_address((void*)mem_real_realloc);     
   return;
 }
 
 void free(void *ptr)
 { 
+  /* Note: Do not call printf until reomp_mem_init_real_free() is called */
   if (ptr == NULL) return;
   if(reomp_mem_real_free==NULL) {
     reomp_mem_init_real_free();
   }
+  
   reomp_mem_real_free(ptr);
-  fprintf(stderr, "free(%p)\n", ptr);
 }
 
 void *malloc(size_t size)
 { 
+  /* Note: Do not call printf until reomp_mem_init_real_malloc() is called */
   if(reomp_mem_real_malloc == NULL) {
     reomp_mem_init_real_malloc();
    }
   void *p = NULL;
-  fprintf(stderr, "malloc(%lu)\n", size);
-  p = reomp_mem_real_malloc(size);
-  fprintf(stderr, "%p\n", p);
+
+  if (mem_entry_counter > 0 || !mem_is_initialized) {
+    fprintf(stderr, "real_malloc(%lu)\n", size);
+    p = reomp_mem_real_malloc(size);
+  } else {
+    mem_entry_counter++;
+    fprintf(stderr, "aligned_malloc(%lu)\n", size);
+    p = reomp_mem_wrap_malloc(size);
+    mem_entry_counter--;
+  }
   return p;
 }
 
+void *calloc(size_t nmemb, size_t size)
+{
+  /* Note: Do not call printf until reomp_mem_init_real_malloc is called */
+  if(reomp_mem_real_malloc == NULL) {
+    mem_init_real_calloc();
+   }
+  void *p = NULL;
 
+  if (mem_entry_counter > 0 || !mem_is_initialized) {
+    //    fprintf(stderr, "real_calloc(%lu)\n", size);
+    p = mem_real_calloc(nmemb, size);
+  } else {
+    mem_entry_counter++;
+    // fprintf(stderr, "wrap_calloc(%lu)\n", size);
+    p = mem_wrap_calloc(nmemb, size);
+    mem_entry_counter--;
+  }
+  //  fprintf(stderr, "%p\n", p);
+  return p;
+}
 
+void *realloc(void* ptr, size_t size)
+{ 
+  void *p = NULL;
+  /* Note: Do not call printf until reomp_mem_init_real_malloc() is called */
+  if(mem_real_realloc == NULL) {
+    mem_init_real_realloc();
+  }
+  if (mem_entry_counter > 0 || !mem_is_initialized) {
+    p = mem_real_realloc(ptr, size);
+  } else {
+    mem_entry_counter++;
+    p = mem_wrap_realloc(ptr, size);
+    mem_entry_counter--;
+  }
+  return p;
+}
 
-// void* malloc(size_t size)
-// {
-//   if (reomp_mem_real_malloc == NULL) {
-//     reomp_mem_init_memory_hook();
-//   }
-//   return reomp_mem_real_malloc(size);
-// }
+static void *reomp_mem_wrap_calloc(size_t nmemb, size_t size)
+{
+  void* ptr;
+  ptr = mem_real_calloc(nmemb, size);
+  /* do something*/
+  return ptr;
+}
+
+static void* reomp_mem_wrap_realloc(void* ptr, size_t size)
+{
+  void* p;
+  p = mem_real_realloc(ptr, size);
+  return p;
+}
 
 static void *reomp_mem_wrap_malloc(size_t size)
 {
@@ -160,12 +235,8 @@ static void *reomp_mem_wrap_malloc(size_t size)
 #ifdef REOMP_USE_MMAP
   ptr = mmap(NULL, size, PROT_EXEC | PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
 #else
-  fprintf(stderr, "Stop me 5!!\n");
-  //  ptr = aligned_alloc(reomp_mem_pagesize, size);
-  ptr = reomp_mem_real_malloc(size);
-  fprintf(stderr, "Stop me 6!!\n");
+  ptr = aligned_alloc(reomp_mem_pagesize, size);
 #endif
-  //  reomp_mem_memory_alloc[ptr] = size;
   return ptr;
 }
 
@@ -211,26 +282,14 @@ void reomp_mem_print_addr(void* ptr)
   return;
 }
 
-// void reomp_mem_remove_old_loval_var_addr()
-// {
-//   unordered_map<void*, size_t>::iterator it, it_end;
-//   for (it = reomp_mem_local_variables.begin(), it_end = reomp_mem_local_variables.end();
-//        it != it_end;
-//        it++)  {
-//   }
-// }
-
 void reomp_mem_register_local_var_addr(void* local_ptr, size_t size)
 {
-  reomp_mem_disable_hook();  
   reomp_mem_local_variable_list.push_back(new reomp_mem_variable(local_ptr, size));
-  reomp_mem_enable_hook();  
   return;
 }
 
 void reomp_mem_record_or_replay_all_local_vars(FILE *fp, int is_replay)
 {
-  reomp_mem_disable_hook();  
   void *stack_var_addr, *last_stack_var_addr;
   reomp_mem_variable *var;
   list<reomp_mem_variable*>::reverse_iterator rit, rit_end;
@@ -256,14 +315,12 @@ void reomp_mem_record_or_replay_all_local_vars(FILE *fp, int is_replay)
     } else {
       it = reomp_mem_local_variable_list.erase(--rit.base());
       if (it == it_end) {
-	goto end;
+	return;
       }
       delete var;
     }
   }
 
- end:
-  reomp_mem_enable_hook();  
   return;
 }
 
@@ -309,35 +366,6 @@ reomp_mem_free_hook(void* ptr, const void *caller)
   return;
 }
 
-void reomp_mem_enable_hook(void)
-{
-  if (__malloc_hook != &reomp_mem_malloc_hook) {
-    /* Save underlying hooks */
-    old_malloc_hook = __malloc_hook;
-    /* Restore our own hooks */
-    __malloc_hook = reomp_mem_malloc_hook;
-  }
-
-  if (__free_hook != &reomp_mem_free_hook) {
-    /* Save underlying hooks */
-    old_free_hook = __free_hook;
-    /* Restore our own hooks */
-    __free_hook = reomp_mem_free_hook;
-  }
-}
-
-void reomp_mem_disable_hook(void)
-{
-  /* Restore all old hooks */
-  if (__malloc_hook != old_malloc_hook) {
-    __malloc_hook = old_malloc_hook;
-  }
-  if (__free_hook != old_free_hook) {
-    __free_hook = old_free_hook;
-  }
-}
-
-
 void reomp_mem_dump_heap(FILE *fp)
 {
   reomp_mem_dump_or_restore_heap(fp, REOMP_MEM_DUMP);
@@ -347,7 +375,6 @@ void reomp_mem_restore_heap(FILE *fp)
 {
   reomp_mem_dump_or_restore_heap(fp, REOMP_MEM_RESTORE);
 }
-
 
 void reomp_mem_on_alloc(void* ptr, size_t size) 
 {
