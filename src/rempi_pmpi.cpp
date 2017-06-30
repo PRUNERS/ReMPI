@@ -52,11 +52,19 @@ _EXTERN_C_ void *MPIR_ToPointer(int);
 #if defined(MPI_STATUS_SIZE) && MPI_STATUS_SIZE > 0
 #define MPI_F_STATUS_SIZE MPI_STATUS_SIZE
 #else
-#define MPI_F_STATUS_SIZE sizeof(MPI_Status) //Kento replaced
-//inline int __get_f_status_size(){int size; get_f_status_size(&size); return size;}
-//#define MPI_F_STATUS_SIZE __get_f_status_size()
+//#define MPI_F_STATUS_SIZE sizeof(MPI_Status) //Kento replaced
+_EXTERN_C_ void get_mpi_f_status_size___(int*);
+inline int __get_f_status_size(){int size; get_f_status_size___(&size); return size;}
+#define MPI_F_STATUS_SIZE __get_f_status_size()
 #endif
 #endif
+
+_EXTERN_C_ void get_mpi_f_in_place___(int*);
+inline int __get_f_in_place(){int in_place; get_f_in_place___(&in_place); return in_place;}
+#define MPI_F_IN_PLACE __get_f_in_place()
+_EXTERN_C_ void get_mpi_f_bottom___(int*);
+inline int __get_f_bottom(){int bottom; get_f_bottom___(&bottom); return bottom;}
+#define MPI_F_BOTTOM __get_f_bottom()
 
 
   void char_p_f2c(const char* fstr, int len, char** cstr)
