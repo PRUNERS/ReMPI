@@ -30,6 +30,7 @@ rempi_SOURCES =  \
 		rempi_thread.cpp \
 		rempi_io_thread.cpp \
 		rempi_stm.cpp \
+		rempi_fortran.f90 \
 		rempi_mutex.cpp
 
 lib_LTLIBRARIES = librempi.la

@@ -49,14 +49,29 @@ _EXTERN_C_ void *MPIR_ToPointer(int);
 
 
 #ifndef MPI_F_STATUS_SIZE
+
 #if defined(MPI_STATUS_SIZE) && MPI_STATUS_SIZE > 0
 #define MPI_F_STATUS_SIZE MPI_STATUS_SIZE
 #else
-#define MPI_F_STATUS_SIZE sizeof(MPI_Status) //Kento replaced
-//inline int __get_f_status_size(){int size; get_f_status_size(&size); return size;}
-//#define MPI_F_STATUS_SIZE __get_f_status_size()
+//#define MPI_F_STATUS_SIZE sizeof(MPI_Status)
+_EXTERN_C_ void get_mpi_f_status_size___(int*);
+inline int __get_mpi_f_status_size(){int size; get_mpi_f_status_size___(&size); return size;}
+#define MPI_F_STATUS_SIZE __get_mpi_f_status_size()
 #endif
+
 #endif
+
+_EXTERN_C_ void get_mpi_f_in_place___(int*);
+inline int __get_mpi_f_in_place(){
+  int in_place = 0;
+  get_mpi_f_in_place___(&in_place); 
+  //  REMPI_DBG("=== %p", in_place);
+  return in_place;}
+#define MPI_F_IN_PLACE __get_mpi_f_in_place()
+
+_EXTERN_C_ void get_mpi_f_bottom___(int*);
+inline int __get_mpi_f_bottom(){int bottom; get_mpi_f_bottom___(&bottom); return bottom;}
+#define MPI_F_BOTTOM __get_mpi_f_bottom()
 
 
   void char_p_f2c(const char* fstr, int len, char** cstr)
@@ -187,11 +202,15 @@ _EXTERN_C_ void *MPI_F_MPI_IN_PLACE WEAK_POSTFIX;
 #endif
 
 #if defined(MPICH_NAME) && (MPICH_NAME == 1) /* MPICH has no MPI_IN_PLACE */
-//#define BufferC2F(x) (IsBottom(x) ? MPI_BOTTOM : (x))
-#define BufferC2F(x) (x)
+//#define BufferC2F(x) (x)
+#define BufferC2F(x) (IsBottom(x) ? MPI_BOTTOM : (x))
+#define BufferC2F(x) (MPI_F_BOTTOM == x ? MPI_BOTTOM : (x))
 #else
-//#define BufferC2F(x) (IsBottom(x) ? MPI_BOTTOM : (IsInPlace(x) ? MPI_IN_PLACE : (x)))
-#define BufferC2F(x) (x)
+//#define BufferC2F(x) (x)
+#define BufferC2F(x) (IsBottom(x) ? MPI_BOTTOM : (IsInPlace(x) ? MPI_IN_PLACE : (x)))
+//#define BufferC2F(x) ((*(int*)x == NULL ? MPI_IN_PLACE : (x)))
+//#define BufferC2F(x) (MPI_F_BOTTOM == *(const int*)(x) ? MPI_BOTTOM : (MPI_F_IN_PLACE == *(const int*)(x) ? MPI_IN_PLACE : (x)))
+//#define BufferC2F(x) (MPI_F_IN_PLACE == *(const int*)(x) ? MPI_IN_PLACE : (x))
 #endif /* defined(MPICH_NAME) && (MPICH_NAME == 1) */
 
 #else
@@ -635,7 +654,7 @@ _EXTERN_C_ void mpi_testany__(MPI_Fint *count, MPI_Fint array_of_requests[], MPI
 
 
 
-/* kento================== C Wrappers for MPI_Testsome ================== */
+/* ================== C Wrappers for MPI_Testsome ================== */
 _EXTERN_C_ int PMPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_3, MPI_Status *arg_4);
 _EXTERN_C_ int MPI_Testsome(int arg_0, MPI_Request *arg_1, int *arg_2, int *arg_3, MPI_Status *arg_4)
 { 
@@ -1336,7 +1355,7 @@ _EXTERN_C_ void mpi_type_contiguous__(MPI_Fint *count, MPI_Fint *oldtype, MPI_Fi
 /* ================= End Wrappers for MPI_Type_contiguous ================= */
 
 
-
+#if 0
 /* ================== C Wrappers for MPI_Type_struct ================== */
 #if MPI_VERSION == 3 && !defined(OPEN_MPI)
 _EXTERN_C_ int PMPI_Type_struct(int arg_0, const int *arg_1, const MPI_Aint *arg_2, const MPI_Datatype *arg_3, MPI_Datatype *arg_4);
@@ -1387,8 +1406,8 @@ _EXTERN_C_ void mpi_type_struct_(MPI_Fint *count, MPI_Fint array_of_blocklengths
 _EXTERN_C_ void mpi_type_struct__(MPI_Fint *count, MPI_Fint array_of_blocklengths[], MPI_Aint array_of_displacements[], MPI_Fint array_of_types[], MPI_Fint *newtype, MPI_Fint *ierr) {
   MPI_Type_struct_fortran_wrapper(count, array_of_blocklengths, array_of_displacements, array_of_types, newtype, ierr);
 }
-
 /* ================= End Wrappers for MPI_Type_struct ================= */
+#endif
 
 
 
@@ -1533,8 +1552,7 @@ _EXTERN_C_ void mpi_comm_free__(MPI_Fint *comm, MPI_Fint *ierr) {
 /* ================= End Wrappers for MPI_Comm_free ================= */
 
 
-
-
+#if 0
 /* ================== C Wrappers for MPI_Comm_rank ================== */
 _EXTERN_C_ int PMPI_Comm_rank(MPI_Comm arg_0, int *arg_1);
 _EXTERN_C_ int MPI_Comm_rank(MPI_Comm arg_0, int *arg_1) {
@@ -1574,11 +1592,11 @@ _EXTERN_C_ void mpi_comm_rank_(MPI_Fint *comm, MPI_Fint *rank, MPI_Fint *ierr) {
 _EXTERN_C_ void mpi_comm_rank__(MPI_Fint *comm, MPI_Fint *rank, MPI_Fint *ierr) {
   MPI_Comm_rank_fortran_wrapper(comm, rank, ierr);
 }
-
 /* ================= End Wrappers for MPI_Comm_rank ================= */
+#endif
 
 
-
+#if 0
 /* ================== C Wrappers for MPI_Comm_size ================== */
 _EXTERN_C_ int PMPI_Comm_size(MPI_Comm arg_0, int *arg_1);
 _EXTERN_C_ int MPI_Comm_size(MPI_Comm arg_0, int *arg_1) {
@@ -1617,13 +1635,13 @@ _EXTERN_C_ void mpi_comm_size_(MPI_Fint *comm, MPI_Fint *size, MPI_Fint *ierr) {
 _EXTERN_C_ void mpi_comm_size__(MPI_Fint *comm, MPI_Fint *size, MPI_Fint *ierr) {
   MPI_Comm_size_fortran_wrapper(comm, size, ierr);
 }
-
 /* ================= End Wrappers for MPI_Comm_size ================= */
+#endif
 
 
 
 
-
+#if 0
 /* ================== C Wrappers for MPI_Comm_dup ================== */
 _EXTERN_C_ int PMPI_Comm_dup(MPI_Comm arg_0, MPI_Comm *arg_1);
 _EXTERN_C_ int MPI_Comm_dup(MPI_Comm arg_0, MPI_Comm *arg_1) {
@@ -1664,9 +1682,10 @@ _EXTERN_C_ void mpi_comm_dup_(MPI_Fint *comm, MPI_Fint *newcomm, MPI_Fint *ierr)
 _EXTERN_C_ void mpi_comm_dup__(MPI_Fint *comm, MPI_Fint *newcomm, MPI_Fint *ierr) {
   MPI_Comm_dup_fortran_wrapper(comm, newcomm, ierr);
 }
-
 /* ================= End Wrappers for MPI_Comm_dup ================= */
+#endif
 
+#if 0
 /* ================== C Wrappers for MPI_Comm_group ================== */
 _EXTERN_C_ int PMPI_Comm_group(MPI_Comm arg_0, MPI_Group *arg_1);
 _EXTERN_C_ int MPI_Comm_group(MPI_Comm arg_0, MPI_Group *arg_1) {
@@ -1709,10 +1728,10 @@ _EXTERN_C_ void mpi_comm_group__(MPI_Fint *comm, MPI_Fint *group, MPI_Fint *ierr
 }
 
 /* ================= End Wrappers for MPI_Comm_group ================= */
-
+#endif
 
  
-
+#if 0
 /* ================== C Wrappers for MPI_Comm_set_name ================== */
 _EXTERN_C_ int PMPI_Comm_set_name(MPI_Comm arg_0, mpi_const char *arg_1);
 _EXTERN_C_ int MPI_Comm_set_name(MPI_Comm arg_0, mpi_const char *arg_1) {
@@ -1751,8 +1770,8 @@ _EXTERN_C_ void mpi_comm_set_name_(MPI_Fint *comm, MPI_Fint *comm_name, MPI_Fint
 _EXTERN_C_ void mpi_comm_set_name__(MPI_Fint *comm, MPI_Fint *comm_name, MPI_Fint *ierr) {
   MPI_Comm_set_name_fortran_wrapper(comm, comm_name, ierr);
 }
-
 /* ================= End Wrappers for MPI_Comm_set_name ================= */
+#endif
 
 
 /* ================== C Wrappers for MPI_Finalize ================== */
@@ -2170,7 +2189,7 @@ _EXTERN_C_ void mpi_ssend__(MPI_Fint *buf, MPI_Fint *count, MPI_Fint *datatype, 
 /* ================== C Wrappers for MPI_Collectives ================== */
 /* ==================================================================== */
 
-
+#if !defined(REMPI_LITE)
 /* ================== C Wrappers for MPI_Allreduce ================== */
 _EXTERN_C_ int PMPI_Allreduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5);
 _EXTERN_C_ int MPI_Allreduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5)
@@ -2191,6 +2210,7 @@ _EXTERN_C_ int MPI_Allreduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_
 /* =============== Fortran Wrappers for MPI_Allreduce =============== */
 static void MPI_Allreduce_fortran_wrapper(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *comm, MPI_Fint *ierr) {
   int _wrap_py_return_val = 0;
+  //  REMPI_DBG("MPI_Allreduce_fortran_wraper: %p %p %p (MPI_IN_PLACE: %p)", BufferC2F((mpi_const void*)sendbuf), sendbuf, *sendbuf, MPI_IN_PLACE);
 #if (!defined(MPICH_HAS_C2F) && defined(MPICH_NAME) && (MPICH_NAME == 1)) /* MPICH test */
   _wrap_py_return_val = MPI_Allreduce(BufferC2F((mpi_const void*)sendbuf), BufferC2F((void*)recvbuf), *count, (MPI_Datatype)(*datatype), (MPI_Op)(*op), (MPI_Comm)(*comm));
 #else /* MPI-2 safe call */
@@ -2208,16 +2228,18 @@ _EXTERN_C_ void mpi_allreduce(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *co
 }
 
 _EXTERN_C_ void mpi_allreduce_(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *comm, MPI_Fint *ierr) {
+  //  REMPI_DBG("MPI_Allreduce: %p %p", BufferC2F((mpi_const void*)sendbuf), sendbuf);
   MPI_Allreduce_fortran_wrapper(sendbuf, recvbuf, count, datatype, op, comm, ierr);
 }
 
 _EXTERN_C_ void mpi_allreduce__(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *comm, MPI_Fint *ierr) {
   MPI_Allreduce_fortran_wrapper(sendbuf, recvbuf, count, datatype, op, comm, ierr);
 }
-
 /* ================= End Wrappers for MPI_Allreduce ================= */
+#endif
 
 
+#if !defined(REMPI_LITE)
 /* ================== C Wrappers for MPI_Reduce ================== */
 _EXTERN_C_ int PMPI_Reduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, int arg_5, MPI_Comm arg_6);
 _EXTERN_C_ int MPI_Reduce(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, int arg_5, MPI_Comm arg_6)
@@ -2259,9 +2281,10 @@ _EXTERN_C_ void mpi_reduce_(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *coun
 _EXTERN_C_ void mpi_reduce__(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *root, MPI_Fint *comm, MPI_Fint *ierr) {
   MPI_Reduce_fortran_wrapper(sendbuf, recvbuf, count, datatype, op, root, comm, ierr);
 }
-
 /* ================= End Wrappers for MPI_Reduce ================= */
+#endif
 
+#if !defined(REMPI_LITE)
 /* ================== C Wrappers for MPI_Scan ================== */
 _EXTERN_C_ int PMPI_Scan(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5);
 _EXTERN_C_ int MPI_Scan(mpi_const void *arg_0, void *arg_1, int arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5) {
@@ -2302,10 +2325,10 @@ _EXTERN_C_ void mpi_scan_(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count,
 _EXTERN_C_ void mpi_scan__(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint *count, MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *comm, MPI_Fint *ierr) {
   MPI_Scan_fortran_wrapper(sendbuf, recvbuf, count, datatype, op, comm, ierr);
 }
-
 /* ================= End Wrappers for MPI_Scan ================= */
+#endif
 
-
+#if !defined(REMPI_LITE)
 /* ================== C Wrappers for MPI_Allgather ================== */
 _EXTERN_C_ int PMPI_Allgather(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6);
 _EXTERN_C_ int MPI_Allgather(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6)
@@ -2349,11 +2372,12 @@ _EXTERN_C_ void mpi_allgather_(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint 
 _EXTERN_C_ void mpi_allgather__(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *comm, MPI_Fint *ierr) {
   MPI_Allgather_fortran_wrapper(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm, ierr);
 }
-
 /* ================= End Wrappers for MPI_Allgather ================= */
+#endif
 
 
 
+#if !defined(REMPI_LITE)
 /* ================== C Wrappers for MPI_Gatherv ================== */
 _EXTERN_C_ int PMPI_Gatherv(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, mpi_const int *arg_4, mpi_const int *arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8);
 _EXTERN_C_ int MPI_Gatherv(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, mpi_const int *arg_4, mpi_const int *arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8) {
@@ -2394,10 +2418,10 @@ _EXTERN_C_ void mpi_gatherv_(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *s
 _EXTERN_C_ void mpi_gatherv__(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint recvcounts[], MPI_Fint displs[], MPI_Fint *recvtype, MPI_Fint *root, MPI_Fint *comm, MPI_Fint *ierr) {
   MPI_Gatherv_fortran_wrapper(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, root, comm, ierr);
 }
-
 /* ================= End Wrappers for MPI_Gatherv ================= */
+#endif
 
-
+#if !defined(REMPI_LITE)
 /* ================== C Wrappers for MPI_Reduce_scatter ================== */
 _EXTERN_C_ int PMPI_Reduce_scatter(mpi_const void *arg_0, void *arg_1, mpi_const int *arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5);
 _EXTERN_C_ int MPI_Reduce_scatter(mpi_const void *arg_0, void *arg_1, mpi_const int *arg_2, MPI_Datatype arg_3, MPI_Op arg_4, MPI_Comm arg_5) {
@@ -2437,12 +2461,12 @@ _EXTERN_C_ void mpi_reduce_scatter_(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fi
 _EXTERN_C_ void mpi_reduce_scatter__(MPI_Fint *sendbuf, MPI_Fint *recvbuf, MPI_Fint recvcounts[], MPI_Fint *datatype, MPI_Fint *op, MPI_Fint *comm, MPI_Fint *ierr) {
   MPI_Reduce_scatter_fortran_wrapper(sendbuf, recvbuf, recvcounts, datatype, op, comm, ierr);
 }
-
 /* ================= End Wrappers for MPI_Reduce_scatter ================= */
+#endif
 
 
 
-
+#if !defined(REMPI_LITE)
 /* ================== C Wrappers for MPI_Scatterv ================== */
 _EXTERN_C_ int PMPI_Scatterv(mpi_const void *arg_0, mpi_const int *arg_1, mpi_const int *arg_2, MPI_Datatype arg_3, void *arg_4, int arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8);
 _EXTERN_C_ int MPI_Scatterv(mpi_const void *arg_0, mpi_const int *arg_1, mpi_const int *arg_2, MPI_Datatype arg_3, void *arg_4, int arg_5, MPI_Datatype arg_6, int arg_7, MPI_Comm arg_8) {
@@ -2484,9 +2508,10 @@ _EXTERN_C_ void mpi_scatterv__(MPI_Fint *sendbuf, MPI_Fint sendcounts[], MPI_Fin
 }
 
 /* ================= End Wrappers for MPI_Scatterv ================= */
+#endif
 
 
-
+#if !defined(REMPI_LITE)
 /* ================== C Wrappers for MPI_Allgatherv ================== */
 _EXTERN_C_ int PMPI_Allgatherv(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, mpi_const int *arg_4, mpi_const int *arg_5, MPI_Datatype arg_6, MPI_Comm arg_7);
 _EXTERN_C_ int MPI_Allgatherv(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, mpi_const int *arg_4, mpi_const int *arg_5, MPI_Datatype arg_6, MPI_Comm arg_7) {
@@ -2529,9 +2554,9 @@ _EXTERN_C_ void mpi_allgatherv__(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fin
 }
 
 /* ================= End Wrappers for MPI_Allgatherv ================= */
+#endif
 
-
-
+#if !defined(REMPI_LITE)
 /* ================== C Wrappers for MPI_Scatter ================== */
 _EXTERN_C_ int PMPI_Scatter(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7);
 _EXTERN_C_ int MPI_Scatter(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7) {
@@ -2573,11 +2598,11 @@ _EXTERN_C_ void mpi_scatter__(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *
 }
 
 /* ================= End Wrappers for MPI_Scatter ================= */
+#endif
 
 
 
-
-
+#if !defined(REMPI_LITE)
 /* ================== C Wrappers for MPI_Bcast ================== */
 _EXTERN_C_ int PMPI_Bcast(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, MPI_Comm arg_4);
 _EXTERN_C_ int MPI_Bcast(void *arg_0, int arg_1, MPI_Datatype arg_2, int arg_3, MPI_Comm arg_4) {
@@ -2622,9 +2647,10 @@ _EXTERN_C_ void mpi_bcast__(MPI_Fint *buffer, MPI_Fint *count, MPI_Fint *datatyp
 }
 
 /* ================= End Wrappers for MPI_Bcast ================= */
+#endif
 
 
-
+#if !defined(REMPI_LITE)
 /* ================== C Wrappers for MPI_Alltoall ================== */
 _EXTERN_C_ int PMPI_Alltoall(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6);
 _EXTERN_C_ int MPI_Alltoall(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, MPI_Comm arg_6) {
@@ -2667,7 +2693,9 @@ _EXTERN_C_ void mpi_alltoall__(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint 
 }
 
 /* ================= End Wrappers for MPI_Alltoall ================= */
+#endif
 
+#if !defined(REMPI_LITE)
 /* ================== C Wrappers for MPI_Gather ================== */
 _EXTERN_C_ int PMPI_Gather(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7);
 _EXTERN_C_ int MPI_Gather(mpi_const void *arg_0, int arg_1, MPI_Datatype arg_2, void *arg_3, int arg_4, MPI_Datatype arg_5, int arg_6, MPI_Comm arg_7) {
@@ -2707,9 +2735,9 @@ _EXTERN_C_ void mpi_gather_(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *se
 _EXTERN_C_ void mpi_gather__(MPI_Fint *sendbuf, MPI_Fint *sendcount, MPI_Fint *sendtype, MPI_Fint *recvbuf, MPI_Fint *recvcount, MPI_Fint *recvtype, MPI_Fint *root, MPI_Fint *comm, MPI_Fint *ierr) {
   MPI_Gather_fortran_wrapper(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, comm, ierr);
 }
+#endif
 
-
-
+#if 0
 /* ================== C Wrappers for MPI_Get_count ================== */
 _EXTERN_C_ int PMPI_Get_count(mpi_const MPI_Status *arg_0, MPI_Datatype arg_1, int *arg_2);
 _EXTERN_C_ int MPI_Get_count(mpi_const MPI_Status *arg_0, MPI_Datatype arg_1, int *arg_2) {
@@ -2751,9 +2779,10 @@ _EXTERN_C_ void mpi_get_count__(MPI_Fint *status, MPI_Fint *datatype, MPI_Fint *
 }
 
 /* ================= End Wrappers for MPI_Get_count ================= */
+#endif
 
 
-
+#if !defined(REMPI_LITE)
 /* ================== C Wrappers for MPI_Barrier ================== */
 _EXTERN_C_ int PMPI_Barrier(MPI_Comm arg_0);
 _EXTERN_C_ int MPI_Barrier(MPI_Comm arg_0) {
@@ -2797,7 +2826,7 @@ _EXTERN_C_ void mpi_barrier__(MPI_Fint *comm, MPI_Fint *ierr) {
 }
 
 /* ================= End Wrappers for MPI_Barrier ================= */
-
+#endif
 
 
 /* ================== C Wrappers for MPI_Recv_init ================== */
@@ -3170,7 +3199,7 @@ _EXTERN_C_ void mpi_abort__(MPI_Fint *comm, MPI_Fint *errorcode, MPI_Fint *ierr)
 
 
 
-
+#if 0
 /* ================== C Wrappers for MPI_Attr_put ================== */
 _EXTERN_C_ int PMPI_Attr_put(MPI_Comm arg_0, int arg_1, void *arg_2);
 _EXTERN_C_ int MPI_Attr_put(MPI_Comm arg_0, int arg_1, void *arg_2) {
@@ -3211,9 +3240,10 @@ _EXTERN_C_ void mpi_attr_put__(MPI_Fint *comm, MPI_Fint *keyval, MPI_Fint *attri
 }
 
 /* ================= End Wrappers for MPI_Attr_put ================= */
+#endif
 
 
-
+#if 0
 /* ================== C Wrappers for MPI_Group_incl ================== */
 _EXTERN_C_ int PMPI_Group_incl(MPI_Group group, int arg_1, mpi_const int *arg_2, MPI_Group *arg_3);
 _EXTERN_C_ int MPI_Group_incl(MPI_Group group, int arg_1, mpi_const int *arg_2, MPI_Group *arg_3) {
@@ -3256,7 +3286,9 @@ _EXTERN_C_ void mpi_group_incl__(MPI_Fint *group, MPI_Fint *n, MPI_Fint ranks[],
 }
 
 /* ================= End Wrappers for MPI_Group_incl ================= */
+#endif
 
+#if 0
 /* ================== C Wrappers for MPI_Group_free ================== */
 _EXTERN_C_ int PMPI_Group_free(MPI_Group *arg_0);
 _EXTERN_C_ int MPI_Group_free(MPI_Group *arg_0) {
@@ -3301,8 +3333,10 @@ _EXTERN_C_ void mpi_group_free__(MPI_Fint *group, MPI_Fint *ierr) {
 }
 
 /* ================= End Wrappers for MPI_Group_free ================= */
+#endif
 
 
+#if 0
 /* ================== C Wrappers for MPI_Errhandler_set ================== */
 _EXTERN_C_ int PMPI_Errhandler_set(MPI_Comm arg_0, MPI_Errhandler arg_1);
 _EXTERN_C_ int MPI_Errhandler_set(MPI_Comm arg_0, MPI_Errhandler arg_1) {
@@ -3343,6 +3377,7 @@ _EXTERN_C_ void mpi_errhandler_set__(MPI_Fint *comm, MPI_Fint *errhandler, MPI_F
 }
 
 /* ================= End Wrappers for MPI_Errhandler_set ================= */
+#endif
 
 
 

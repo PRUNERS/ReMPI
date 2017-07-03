@@ -12,6 +12,7 @@ noinst_PROGRAMS = \
 	rempi_test_mini_mcb \
 	rempi_test_hypre_parasails \
 	rempi_test_units \
+	rempi_test_units_fortran \
 	rempi_test_msg_race  	
 if ENABLE_CDC
 if WITH_BLUEGENE
@@ -21,6 +22,7 @@ noinst_PROGRAMS += \
 		rempi_test_mini_mcbx \
 		rempi_test_hypre_parasailsx \
 		rempi_test_unitsx \
+		rempi_test_units_fortranx \
 		rempi_test_msg_racex 
 endif
 endif
@@ -39,6 +41,8 @@ rempi_test_hypre_parasailsx_SOURCES = rempi_test_hypre_parasails.c rempi_test_ut
 rempi_test_hypre_parasailsx_LDADD = $(librempix_LIB)
 rempi_test_unitsx_SOURCES = rempi_test_units.c rempi_test_util.c
 rempi_test_unitsx_LDADD = $(librempix_LIB)
+rempi_test_units_fortranx_SOURCES = rempi_test_units_fortran.f90 rempi_test_util.c
+rempi_test_units_fortranx_LDADD = $(librempix_LIB)
 rempi_test_msg_racex_SOURCES = rempi_test_msg_race.c rempi_test_util.c
 rempi_test_msg_racex_LDADD = $(librempix_LIB)
 
@@ -62,6 +66,8 @@ rempi_test_hypre_parasails_SOURCES = rempi_test_hypre_parasails.c rempi_test_uti
 rempi_test_hypre_parasails_LDADD = $(librempi_LIB)
 rempi_test_units_SOURCES = rempi_test_units.c rempi_test_util.c
 rempi_test_units_LDADD = $(librempi_LIB)
+rempi_test_units_fortran_SOURCES = rempi_test_units_fortran.f90 rempi_test_util.c
+rempi_test_units_fortran_LDADD = $(librempi_LIB)
 rempi_test_msg_race_SOURCES = rempi_test_msg_race.c rempi_test_util.c
 rempi_test_msg_race_LDADD = $(librempi_LIB)
 
