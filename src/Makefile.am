@@ -27,6 +27,7 @@ rempi_SOURCES =  \
 		rempi_encoder_basic.cpp \
 		rempi_encoder_cdc.cpp \
 		rempi_encoder_rep.cpp \
+		rempi_thread.cpp \
 		rempi_io_thread.cpp \
 		rempi_stm.cpp \
 		rempi_mutex.cpp
