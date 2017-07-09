@@ -1,0 +1,73 @@
+
+language: C++
+
+sudo: enabled
+dist: trusty
+
+notifications:
+  email: false
+
+compiler: 
+  - clang
+
+env:
+  global:
+    - MPI=mpich
+    - F77=gfortran
+    - PATH=/usr/lib/ccache/:$PATH
+  matrix:
+    - CC=clang CXX=clang++
+#    - CC=gcc CXX=g++
+
+
+cache:
+  directories:
+    - $HOME/.ccache
+
+addons:
+    packages:
+      - clang-4.0
+      - gcc-4.9
+      - g++-4.9
+      - ccache
+      - apport  # for coredumps
+      - gdb
+      - valgrind
+      - make
+
+# If before_install, install or before_script return a non-zero exit code, the build is errored and stops immediately
+
+#before_install: true
+
+install:
+  - echo `which $CC`
+  - echo `which $CXX`
+  - sh travis-test/install-mpi.sh $MPI
+
+#before_script: 
+
+# If script returns a non-zero exit code, the build is failed, but continues to run before being marked as failed.
+
+script: 
+  - ./autogen.sh
+  - ./configure 
+  - make
+  - sh travis-test/test.sh
+
+# (Optional) for cleaning up cache
+#before_cache: true
+
+# The exit code of after_success, after_failure, after_script and subsequent stages do not affect the build result. However, if one of these stages times out, the build is marked as a failure.
+
+#after_success: true
+
+after_failure:
+  - cat config.log
+
+#before_deploy: true
+
+#deploy: true
+
+#after_deploy: true
+
+#after_script: true
