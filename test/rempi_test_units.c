@@ -1064,6 +1064,8 @@ void rempi_test_clock_wait()
   int val = my_rank;
   MPI_Request request;
 
+  if (size < 3) return;
+
   if (my_rank == 2) {
     MPI_Send(&val, 1, MPI_INT, 1, 0, MPI_COMM_WORLD);
   } else if (my_rank == 1) {
