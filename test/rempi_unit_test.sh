@@ -58,6 +58,7 @@ diff_count=`diff record_v.log replay_v.log | wc -c`
 
 if [ $diff_count -eq 0 ]; then
   echo "OK"
+  cat record.log
   exit 0
 else
   echo "ERROR"
