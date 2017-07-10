@@ -28,24 +28,42 @@ num_procs=$1
 dir=.rempi
 librempi=../src/.libs/librempi.so
 
+if [ -n $REMPI_RUN ]; then
+    rempi_run=srun
+fi
+
 # ===== Unit test fortran ======== 
 bin="./rempi_test_units_fortran"
-REMPI_MODE=0 REMPI_DIR=${dir} LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-REMPI_MODE=1 REMPI_DIR=${dir} LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-srun rm -rf ${dir} 2> /dev/null
+REMPI_MODE=0 REMPI_DIR=${dir} LD_PRELOAD=${librempi} $rempi_run -n ${num_procs} ${bin} 2> record.log
+REMPI_MODE=1 REMPI_DIR=${dir} LD_PRELOAD=${librempi} $rempi_run -n ${num_procs} ${bin} 2> replay.log
+$rempi_run rm -rf ${dir} 2> /dev/null
 
 # ===== Unit test ======== 
 bin="./rempi_test_units matching probe isend init_sendrecv start null_status sendrecv_req comm_dup request_null zero_incount late_irecv clock_wait"
 #bin="./rempi_test_units"
-REMPI_MODE=0 REMPI_DIR=${dir} LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-REMPI_MODE=1 REMPI_DIR=${dir} LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-srun rm -rf ${dir} 2> /dev/null
+REMPI_MODE=0 REMPI_DIR=${dir} LD_PRELOAD=${librempi} $rempi_run -n ${num_procs} ${bin} 2>> record.log
+REMPI_MODE=1 REMPI_DIR=${dir} LD_PRELOAD=${librempi} $rempi_run -n ${num_procs} ${bin} 2>> replay.log
+$rempi_run rm -rf ${dir} 2> /dev/null
 
 # ===== Unit test 2======== 
 bin="./rempi_test_units test_canceled"
-REMPI_MODE=0 REMPI_DIR=${dir} LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-REMPI_MODE=1 REMPI_DIR=${dir} LD_PRELOAD=${librempi} srun -n ${num_procs} ${bin}
-srun rm ${dir}/* 2> /dev/null
+REMPI_MODE=0 REMPI_DIR=${dir} LD_PRELOAD=${librempi} $rempi_run -n ${num_procs} ${bin} 2>> record.log
+REMPI_MODE=1 REMPI_DIR=${dir} LD_PRELOAD=${librempi} $rempi_run -n ${num_procs} ${bin} 2>> replay.log
+$rempi_run rm -rf ${dir} 2> /dev/null
+
+grep "Global validation code" record.log > record_v.log
+grep "Global validation code" replay.log > replay_v.log
+
+diff_count=`diff record_v.log replay_v.log | wc -c`
+
+if [ $diff_count -eq 0 ]; then
+  echo "OK"
+  exit 0
+else
+  echo "ERROR"
+  diff record.log replay.log
+  exit 1
+fi
 
 
 
