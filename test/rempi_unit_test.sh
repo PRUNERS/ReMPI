@@ -31,6 +31,8 @@ librempi=../src/.libs/librempi.so
 echo $REMPI_RUN
 if [ -z $REMPI_RUN ]; then
     rempi_run=srun
+else
+    rempi_run=$REMPI_RUN
 fi
 
 # ===== Unit test fortran ======== 
