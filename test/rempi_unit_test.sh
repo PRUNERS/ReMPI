@@ -29,7 +29,7 @@ dir=.rempi
 librempi=../src/.libs/librempi.so
 
 echo $REMPI_RUN
-if [ -n $REMPI_RUN ]; then
+if [ -z $REMPI_RUN ]; then
     rempi_run=srun
 fi
 
