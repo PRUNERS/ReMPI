@@ -44,7 +44,7 @@ $rempi_run rm -rf ${dir} 2> /dev/null
 # ===== Unit test ======== 
 #bin="./rempi_test_units"
 #bin="./rempi_test_units matching probe isend init_sendrecv start null_status sendrecv_req comm_dup request_null zero_incount late_irecv clock_wait"
-bin="./rempi_test_units matching probe isend init_sendrecv start sendrecv_req request_null zero_incount late_irecv clock_wait"
+bin="./rempi_test_units matching probe isend init_sendrecv start sendrecv_req request_null zero_incount clock_wait"
 REMPI_MODE=0 REMPI_DIR=${dir} LD_PRELOAD=${librempi} $rempi_run -n ${num_procs} ${bin} 2>> record.log
 REMPI_MODE=1 REMPI_DIR=${dir} LD_PRELOAD=${librempi} $rempi_run -n ${num_procs} ${bin} 2>> replay.log
 $rempi_run rm -rf ${dir} 2> /dev/null
