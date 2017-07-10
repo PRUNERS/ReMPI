@@ -34,9 +34,9 @@ extern char mutil_hostname[256];
   do { \
     MUTIL_FUNC(dbg)(" "		 \
 	    dbg_fmt	     \
-	    " (%s:%s:%d)",   \
+	    " (%s:%d)",   \
             ## __VA_ARGS__,     \
-            __FILE__, __func__, __LINE__); \
+            __FILE__, __LINE__); \
   } while(0)
 
 

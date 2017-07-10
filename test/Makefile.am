@@ -1,6 +1,7 @@
 SUBDIRS=../src
 
 AM_CFLAGS = -g -rdynamic
+AM_CXXFLAGS = -std=c++11
 
 if WITH_BLUEGENE	
 LIBS += $(libz_a_LIB) 
@@ -68,15 +69,15 @@ rempi_test_msg_race_SOURCES = rempi_test_msg_race.c rempi_test_util.c
 rempi_test_msg_race_LDADD = $(librempi_LIB)
 reomp_test_units_SOURCES = reomp_test_units.cpp rempi_test_util.c
 #reomp_test_units_CCFLAGS = -O0 -g -Wall -fopenmp `llvm-config --cflags` -fno-inline
-reomp_test_units_CCFLAGS = -O0 -g -Wall -fopenmp -fno-inline -Wno-deprecated
+reomp_test_units_CCFLAGS = -O0 -g -Wall -fopenmp -fno-inline -Wno-deprecated -std=c++11
 reomp_test_units_LDFLAGS = -L./ `llvm-config --ldflags` -L../src/llvm/.libs/ -lreomprr
 reomp_test_units_LLVMIRPASS = ../src/llvm/.libs/libreomp.so 	
 
 reomp_test_units$(EXEEXT): $(reomp_test_units_OBJECTS) $(reomp_test_units_DEPENDENCIES) $(EXTRA_reomp_test_units_DEPENDENCIES) $(reomp_test_units_LLVMIRPASS)
 	@rm -f reomp_test_units$(EXEEXT)
 	clang++ -Xclang -load -Xclang $(reomp_test_units_LLVMIRPASS) $(reomp_test_units_CCFLAGS) $(reomp_test_units_LDFLAGS) -emit-llvm -S -o $@.ll $@.cpp
-	clang++ -Xclang -load -Xclang $(reomp_test_units_LLVMIRPASS) $(reomp_test_units_CCFLAGS) $(reomp_test_units_LDFLAGS) -o $@.o -c $@.cpp 2> /dev/null
-	clang++ -Xclang -load -Xclang $(reomp_test_units_LLVMIRPASS) $(reomp_test_units_CCFLAGS) $(reomp_test_units_LDFLAGS) -o $@ $(reomp_test_units_OBJECTS)
+	mpicxx -Xclang -load -Xclang $(reomp_test_units_LLVMIRPASS) $(reomp_test_units_CCFLAGS) $(reomp_test_units_LDFLAGS) -o $@.o -c $@.cpp 2> /dev/null
+	mpicxx -Xclang -load -Xclang $(reomp_test_units_LLVMIRPASS) $(reomp_test_units_CCFLAGS) $(reomp_test_units_LDFLAGS) -o $@ $(reomp_test_units_OBJECTS)
 	clang++ $(reomp_test_units_CCFLAGS) $(reomp_test_units_LDFLAGS) -emit-llvm -S -o $@_native.ll $@.cpp
 	clang++ $(reomp_test_units_CCFLAGS) $(reomp_test_units_LDFLAGS) -o $@_native $(reomp_test_units_SOURCES) 
 

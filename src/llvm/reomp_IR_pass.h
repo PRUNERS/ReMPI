@@ -60,6 +60,7 @@ class ReOMP: public FunctionPass
   bool responsible_global_var(Value* value);
   bool responsible_arg_var(Argument* value);
   howto_type get_howto_handle(Function &F, Instruction &I, int* meta);
+  void insert_func(Instruction *I, BasicBlock *BB, int offset, int control, Value* ptr, Value* size);
   void insert_func(Instruction *I, BasicBlock *BB, int offset, string func_name, vector<Value*> &arg_vec);
   void insert_func(Instruction *I, BasicBlock *BB, int offset, string func_name);
   int insert_rr(BasicBlock *BB, CallInst *kmpc_fork_CI, reomp_omp_rr_data *omp_rr_data);
@@ -68,17 +69,22 @@ class ReOMP: public FunctionPass
 
   /* Outer Handlers */
   int handle_function(Function &F);
-  int ci_mem_memory_hook_on_main(Function &F);
-  int insert_mem_enable_hook(BasicBlock &BB, Instruction &I);
-  int insert_mem_disable_hook(BasicBlock &BB, Instruction &I);
+  int ci_init_and_finalize_on_main(Function &F);
+  int ci_on_omp_outline(Function &F);
+  int insert_init(BasicBlock &BB, Instruction &I);
+  int insert_finalize(BasicBlock &BB, Instruction &I);
 
   int handle_basicblock(Function &F, BasicBlock &BB);
+
   int handle_instruction(Function &F, BasicBlock &BB, Instruction &I);
   int ci_mem_register_local_var_addr_on_alloca(Function &F, BasicBlock &BB, Instruction &I);
   int ci_rr_insert_rr_on_omp_func(Function &F, BasicBlock &BB, Instruction &I);
+  int ci_rr_insert_rr_on_critical(Function &F, BasicBlock &BB, Instruction &I);
+  int ci_insert_on_load_store(Function &F, BasicBlock &BB, Instruction &I);
+  int ci_insert_on_fork(Function &F, BasicBlock &BB, Instruction &I);
+
   /* Inner Handlers */
   int handle_omp_func(BasicBlock &BB, Instruction &I);
-
   int handle_dyn_alloc(BasicBlock &BB, Instruction &I);
 };
 

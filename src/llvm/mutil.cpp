@@ -23,26 +23,33 @@
 using namespace std;
 int mutil_my_rank = -1;
 char mutil_hostname[256];
+char header[128];
+char message[2048];
 
 static queue<char*> mutil_log_q;
 static unsigned long mutil_total_alloc_size = 0;
 static unsigned long mutil_total_alloc_count = 0;
 
-static pthread_mutex_t print_mutex;
+static pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+#define MUTIL_OUTPUT(stream, label, fmt)        \
+  do {                                          \
+  va_list argp;                               \
+  va_start(argp, fmt);                        \
+  sprintf(header, "%s:%s:%s:%3d: ", MUTIL_PREFIX, label, mutil_hostname, mutil_my_rank); \
+  vsprintf(message, fmt, argp); \
+  va_end(argp);  \
+  fprintf(stream, "%s%s\n", header, message);   \
+  fflush(stream);				\
+  } while(0)
 
 
 void MUTIL_FUNC(err)(const char* fmt, ...)
 {
-  va_list argp;
 #ifdef MUTIL_DBG_LOG
   mutil_dbg_log_print();
 #endif
-  fprintf(stderr, "%s: ** ERROR ** :%s:%3d: ", MUTIL_PREFIX, mutil_hostname, mutil_my_rank);
-  va_start(argp, fmt);
-  vfprintf(stderr, fmt, argp);
-  va_end(argp);
-  fprintf(stderr, "\n");
-  fflush(stderr);
+  MUTIL_OUTPUT(stderr, "** ERROR **", fmt);
   exit(15);
   return;
 }
@@ -50,45 +57,27 @@ void MUTIL_FUNC(err)(const char* fmt, ...)
 void MUTIL_FUNC(erri)(int r, const char* fmt, ...)
 {
   if (mutil_my_rank != r) return;
-  va_list argp;
-  fprintf(stderr, "%s: ** ERROR ** :%s:%3d: ", MUTIL_PREFIX, mutil_hostname, mutil_my_rank);
-  va_start(argp, fmt);
-  vfprintf(stderr, fmt, argp);
-  va_end(argp);
-  fprintf(stderr, "\n");
+  MUTIL_OUTPUT(stderr, "** ERROR **", fmt);
   exit(15);
   return;
 }
 
 void MUTIL_FUNC(alert)(const char* fmt, ...)
 {
-  va_list argp;
-  fprintf(stderr, "%s:ALERT:%s:%d: ", MUTIL_PREFIX, mutil_hostname, mutil_my_rank);
-  va_start(argp, fmt);
-  vfprintf(stderr, fmt, argp);
-  va_end(argp);
-  fprintf(stderr, " (%s:%s:%d)\n", __FILE__, __func__, __LINE__);
+  MUTIL_OUTPUT(stderr, "ALERT", fmt);
   exit(1);
   return;
 }
 
 void MUTIL_FUNC(dbg)(const char* fmt, ...) {
-  va_list argp;
-  fprintf(DEBUG_STDOUT, "%s:DEBUG:%s:%3d: ", MUTIL_PREFIX, mutil_hostname, mutil_my_rank);
-  va_start(argp, fmt);
-  vfprintf(DEBUG_STDOUT, fmt, argp);
-  va_end(argp);
-  fprintf(DEBUG_STDOUT, "\n");
+  pthread_mutex_lock (&print_mutex);
+  MUTIL_OUTPUT(stderr, "DEBUG", fmt);
+  pthread_mutex_unlock (&print_mutex);
   return;
 }
 
 void MUTIL_FUNC(print)(const char* fmt, ...) {
-  va_list argp;
-  fprintf(stderr, "%s:%s:%d: ", MUTIL_PREFIX, mutil_hostname, mutil_my_rank);
-  va_start(argp, fmt);
-  vfprintf(stderr, fmt, argp);
-  va_end(argp);
-  fprintf(stderr, "\n");
+  MUTIL_OUTPUT(stdout, "", fmt);
   return;
 }
 

@@ -228,6 +228,21 @@ void ReOMP::extract_omp_function(CallInst *fork_CI, Function **omp_func, list<Va
   return;
 }
 
+void ReOMP::insert_func(Instruction *I, BasicBlock *BB, int offset, int control, Value* ptr, Value* size)
+{
+  vector<Value*> arg_vec;
+  IRBuilder<> builder(I);
+  builder.SetInsertPoint(BB, (offset)? ++builder.GetInsertPoint():builder.GetInsertPoint());
+  Constant* func = reomp_func_umap.at(REOMP_CONTROL_STR);
+  arg_vec.push_back(ConstantInt::get(Type::getInt32Ty(*REOMP_CTX), control));
+  if (!ptr) ptr = ConstantPointerNull::get(Type::getInt64PtrTy(*REOMP_CTX));
+  arg_vec.push_back(ptr);
+  if (!size) size = ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 0);
+  arg_vec.push_back(size);
+  builder.CreateCall(func, arg_vec);
+  return;
+}
+
 void ReOMP::insert_func(Instruction *I, BasicBlock *BB, int offset, string func_name, vector<Value*> &arg_vec)
 {
   IRBuilder<> builder(I);
@@ -273,31 +288,14 @@ int ReOMP::insert_rr(BasicBlock *BB, CallInst *kmpc_fork_CI, reomp_omp_rr_data *
   return is_created;
 }
 
+
 /* Outer Handlers */
 int ReOMP::handle_function(Function &F)
 {
   int modified_counter = 0;
-  modified_counter += ci_mem_memory_hook_on_main(F);
-  return modified_counter;
-}
-
-int ReOMP::ci_mem_memory_hook_on_main(Function &F)
-{
-  int modified_counter = 0;
-  int is_hook_enabled = 0;
-  if (F.getName() == "main") {
-    for (BasicBlock &BB : F) {
-      for (Instruction &I : BB) {
-	if (!is_hook_enabled) {
-	  modified_counter += insert_mem_enable_hook(BB, I);
-	  is_hook_enabled = 1;
-	}
-	if (dyn_cast<ReturnInst>(&I)) {
-	  modified_counter += insert_mem_disable_hook(BB, I);
-	} 
-      }
-    }
-  } 
+  modified_counter += ci_init_and_finalize_on_main(F);
+  modified_counter += ci_on_omp_outline(F);
+  //  modified_counter += ci_mem_memory_hook_on_main(F);
   return modified_counter;
 }
 
@@ -309,10 +307,126 @@ int ReOMP::handle_basicblock(Function &F, BasicBlock &BB)
 int ReOMP::handle_instruction(Function &F, BasicBlock &BB, Instruction &I)
 {
   int modified_counter = 0;
-  modified_counter += ci_mem_register_local_var_addr_on_alloca(F, BB, I);
-  modified_counter += ci_rr_insert_rr_on_omp_func(F, BB, I);  
+  //  modified_counter += ci_mem_register_local_var_addr_on_alloca(F, BB, I);
+  //  modified_counter += ci_rr_insert_rr_on_omp_func(F, BB, I);  
+  modified_counter += ci_rr_insert_rr_on_critical(F, BB, I);  
+  modified_counter += ci_insert_on_fork(F, BB, I);
+  modified_counter += ci_insert_on_load_store(F, BB, I);
+
   return modified_counter;
 }
+
+
+
+int ReOMP::ci_init_and_finalize_on_main(Function &F)
+{
+  int modified_counter = 0;
+  int is_hook_enabled = 0;
+  if (F.getName() == "main") {
+    for (BasicBlock &BB : F) {
+      for (Instruction &I : BB) {
+	if (!is_hook_enabled) {
+	  modified_counter += insert_init(BB, I);
+	  is_hook_enabled = 1;
+	}
+	if (dyn_cast<ReturnInst>(&I)) {
+	  modified_counter += insert_finalize(BB, I);
+	} 
+      }
+    }
+  } 
+
+  // if (F.getName() == ".omp.reduction.reduction_func") {
+  //   for (BasicBlock &BB : F) {
+  //     for (Instruction &I : BB) {
+  // 	insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_DEBUG_PRINT, NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 2));
+  // 	break;
+  //     }
+  //     break;
+  //   }
+  // }
+
+  // if (F.getName() == "main") {
+  //   for (BasicBlock &BB : F) {
+  //     for (Instruction &I : BB) {
+  // 	insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_DEBUG_PRINT, NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 2));
+  // 	break;
+  //     }
+  //     break;
+  //   }
+  // }
+  return modified_counter;
+}
+
+int ReOMP::ci_on_omp_outline(Function &F)
+{
+  int is_instrumented_begin = 0;
+  if (F.getName().startswith(".omp_outlined.")) {
+    for (BasicBlock &BB : F) {
+      for (Instruction &I : BB) {
+	if (!is_instrumented_begin) {
+	  insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEG_OMP, NULL, NULL);
+	  is_instrumented_begin = 1;
+	}
+	if (dyn_cast<ReturnInst>(&I)) {
+	  insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_END_OMP, NULL, NULL);
+	} 
+      }
+    }
+  } 
+  return 1;
+}
+
+int ReOMP::ci_rr_insert_rr_on_critical(Function &F, BasicBlock &BB, Instruction &I)
+{
+  int modified_counter = 0;
+  CallInst *CI;
+  string name;
+  if (!(CI = dyn_cast<CallInst>(&I))) return 0;
+  name = CI->getCalledValue()->getName();
+  if (name == "__kmpc_critical" || name == "__kmpc_reduce_nowait") {
+    //  if (name == "__kmpc_for_static_fini") {	     
+    insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN, NULL, NULL);
+    insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
+    modified_counter = 2;
+  } else if (name == "__kmpc_end_critical" || name == "__kmpc_end_reduce_nowait") {
+    //    insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, NULL, NULL);
+  }
+  return modified_counter;
+}
+
+int ReOMP::ci_insert_on_load_store(Function &F, BasicBlock &BB, Instruction &I)
+{
+  int modified_counter = 0;
+  Instruction *IN;
+  string name;
+  if (IN = dyn_cast<StoreInst>(&I)) {
+    insert_func(IN, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_FORK, NULL, NULL);
+    insert_func(IN, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_FORK, NULL, NULL);
+    modified_counter = 2;
+  } else if (IN = dyn_cast<LoadInst>(&I)) {
+    insert_func(IN, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_FORK, NULL, NULL);
+    insert_func(IN, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_FORK, NULL, NULL);
+    modified_counter = 2;
+  }
+  //  if (modified_counter > 0)     MUTIL_DBG("!!!!");
+  return modified_counter;  
+}
+
+int ReOMP::ci_insert_on_fork(Function &F, BasicBlock &BB, Instruction &I)
+{
+  int modified_counter = 0;
+  CallInst *CI;
+  string name;
+  if (!(CI = dyn_cast<CallInst>(&I))) return 0;
+  name = CI->getCalledValue()->getName();
+  if (name == "__kmpc_fork_call") {
+    insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_FORK, NULL, NULL);
+    insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_FORK, NULL, NULL);
+  }
+  return 1;
+}
+
 
 int ReOMP::ci_rr_insert_rr_on_omp_func(Function &F, BasicBlock &BB, Instruction &I)
 {
@@ -398,15 +512,15 @@ int ReOMP::handle_omp_func(BasicBlock &BB, Instruction &I)
   return 1;
 }
 
-int ReOMP::insert_mem_enable_hook(BasicBlock &BB, Instruction &I)
+int ReOMP::insert_init(BasicBlock &BB, Instruction &I)
 {
-  insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_RR_INIT_STR);
+  insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_MAIN, NULL, NULL);
   return 1;
 }
 
-int ReOMP::insert_mem_disable_hook(BasicBlock &BB, Instruction &I)
+int ReOMP::insert_finalize(BasicBlock &BB, Instruction &I)
 {
-  insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_RR_FINALIZE_STR);    
+  insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_AFT_MAIN, NULL, NULL);
   return 1;
 }
 
@@ -445,27 +559,34 @@ void ReOMP::init_inserted_functions(Module &M)
   // reomp_func_umap["reomp_mem_on_free"] = M.getOrInsertFunction("reomp_mem_on_free", 
   // 							 Type::getInt64PtrTy(ctx), 
   //							 NULL);
-
-  reomp_func_umap[REOMP_MEM_REGISTER_LOCAL_VAR_ADDR] = M.getOrInsertFunction(REOMP_MEM_REGISTER_LOCAL_VAR_ADDR,
-							 Type::getInt64PtrTy(ctx), 
-							 Type::getInt64Ty(ctx), 
-							 NULL);
   
-  reomp_func_umap[REOMP_RR_INIT_STR] = M.getOrInsertFunction(REOMP_RR_INIT_STR,
-							     Type::getVoidTy(ctx),
-							     NULL);
+  reomp_func_umap[REOMP_CONTROL_STR] =  M.getOrInsertFunction(REOMP_CONTROL_STR,
+							      Type::getVoidTy(ctx),
+							      Type::getInt32Ty(ctx),
+							      Type::getInt64PtrTy(ctx),
+							      Type::getInt64Ty(ctx),
+							      NULL);
+  
+  // reomp_func_umap[REOMP_MEM_REGISTER_LOCAL_VAR_ADDR] = M.getOrInsertFunction(REOMP_MEM_REGISTER_LOCAL_VAR_ADDR,
+  // 							 Type::getInt64PtrTy(ctx), 
+  // 							 Type::getInt64Ty(ctx), 
+  // 							 NULL);
+  
+  // reomp_func_umap[REOMP_RR_INIT_STR] = M.getOrInsertFunction(REOMP_RR_INIT_STR,
+  // 							     Type::getVoidTy(ctx),
+  // 							     NULL);
 
-  reomp_func_umap[REOMP_RR_FINALIZE_STR] = M.getOrInsertFunction(REOMP_RR_FINALIZE_STR,
-							     Type::getVoidTy(ctx),
-							     NULL);
+  // reomp_func_umap[REOMP_RR_FINALIZE_STR] = M.getOrInsertFunction(REOMP_RR_FINALIZE_STR,
+  // 							     Type::getVoidTy(ctx),
+  // 							     NULL);
 
-  reomp_func_umap[REOMP_MEM_ENABLE_HOOK] = M.getOrInsertFunction(REOMP_MEM_ENABLE_HOOK, 
-								 Type::getVoidTy(ctx), 
-								 NULL);
+  // reomp_func_umap[REOMP_MEM_ENABLE_HOOK] = M.getOrInsertFunction(REOMP_MEM_ENABLE_HOOK, 
+  // 								 Type::getVoidTy(ctx), 
+  // 								 NULL);
 
-  reomp_func_umap[REOMP_MEM_DISABLE_HOOK] = M.getOrInsertFunction(REOMP_MEM_DISABLE_HOOK,
-								 Type::getVoidTy(ctx), 
-								 NULL);
+  // reomp_func_umap[REOMP_MEM_DISABLE_HOOK] = M.getOrInsertFunction(REOMP_MEM_DISABLE_HOOK,
+  // 								 Type::getVoidTy(ctx), 
+  // 								 NULL);
 
   /* For debugging ReOMP */
   reomp_func_umap[REOMP_MEM_PRINT_ADDR] = M.getOrInsertFunction(REOMP_MEM_PRINT_ADDR,
