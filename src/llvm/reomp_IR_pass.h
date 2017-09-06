@@ -55,14 +55,18 @@ class ReOMP: public FunctionPass
   void free_omp_rr_data(reomp_omp_rr_data* omp_rr_data);
   void get_responsible_data(CallInst *CI, reomp_omp_rr_data *omp_rr_data);
   bool is_fork_call(CallInst *CI);
+  bool is_data_racy_access(Function *F, Instruction *I);
+
   void extract_omp_function(CallInst *CI, Function **omp_func, list<Value*> *omp_func_args_list);
   void get_responsible_global_vars(Function* omp_outlined_F, unordered_set<GlobalVariable*> *omp_global_vars_uset);
   bool responsible_global_var(Value* value);
   bool responsible_arg_var(Argument* value);
   howto_type get_howto_handle(Function &F, Instruction &I, int* meta);
+
   void insert_func(Instruction *I, BasicBlock *BB, int offset, int control, Value* ptr, Value* size);
   void insert_func(Instruction *I, BasicBlock *BB, int offset, string func_name, vector<Value*> &arg_vec);
   void insert_func(Instruction *I, BasicBlock *BB, int offset, string func_name);
+
   int insert_rr(BasicBlock *BB, CallInst *kmpc_fork_CI, reomp_omp_rr_data *omp_rr_data);
   bool on_main_function(Function &F);
   bool on_omp_function(Function &F);

@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <llvm/Pass.h>
 #include <llvm/IR/Module.h>
 #include "llvm/IR/LLVMContext.h"
@@ -14,6 +13,7 @@
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/ModuleSlotTracker.h"
 #include "llvm/IR/Attributes.h"
+#include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/Analysis/ScalarEvolution.h"
 #include "llvm/Analysis/DependenceAnalysis.h"
 #include "llvm/Analysis/MemoryDependenceAnalysis.h"
@@ -27,6 +27,7 @@
 #include "reomp_IR_pass.h"
 #include "reomp_rr.h"
 #include "reomp_mem.h"
+#include "reomp_drace.h"
 #include "mutil.h"
 
 
@@ -245,6 +246,7 @@ void ReOMP::insert_func(Instruction *I, BasicBlock *BB, int offset, int control,
 
 void ReOMP::insert_func(Instruction *I, BasicBlock *BB, int offset, string func_name, vector<Value*> &arg_vec)
 {
+
   IRBuilder<> builder(I);
   builder.SetInsertPoint(BB, (offset)? ++builder.GetInsertPoint():builder.GetInsertPoint());
   Constant* func = reomp_func_umap.at(func_name);
@@ -294,7 +296,7 @@ int ReOMP::handle_function(Function &F)
 {
   int modified_counter = 0;
   modified_counter += ci_init_and_finalize_on_main(F);
-  modified_counter += ci_on_omp_outline(F);
+  modified_counter += ci_on_omp_outline(F); /* map pthread_id to omp_tid */
   //  modified_counter += ci_mem_memory_hook_on_main(F);
   return modified_counter;
 }
@@ -309,9 +311,10 @@ int ReOMP::handle_instruction(Function &F, BasicBlock &BB, Instruction &I)
   int modified_counter = 0;
   //  modified_counter += ci_mem_register_local_var_addr_on_alloca(F, BB, I);
   //  modified_counter += ci_rr_insert_rr_on_omp_func(F, BB, I);  
-  modified_counter += ci_rr_insert_rr_on_critical(F, BB, I);  
-  modified_counter += ci_insert_on_fork(F, BB, I);
-  modified_counter += ci_insert_on_load_store(F, BB, I);
+  modified_counter += ci_rr_insert_rr_on_critical(F, BB, I); /* insert lock/unlock for omp_ciritcal/reduction*/
+  //  modified_counter += ci_insert_on_fork(F, BB, I); /* replaced by on_omp_outline */
+  //  I.print(errs()); errs() << " ---- "<< F.getName() << "----" << I.getName() << "\n";
+  modified_counter += ci_insert_on_load_store(F, BB, I); /* */
 
   return modified_counter;
 }
@@ -386,8 +389,8 @@ int ReOMP::ci_rr_insert_rr_on_critical(Function &F, BasicBlock &BB, Instruction 
   name = CI->getCalledValue()->getName();
   if (name == "__kmpc_critical" || name == "__kmpc_reduce_nowait") {
     //  if (name == "__kmpc_for_static_fini") {	     
-    insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN, NULL, NULL);
-    insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
+    insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, NULL, NULL);
+    insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_CRITICAL_BEGIN, NULL, NULL);
     modified_counter = 2;
   } else if (name == "__kmpc_end_critical" || name == "__kmpc_end_reduce_nowait") {
     //    insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, NULL, NULL);
@@ -395,23 +398,133 @@ int ReOMP::ci_rr_insert_rr_on_critical(Function &F, BasicBlock &BB, Instruction 
   return modified_counter;
 }
 
+bool ReOMP::is_data_racy_access(Function *F, Instruction *I)
+{
+  unsigned line, column;
+  const char *filename, *dirname;
+  if (const DebugLoc &dbloc = I->getDebugLoc()) {
+    line = dbloc.getLine();
+    column = dbloc.getCol();
+    if (DIScope *discope = dyn_cast<DIScope>(dbloc.getScope())) {
+      filename = discope->getFilename().data();
+      dirname  = discope->getDirectory().data();
+    } else {
+      MUTIL_ERR("Third operand of DebugLoc is not DIScope");
+    }
+    //      errs() << " >>>>> " << line << ":" << column << "   " << dirname << "   " << filename << "\n";                                               
+    if (reomp_drace_is_data_race(F->getName().data(), dirname, filename, line, column)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+#if 1
+int ReOMP::ci_insert_on_load_store(Function &F, BasicBlock &BB, Instruction &I)
+{
+  int modified_counter = 0;
+  if (StoreInst *SI = dyn_cast<StoreInst>(&I)) {
+    if (this->is_data_racy_access(&F, &I)) {
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, NULL);
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
+      modified_counter += 2;
+    }
+  } else if (LoadInst *LI = dyn_cast<LoadInst>(&I)) {
+    if (this->is_data_racy_access(&F, &I)) {
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, NULL);
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
+      modified_counter += 2;
+    }    
+  } else if (CallInst *CI = dyn_cast<CallInst>(&I)) {
+    string name = CI->getCalledValue()->getName();
+    if (name == "reomp_control") return modified_counter;
+    if (this->is_data_racy_access(&F, &I)) {
+ 
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, NULL);
+      //      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_DEBUG_PRINT, NULL,  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 2));    
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
+      //      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_DEBUG_PRINT, NULL,  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 1));    
+      modified_counter += 2;
+    }
+  } else if (InvokeInst *II = dyn_cast<InvokeInst>(&I)) {
+    BasicBlock *nextBB;
+    Instruction *frontIN;
+    string name = II->getCalledValue()->getName();
+    if (name == "reomp_control") return modified_counter;
+    if (this->is_data_racy_access(&F, &I)) {
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, NULL);
+      nextBB  = II->getNormalDest();
+      frontIN = &(nextBB->front());
+      insert_func(frontIN, nextBB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_OUT, NULL, NULL);
+      nextBB  = II->getUnwindDest();
+      frontIN = &(nextBB->front());
+      //insert_func(frontIN, nextBB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_OUT, NULL, NULL);
+      //NOTE: clang hangs when instrumenting reomp_control in unwind basicblock.
+      modified_counter += 3;
+    }
+  }
+  return modified_counter;  
+}
+#else
 int ReOMP::ci_insert_on_load_store(Function &F, BasicBlock &BB, Instruction &I)
 {
   int modified_counter = 0;
   Instruction *IN;
-  string name;
-  if (IN = dyn_cast<StoreInst>(&I)) {
-    insert_func(IN, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_FORK, NULL, NULL);
-    insert_func(IN, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_FORK, NULL, NULL);
-    modified_counter = 2;
-  } else if (IN = dyn_cast<LoadInst>(&I)) {
-    insert_func(IN, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_FORK, NULL, NULL);
-    insert_func(IN, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_FORK, NULL, NULL);
-    modified_counter = 2;
+  InvokeInst *II;
+  CallInst *CI;
+  StoreInst *SI;
+  
+  unsigned line, column;
+  const char *filename, *dirname;
+
+  if ((IN = dyn_cast<StoreInst> (&I)) || 
+      (IN = dyn_cast<LoadInst>  (&I)) ||
+      //      (IN = dyn_cast<InvokeInst>(&I)) || 
+      (IN = dyn_cast<CallInst>  (&I))) {
+    //    errs() << "|||||| ";
+    //I.print(errs()); errs() << " ---- "<< F.getName() << "----" << I.getName() << "\n";
+    if ((II = dyn_cast<InvokeInst> (&I))) {
+      string name = II->getCalledValue()->getName();
+      if (name == "reomp_control") return modified_counter;
+    }
+
+    if ((CI = dyn_cast<CallInst> (&I))) {
+      string name = CI->getCalledValue()->getName();
+      if (name == "reomp_control") return modified_counter;
+    }
+
+    if (const DebugLoc &dbloc = I.getDebugLoc()) {
+      line = dbloc.getLine();
+      column = dbloc.getCol();
+      if (DIScope *discope = dyn_cast<DIScope>(dbloc.getScope())) {
+	filename = discope->getFilename().data();
+	dirname  = discope->getDirectory().data();	
+      } else {
+	MUTIL_ERR("Third operand of DebugLoc is not DIScope");
+      }
+      //      errs() << " >>>>> " << line << ":" << column << "   " << dirname << "   " << filename << "\n";
+      if (reomp_drace_is_data_race(F.getName().data(), dirname, filename, line, column)) {
+	if((SI = dyn_cast<StoreInst>(&I))) {
+	  insert_func(IN, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN, NULL, NULL);
+	  //	  insert_func(IN, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, SI->getPointerOperand(),  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 2));
+	  insert_func(IN, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
+	} else if ((IN = dyn_cast<LoadInst>(&I))) {
+	  insert_func(IN, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN, NULL, NULL);
+	  //insert_func(IN, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, IN,  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 1));
+	  insert_func(IN, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
+	} else {
+	  insert_func(IN, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN, NULL, NULL);
+	  insert_func(IN, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
+	}
+
+      }
+      modified_counter = 2;
+    }
   }
-  //  if (modified_counter > 0)     MUTIL_DBG("!!!!");
+
   return modified_counter;  
 }
+#endif
 
 int ReOMP::ci_insert_on_fork(Function &F, BasicBlock &BB, Instruction &I)
 {
@@ -423,6 +536,7 @@ int ReOMP::ci_insert_on_fork(Function &F, BasicBlock &BB, Instruction &I)
   if (name == "__kmpc_fork_call") {
     insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_FORK, NULL, NULL);
     insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_FORK, NULL, NULL);
+    modified_counter = 2;
   }
   return 1;
 }
@@ -527,7 +641,7 @@ int ReOMP::insert_finalize(BasicBlock &BB, Instruction &I)
 
 int ReOMP::handle_dyn_alloc(BasicBlock &BB, Instruction &I)
 {
-  LLVMContext &ctx = BB.getContext();
+  //  LLVMContext &ctx = BB.getContext();
   vector<Value*> arg_vec;
   Value *Vptr, *Vsize;
   CallInst *CI;
@@ -601,9 +715,10 @@ bool ReOMP::doInitialization(Module &M)
   REOMP_M   = &M;
   REOMP_CTX = &(M.getContext());
   REOMP_DL  = new DataLayout(REOMP_M);
-
+  
 
   init_inserted_functions(M);
+  reomp_drace_parse(REOMP_DRACE_LOG_ARCHER);
 
 
   return true;

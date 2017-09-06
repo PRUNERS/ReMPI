@@ -165,30 +165,30 @@ void MUTIL_FUNC(assert)(int b)
 
 
 
-string MUTIL_FUNC(btrace_string)()
-{
-  int j, nptrs;
-  void *buffer[1024];
-  char **strings;
-  string trace_string;
+// string MUTIL_FUNC(btrace_string)()
+// {
+//   int j, nptrs;
+//   void *buffer[1024];
+//   char **strings;
+//   string trace_string;
 
-  nptrs = backtrace(buffer, 1024);
+//   nptrs = backtrace(buffer, 1024);
 
-  /* backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO)*/
-  strings = backtrace_symbols(buffer, nptrs);
-  if (strings == NULL) {
-    perror("backtrace_symbols");
-    exit(EXIT_FAILURE);
-  }
-  /*
-    You can translate the address to function name by
-    addr2line -f -e ./a.out <address>
-  */
-  for (j = 0; j < nptrs; j++)
-    trace_string += strings[j] ;
-  free(strings);
-  return trace_string;
-}
+//   /* backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO)*/
+//   strings = backtrace_symbols(buffer, nptrs);
+//   if (strings == NULL) {
+//     perror("backtrace_symbols");
+//     exit(EXIT_FAILURE);
+//   }
+//   /*
+//     You can translate the address to function name by
+//     addr2line -f -e ./a.out <address>
+//   */
+//   for (j = 0; j < nptrs; j++)
+//     trace_string += strings[j] ;
+//   free(strings);
+//   return trace_string;
+// }
 
 void MUTIL_FUNC(btrace)() 
 {
@@ -316,6 +316,16 @@ unsigned int MUTIL_FUNC(hash)(unsigned int original_val, unsigned int new_val) {
   return ((original_val << 5) + original_val) + new_val;
 }
 
+unsigned int MUTIL_FUNC(hash_str)(const char* c, unsigned int length)
+{
+  unsigned int i;
+  unsigned int hash = 15;
+  for (i = 0; i < length; i++) {
+    hash = MUTIL_FUNC(hash)(hash, (int)(c[i])) ;
+  }
+  return hash;
+}
+
 
 int MUTIL_FUNC(init_rand)(int seed) 
 {
@@ -334,4 +344,12 @@ int MUTIL_FUNC(get_rand)(int max)
   return rand() % max;
 }
 
+int MUTIL_FUNC(str_starts_with)(const char* base, const char* str)
+{
+  size_t base_len = strlen(base);
+  size_t str_len  = strlen(str);
+  if (base_len < str_len) return 0;
+  if (strncmp(str, base, str_len) != 0) return 0;
+  return 1;
+}
 

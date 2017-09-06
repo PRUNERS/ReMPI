@@ -25,7 +25,7 @@ extern char mutil_hostname[256];
   do { \
   MUTIL_FUNC(err)(" "		 \
 	    err_fmt	     \
-	    " (%s:%s:%d)",   \
+	  " (%s:%s:%d)",		\
             ## __VA_ARGS__,     \
             __FILE__, __func__, __LINE__); \
   } while(0)
@@ -73,7 +73,7 @@ void MUTIL_FUNC(dbg)(const char* fmt, ...);
 void MUTIL_FUNC(dbgi)(int r, const char* fmt, ...);
 
 
-string MUTIL_FUNC(btrace_string)();
+  //string MUTIL_FUNC(btrace_string)();
 void MUTIL_FUNC(btrace)();
 void MUTIL_FUNC(exit)(int no);
 void* MUTIL_FUNC(malloc)(size_t size);
@@ -85,9 +85,11 @@ void MUTIL_FUNC(sleep_sec)(int sec);
 void MUTIL_FUNC(dbg_sleep_usec)(int sec);
 void MUTIL_FUNC(sleep_usec)(int sec);
 unsigned int MUTIL_FUNC(hash)(unsigned int original_val, unsigned int new_val);
+unsigned int MUTIL_FUNC(hash_str)(const char* c, unsigned int length);
 int MUTIL_FUNC(init_rand)(int seed);
 int MUTIL_FUNC(init_ndrand)();
 int MUTIL_FUNC(get_rand)(int max);
+int MUTIL_FUNC(str_starts_with)(const char* base, const char* str);
 
 #ifdef __cplusplus
 }

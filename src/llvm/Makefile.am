@@ -6,9 +6,11 @@ lib_LTLIBRARIES = libreomp.la libreomprr.la
 
 reomp_SOURCES =  \
 		reomp_IR_pass.cpp \
+		reomp_drace.cpp \
 		mutil.cpp \
 		reomp_util.cpp \
 		reomp_config.cpp 
+
 libreomp_la_SOURCES  = $(reomp_SOURCES)
 libreomp_la_LIBADD =  $(libz_a_LIB)
 #libreomp_la_CFLAGS = -lstdc++ `llvm-config --cxxflags`

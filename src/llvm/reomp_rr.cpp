@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include <unordered_map>
+#include <atomic>
 
 #include "reomp_rr.h"
 #include "reomp_mem.h"
@@ -23,6 +24,9 @@
 
 #define REOMP_MAX_THREAD (256);
 
+#define REOMP_WITH_LOCK (1)
+#define REOMP_WITHOUT_LOCK (2)
+
 static int fp = -1;
 static int reomp_mode = -1;
 static int replay_thread_num = -1;
@@ -32,7 +36,8 @@ static pthread_mutex_t reomp_omp_tid_umap_mutex;
 static int critical_flag = 0;
 static int reomp_omp_call_depth;
 static unordered_map<int64_t, int> reomp_omp_tid_umap;
-static char* record_file_dir = ".";
+//static char* record_file_dir = "/l/ssd";
+static char* record_file_dir = "./";
 static char record_file_path[256];
 
 static void reomp_record(void* ptr, size_t size) 
@@ -160,69 +165,100 @@ static int reomp_get_thread_num()
   
   level = omp_get_level();
   
-  if (level == 1) {
+  switch(level) {
+  case 0:
+    tid = 0;
+    break;
+  case 1:
     tid = omp_get_thread_num();
-  } else {
+    break;
+  default:
     pthread_mutex_lock(&reomp_omp_tid_umap_mutex);
     p_tid = (int64_t)pthread_self();
     if (reomp_omp_tid_umap.find(p_tid) == reomp_omp_tid_umap.end()) {
-      MUTIL_ERR("tid map does not have p_tid: %d", p_tid);
+      MUTIL_ERR("tid map does not have p_tid: %d (level: %d)", p_tid, level);
     }
     tid = reomp_omp_tid_umap.at((int64_t)pthread_self());
     pthread_mutex_unlock(&reomp_omp_tid_umap_mutex);
+    break;
   }
+
   return tid;
 }
 
 
-static void reomp_gate_in(int control)
+//int count = 0;
+static void reomp_gate_in(int control, void* ptr, size_t size, int lock)
 {
   int tid;
+  MUTIL_DBG("Gate-In---: tid: %d: lock: %d", tid, lock);
+  //  reomp_util_btrace();
+  //  count++;
+  // if (count == 2) {
+  //   int *a = NULL;
+  //   *a = 1;
+  // }
 
   tid = reomp_get_thread_num();
   if (reomp_mode == REOMP_RECORD) {
+    if(lock == REOMP_WITH_LOCK) pthread_mutex_lock(&file_write_mutex);
+      //    sleep(1);
+    //MUTIL_DBG("lock");
   } else {
     //    MUTIL_DBG("  (tid: %d)", tid);    
     while (tid != replay_thread_num) {
       if(!pthread_mutex_trylock(&file_read_mutex)) {
+	//	MUTIL_DBG("tid: %d: read: %d (lock: %d)", tid, replay_thread_num, lock);
 	ap_read(fp, &replay_thread_num, sizeof(int));
-	//	MUTIL_DBG("tid: %d: read: %d", tid, replay_thread_num);
       }
       //      MUTIL_DBG("tid: %d: read: %d", tid, replay_thread_num);
     }
-    //    MUTIL_DBG("tid: %d", tid);
+    //    MUTIL_DBG("  (tid: %d) end: %d", tid, replay_thread_num);
     //    MUTIL_DBG("tid: %d: passed: %d", tid, replay_thread_num);
   }
+  __sync_synchronize();
+  MUTIL_DBG("Gate-In: tid: %d: lock: %d", tid, lock);
   return;
 }
 
-static void reomp_gate_out(int control)
+static void reomp_gate_out(int control, void* ptr, size_t size, int lock)
 {
   int tid;
+  MUTIL_DBG("Gate-Out: tid: %d: lock: %d", tid, lock);
+  __sync_synchronize();
+  // if (size == 1) {
+  //   MUTIL_DBG("load = %lu", (size_t)ptr);
+  // }
+  // if (size == 2) {
+  //   if (ptr != NULL) {
+  //     MUTIL_DBG("store = %lu", *(size_t*)ptr);
+  //   }
+  // }
+
   tid = reomp_get_thread_num();
-  //  MUTIL_DBG("tid: %d", tid);
   if (reomp_mode == REOMP_RECORD) {
-    pthread_mutex_lock(&file_write_mutex);
+    //    MUTIL_DBG("unlock: %d", tid);
     write(fp, &tid, sizeof(int));
-    pthread_mutex_unlock(&file_write_mutex);
+    //    ap_write(fp, &tid, sizeof(int));
+    if(lock == REOMP_WITH_LOCK) pthread_mutex_unlock(&file_write_mutex);
   } else {
-    //    MUTIL_DBG("tid: %d: end: %d", tid, replay_thread_num);
+    //MUTIL_DBG("tid: %d: end: %d (unlock: %d)", tid, replay_thread_num, lock);
     //    MUTIL_DBGI(1, "tid: %d", tid);
-    if (tid != replay_thread_num) {
-      MUTIL_ERR("tid: %d: end: %d", tid, replay_thread_num);
-    }
+    //    if (tid != replay_thread_num) {
+      //      MUTIL_ERR("tid: %d: end: %d", tid, replay_thread_num);
+    //    }
     replay_thread_num = -1;
     pthread_mutex_unlock(&file_read_mutex);
   }
   return;
 }
 
-static void reomp_gate(int control)
-{
-  reomp_gate_in(control);
-  reomp_gate_out(control);
-  return;
-}
+// static void reomp_gate(int control, int lock)
+// {
+//   reomp_gate_in(control, lock);
+//   reomp_gate_out(control, lock);
+//   return;
+// }
 
 static void reomp_before_fork()
 {
@@ -286,7 +322,7 @@ static void reomp_after_fork()
 
 static void reomp_debug_print(void* ptr, size_t size)
 {
-  //MUTIL_DBG("reomp_debug_print is called: %lu", size);
+  //  MUTIL_DBG("PTR: %p, SIZE: %lu", ptr, size);
   return;
 }
 
@@ -296,41 +332,50 @@ void REOMP_CONTROL(int control, void* ptr, size_t size)
   if (reomp_mode == REOMP_DISABLE) return;
 
   switch(control) {
-  case REOMP_BEF_MAIN:
+  case REOMP_BEF_MAIN: // 0
     reomp_rr_init(control);
     break;
-  case REOMP_AFT_MAIN:
+  case REOMP_AFT_MAIN: // 1
     reomp_rr_finalize();
     break;
-  case REOMP_AFT_MPI_INIT:
+  case REOMP_AFT_MPI_INIT: // 2
     reomp_rr_init(control);
     break;
 
-  case REOMP_BEF_FORK:
-    reomp_before_fork();
+  case REOMP_GATE_IN: // 10
+    reomp_gate_in(control, ptr, size, REOMP_WITH_LOCK);
     break;
-  case REOMP_BEG_OMP:
-    reomp_begin_omp();
+  case REOMP_GATE_OUT: // 11
+    reomp_gate_out(control, ptr, size, REOMP_WITH_LOCK);
     break;
-  case REOMP_END_OMP:
-    reomp_end_omp();
+  case REOMP_GATE: // 12
+    MUTIL_ERR("No such control");
+    //    reomp_gate(control, REOMP_WITH_LOCK);
     break;
-  case REOMP_AFT_FORK:
-    reomp_after_fork();
+  case REOMP_BEF_CRITICAL_BEGIN: // 13
+    reomp_gate_in(control, ptr, size, REOMP_WITHOUT_LOCK);
+    break;
+  case REOMP_AFT_CRITICAL_BEGIN: // 14
+    reomp_gate_out(control, ptr, size, REOMP_WITHOUT_LOCK);
     break;
 
-  case REOMP_GATE_IN:
-    //    reomp_gate_in(control);
+  case REOMP_BEF_FORK: // 20
+    reomp_before_fork();
     break;
-  case REOMP_GATE_OUT:
-    //    reomp_gate_out(control);
+  case REOMP_AFT_FORK: // 21
+    reomp_after_fork();
     break;
-  case REOMP_GATE:
-    reomp_gate(control);
+  case REOMP_BEG_OMP: // 22
+    reomp_begin_omp();
     break;
-  case REOMP_DEBUG_PRINT:
+  case REOMP_END_OMP: // 22
+    reomp_end_omp();
+    break;
+
+  case REOMP_DEBUG_PRINT: 
     reomp_debug_print(ptr, size);
     break;
+
   }
   return;
 }
