@@ -18,6 +18,7 @@
 #include "mutil.h"
 
 #define MODE "REOMP_MODE"
+#define REOMP_DIR "REOMP_DIR"
 #define REOMP_RECORD (0)
 #define REOMP_REPLAY (1)
 #define REOMP_DISABLE (2)
@@ -28,12 +29,14 @@
 #define REOMP_WITHOUT_LOCK (2)
 
 //#define REOMP_USE_APIO
+//#define REOMP_SKIP_RECORD
 
 #ifdef REOMP_USE_APIO
 static int fp = -1;
 #else
 static FILE *fp;
 #endif
+
 static int reomp_mode = -1;
 static int replay_thread_num = -1;
 static pthread_mutex_t file_read_mutex;
@@ -62,6 +65,13 @@ static void reomp_replay(void* ptr, size_t size)
 static void reomp_init_env()
 {
   char *env;
+  
+  if (!(env = getenv(REOMP_DIR))) {
+    record_file_dir = ".";
+  } else {
+    record_file_dir = env;    
+  }  
+
   if (!(env = getenv(MODE))) {
     reomp_mode = REOMP_DISABLE;
   } else if (!strcmp(env, "record") || atoi(env) == REOMP_RECORD) {
@@ -99,16 +109,18 @@ static void reomp_init_file(int control)
   char *fmode;
   pthread_mutexattr_t mattr;
   pthread_mutexattr_init(&mattr);
-  pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
+
   if (reomp_mode == REOMP_RECORD) {
     flags = O_CREAT | O_WRONLY;
     mode  = S_IRUSR | S_IWUSR;
     fmode = (char*)"w+";
+    pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
     pthread_mutex_init(&file_write_mutex, &mattr);
   } else {
     flags = O_RDONLY;
     mode  = 0;
     fmode = (char*)"r";
+    pthread_mutexattr_settype(&mattr, NULL);
     pthread_mutex_init(&file_read_mutex, &mattr);
   }
 
@@ -119,7 +131,7 @@ static void reomp_init_file(int control)
 	      errno, record_file_path, flags, mode, O_CREAT | O_WRONLY, O_WRONLY);
   }
 #else
-  fp = fopen(record_file_path, "w+");
+  fp = fopen(record_file_path, fmode);
   if (fp == NULL) {
     MUTIL_ERR("file fopen failed: errno=%d path=%s flags=%d moe=%d (%d %d)", 
 	      errno, record_file_path, flags, mode, O_CREAT | O_WRONLY, O_WRONLY);
@@ -217,20 +229,13 @@ static int reomp_get_thread_num()
 }
 
 
-int count = 0;
+size_t count = 0;
 static void reomp_gate_in(int control, void* ptr, size_t size, int lock)
 {
   int tid;
-
-  //  reomp_util_btrace();
-  //  count++;
-  // if (count == 2) {
-  //   int *a = NULL;
-  //   *a = 1;
-  // }
+  size_t ret;
 
   tid = reomp_get_thread_num();
-  //MUTIL_DBG("(count: %d) Gate-In---: tid: %d: lock: %d", count++, tid, lock);
   if (reomp_mode == REOMP_RECORD) {
     if(lock == REOMP_WITH_LOCK) pthread_mutex_lock(&file_write_mutex);
       //    sleep(1);
@@ -238,15 +243,18 @@ static void reomp_gate_in(int control, void* ptr, size_t size, int lock)
   } else {
     //    MUTIL_DBG("  (tid: %d)", tid);    
     while (tid != replay_thread_num) {
+
       if(!pthread_mutex_trylock(&file_read_mutex)) {
 	//	MUTIL_DBG("tid: %d: read: %d (lock: %d)", tid, replay_thread_num, lock);
 #ifdef REOMP_USE_APIO	
 	ap_read(fp, &replay_thread_num, sizeof(int));
 #else 
-	fread(&replay_thread_num, sizeof(int), 1, fp);
+	ret = fread(&replay_thread_num, sizeof(int), 1, fp);
+	if (feof(fp)) MUTIL_ERR("fread reached the end of record file");
+	if (ferror(fp))  MUTIL_ERR("fread failed");
 #endif
       }
-      //      MUTIL_DBG("tid: %d: read: %d", tid, replay_thread_num);
+      //MUTIL_DBG("tid: %d: read: %d", tid, replay_thread_num);
     }
     //    MUTIL_DBG("  (tid: %d) end: %d", tid, replay_thread_num);
     //    MUTIL_DBG("tid: %d: passed: %d", tid, replay_thread_num);
@@ -260,7 +268,8 @@ static void reomp_gate_in(int control, void* ptr, size_t size, int lock)
 static void reomp_gate_out(int control, void* ptr, size_t size, int lock)
 {
   int tid;
- 
+  size_t ret;
+
   __sync_synchronize();
   // if (size == 1) {
   //   MUTIL_DBG("load = %lu", (size_t)ptr);
@@ -271,14 +280,17 @@ static void reomp_gate_out(int control, void* ptr, size_t size, int lock)
   //   }
   // }
   tid = reomp_get_thread_num();
-  //  MUTIL_DBG("Gate-Out: tid: %d: lock: %d", tid, lock);
+  //MUTIL_DBG("Gate-Out: tid: %d: lock: %d", tid, lock);
   if (reomp_mode == REOMP_RECORD) {
     //    MUTIL_DBG("unlock: %d", tid);
     //    write(fp, &tid, sizeof(int));
+#ifndef REOMP_SKIP_RECORD
 #ifdef REOMP_USE_APIO
     ap_write(fp, &tid, sizeof(int));
 #else
-    fwrite(&tid, sizeof(int), 1, fp);
+    ret = fwrite(&tid, sizeof(int), 1, fp);
+    if (ret != 1) MUTIL_ERR("fwrite failed");
+#endif
 #endif
     if(lock == REOMP_WITH_LOCK) pthread_mutex_unlock(&file_write_mutex);
   } else {
@@ -370,7 +382,6 @@ static void reomp_debug_print(void* ptr, size_t size)
 void REOMP_CONTROL(int control, void* ptr, size_t size)
 {
   if (reomp_mode == REOMP_DISABLE) return;
-
 
   switch(control) {
   case REOMP_BEF_MAIN: // 0
