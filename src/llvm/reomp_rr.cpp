@@ -8,6 +8,9 @@
 #include <mpi.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 
 #include <unordered_map>
 #include <atomic>
@@ -34,14 +37,17 @@
 #ifdef REOMP_USE_APIO
 static int fp = -1;
 #else
-static FILE *fp;
+static FILE *fp = NULL;
 #endif
 
 static int reomp_mode = -1;
 static int replay_thread_num = -1;
-static pthread_mutex_t file_read_mutex;
-static pthread_mutex_t file_write_mutex;
-static pthread_mutex_t reomp_omp_tid_umap_mutex;
+//static pthread_mutex_t file_read_mutex;
+//static pthread_mutex_t file_write_mutex;
+//static pthread_mutex_t reomp_omp_tid_umap_mutex;
+static omp_lock_t file_read_mutex_lock;
+static omp_nest_lock_t file_write_mutex_lock;
+static omp_lock_t reomp_omp_tid_umap_mutex_lock;
 static int critical_flag = 0;
 static int reomp_omp_call_depth;
 static unordered_map<int64_t, int> reomp_omp_tid_umap;
@@ -93,6 +99,11 @@ static void reomp_init_file(int control)
   if (control == REOMP_BEF_MAIN) {
     sprintf(record_file_path, "%s/rank_x.reomp", record_file_dir);
   } else if (control == REOMP_AFT_MPI_INIT) {
+#ifdef REOMP_USE_APIO
+    if (fp == -1) return;
+#else
+    if (fp == NULL) return;
+#endif
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     reomp_util_init(my_rank);
 #ifdef REOMP_USE_APIO
@@ -107,21 +118,25 @@ static void reomp_init_file(int control)
   int flags = -1;
   int mode = -1;
   char *fmode;
-  pthread_mutexattr_t mattr;
-  pthread_mutexattr_init(&mattr);
+  //  pthread_mutexattr_t mattr;
+  //  pthread_mutexattr_init(&mattr);
 
   if (reomp_mode == REOMP_RECORD) {
     flags = O_CREAT | O_WRONLY;
     mode  = S_IRUSR | S_IWUSR;
     fmode = (char*)"w+";
-    pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&file_write_mutex, &mattr);
+    //    pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
+    //    pthread_mutex_init(&file_write_mutex, &mattr);
+    omp_init_nest_lock(&file_write_mutex_lock);
+    
   } else {
     flags = O_RDONLY;
     mode  = 0;
     fmode = (char*)"r";
-    pthread_mutexattr_settype(&mattr, NULL);
-    pthread_mutex_init(&file_read_mutex, &mattr);
+    //    pthread_mutexattr_settype(&mattr, NULL);
+    //    pthread_mutex_init(&file_read_mutex, &mattr);
+    omp_init_lock(&file_read_mutex_lock);
+
   }
 
 #ifdef REOMP_USE_APIO
@@ -137,8 +152,6 @@ static void reomp_init_file(int control)
 	      errno, record_file_path, flags, mode, O_CREAT | O_WRONLY, O_WRONLY);
   }
 #endif
-
-
 
   return;
 }
@@ -158,7 +171,8 @@ static void reomp_rr_init(int control)
   reomp_init_env();
   reomp_init_file(control);
   reomp_mem_init();
-  pthread_mutex_init(&reomp_omp_tid_umap_mutex, NULL);
+  //  pthread_mutex_init(&reomp_omp_tid_umap_mutex, NULL);
+  omp_init_lock(&reomp_omp_tid_umap_mutex_lock);
   return;
 }
 
@@ -215,13 +229,15 @@ static int reomp_get_thread_num()
     tid = omp_get_thread_num();
     break;
   default:
-    pthread_mutex_lock(&reomp_omp_tid_umap_mutex);
+    //    pthread_mutex_lock(&reomp_omp_tid_umap_mutex);
+    omp_set_lock(&reomp_omp_tid_umap_mutex_lock);
     p_tid = (int64_t)pthread_self();
     if (reomp_omp_tid_umap.find(p_tid) == reomp_omp_tid_umap.end()) {
       MUTIL_ERR("tid map does not have p_tid: %d (level: %d)", p_tid, level);
     }
     tid = reomp_omp_tid_umap.at((int64_t)pthread_self());
-    pthread_mutex_unlock(&reomp_omp_tid_umap_mutex);
+    //    pthread_mutex_unlock(&reomp_omp_tid_umap_mutex);
+    omp_unset_lock(&reomp_omp_tid_umap_mutex_lock);
     break;
   }
 
@@ -235,17 +251,21 @@ static void reomp_gate_in(int control, void* ptr, size_t size, int lock)
   int tid;
   size_t ret;
 
+
+
   tid = reomp_get_thread_num();
+  
   if (reomp_mode == REOMP_RECORD) {
-    if(lock == REOMP_WITH_LOCK) pthread_mutex_lock(&file_write_mutex);
+    //    if(lock == REOMP_WITH_LOCK) pthread_mutex_lock(&file_write_mutex);
+    if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&file_write_mutex_lock);
       //    sleep(1);
     //MUTIL_DBG("lock");
   } else {
     //    MUTIL_DBG("  (tid: %d)", tid);    
     while (tid != replay_thread_num) {
 
-      if(!pthread_mutex_trylock(&file_read_mutex)) {
-	//	MUTIL_DBG("tid: %d: read: %d (lock: %d)", tid, replay_thread_num, lock);
+      //      if(!pthread_mutex_trylock(&file_read_mutex)) {
+      if(omp_test_lock(&file_read_mutex_lock) != 0) {
 #ifdef REOMP_USE_APIO	
 	ap_read(fp, &replay_thread_num, sizeof(int));
 #else 
@@ -253,6 +273,7 @@ static void reomp_gate_in(int control, void* ptr, size_t size, int lock)
 	if (feof(fp)) MUTIL_ERR("fread reached the end of record file");
 	if (ferror(fp))  MUTIL_ERR("fread failed");
 #endif
+	//	MUTIL_DBG("tid: %d: read: %d (lock: %d)", tid, replay_thread_num, lock);
       }
       //MUTIL_DBG("tid: %d: read: %d", tid, replay_thread_num);
     }
@@ -260,7 +281,7 @@ static void reomp_gate_in(int control, void* ptr, size_t size, int lock)
     //    MUTIL_DBG("tid: %d: passed: %d", tid, replay_thread_num);
   }
   __sync_synchronize();
-  //  MUTIL_DBG("Gate-In: tid: %d: lock: %d", tid, lock);
+  //  MUTIL_DBG("Gate-In: tid: %d: lock: %d, replay_thread_num: %d", tid, lock, replay_thread_num);
   //reomp_util_btrace();
   return;
 }
@@ -280,7 +301,7 @@ static void reomp_gate_out(int control, void* ptr, size_t size, int lock)
   //   }
   // }
   tid = reomp_get_thread_num();
-  //MUTIL_DBG("Gate-Out: tid: %d: lock: %d", tid, lock);
+  //  MUTIL_DBG("Gate-Out: tid: %d: lock: %d, replay_thread_num: %d", tid, lock, replay_thread_num);
   if (reomp_mode == REOMP_RECORD) {
     //    MUTIL_DBG("unlock: %d", tid);
     //    write(fp, &tid, sizeof(int));
@@ -292,15 +313,17 @@ static void reomp_gate_out(int control, void* ptr, size_t size, int lock)
     if (ret != 1) MUTIL_ERR("fwrite failed");
 #endif
 #endif
-    if(lock == REOMP_WITH_LOCK) pthread_mutex_unlock(&file_write_mutex);
+    //    if(lock == REOMP_WITH_LOCK) pthread_mutex_unlock(&file_write_mutex);
+    if(lock == REOMP_WITH_LOCK) omp_unset_nest_lock(&file_write_mutex_lock);
   } else {
-    //MUTIL_DBG("tid: %d: end: %d (unlock: %d)", tid, replay_thread_num, lock);
+    //    MUTIL_DBG("tid: %d: end: %d (unlock: %d)", tid, replay_thread_num, lock);
     //    MUTIL_DBGI(1, "tid: %d", tid);
     //    if (tid != replay_thread_num) {
       //      MUTIL_ERR("tid: %d: end: %d", tid, replay_thread_num);
     //    }
     replay_thread_num = -1;
-    pthread_mutex_unlock(&file_read_mutex);
+    //    pthread_mutex_unlock(&file_read_mutex);
+    omp_unset_lock(&file_read_mutex_lock);
   }
   return;
 }
@@ -333,12 +356,15 @@ static void reomp_begin_omp()
   
   level = omp_get_level();
   if (level == 1) {
-    p_tid = (int64_t)pthread_self();
+    //    p_tid = (int64_t)pthread_self();
+    p_tid = (int64_t)syscall(SYS_gettid);
     omp_tid = omp_get_thread_num();
-    pthread_mutex_lock(&reomp_omp_tid_umap_mutex);
+    //pthread_mutex_lock(&reomp_omp_tid_umap_mutex);
+    omp_set_lock(&reomp_omp_tid_umap_mutex_lock);
     reomp_omp_tid_umap[p_tid] = omp_tid;
     //    MUTIL_DBGI(0, "  (p_tid: %d --> tid: %d)", p_tid, omp_tid);    
-    pthread_mutex_unlock(&reomp_omp_tid_umap_mutex);
+    //    pthread_mutex_unlock(&reomp_omp_tid_umap_mutex);
+    omp_unset_lock(&reomp_omp_tid_umap_mutex_lock);
   }
 
   return;
@@ -351,11 +377,14 @@ static void reomp_end_omp()
   
   level = omp_get_level();
   if (level == 1) {
-    p_tid = (int64_t)pthread_self();
-    pthread_mutex_lock(&reomp_omp_tid_umap_mutex);
+    //    p_tid = (int64_t)pthread_self();
+    p_tid = (int64_t)syscall(SYS_gettid);
+    //    pthread_mutex_lock(&reomp_omp_tid_umap_mutex);
+    omp_set_lock(&reomp_omp_tid_umap_mutex_lock);
     reomp_omp_tid_umap.erase(p_tid);
     //    MUTIL_DBGI(0, "  erase (p_tid: %d)", p_tid);
-    pthread_mutex_unlock(&reomp_omp_tid_umap_mutex);
+    //    pthread_mutex_unlock(&reomp_omp_tid_umap_mutex);
+    omp_unset_lock(&reomp_omp_tid_umap_mutex_lock);
   }
 
   return;
