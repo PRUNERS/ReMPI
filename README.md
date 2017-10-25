@@ -55,7 +55,7 @@ Replay mode (REMPI_MODE=1)
     
     $ REMPI_MODE=1 REMPI_DIR=./rempi_record LD_PRELOAD=<path to installation directory>/lib/librempi.so srun(or mpirun) -n 4 ./rempi_test_units matching
     
-"REMPI::<hostname>:  0:  Global validation code: 1939202000" is a hash value computed from MPI events. If you run this example code several times with REMPI_MODE=0, you will see that this hash value changes from run to run. This means this example code is MPI non-deterministic. Once you run this example code and record MPI events with REMPI_MODE=0, you can reproduce this hash value with REMPI_MODE=1. This means MPI events are reproduced.
+"REMPI::<hostname>:  0:  Global validation code: 1939202000" is a hash value computed based on the order of MPI events (e.g., Message receive order, message test results and etc.). If you run this example code several times with REMPI_MODE=0, you will see that this hash value changes from run to run. This means this example code is MPI non-deterministic. Once you run this example code and record MPI events with REMPI_MODE=0, you can reproduce this hash value with REMPI_MODE=1. This means MPI events are reproduced.
 
 ## 3. Running other examples
 
@@ -64,6 +64,32 @@ The following example script assumes the resource manager is SLURM and that ReMP
      cd example
      sh ./example_x86.sh 16
      ls -ltr .rempi # lists record files
+     
+# Using ReMPI with TotalView
+
+Since ReMPI is implemented via a PMPI wrapper, ReMPI works with Totalvew (Parallel debugger). The common use case is that you first record a buggy behavior in ReMPI record mode without TotalView and then replay this buggy behavior with TotalView in ReMPI replay mode. There are two methods to use ReMPI with TotalView.
+
+## Method 1: Command line
+
+You can simply launch the TotalVew GUI with the "totalview -args" command.
+
+    $ REMPI_MODE=1 REMPI_DIR=./rempi_record LD_PRELOAD=<path to installation directory>/lib/librempi.so totalview -args srun(or mpirun) -n 4 ./rempi_test_units matching
+    
+    
+## Method 2: GUI
+
+You can also set the LD_PRELOAD variable after launching TotalVew. 
+
+### 1. Run yoru application with TotalView
+
+    $ REMPI_MODE=1 REMPI_DIR=./rempi_record LD_PRELOAD=<path to installation directory>/lib/librempi.so totalview -args srun(or mpirun) -n 4 ./rempi_test_units matching
+    
+### 2. Select [Process] => [Startup Parameters] in the GUI menu, and then select [Arguments] tab
+### 3. Specify the environment variables in the "Environment variables" textbox (One environment variable per line).
+
+    REMPI_MODE=1 
+    REMPI_DIR=./rempi_record
+    LD_PRELOAD=<path to installation directory>/lib/librempi.so
 
 
 # Configuration Options
