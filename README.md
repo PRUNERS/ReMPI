@@ -6,7 +6,7 @@
 
 # Introduction
 
- * ReMPI is a record-and-replay tool for MPI applications.
+ * ReMPI is a record-and-replay tool for MPI applications written in C/C++ and/or fortran.
  * (Optional) ReMPI implements Clock Delta Compression (CDC) for compressing records.
 
 # Quick Start
@@ -65,6 +65,38 @@ The following example script assumes the resource manager is SLURM and that ReMP
      sh ./example_x86.sh 16
      ls -ltr .rempi # lists record files
      
+# MPI functions that ReMPI records and relays
+ReMPI record and replay results of following MPI functions.
+
+## Blocking Receive
+
+  * MPI_Recv
+
+## Message Completion Wait/Test
+
+  * MPI_Wait/Waitany/Waitsome/Waitall
+  * MPI_Test/Testany/Testsome/Testall
+
+In current ReMPI, MPI_Request must be initialized by following "Supported" MPI functions. Wait/Test Message Completion functions using MPI_Request initializaed by "Unsupported" MPI functions are not recorded and replayed (Unsupported MPI functions will be supporeted in future).
+
+  * Supported
+    * MPI_Irecv
+    * MPI_Isend/Ibsend/Irsend/Issend
+  * Unsupported
+    * MPI_Recv_init
+    * MPI_Send/Ssend/Rsend/Bsend_init
+    * MPI_Start/Startall
+    * All non-blocking collectives (e.g., MPI_Ibarrier) 
+      
+## Message Arrival Probe
+
+  * MPI_Probe/Iprobe
+  
+## Other sources of non-determinism
+
+Current ReMPI version record and replay only MPI and does not record and repaly other sources of non-determinism suca as OpenMP and other non-deterministic libc functions (e.g., gettimeofday(), clock() and etc.).
+
+
 # Using ReMPI with TotalView
 
 Since ReMPI is implemented via a PMPI wrapper, ReMPI works with Totalvew (Parallel debugger). The common use case is that you first record a buggy behavior in ReMPI record mode without TotalView and then replay this buggy behavior with TotalView in ReMPI replay mode. There are two methods to use ReMPI with TotalView.
