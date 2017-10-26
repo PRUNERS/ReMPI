@@ -77,6 +77,7 @@ You can simply launch the TotalVew GUI with the "totalview -args" command. (LD_P
 
     $ REMPI_MODE=1 REMPI_DIR=./rempi_record totalview -env LD_PRELOAD=<path to installation directory>/lib/librempi.so -args srun(or mpirun) -n 4 ./rempi_test_units matching
 OR
+
     $ export REMPI_MODE=1
     $ export REMPI_DIR=./rempi_record
     $ totalview -env LD_PRELOAD=<path to installation directory>/lib/librempi.so -args srun(or mpirun) -n 4 ./rempi_test_units matching
