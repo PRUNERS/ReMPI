@@ -68,11 +68,11 @@ The following example script assumes the resource manager is SLURM and that ReMP
 # MPI functions that ReMPI records and relays
 ReMPI record and replay results of following MPI functions.
 
-## Blocking Receive
+### Blocking Receive
 
   * MPI_Recv
 
-## Message Completion Wait/Test
+### Message Completion Wait/Test
 
   * MPI_Wait/Waitany/Waitsome/Waitall
   * MPI_Test/Testany/Testsome/Testall
@@ -88,11 +88,11 @@ In current ReMPI, MPI_Request must be initialized by following "Supported" MPI f
     * MPI_Start/Startall
     * All non-blocking collectives (e.g., MPI_Ibarrier) 
       
-## Message Arrival Probe
+### Message Arrival Probe
 
   * MPI_Probe/Iprobe
   
-## Other sources of non-determinism
+### Other sources of non-determinism
 
 Current ReMPI version record and replay only MPI and does not record and repaly other sources of non-determinism suca as OpenMP and other non-deterministic libc functions (e.g., gettimeofday(), clock() and etc.).
 
@@ -103,7 +103,7 @@ Since ReMPI is implemented via a PMPI wrapper, ReMPI works with Totalvew (Parall
 
  * Command Line Options: http://docs.roguewave.com/codedynamics/2017.0/html/index.html#page/TotalViewLH/TotalViewCommandLineOptions.html
 
-## Method 1: Command line
+### Method 1: Command line
 
 You can simply launch the TotalVew GUI with the "totalview -args" command. (LD_PRELOAD must be set thorught a TotalView command line option: -env variable=value)
 
@@ -115,7 +115,7 @@ OR
     $ totalview -env LD_PRELOAD=<path to installation directory>/lib/librempi.so -args srun(or mpirun) -n 4 ./rempi_test_units matching
     
     
-## Method 2: GUI
+### Method 2: GUI
 
 You can also set the REMPI_MODE, REMPI_DIR and LD_PRELOAD variable after launching TotalView. 
 
