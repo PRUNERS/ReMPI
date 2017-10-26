@@ -69,11 +69,17 @@ The following example script assumes the resource manager is SLURM and that ReMP
 
 Since ReMPI is implemented via a PMPI wrapper, ReMPI works with Totalvew (Parallel debugger). The common use case is that you first record a buggy behavior in ReMPI record mode without TotalView and then replay this buggy behavior with TotalView in ReMPI replay mode. There are two methods to use ReMPI with TotalView.
 
+    * Command Line Options: http://docs.roguewave.com/codedynamics/2017.0/html/index.html#page/TotalViewLH/TotalViewCommandLineOptions.html
+
 ## Method 1: Command line
 
-You can simply launch the TotalVew GUI with the "totalview -args" command.
+You can simply launch the TotalVew GUI with the "totalview -args" command. (LD_PRELOAD must be set thorught a TotalView command line option: -env variable=value)
 
-    $ REMPI_MODE=1 REMPI_DIR=./rempi_record LD_PRELOAD=<path to installation directory>/lib/librempi.so totalview -args srun(or mpirun) -n 4 ./rempi_test_units matching
+    $ REMPI_MODE=1 REMPI_DIR=./rempi_record totalview -env LD_PRELOAD=<path to installation directory>/lib/librempi.so -args srun(or mpirun) -n 4 ./rempi_test_units matching
+OR
+    $ export REMPI_MODE=1
+    $ export REMPI_DIR=./rempi_record
+    $ totalview -env LD_PRELOAD=<path to installation directory>/lib/librempi.so -args srun(or mpirun) -n 4 ./rempi_test_units matching
     
     
 ## Method 2: GUI
