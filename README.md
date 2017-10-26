@@ -74,23 +74,23 @@ ReMPI record and replay results of following MPI functions.
 
 ### Message Completion Wait/Test
 
-  * MPI_Wait/Waitany/Waitsome/Waitall
-  * MPI_Test/Testany/Testsome/Testall
+  * MPI_{Wait|Waitany|Waitsome|Waitall}
+  * MPI_{Test|Testany|Testsome|Testall}
 
 In current ReMPI, MPI_Request must be initialized by following "Supported" MPI functions. Wait/Test Message Completion functions using MPI_Request initializaed by "Unsupported" MPI functions are not recorded and replayed (Unsupported MPI functions will be supporeted in future).
 
   * Supported
     * MPI_Irecv
-    * MPI_Isend/Ibsend/Irsend/Issend
+    * MPI_{Isend|Ibsend|Irsend|Issend}
   * Unsupported
     * MPI_Recv_init
-    * MPI_Send/Ssend/Rsend/Bsend_init
-    * MPI_Start/Startall
+    * MPI_{Send|Ssend|Rsend|Bsend}_init
+    * MPI_{Start|Startall}
     * All non-blocking collectives (e.g., MPI_Ibarrier) 
       
 ### Message Arrival Probe
 
-  * MPI_Probe/Iprobe
+  * MPI_{Probe|Iprobe}
   
 ### Other sources of non-determinism
 
