@@ -121,7 +121,7 @@ You can also set the REMPI_MODE, REMPI_DIR and LD_PRELOAD variable after launchi
 
 (Step 1) Run yoru application with TotalView
 
-    $ REMPI_MODE=1 REMPI_DIR=./rempi_record LD_PRELOAD=<path to installation directory>/lib/librempi.so totalview -args srun(or mpirun) -n 4 ./rempi_test_units matching
+    $ REMPI_MODE=1 REMPI_DIR=./rempi_record totalview -args srun(or mpirun) -n 4 ./rempi_test_units matching
     
 (Step 2) Select [Process] => [Startup Parameters] in the GUI menu, and then select [Arguments] tab
 
