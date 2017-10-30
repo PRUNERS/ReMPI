@@ -34,7 +34,8 @@
 #define USE_OMP_GET_THREAD_NUM
 
 //#define REOMP_USE_APIO
-//#define REOMP_SKIP_RECORD
+#define REOMP_SKIP_RECORD
+#define REOMP_USE_MULTI_LOCKS
 
 #ifdef REOMP_USE_APIO
 static int fp = -1;
@@ -170,7 +171,7 @@ static void reomp_finalize_file()
   tmp_time = reomp_util_get_time();
   fclose(fp);
   io_time += reomp_util_get_time() - tmp_time;
-  MUTIL_DBG("%f + %f = %f\n", lock_time, io_time, control_time);
+  MUTIL_DBG("%f + %f = %f", lock_time, io_time, control_time);
 #endif
   return;
 }
@@ -281,12 +282,11 @@ static void reomp_gate_in(int control, void* ptr, size_t lock_id, int lock)
   if (reomp_mode == REOMP_RECORD) {
     if (tid == time_tid) tmp_time = reomp_util_get_time();
     //    if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&file_write_mutex_lock);
-    //    MUTIL_DBG("lock: %lu", lock_id);
+    MUTIL_DBG("LOCK: %p %d", reomp_util_get_time(), lock_id);
     if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&record_locks[lock_id]);
-    //    MUTIL_DBG("lock: %lu - end", lock_id);
-    if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_time;
-      //    sleep(1);
 
+    //    if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&record_locks[tid]);
+    if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_time;
   } else {
     //    MUTIL_DBG("  (tid: %d)", tid);    
     if (tid == time_tid) tmp_lock_time = reomp_util_get_time();
@@ -340,6 +340,7 @@ static void reomp_gate_out(int control, void* ptr, size_t lock_id, int lock)
     if (tid == time_tid) tmp_time = reomp_util_get_time();
     //    if(lock == REOMP_WITH_LOCK) omp_unset_nest_lock(&file_write_mutex_lock);
     if(lock == REOMP_WITH_LOCK) omp_unset_nest_lock(&record_locks[lock_id]);
+    //    if(lock == REOMP_WITH_LOCK) omp_unset_nest_lock(&record_locks[tid]);
     if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_time;
   } else {
     //    MUTIL_DBG("tid: %d: end: %d (unlock: %d)", tid, replay_thread_num, lock);
@@ -454,12 +455,18 @@ void REOMP_CONTROL(int control, void* ptr, size_t size)
     reomp_rr_init(control, size);
     break;
   case REOMP_GATE_IN: // 10
+#ifndef REOMP_USE_MULTI_LOCKS
     size = 0;
+#endif
     reomp_gate_in(control, ptr, size, REOMP_WITH_LOCK);
+    //reomp_gate_in(control, ptr, size, REOMP_WITHOUT_LOCK);
     break;
   case REOMP_GATE_OUT: // 11
+#ifndef REOMP_USE_MULTI_LOCKS
     size = 0;
+#endif
     reomp_gate_out(control, ptr, size, REOMP_WITH_LOCK);
+    //reomp_gate_out(control, ptr, size, REOMP_WITHOUT_LOCK);
     break;
   case REOMP_GATE: // 12
     MUTIL_ERR("No such control");
