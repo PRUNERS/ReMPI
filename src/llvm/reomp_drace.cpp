@@ -6,6 +6,7 @@
 #include <ctype.h>
 
 #include <unordered_map>
+#include <unordered_set>
 #include <list>
 
 #include "mutil.h"
@@ -168,8 +169,11 @@ class data_race_list
 
 static char    *drace_log_line      = NULL;
 static size_t   drace_log_line_len  = 0;
-unordered_map<size_t, call_func*> drace_data_race_access_umap;
-unordered_map<size_t, data_race*> drace_data_race_umap;
+static unordered_map<size_t, call_func*> drace_data_race_access_umap;
+static unordered_map<size_t, data_race*> drace_data_race_umap;
+static list<unordered_set<unsigned int>*> drace_data_race_lock_sets;
+static unordered_map<unsigned int, int> drace_data_race_lock_set_id;
+static size_t num_locks = 0;
 
 
 
@@ -421,6 +425,93 @@ static void drace_add_data_race_access(call_func* cfunc)
   return;
 }
 
+static void drace_update_data_race_lock_sets(call_func *cfunc1, call_func *cfunc2)
+{
+  list<unordered_set<unsigned int>*> inclusion_set_list;
+  list<unordered_set<unsigned int>*>::iterator it, it_end;
+  bool include_cfunc1 = false, include_cfunc2 = false;
+  
+
+  // if (cfunc1 != NULL) {
+  //   MUTIL_DBG("Input 1: %d", cfunc1->hash_val);
+  // }
+  // if (cfunc2 != NULL) {
+  //   MUTIL_DBG("Input 2: %d", cfunc2->hash_val);
+  // }
+  
+  inclusion_set_list.clear();
+  for (it     = drace_data_race_lock_sets.begin(),
+       it_end = drace_data_race_lock_sets.end();
+       it != it_end;
+       it++ ) {
+    unordered_set<unsigned int> *s = *it;
+    include_cfunc1 = false; include_cfunc2 = false;
+    if (cfunc1 != NULL) {
+      if (s->find(cfunc1->hash_val) != s->end()) include_cfunc1 = true;
+    }
+    if (cfunc2 != NULL) {
+      if (s->find(cfunc2->hash_val) != s->end()) include_cfunc2 = true;
+    }
+    if (include_cfunc1 || include_cfunc2) {
+      inclusion_set_list.push_back(s);
+    }
+  }
+
+  //  MUTIL_DBG(" Inclusion: %lu / %lu", inclusion_set_list.size(), drace_data_race_lock_sets.size());
+  if (inclusion_set_list.size() == 0) {
+    unordered_set<unsigned int> *new_set = new unordered_set<unsigned int>;
+    if (cfunc1 != NULL) new_set->insert(cfunc1->hash_val);
+    if (cfunc2 != NULL) new_set->insert(cfunc2->hash_val);
+    drace_data_race_lock_sets.push_back(new_set);
+  } else if (inclusion_set_list.size() == 1) {
+    unordered_set<unsigned int> *set = inclusion_set_list.front();
+    if (cfunc1 != NULL) set->insert(cfunc1->hash_val);
+    if (cfunc2 != NULL) set->insert(cfunc2->hash_val);
+  } else if (inclusion_set_list.size() == 2) {
+    unordered_set<unsigned int> *new_set = new unordered_set<unsigned int>;
+    list<unordered_set<unsigned int>*>::iterator it, it_end;
+    for (it     = inclusion_set_list.begin(),
+	 it_end = inclusion_set_list.end();
+	 it != it_end; it++) {
+      unordered_set<unsigned int> *in_set = *it;
+      new_set->insert(in_set->begin(), in_set->end());
+      drace_data_race_lock_sets.remove(in_set);
+      delete in_set;
+    }
+    if (cfunc1 != NULL) new_set->insert(cfunc1->hash_val);
+    if (cfunc2 != NULL) new_set->insert(cfunc2->hash_val);
+    drace_data_race_lock_sets.push_back(new_set);
+  } else {
+    MUTIL_ERR("Error");
+  }
+  
+  return;
+}
+
+static void drace_create_data_race_lock_set_id()
+{
+  int id = 1;
+  list<unordered_set<unsigned int>*>::iterator it, it_end;
+  unordered_set<unsigned int>::iterator it2, it2_end;
+  for (it     = drace_data_race_lock_sets.begin(),
+       it_end = drace_data_race_lock_sets.end();
+       it != it_end;
+       it++ ) {  
+    unordered_set<unsigned int> *s = *it;
+    for (it2 = s->begin(), it2_end = s->end(); it2 != it2_end; it2++) {
+      unsigned int hash_val = *it2;
+      drace_data_race_lock_set_id[hash_val] = id;
+    }
+    id++;
+  }
+  num_locks = drace_data_race_lock_sets.size();
+}
+
+size_t reomp_drace_get_num_locks()
+{
+  return num_locks;
+}
+
 static void  reomp_parse_archer_post_process()
 {
   unordered_map<size_t, data_race*>::iterator it, it_end;
@@ -434,7 +525,9 @@ static void  reomp_parse_archer_post_process()
     dr->get_first_candidate_call_funcs(&cfunc1, &cfunc2);
     drace_add_data_race_access(cfunc1);
     drace_add_data_race_access(cfunc2);
+    drace_update_data_race_lock_sets(cfunc1, cfunc2);
   }
+  drace_create_data_race_lock_set_id();
   //  drace_print_data_race_access();
 }
 
@@ -565,13 +658,15 @@ int  reomp_drace_is_data_race(const char* func, const char* dir, const char* fil
   // }
   }
 
-
   if (drace_data_race_access_umap.find(hash_val) != drace_data_race_access_umap.end()) {
+    int lock_set_id;
     MUTIL_DBG("############ HIT: %d #############", hash_val);
-    MUTIL_DBG("    #0 %s:%d:%d", file_path_real, line, column);
+    lock_set_id = drace_data_race_lock_set_id[hash_val];
+    MUTIL_DBG("    #0 %s:%d:%d (lock_set: %d)", file_path_real, line, column, lock_set_id);
     drace_data_race_access_umap[hash_val]->print();
     MUTIL_DBG("##############################");
-    return 1;
+
+    return lock_set_id;
   } 
   if (file_path != NULL) {
     reomp_util_free(file_path);

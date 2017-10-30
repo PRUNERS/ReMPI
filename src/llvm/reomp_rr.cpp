@@ -31,6 +31,8 @@
 #define REOMP_WITH_LOCK (1)
 #define REOMP_WITHOUT_LOCK (2)
 
+#define USE_OMP_GET_THREAD_NUM
+
 //#define REOMP_USE_APIO
 //#define REOMP_SKIP_RECORD
 
@@ -46,8 +48,9 @@ static int replay_thread_num = -1;
 //static pthread_mutex_t file_write_mutex;
 //static pthread_mutex_t reomp_omp_tid_umap_mutex;
 static omp_lock_t file_read_mutex_lock;
-static omp_nest_lock_t file_write_mutex_lock;
-static omp_lock_t reomp_omp_tid_umap_mutex_lock;
+static omp_nest_lock_t file_write_mutex_lock; // old
+static omp_nest_lock_t *record_locks = NULL; // new
+static omp_lock_t reomp_omp_tid_umap_mutex_lock; // not used
 static int critical_flag = 0;
 static int reomp_omp_call_depth;
 static unordered_map<int64_t, int> reomp_omp_tid_umap;
@@ -55,6 +58,13 @@ static unordered_map<int64_t, int> reomp_omp_tid_umap;
 static char* record_file_dir = "/tmp";
 //static char* record_file_dir = "./";
 static char record_file_path[256];
+
+
+static double tmp_time = 0, tmp_time2 = 0;
+static double io_time = 0;
+static double lock_time = 0, tmp_lock_time = 0;
+static double control_time = 0;
+static int time_tid = 0;
 
 static void reomp_record(void* ptr, size_t size) 
 {
@@ -125,10 +135,6 @@ static void reomp_init_file(int control)
     flags = O_CREAT | O_WRONLY;
     mode  = S_IRUSR | S_IWUSR;
     fmode = (char*)"w+";
-    //    pthread_mutexattr_settype(&mattr, PTHREAD_MUTEX_RECURSIVE);
-    //    pthread_mutex_init(&file_write_mutex, &mattr);
-    omp_init_nest_lock(&file_write_mutex_lock);
-    
   } else {
     flags = O_RDONLY;
     mode  = 0;
@@ -161,15 +167,29 @@ static void reomp_finalize_file()
 #ifdef REOMP_USE_APIO
   ap_close(fp);
 #else
+  tmp_time = reomp_util_get_time();
   fclose(fp);
+  io_time += reomp_util_get_time() - tmp_time;
+  MUTIL_DBG("%f + %f = %f\n", lock_time, io_time, control_time);
 #endif
   return;
 }
 
-static void reomp_rr_init(int control)
+static void reomp_init_locks(size_t num_locks)
+{
+  if (record_locks != NULL) return;
+  record_locks = (omp_nest_lock_t*)malloc(sizeof(omp_nest_lock_t) * num_locks);
+  for (int i = 0; i < num_locks; i++) {
+    omp_init_nest_lock(&record_locks[i]);
+  }
+  return;
+}
+
+static void reomp_rr_init(int control, size_t num_locks)
 {
   reomp_init_env();
   reomp_init_file(control);
+  reomp_init_locks(num_locks);
   reomp_mem_init();
   //  pthread_mutex_init(&reomp_omp_tid_umap_mutex, NULL);
   omp_init_lock(&reomp_omp_tid_umap_mutex_lock);
@@ -213,6 +233,13 @@ end:
   return;
 }                      
 
+
+#ifdef USE_OMP_GET_THREAD_NUM
+static int reomp_get_thread_num()
+{
+  return omp_get_thread_num();
+}
+#else
 static int reomp_get_thread_num()
 {
   int tid;
@@ -220,7 +247,6 @@ static int reomp_get_thread_num()
   int64_t p_tid;
   
   level = omp_get_level();
-  
   switch(level) {
   case 0:
     tid = 0;
@@ -229,77 +255,73 @@ static int reomp_get_thread_num()
     tid = omp_get_thread_num();
     break;
   default:
-    //    pthread_mutex_lock(&reomp_omp_tid_umap_mutex);
     omp_set_lock(&reomp_omp_tid_umap_mutex_lock);
     p_tid = (int64_t)pthread_self();
     if (reomp_omp_tid_umap.find(p_tid) == reomp_omp_tid_umap.end()) {
       MUTIL_ERR("tid map does not have p_tid: %d (level: %d)", p_tid, level);
     }
     tid = reomp_omp_tid_umap.at((int64_t)pthread_self());
-    //    pthread_mutex_unlock(&reomp_omp_tid_umap_mutex);
     omp_unset_lock(&reomp_omp_tid_umap_mutex_lock);
     break;
   }
 
   return tid;
 }
+#endif
 
 
 size_t count = 0;
-static void reomp_gate_in(int control, void* ptr, size_t size, int lock)
+static void reomp_gate_in(int control, void* ptr, size_t lock_id, int lock)
 {
   int tid;
   size_t ret;
 
-
-
   tid = reomp_get_thread_num();
   
   if (reomp_mode == REOMP_RECORD) {
-    //    if(lock == REOMP_WITH_LOCK) pthread_mutex_lock(&file_write_mutex);
-    if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&file_write_mutex_lock);
+    if (tid == time_tid) tmp_time = reomp_util_get_time();
+    //    if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&file_write_mutex_lock);
+    //    MUTIL_DBG("lock: %lu", lock_id);
+    if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&record_locks[lock_id]);
+    //    MUTIL_DBG("lock: %lu - end", lock_id);
+    if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_time;
       //    sleep(1);
-    //MUTIL_DBG("lock");
+
   } else {
     //    MUTIL_DBG("  (tid: %d)", tid);    
+    if (tid == time_tid) tmp_lock_time = reomp_util_get_time();
     while (tid != replay_thread_num) {
-
-      //      if(!pthread_mutex_trylock(&file_read_mutex)) {
       if(omp_test_lock(&file_read_mutex_lock) != 0) {
 #ifdef REOMP_USE_APIO	
 	ap_read(fp, &replay_thread_num, sizeof(int));
 #else 
+	if (tid == time_tid) tmp_time = reomp_util_get_time();
 	ret = fread(&replay_thread_num, sizeof(int), 1, fp);
+	if (tid == time_tid) io_time += reomp_util_get_time() - tmp_time;
 	if (feof(fp)) MUTIL_ERR("fread reached the end of record file");
 	if (ferror(fp))  MUTIL_ERR("fread failed");
 #endif
-	//	MUTIL_DBG("tid: %d: read: %d (lock: %d)", tid, replay_thread_num, lock);
       }
-      //MUTIL_DBG("tid: %d: read: %d", tid, replay_thread_num);
     }
-    //    MUTIL_DBG("  (tid: %d) end: %d", tid, replay_thread_num);
-    //    MUTIL_DBG("tid: %d: passed: %d", tid, replay_thread_num);
+    if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_lock_time;
   }
+#ifdef ENABLE_MEM_SYNC
   __sync_synchronize();
+#endif
   //  MUTIL_DBG("Gate-In: tid: %d: lock: %d, replay_thread_num: %d", tid, lock, replay_thread_num);
   //reomp_util_btrace();
   return;
 }
 
-static void reomp_gate_out(int control, void* ptr, size_t size, int lock)
+static void reomp_gate_out(int control, void* ptr, size_t lock_id, int lock)
 {
   int tid;
   size_t ret;
 
+#ifdef ENABLE_MEM_SYNC
   __sync_synchronize();
-  // if (size == 1) {
-  //   MUTIL_DBG("load = %lu", (size_t)ptr);
-  // }
-  // if (size == 2) {
-  //   if (ptr != NULL) {
-  //     MUTIL_DBG("store = %lu", *(size_t*)ptr);
-  //   }
-  // }
+#endif
+
   tid = reomp_get_thread_num();
   //  MUTIL_DBG("Gate-Out: tid: %d: lock: %d, replay_thread_num: %d", tid, lock, replay_thread_num);
   if (reomp_mode == REOMP_RECORD) {
@@ -309,12 +331,16 @@ static void reomp_gate_out(int control, void* ptr, size_t size, int lock)
 #ifdef REOMP_USE_APIO
     ap_write(fp, &tid, sizeof(int));
 #else
+    if (tid == time_tid) tmp_time = reomp_util_get_time();
     ret = fwrite(&tid, sizeof(int), 1, fp);
+    if (tid == time_tid) io_time += reomp_util_get_time() - tmp_time;
     if (ret != 1) MUTIL_ERR("fwrite failed");
 #endif
 #endif
-    //    if(lock == REOMP_WITH_LOCK) pthread_mutex_unlock(&file_write_mutex);
-    if(lock == REOMP_WITH_LOCK) omp_unset_nest_lock(&file_write_mutex_lock);
+    if (tid == time_tid) tmp_time = reomp_util_get_time();
+    //    if(lock == REOMP_WITH_LOCK) omp_unset_nest_lock(&file_write_mutex_lock);
+    if(lock == REOMP_WITH_LOCK) omp_unset_nest_lock(&record_locks[lock_id]);
+    if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_time;
   } else {
     //    MUTIL_DBG("tid: %d: end: %d (unlock: %d)", tid, replay_thread_num, lock);
     //    MUTIL_DBGI(1, "tid: %d", tid);
@@ -323,7 +349,9 @@ static void reomp_gate_out(int control, void* ptr, size_t size, int lock)
     //    }
     replay_thread_num = -1;
     //    pthread_mutex_unlock(&file_read_mutex);
+    if (tid == time_tid) tmp_time = reomp_util_get_time();
     omp_unset_lock(&file_read_mutex_lock);
+    if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_time;
   }
   return;
 }
@@ -412,21 +440,25 @@ void REOMP_CONTROL(int control, void* ptr, size_t size)
 {
   if (reomp_mode == REOMP_DISABLE) return;
 
+  int tid = reomp_get_thread_num();
+  if (tid == time_tid) tmp_time2 = reomp_util_get_time();
+
   switch(control) {
   case REOMP_BEF_MAIN: // 0
-    reomp_rr_init(control);
+    reomp_rr_init(control, size);
     break;
   case REOMP_AFT_MAIN: // 1
     reomp_rr_finalize();
     break;
   case REOMP_AFT_MPI_INIT: // 2
-    reomp_rr_init(control);
+    reomp_rr_init(control, size);
     break;
-
   case REOMP_GATE_IN: // 10
+    size = 0;
     reomp_gate_in(control, ptr, size, REOMP_WITH_LOCK);
     break;
   case REOMP_GATE_OUT: // 11
+    size = 0;
     reomp_gate_out(control, ptr, size, REOMP_WITH_LOCK);
     break;
   case REOMP_GATE: // 12
@@ -446,18 +478,22 @@ void REOMP_CONTROL(int control, void* ptr, size_t size)
   case REOMP_AFT_FORK: // 21
     reomp_after_fork();
     break;
+#ifndef USE_OMP_GET_THREAD_NUM
   case REOMP_BEG_OMP: // 22
     reomp_begin_omp();
     break;
   case REOMP_END_OMP: // 22
     reomp_end_omp();
     break;
+#endif
 
   case REOMP_DEBUG_PRINT: 
     reomp_debug_print(ptr, size);
     break;
 
   }
+  if (tid == time_tid) control_time += reomp_util_get_time() - tmp_time2;
+
   return;
 }
 

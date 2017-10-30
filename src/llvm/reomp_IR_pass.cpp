@@ -398,8 +398,9 @@ int ReOMP::ci_rr_insert_rr_on_critical(Function &F, BasicBlock &BB, Instruction 
   return modified_counter;
 }
 
-bool ReOMP::is_data_racy_access(Function *F, Instruction *I)
+int ReOMP::is_data_racy_access(Function *F, Instruction *I)
 {
+  int lock_id;
   unsigned line, column;
   const char *filename, *dirname;
   if (const DebugLoc &dbloc = I->getDebugLoc()) {
@@ -412,38 +413,36 @@ bool ReOMP::is_data_racy_access(Function *F, Instruction *I)
       MUTIL_ERR("Third operand of DebugLoc is not DIScope");
     }
     //      errs() << " >>>>> " << line << ":" << column << "   " << dirname << "   " << filename << "\n";                                               
-    if (reomp_drace_is_data_race(F->getName().data(), dirname, filename, line, column)) {
-      return true;
+    if ((lock_id = reomp_drace_is_data_race(F->getName().data(), dirname, filename, line, column)) > 0) {
+      return lock_id;
     }
   }
-  return false;
+  return 0;
 }
 
 #if 1
 int ReOMP::ci_insert_on_load_store(Function &F, BasicBlock &BB, Instruction &I)
 {
+  size_t lock_id = 0;
   int modified_counter = 0;
   if (StoreInst *SI = dyn_cast<StoreInst>(&I)) {
-    if (this->is_data_racy_access(&F, &I)) {
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, NULL);
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
+    if ((lock_id = this->is_data_racy_access(&F, &I)) != 0) {
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
       modified_counter += 2;
     }
   } else if (LoadInst *LI = dyn_cast<LoadInst>(&I)) {
-    if (this->is_data_racy_access(&F, &I)) {
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, NULL);
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
+    if ((lock_id = this->is_data_racy_access(&F, &I)) != 0) {
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
       modified_counter += 2;
     }    
   } else if (CallInst *CI = dyn_cast<CallInst>(&I)) {
     string name = CI->getCalledValue()->getName();
     if (name == "reomp_control") return modified_counter;
-    if (this->is_data_racy_access(&F, &I)) {
- 
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, NULL);
-      //      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_DEBUG_PRINT, NULL,  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 2));    
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
-      //      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_DEBUG_PRINT, NULL,  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 1));    
+    if ((lock_id = this->is_data_racy_access(&F, &I)) != 0) {
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
       modified_counter += 2;
     }
   } else if (InvokeInst *II = dyn_cast<InvokeInst>(&I)) {
@@ -451,11 +450,11 @@ int ReOMP::ci_insert_on_load_store(Function &F, BasicBlock &BB, Instruction &I)
     Instruction *frontIN;
     string name = II->getCalledValue()->getName();
     if (name == "reomp_control") return modified_counter;
-    if (this->is_data_racy_access(&F, &I)) {
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, NULL);
+    if ((lock_id = this->is_data_racy_access(&F, &I)) != 0) {
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
       nextBB  = II->getNormalDest();
       frontIN = &(nextBB->front());
-      insert_func(frontIN, nextBB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_OUT, NULL, NULL);
+      insert_func(frontIN, nextBB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_OUT, NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
       nextBB  = II->getUnwindDest();
       frontIN = &(nextBB->front());
       //insert_func(frontIN, nextBB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_OUT, NULL, NULL);
@@ -628,7 +627,9 @@ int ReOMP::handle_omp_func(BasicBlock &BB, Instruction &I)
 
 int ReOMP::insert_init(BasicBlock &BB, Instruction &I)
 {
-  insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_MAIN, NULL, NULL);
+  size_t num_locks;
+  num_locks = reomp_drace_get_num_locks();
+  insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_MAIN, NULL,   ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), num_locks));
   return 1;
 }
 
