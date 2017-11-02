@@ -445,7 +445,7 @@ int main(int argc, char **argv)
   nth = atoi(argv[1]);
   omp_set_num_threads(nth);
 
-  config_test(argc);
+  //  config_test(argc);
   // int *data = (int*)malloc(4 * sizeof(int));
   // data = (int*)realloc(data, 5 * sizeof(int));
   // free(data);

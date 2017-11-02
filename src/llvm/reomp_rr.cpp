@@ -13,10 +13,14 @@
 #include <unistd.h>
 
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 #include <atomic>
+#include <list>
 
 #include "reomp_rr.h"
 #include "reomp_mem.h"
+#include "reomp_mon.h"
 #include "apio.h"
 #include "mutil.h"
 
@@ -34,8 +38,8 @@
 #define USE_OMP_GET_THREAD_NUM
 
 //#define REOMP_USE_APIO
-#define REOMP_SKIP_RECORD
-#define REOMP_USE_MULTI_LOCKS
+//#define REOMP_SKIP_RECORD
+//#define REOMP_USE_MULTI_LOCKS
 
 #ifdef REOMP_USE_APIO
 static int fp = -1;
@@ -67,6 +71,11 @@ static double lock_time = 0, tmp_lock_time = 0;
 static double control_time = 0;
 static int time_tid = 0;
 
+static vector<list<char*>*> callstack;
+static vector<size_t> callstack_hash;
+static unordered_map<size_t, size_t> callstack_hash_umap;
+static int is_callstack_init = 0;
+
 static void reomp_record(void* ptr, size_t size) 
 {
   //  reomp_mem_record_or_replay_all_local_vars(fp, 0);
@@ -76,6 +85,59 @@ static void reomp_record(void* ptr, size_t size)
 static void reomp_replay(void* ptr, size_t size)
 {
   //  reomp_mem_record_or_replay_all_local_vars(fp, 1);
+  return;
+}
+
+#ifdef USE_OMP_GET_THREAD_NUM
+static int reomp_get_thread_num()
+{
+  return omp_get_thread_num();
+}
+#else
+static int reomp_get_thread_num()
+{
+  int tid;
+  int level;
+  int64_t p_tid;
+  
+  level = omp_get_level();
+  switch(level) {
+  case 0:
+    tid = 0;
+    break;
+  case 1:
+    tid = omp_get_thread_num();
+    break;
+  default:
+    omp_set_lock(&reomp_omp_tid_umap_mutex_lock);
+    p_tid = (int64_t)pthread_self();
+    if (reomp_omp_tid_umap.find(p_tid) == reomp_omp_tid_umap.end()) {
+      MUTIL_ERR("tid map does not have p_tid: %d (level: %d)", p_tid, level);
+    }
+    tid = reomp_omp_tid_umap.at((int64_t)pthread_self());
+    omp_unset_lock(&reomp_omp_tid_umap_mutex_lock);
+    break;
+  }
+
+  return tid;
+}
+#endif
+
+
+static void reomp_init_callstack()
+{
+  int tid;
+  tid = reomp_get_thread_num();
+  if (tid == 0) {
+    MUTIL_DBG("Init");
+    callstack_hash.resize(128);
+    for (int i = 0; i < 128; i++) {
+      callstack.push_back(new list<char*>());
+      //      callstack_hash_umap.push_back(new unordered_map<size_t, size_t>());
+    }
+    is_callstack_init = 1;
+  }
+
   return;
 }
 
@@ -173,6 +235,16 @@ static void reomp_finalize_file()
   io_time += reomp_util_get_time() - tmp_time;
   MUTIL_DBG("%f + %f = %f", lock_time, io_time, control_time);
 #endif
+
+  REOMP_MON_SAMPLE_CALLSTACK_PRINT();
+  unordered_map<size_t, size_t>::iterator it, it_end;
+  for (it = callstack_hash_umap.begin(),
+	 it_end = callstack_hash_umap.end();
+       it != it_end;
+       it++) {
+    MUTIL_DBG("Hash: %lu, Count: %lu", it->first, it->second);
+  }
+
   return;
 }
 
@@ -188,6 +260,7 @@ static void reomp_init_locks(size_t num_locks)
 
 static void reomp_rr_init(int control, size_t num_locks)
 {
+  reomp_init_callstack();
   reomp_init_env();
   reomp_init_file(control);
   reomp_init_locks(num_locks);
@@ -235,40 +308,6 @@ end:
 }                      
 
 
-#ifdef USE_OMP_GET_THREAD_NUM
-static int reomp_get_thread_num()
-{
-  return omp_get_thread_num();
-}
-#else
-static int reomp_get_thread_num()
-{
-  int tid;
-  int level;
-  int64_t p_tid;
-  
-  level = omp_get_level();
-  switch(level) {
-  case 0:
-    tid = 0;
-    break;
-  case 1:
-    tid = omp_get_thread_num();
-    break;
-  default:
-    omp_set_lock(&reomp_omp_tid_umap_mutex_lock);
-    p_tid = (int64_t)pthread_self();
-    if (reomp_omp_tid_umap.find(p_tid) == reomp_omp_tid_umap.end()) {
-      MUTIL_ERR("tid map does not have p_tid: %d (level: %d)", p_tid, level);
-    }
-    tid = reomp_omp_tid_umap.at((int64_t)pthread_self());
-    omp_unset_lock(&reomp_omp_tid_umap_mutex_lock);
-    break;
-  }
-
-  return tid;
-}
-#endif
 
 
 size_t count = 0;
@@ -277,14 +316,37 @@ static void reomp_gate_in(int control, void* ptr, size_t lock_id, int lock)
   int tid;
   size_t ret;
 
+  //if(omp_get_level() == 0) return;
+  if(omp_get_num_threads() == 1) return;
+
   tid = reomp_get_thread_num();
   
   if (reomp_mode == REOMP_RECORD) {
     if (tid == time_tid) tmp_time = reomp_util_get_time();
     //    if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&file_write_mutex_lock);
-    MUTIL_DBG("LOCK: %p %d", reomp_util_get_time(), lock_id);
-    if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&record_locks[lock_id]);
 
+    if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&record_locks[lock_id]);
+    
+    // if (callstack_hash_umap.find(callstack_hash[tid]) == callstack_hash_umap.end()) {
+    //   int level = 0;
+    //   callstack_hash_umap[callstack_hash[tid]] = 0;
+    //   list<char*>::reverse_iterator it, it_end;
+    //   MUTIL_DBG("Callstack: hash: %lu", callstack_hash[tid]);
+    //   for (it = callstack[tid]->rbegin(), 
+    // 	     it_end = callstack[tid]->rend();
+    // 	   it != it_end;
+    // 	   it++) {
+    // 	char *func_name;
+    // 	func_name = *it;
+    // 	MUTIL_DBG("  #%d %s", level++, func_name);
+    //   }
+    // } else {
+    //   callstack_hash_umap.at(callstack_hash[tid])++;
+    // }
+
+    //    PrintBacktrace();
+    REOMP_MON_SAMPLE_CALLSTACK();
+    //    MUTIL_DBG("LOCK");
     //    if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&record_locks[tid]);
     if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_time;
   } else {
@@ -317,6 +379,8 @@ static void reomp_gate_out(int control, void* ptr, size_t lock_id, int lock)
 {
   int tid;
   size_t ret;
+
+  if(omp_get_num_threads() == 1) return;
 
 #ifdef ENABLE_MEM_SYNC
   __sync_synchronize();
@@ -430,6 +494,31 @@ static void reomp_after_fork()
   return;
 }
 
+
+
+static void reomp_begin_func_call(void* ptr, size_t size)
+{
+  int tid;
+  if (!is_callstack_init) return;
+  tid = reomp_get_thread_num();
+  //  MUTIL_DBG("Push: %s (%lu %d)", (char*)ptr, size, tid);
+  callstack[tid]->push_back((char*)ptr);
+  callstack_hash[tid] += size;
+}
+
+static void reomp_end_func_call(void* ptr, size_t size)
+{
+  int tid;
+  if (!is_callstack_init) return;
+  tid = reomp_get_thread_num();
+  if (callstack[tid]->back() != ptr) {
+    MUTIL_ERR("Call stack is broken: %s:%s", callstack[tid]->front(), (char*)ptr);
+  }
+  callstack[tid]->pop_back();
+  callstack_hash[tid] -= size;
+  //  MUTIL_DBG("Pop: %s (%lu)", (char*)ptr, size);
+}
+
 static void reomp_debug_print(void* ptr, size_t size)
 {
   //  MUTIL_DBG("PTR: %p, SIZE: %lu", ptr, size);
@@ -489,10 +578,16 @@ void REOMP_CONTROL(int control, void* ptr, size_t size)
   case REOMP_BEG_OMP: // 22
     reomp_begin_omp();
     break;
-  case REOMP_END_OMP: // 22
+  case REOMP_END_OMP: // 23
     reomp_end_omp();
     break;
 #endif
+  case REOMP_BEG_FUNC_CALL: // 24
+    //    reomp_begin_func_call(ptr, size);
+    break;
+  case REOMP_END_FUNC_CALL: // 25
+    //    reomp_end_func_call(ptr, size);
+    break;
 
   case REOMP_DEBUG_PRINT: 
     reomp_debug_print(ptr, size);

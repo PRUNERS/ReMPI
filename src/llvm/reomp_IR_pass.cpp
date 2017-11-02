@@ -21,6 +21,7 @@
 #include <llvm/Support/Casting.h>
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 
+
 #include <list>
 #include <vector>
 
@@ -295,6 +296,7 @@ int ReOMP::insert_rr(BasicBlock *BB, CallInst *kmpc_fork_CI, reomp_omp_rr_data *
 int ReOMP::handle_function(Function &F)
 {
   int modified_counter = 0;
+  modified_counter += ci_on_function_call(F); /* map pthread_id to omp_tid */
   modified_counter += ci_init_and_finalize_on_main(F);
   modified_counter += ci_on_omp_outline(F); /* map pthread_id to omp_tid */
   //  modified_counter += ci_mem_memory_hook_on_main(F);
@@ -375,6 +377,42 @@ int ReOMP::ci_on_omp_outline(Function &F)
 	  insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_END_OMP, NULL, NULL);
 	} 
       }
+    }
+  } 
+  return 1;
+}
+
+int ReOMP::ci_on_function_call(Function &F)
+{
+  int is_instrumented_begin = 0;
+  DISubprogram *DIS;
+  DIS = F.getSubprogram();
+
+
+  if (DIS == NULL) return 0;
+  if (DIS != NULL) {
+    if (!reomp_drace_is_in_racy_callstack(DIS->getFilename().data())) return 0;
+  }
+
+  for (BasicBlock &BB : F) {
+    for (Instruction &I : BB) {
+      IRBuilder<> builder(&I);
+      Value *func_name;
+      StringRef string;
+      size_t hash;
+
+      string = (DIS == NULL)?"null":DIS->getName();
+      func_name = builder.CreateGlobalStringPtr(string);
+      hash = reomp_util_hash_str(string.data(), string.size());
+
+      if (!is_instrumented_begin) {
+	//	ArrayType *Ty = ArrayType::get(Type::getInt8Ty(*REOMP_CTX), DIS->getName().size() + 1);
+	insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEG_FUNC_CALL, func_name, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), hash));
+	is_instrumented_begin = 1;
+      }
+      if (dyn_cast<ReturnInst>(&I)) {
+	insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_END_FUNC_CALL, func_name, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), hash));
+      } 
     }
   } 
   return 1;

@@ -75,6 +75,9 @@ void MUTIL_FUNC(dbgi)(int r, const char* fmt, ...);
 
   //string MUTIL_FUNC(btrace_string)();
 void MUTIL_FUNC(btrace)();
+int MUTIL_FUNC(btrace_get)(char*** addresses, int len);
+size_t MUTIL_FUNC(btrace_hash)();
+void MUTIL_FUNC(btrace_line)();
 void MUTIL_FUNC(exit)(int no);
 void* MUTIL_FUNC(malloc)(size_t size);
 void* MUTIL_FUNC(realloc)(void *ptr, size_t size);
@@ -90,6 +93,9 @@ int MUTIL_FUNC(init_rand)(int seed);
 int MUTIL_FUNC(init_ndrand)();
 int MUTIL_FUNC(get_rand)(int max);
 int MUTIL_FUNC(str_starts_with)(const char* base, const char* str);
+
+size_t Backtrace(void **frames, size_t size);
+void PrintBacktrace(void);
 
 #ifdef __cplusplus
 }

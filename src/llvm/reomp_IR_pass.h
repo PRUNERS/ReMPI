@@ -71,10 +71,12 @@ class ReOMP: public FunctionPass
   bool on_main_function(Function &F);
   bool on_omp_function(Function &F);
 
+
   /* Outer Handlers */
   int handle_function(Function &F);
   int ci_init_and_finalize_on_main(Function &F);
   int ci_on_omp_outline(Function &F);
+  int ci_on_function_call(Function &F);
   int insert_init(BasicBlock &BB, Instruction &I);
   int insert_finalize(BasicBlock &BB, Instruction &I);
 

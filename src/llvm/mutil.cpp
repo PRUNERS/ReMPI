@@ -9,6 +9,10 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <sys/syscall.h>
+#include <assert.h>
+//#include <bfd.h>
+#include <libgen.h>
+#include <execinfo.h>
 
 #include <string>
 #include <queue>
@@ -16,7 +20,6 @@
 #include "mutil.h"
 
 #define DEBUG_STDOUT stderr
-
 
 
 
@@ -210,11 +213,44 @@ void MUTIL_FUNC(btrace)()
     addr2line -f -e ./a.out <address>
   */
   for (j = 0; j < nptrs; j++) {
-    MUTIL_FUNC(dbg)(" #%d %s", j, strings[j]);
+    MUTIL_FUNC(dbg)(" #%d %s %p", j, strings[j], buffer[j]);
   }
   free(strings);
   return;
 }
+
+int MUTIL_FUNC(btrace_get)(char*** strings, int len) 
+{
+  int j, nptrs;
+  void *buffer[100];
+
+  nptrs = backtrace(buffer, 100);
+
+  /* backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO)*/
+  *strings = backtrace_symbols(buffer, nptrs);
+  if (strings == NULL) {
+    perror("backtrace_symbols");
+    exit(EXIT_FAILURE);
+  }   
+  
+  return nptrs;
+}
+
+size_t MUTIL_FUNC(btrace_hash)() 
+{
+  int nptrs;
+  void *buffer[100];
+  size_t hash = 1883;
+
+  nptrs = backtrace(buffer, 100);
+  for (int i = 0; i < nptrs; i++){
+    hash = MUTIL_FUNC(hash)(hash, (size_t)buffer[i]);    
+  }
+  return hash;
+}
+
+
+
 
 
 
@@ -355,7 +391,8 @@ void MUTIL_FUNC(sleep_usec)(int usec)
 }
 
 
-unsigned int MUTIL_FUNC(hash)(unsigned int original_val, unsigned int new_val) {
+unsigned int MUTIL_FUNC(hash)(unsigned int original_val, unsigned int new_val)
+{
   return ((original_val << 5) + original_val) + new_val;
 }
 
@@ -396,3 +433,176 @@ int MUTIL_FUNC(str_starts_with)(const char* base, const char* str)
   return 1;
 }
 
+
+#if 0
+
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE /* for Dl_info */
+#endif
+
+#include <dlfcn.h>
+
+#define lengthof(array) (sizeof(array)/sizeof((array)[0]))
+
+extern void *__libc_stack_end;
+
+static int is_init_bfd = 0;
+static bfd *abfd;
+static asymbol **symbols;
+static int nsymbols;
+
+
+/**
+ *  Frame structure.
+ */
+#if defined(__x86_64)
+struct backtrace_frame {
+  void *fp;
+  void *lr;
+};
+#elif defined(__ARM_ARCH_ISA_ARM)
+struct backtrace_frame {
+  void *fp;
+  void *sp;
+  void *lr;
+  void *pc;
+};
+#endif
+
+
+size_t Backtrace(void **frames, size_t size)
+{
+  void *top_frame_p;
+  void *current_frame_p;
+  struct backtrace_frame *frame_p;
+  size_t frame_count;
+
+  top_frame_p     = __builtin_frame_address(0);
+  current_frame_p = top_frame_p;
+  frame_count     = 0;
+
+  if ((current_frame_p != NULL)
+      && (current_frame_p > (void *) &frame_count)
+      && (current_frame_p < __libc_stack_end)) {
+    
+    while ((frame_count < size)
+	   && (current_frame_p != NULL)
+	   && (current_frame_p > (void *) &frame_count)
+	   && (current_frame_p < __libc_stack_end)) {
+        
+#if defined(__x86_64)
+      frame_p = (struct backtrace_frame *) (void **) current_frame_p;
+#elif defined(__ARM_ARCH_ISA_ARM)
+      frame_p = (struct backtrace_frame *) ((void **) current_frame_p - 3);
+#endif
+      frames[frame_count] = frame_p->lr;
+      ++frame_count;
+      current_frame_p = frame_p->fp;
+    }
+  }
+
+  return frame_count;
+}
+
+void PrintBacktrace(void)
+{
+  //  if (!is_init_bfd) init_bfd_stuff();
+
+  void *stack[128] = { NULL }, *address;
+  Dl_info info;
+  asection *section = bfd_get_section_by_name(abfd, ".debug_info");
+  const char *file_name;
+  const char *func_name;
+  unsigned int lineno;
+  int found;
+  int i;
+
+  
+  if (Backtrace(stack, lengthof(stack)) == 0) {
+    fprintf(stderr, "not found backtrace...\n");
+    return;
+  }
+  for (i = 0; stack[i] != NULL; ++i) {
+    address = stack[i];
+
+    if (section != NULL) {
+      found = bfd_find_nearest_line(abfd, section, symbols, (long) address - 1, &file_name, &func_name, &lineno);
+    }
+    if (dladdr(address, &info) == 0) {
+      fprintf(stderr, "  unknown(?+?)[%p]\n",
+	      address);
+    } else if (found == 0 || file_name == NULL) {
+      fprintf(stderr, "  %s(%s+%p)[%p]\n",
+	      info.dli_fname, info.dli_sname, (long)address - (long)info.dli_saddr, address);
+    } else {
+      fprintf(stderr, "  %s(%s+%p)[%p] at %s:%d\n",
+	      info.dli_fname, info.dli_sname, (long)address - (long)info.dli_saddr, address, file_name, lineno);
+    }
+  }
+
+  return;
+}
+
+
+__attribute__((constructor))
+void init_bfd_stuff ()
+{
+  abfd = bfd_openr("/proc/self/exe", NULL);
+  assert(abfd != NULL);
+  bfd_check_format(abfd, bfd_object);
+
+  int size = bfd_get_symtab_upper_bound(abfd);
+  assert(size > 0);
+  symbols = (asymbol**)malloc(size);
+  assert(symbols != NULL);
+  nsymbols = bfd_canonicalize_symtab(abfd, symbols);
+  is_init_bfd = 1;
+}
+
+
+static int get_btrace_line(long address, const char** file_name, const char** func_name, unsigned int* line_no, int *column)
+{
+  asection *section;
+  int found;
+  
+
+  section = bfd_get_section_by_name(abfd, ".debug_info");
+  assert(section != NULL);
+  found = bfd_find_nearest_line(abfd, section, symbols,
+				address,
+				file_name,
+				func_name,
+				line_no);
+  if (!found) return 0;
+    //  if (!found) MUTIL_FUNC(err)("failed to get bfd info");
+
+  //  MUTIL_FUNC(dbg)("%s:%s:%d\n", file_name, function_name, lineno);
+  //MUTIL_FUNC(dbg)("%s:%s:%d", f_name, func_name, ln);
+  return 1;
+}
+
+void MUTIL_FUNC(btrace_line)() 
+{
+  void *trace[128];
+  int n;
+  const char* file_name;
+  const char* func_name;
+  unsigned int line_no;
+  
+  if (!is_init_bfd) init_bfd_stuff();
+
+  n = backtrace(trace, sizeof(trace) / sizeof(trace[0]));
+  for (int i = 0; i < n; i++) {
+    long t;
+    t = (long)trace[i];
+    if (get_btrace_line(t--, &file_name, &func_name, &line_no, NULL) > 0) {
+      MUTIL_FUNC(dbg)(" #%d %s:%d %d", i, file_name, line_no, n);
+    } else {
+      MUTIL_FUNC(dbg)(" #%d %s:%d %d", i, file_name, line_no, n);
+      //    MUTIL_FUNC(dbg)(" #%d (null):0 %d", i, n);
+    }
+
+  }
+  return;
+}
+#endif

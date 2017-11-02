@@ -15,6 +15,15 @@
 #define DRACE_PATH_MAX (4096)
 #define DRACE_STL_LEVEL_INSTRUMENTATION
 
+
+unordered_set<const char*> racy_callstack_uset;
+
+int reomp_drace_is_in_racy_callstack(const char* func_name)
+{
+  return (racy_callstack_uset.find(func_name) == racy_callstack_uset.end())? 0:1;
+}
+
+
 class call_func 
 {
 public:
@@ -89,6 +98,7 @@ private:
       if (cfunc->is_valid) {
 	if (cfunc->is_stl) break;
 	candidate_cfunc = cfunc;
+	racy_callstack_uset.insert(cfunc->name);
       }
 #else
       if (cfunc->is_valid) {

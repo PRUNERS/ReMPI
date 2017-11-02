@@ -41,6 +41,8 @@ void REOMP_CONTROL(int control, void* ptr, size_t size);
 #define REOMP_AFT_FORK (21)
 #define REOMP_BEG_OMP (22)
 #define REOMP_END_OMP (23)
+#define REOMP_BEG_FUNC_CALL (24)
+#define REOMP_END_FUNC_CALL (25)
 
 
 #define REOMP_DEBUG_PRINT (90)
