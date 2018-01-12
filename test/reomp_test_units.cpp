@@ -434,6 +434,21 @@ int drace_4()
 #undef N
 }
 
+int drace_5()
+{
+  int cell_num_particles = 100;
+  int num_particles_by_thread[cell_num_particles];
+
+  //#include "mc_omp_parallel_for_schedule_static.hh"
+#pragma omp parallel for schedule (static)
+  for ( int particle_index = 0; particle_index < cell_num_particles; particle_index++ )
+    {
+      int task_index = omp_get_thread_num();
+      num_particles_by_thread[task_index]++;
+    }
+}
+
+
 
 int main(int argc, char **argv)
 {
@@ -451,7 +466,8 @@ int main(int argc, char **argv)
   // free(data);
 
   //  fprintf(stderr, "==start=======\n");
-  for (int i = 0; i < 1; i++) {
+  for (int i = 0; i < 10; i++) {
+    //        drace_6();
     //    drace_5();
     //    drace_4();
     //    drace_3();

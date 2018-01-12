@@ -12,8 +12,24 @@
 #include "mutil.h"
 #include "reomp_drace.h"
 
+#define CALL_FUNC_TYPE_FAILED_TO_RESTORE (-1) // CALL_FUNC_TYPE_XXXX must be a negative number
+
+#define ARCHRE_MSG_FAILED_TO_RESTORE ("    [failed to restore the stack]")
+#define ARCHRE_MSG_READ_OF_SIZE ("  Read of size ")
+#define ARCHRE_MSG_WRITE_OF_SIZE ("  Write of size ")
+#define ARCHRE_MSG_PREVIOUS_WRITE_OF_SIZE ("  Previous write of size ")
+#define ARCHRE_MSG_PREVIOUS_READ_OF_SIZE ("  Previous read of size ")
+#define ARCHRE_MSG_ATOMIC_WRITE_OF_SIZE ("  Atomic write of size ")
+#define ARCHRE_MSG_ATOMIC_READ_OF_SIZE ("  Atomic read of size ")
+
 #define DRACE_PATH_MAX (4096)
 #define DRACE_STL_LEVEL_INSTRUMENTATION
+
+#define DRACE_NULL (0)
+#define DRACE_WRITE_RACE (1)
+#define DRACE_READ_RACE (2)
+#define DRACE_PARALLEL (3)
+#define DRACE_SERIAL (4)
 
 
 unordered_set<const char*> racy_callstack_uset;
@@ -29,7 +45,7 @@ class call_func
 public:
   unsigned int hash_val;
   int level;
-  char* name;
+  const char* name;
   char* file_path;
   int loc;
   int column;
@@ -52,7 +68,17 @@ public:
     v = reomp_util_hash(v, (addr      == NULL)? v:reomp_util_hash_str(addr      , strlen(addr)));
     return v;
   }
-  call_func(int level, char* name, char* file_path, int loc, int column, char* addr)
+  
+  static call_func* create(int type) {
+    switch(type) {
+    case CALL_FUNC_TYPE_FAILED_TO_RESTORE:
+      return new call_func(type, ARCHRE_MSG_FAILED_TO_RESTORE, NULL, -1, -1, NULL);
+      break;
+    }
+    return NULL;
+  }
+
+  call_func(int level, const char* name, char* file_path, int loc, int column, char* addr)
     : level(level)
     , name(name)
     , file_path(file_path)
@@ -80,6 +106,7 @@ public:
 
   void print() {
     MUTIL_DBG("%d %d %s %d %d <%s, %s>", hash_val, level, file_path, loc, column, addr, name);
+    //    MUTIL_DBG("%d %d %s %d %d <%s, %s> (is_valid: %d, is_stl: %d)", hash_val, level, file_path, loc, column, addr, name, is_valid, is_stl);
   }
 };
 
@@ -92,6 +119,7 @@ private:
     call_func *candidate_cfunc = NULL;
     it     = call_stack_list[index].rbegin();
     it_end = call_stack_list[index].rend();
+    //    MUTIL_DBG("############ INDEX: %d (size: %lu)", index, call_stack_list[index].size());
     for (; it != it_end; it++) {
       call_func *cfunc = *it;
 #ifdef DRACE_STL_LEVEL_INSTRUMENTATION
@@ -100,15 +128,17 @@ private:
 	candidate_cfunc = cfunc;
 	racy_callstack_uset.insert(cfunc->name);
       }
+      //      cfunc->print();
 #else
       if (cfunc->is_valid) {
 	candidate_cfunc = cfunc;
       }
 #endif
-
     }
+    //    MUTIL_DBG("###################");
     if (candidate_cfunc == NULL) {
       MUTIL_DBG("No candidate call func");
+      //      this->print();
     } 
     // if (candidate_cfunc != NULL) {
     //   MUTIL_DBG("--- candidate ---");
@@ -121,7 +151,38 @@ private:
 
 public:
   unsigned int hash_val;
+  int data_race_rw[2];
+  int parallel_or_serial[2];
   list<call_func*> call_stack_list[2];
+
+  data_race() {
+    for (int i = 0; i < 2; i++) {
+      data_race_rw[i] = DRACE_NULL;
+      parallel_or_serial[i] = DRACE_NULL;
+    }
+  }
+    
+  void filter_out_deterministic_call_stack() {
+    this->print();
+    for (int sindex = 0; sindex < 2; sindex++) {
+      if (data_race_rw[sindex]      == DRACE_WRITE_RACE && 
+	  parallel_or_serial[sindex] == DRACE_PARALLEL) {
+	/* record this write*/
+	continue;
+      } else if (data_race_rw[sindex]                 == DRACE_READ_RACE && 
+		 parallel_or_serial[sindex]           == DRACE_PARALLEL && 
+		 data_race_rw[(sindex + 1) % 2]       == DRACE_WRITE_RACE && 
+		 parallel_or_serial[(sindex + 1) % 2] == DRACE_PARALLEL) {
+	/* record this read */
+      } else {
+	/* Do not record */
+	/* TODO: free element */
+	call_stack_list[sindex].clear();
+	MUTIL_DBG("========== Index: %d is filtered ===========", sindex);
+      }
+    }
+  }
+
   void compute_hash_val() {
     unsigned int hash_vals[2] = {15, 15};
     int sindex = 0;
@@ -159,7 +220,7 @@ public:
   void print() {
     list<call_func*>::iterator it, it_end;
     for (int sindex = 0; sindex < 2; sindex++) {
-      MUTIL_DBG("=== Stack %d  ===", sindex);
+      MUTIL_DBG("=== Stack %d (read/write: %d) ===", sindex, data_race_rw[sindex]);
       for (it = call_stack_list[sindex].begin(), it_end = call_stack_list[sindex].end();
            it != it_end; it++) {
         call_func *cfunc;
@@ -344,14 +405,62 @@ static call_func* drace_get_next_call_func(FILE *fd)
   while ((read_size = drace_getline(&drace_log_line, &drace_log_line_len, fd)) != -1) {
     if (reomp_util_str_starts_with(drace_log_line, "    #")) {
       return drace_extract_call_func(drace_log_line, read_size);
-    } else if (reomp_util_str_starts_with(drace_log_line, "    [failed to restore the stack]")) {
+    } else if (reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_FAILED_TO_RESTORE)) {
       MUTIL_DBG("Warning: Archer failed to restore the stack");
-      return new call_func(-1, NULL, NULL, -1, -1, NULL);
+      new call_func(-1, NULL, NULL, -1, -1, NULL);
+      //      return call_func::create(CALL_FUNC_TYPE_FAILED_TO_RESTORE);
+    } else if (reomp_util_str_starts_with(drace_log_line, "\n")) {
+      return NULL;
     }
   }
-  MUTIL_DBG("Unknown Archer reports: %s", drace_log_line);
+  MUTIL_ERR("Unknown Archer reports: %s", drace_log_line);
   //  return NULL;
   return new call_func(-1, NULL, NULL, -1, -1, NULL);
+}
+
+static int drace_is_write_or_read(FILE *fd)
+{
+  call_func* cfunc;
+  ssize_t read_size;
+
+  while ((read_size = drace_getline(&drace_log_line, &drace_log_line_len, fd)) != -1) {
+    if (reomp_util_str_starts_with(drace_log_line, "    #") || reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_FAILED_TO_RESTORE)) {
+      goto end;
+    } else if (reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_READ_OF_SIZE) || 
+	       reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_PREVIOUS_READ_OF_SIZE) ||
+	       reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_ATOMIC_READ_OF_SIZE)) {
+      return DRACE_READ_RACE;
+    } else if (reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_WRITE_OF_SIZE) || 
+	       reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_PREVIOUS_WRITE_OF_SIZE) ||
+	       reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_ATOMIC_WRITE_OF_SIZE)) {
+      return DRACE_WRITE_RACE;
+    }
+  }
+ end:
+  MUTIL_ERR("Archer file format is broken: '%s', '%s', '%s' and '%s' cannot be found", 
+	    ARCHRE_MSG_READ_OF_SIZE,
+	    ARCHRE_MSG_WRITE_OF_SIZE,
+	    ARCHRE_MSG_PREVIOUS_READ_OF_SIZE,
+	    ARCHRE_MSG_PREVIOUS_WRITE_OF_SIZE);
+  return -1;
+}
+
+static void drace_set_callstack(data_race *drace, FILE *fd, int index) 
+{
+  call_func *cfunc;
+  drace->data_race_rw[index] = drace_is_write_or_read(fd);
+  while ((cfunc = drace_get_next_call_func(fd)) != NULL) {
+    if (reomp_util_str_starts_with(cfunc->name, ".omp_outlined.")) {
+      drace->parallel_or_serial[index] = DRACE_PARALLEL;
+    }
+    drace->call_stack_list[index].push_back(cfunc);
+  }
+  return;
+}
+
+static void drace_is_false_positve(data_race *drace) 
+{
+  
 }
 
 static void drace_parse_archer_file(char* log_dir, char* log_file)
@@ -371,30 +480,14 @@ static void drace_parse_archer_file(char* log_dir, char* log_file)
   }
 
   while(drace_move_to_next_data_race(fd)) {
-    //    MUTIL_DBG("== Data race ");
     drace = new data_race();
-    previous_level = -1;
-    while (1){
-      if ((cfunc = drace_get_next_call_func(fd)) == NULL) MUTIL_ERR("call func is NULL");
-      if (cfunc->level <= previous_level) break;
-      previous_level = cfunc->level;
-      drace->call_stack_list[0].push_back(cfunc);
-      //      MUTIL_DBG("#%d %s", cfunc->level, cfunc->name);
-    }
-    if (!cfunc->is_noname) {
-      // If this cfunc is not [failed to restore the stack]
-      do {
-	previous_level = cfunc->level;
-	drace->call_stack_list[1].push_back(cfunc);
-	//      if (cfunc->level >= 0)  MUTIL_DBG("#%d %s", cfunc->level, cfunc->name);
-	if ((cfunc = drace_get_next_call_func(fd)) == NULL) MUTIL_ERR("call func is NULL");
-	
-	if (cfunc->level <= previous_level) break;
-      } while(1);
-    }
-    delete(cfunc);
+    /* Get first racy call stack */
+    drace_set_callstack(drace, fd, 0);
+    /* Get second racy call stack */
+    drace_set_callstack(drace, fd, 1);
+    drace->filter_out_deterministic_call_stack();
     drace->compute_hash_val();
-
+    
     if (drace_data_race_umap.find(drace->hash_val) != drace_data_race_umap.end()) {
       // MUTIL_DBG("######## FRIST ###############################");
       // drace_data_race_umap[drace->hash_val]->print();
@@ -404,6 +497,7 @@ static void drace_parse_archer_file(char* log_dir, char* log_file)
       delete(drace);
     } else {
       drace_data_race_umap[drace->hash_val] = drace;
+      drace->print();
     }
     sum++;
   }

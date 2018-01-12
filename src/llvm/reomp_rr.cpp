@@ -39,7 +39,8 @@
 
 //#define REOMP_USE_APIO
 //#define REOMP_SKIP_RECORD
-//#define REOMP_USE_MULTI_LOCKS
+/* Multi lock is not implimented yet (only work with REOMP_SKIP_RECORD) */
+//#define REOMP_USE_MULTI_LOCKS 
 
 #ifdef REOMP_USE_APIO
 static int fp = -1;
