@@ -140,6 +140,10 @@ AC_CONFIG_FILES([
 	Makefile 
 	src/Makefile 
 	test/Makefile
+	scripts/Makefile
+	scripts/rempi
+	scripts/rempi_record
+	scripts/rempi_replay
 	example/Makefile
 	example/example_x86.sh
 	example/examplex_x86.sh])

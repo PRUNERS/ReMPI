@@ -86,7 +86,7 @@ void rempi_set_configuration(int *argc, char ***argv)
 
   if (NULL == (env = getenv(REMPI_ENV_NAME_GZIP))) {
     //    rempi_dbg("Apply default value (%d) for %s (%s:%s:%d)", rempi_gzip, REMPI_ENV_NAME_GZIP, __FILE__, __func__, __LINE__);
-    rempi_gzip = 1;
+    rempi_gzip = 0;
   } else {
     env_int = atoi(env);
     rempi_gzip = env_int;
