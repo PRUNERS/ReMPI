@@ -40,6 +40,7 @@ int reomp_drace_is_in_racy_callstack(const char* func_name)
 }
 
 
+
 class call_func 
 {
 public:
@@ -54,6 +55,16 @@ public:
   int is_stl; 
   int is_candidate;
   int is_noname;
+  int access; //DRACE_WRITE_RACE, DRACE_READ_RACE or DRACE_NULL
+  int call_stl = 0;
+  static call_func* null_call_func;
+  static call_func* get_null_call_func() {
+    if (null_call_func == NULL) {
+      call_func::null_call_func = new call_func(-1, NULL, NULL, -1, -1, NULL);
+    }
+    return call_func::null_call_func;
+  }
+
   static unsigned int  cf_hash(const char* name, const char* file_path, int loc, int column, const char* addr) {
     unsigned int  v;
     v = 15;
@@ -109,6 +120,7 @@ public:
     //    MUTIL_DBG("%d %d %s %d %d <%s, %s> (is_valid: %d, is_stl: %d)", hash_val, level, file_path, loc, column, addr, name, is_valid, is_stl);
   }
 };
+call_func* call_func::null_call_func = NULL;
 
 class data_race
 {
@@ -124,7 +136,10 @@ private:
       call_func *cfunc = *it;
 #ifdef DRACE_STL_LEVEL_INSTRUMENTATION
       if (cfunc->is_valid) {
-	if (cfunc->is_stl) break;
+	if (cfunc->is_stl) {
+	  cfunc->call_stl = 1;
+	  break;
+	}
 	candidate_cfunc = cfunc;
 	racy_callstack_uset.insert(cfunc->name);
       }
@@ -137,7 +152,7 @@ private:
     }
     //    MUTIL_DBG("###################");
     if (candidate_cfunc == NULL) {
-      MUTIL_DBG("No candidate call func");
+      //      MUTIL_DBG("No candidate call func");
       //      this->print();
     } 
     // if (candidate_cfunc != NULL) {
@@ -145,6 +160,7 @@ private:
     //   candidate_cfunc->print();
     //   MUTIL_DBG("-----------------");
     // }
+    if (candidate_cfunc != NULL) candidate_cfunc->access = data_race_rw[index];
     return candidate_cfunc;
   }
 
@@ -164,23 +180,76 @@ public:
     
   void filter_out_deterministic_call_stack() {
     this->print();
+    // if (this->hash_val == -94558048 ||
+    // 	this->hash_val == 1713692692 ||
+    // 	this->hash_val == 2117693404 ||
+    // 	this->hash_val == -298584430 ||
+    // 	this->hash_val == -405885346 ||
+    // 	this->hash_val == -717531008 ||
+    // 	this->hash_val == -407775644 ||
+
+    // 	this->hash_val == -1889054192 ||
+    // 	this->hash_val == -1828446340  ||
+
+    // 	this->hash_val == 1105719566 || <---- This race
+    // this->hash_val == 1286519038 ||
+
+    // 	this->hash_val == -343711326 || 
+    // 	this->hash_val == 2036164980 || 
+    // this->hash_val == -94558048 ||
+    // this->hash_val == 1713692692   ||
+
+    // this->hash_val == 2117693404 ||
+    // this->hash_val == -298584430 ||
+    // this->hash_val == -405885346 ||
+    // this->hash_val == -717531008  ||	
+    // this->hash_val == -407775644  ||
+    // this->hash_val ==  -1889054192 ||
+    // this->hash_val == -1828446340 ||
+    // this->hash_val == -94558048 ||	
+    // this->hash_val == 1713692692 ||
+    // this->hash_val == 2117693404 ||
+    // this->hash_val == -298584430  ||
+    // this->hash_val == -405885346  ||	
+    // this->hash_val == -717531008 ||
+    // this->hash_val == -407775644  ||
+    // this->hash_val == -1889054192  ||
+    //	this->hash_val == -1828446340 ||
+    // this->hash_val == 1105719566 ||
+    // this->hash_val == 1286519038 ||
+    // this->hash_val == -343711326 ||
+    // this->hash_val == 2036164980
+    //	) {return;}
     for (int sindex = 0; sindex < 2; sindex++) {
-      if (data_race_rw[sindex]      == DRACE_WRITE_RACE && 
-	  parallel_or_serial[sindex] == DRACE_PARALLEL) {
+      if (data_race_rw[sindex] == DRACE_NULL || 
+      	  parallel_or_serial[sindex] == DRACE_NULL) {
+      	/* record this unknown race just in case */
+      	continue;
+      } else 
+
+	if (data_race_rw[sindex]      == DRACE_WRITE_RACE && 
+		 parallel_or_serial[sindex] == DRACE_PARALLEL) {
 	/* record this write*/
 	continue;
-      } else if (data_race_rw[sindex]                 == DRACE_READ_RACE && 
-		 parallel_or_serial[sindex]           == DRACE_PARALLEL && 
-		 data_race_rw[(sindex + 1) % 2]       == DRACE_WRITE_RACE && 
-		 parallel_or_serial[(sindex + 1) % 2] == DRACE_PARALLEL) {
+      } else if (data_race_rw[sindex]                  == DRACE_READ_RACE && 
+		 parallel_or_serial[sindex]            == DRACE_PARALLEL && 
+		 (data_race_rw[(sindex + 1) % 2]       == DRACE_WRITE_RACE || data_race_rw[(sindex + 1) % 2]       == DRACE_NULL) && 
+		 (parallel_or_serial[(sindex + 1) % 2] == DRACE_PARALLEL   || parallel_or_serial[(sindex + 1) % 2] == DRACE_NULL)) {
+	  //		 data_race_rw[(sindex + 1) % 2]       == DRACE_WRITE_RACE  && 
+	  //		 parallel_or_serial[(sindex + 1) % 2] == DRACE_PARALLEL) {
 	/* record this read */
+	continue;
       } else {
 	/* Do not record */
 	/* TODO: free element */
 	call_stack_list[sindex].clear();
-	MUTIL_DBG("========== Index: %d is filtered ===========", sindex);
+	MUTIL_DBG("  ===> Stack %d is filtered out: (write(%d)/read(%d): %d, parallel(%d)/serial(%d): %d)", 
+		  sindex, 
+		  DRACE_WRITE_RACE, DRACE_READ_RACE, data_race_rw[sindex], 
+		  DRACE_PARALLEL, DRACE_SERIAL, parallel_or_serial[sindex]);
       }
     }
+    fprintf(stderr, "\n\n");
   }
 
   void compute_hash_val() {
@@ -201,6 +270,7 @@ public:
     low_hash  = hash_vals[ flag      % 2];
     high_hash = hash_vals[(flag + 1) % 2];
     hash_val  = reomp_util_hash(low_hash, high_hash);    
+    if (hash_val == 0) MUTIL_DBG("zero: %d %d", low_hash, high_hash);
     return;
   }
 
@@ -219,15 +289,15 @@ public:
 
   void print() {
     list<call_func*>::iterator it, it_end;
+    MUTIL_DBG("## hash val: %d ##", this->hash_val);
     for (int sindex = 0; sindex < 2; sindex++) {
-      MUTIL_DBG("=== Stack %d (read/write: %d) ===", sindex, data_race_rw[sindex]);
+      MUTIL_DBG("=== Stack %d (write(%d)/read(%d): %d) ===", sindex, DRACE_WRITE_RACE, DRACE_READ_RACE, data_race_rw[sindex]);
       for (it = call_stack_list[sindex].begin(), it_end = call_stack_list[sindex].end();
            it != it_end; it++) {
         call_func *cfunc;
         cfunc = *it;
 	cfunc->print();
       }
-      MUTIL_DBG("=================");
     }
   }
 
@@ -407,7 +477,8 @@ static call_func* drace_get_next_call_func(FILE *fd)
       return drace_extract_call_func(drace_log_line, read_size);
     } else if (reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_FAILED_TO_RESTORE)) {
       MUTIL_DBG("Warning: Archer failed to restore the stack");
-      new call_func(-1, NULL, NULL, -1, -1, NULL);
+      // new call_func(-1, NULL, NULL, -1, -1, NULL);
+      return call_func::get_null_call_func();
       //      return call_func::create(CALL_FUNC_TYPE_FAILED_TO_RESTORE);
     } else if (reomp_util_str_starts_with(drace_log_line, "\n")) {
       return NULL;
@@ -415,7 +486,8 @@ static call_func* drace_get_next_call_func(FILE *fd)
   }
   MUTIL_ERR("Unknown Archer reports: %s", drace_log_line);
   //  return NULL;
-  return new call_func(-1, NULL, NULL, -1, -1, NULL);
+  //  return new call_func(-1, NULL, NULL, -1, -1, NULL);
+  return call_func::get_null_call_func();
 }
 
 static int drace_is_write_or_read(FILE *fd)
@@ -449,9 +521,14 @@ static void drace_set_callstack(data_race *drace, FILE *fd, int index)
 {
   call_func *cfunc;
   drace->data_race_rw[index] = drace_is_write_or_read(fd);
+  drace->parallel_or_serial[index] = DRACE_SERIAL; /* Init with DRACE_SERIAL */
   while ((cfunc = drace_get_next_call_func(fd)) != NULL) {
-    if (reomp_util_str_starts_with(cfunc->name, ".omp_outlined.")) {
-      drace->parallel_or_serial[index] = DRACE_PARALLEL;
+    if (cfunc == call_func::get_null_call_func()) {    
+      drace->parallel_or_serial[index] = drace->data_race_rw[index] = DRACE_NULL;
+    } else {
+      if (reomp_util_str_starts_with(cfunc->name, ".omp_outlined.")) {
+	drace->parallel_or_serial[index] = DRACE_PARALLEL;
+      } 
     }
     drace->call_stack_list[index].push_back(cfunc);
   }
@@ -485,8 +562,10 @@ static void drace_parse_archer_file(char* log_dir, char* log_file)
     drace_set_callstack(drace, fd, 0);
     /* Get second racy call stack */
     drace_set_callstack(drace, fd, 1);
+
+    drace->compute_hash_val();    
     drace->filter_out_deterministic_call_stack();
-    drace->compute_hash_val();
+
     
     if (drace_data_race_umap.find(drace->hash_val) != drace_data_race_umap.end()) {
       // MUTIL_DBG("######## FRIST ###############################");
@@ -497,7 +576,7 @@ static void drace_parse_archer_file(char* log_dir, char* log_file)
       delete(drace);
     } else {
       drace_data_race_umap[drace->hash_val] = drace;
-      drace->print();
+      //      drace->print();
     }
     sum++;
   }
@@ -525,7 +604,12 @@ static void drace_add_data_race_access(call_func* cfunc)
   if (drace_data_race_access_umap.find(cfunc->hash_val) == drace_data_race_access_umap.end()) {
     drace_data_race_access_umap[cfunc->hash_val] = cfunc;
     //    fprintf(stderr, "    #0 %s %s:%d:%d\n", cfunc->name, cfunc->file_path, cfunc->loc, cfunc->column );
+  } else {
+    // add information about read, write or NULL
+    drace_data_race_access_umap[cfunc->hash_val]->access = drace_data_race_access_umap[cfunc->hash_val]->access | cfunc->access;
   }
+
+
   return;
 }
 
@@ -769,7 +853,6 @@ int  reomp_drace_is_data_race(const char* func, const char* dir, const char* fil
     MUTIL_DBG("    #0 %s:%d:%d (lock_set: %d)", file_path_real, line, column, lock_set_id);
     drace_data_race_access_umap[hash_val]->print();
     MUTIL_DBG("##############################");
-
     return lock_set_id;
   } 
   if (file_path != NULL) {

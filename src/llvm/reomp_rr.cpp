@@ -312,6 +312,7 @@ end:
 
 
 size_t count = 0;
+
 static void reomp_gate_in(int control, void* ptr, size_t lock_id, int lock)
 {
   int tid;
@@ -376,6 +377,7 @@ static void reomp_gate_in(int control, void* ptr, size_t lock_id, int lock)
   return;
 }
 
+
 static void reomp_gate_out(int control, void* ptr, size_t lock_id, int lock)
 {
   int tid;
@@ -388,7 +390,7 @@ static void reomp_gate_out(int control, void* ptr, size_t lock_id, int lock)
 #endif
 
   tid = reomp_get_thread_num();
-  //  MUTIL_DBG("Gate-Out: tid: %d: lock: %d, replay_thread_num: %d", tid, lock, replay_thread_num);
+  //MUTIL_DBG("Gate-Out: tid: %d: lock: %d, replay_thread_num: %d", tid, lock, replay_thread_num);
   if (reomp_mode == REOMP_RECORD) {
     //    MUTIL_DBG("unlock: %d", tid);
     //    write(fp, &tid, sizeof(int));
@@ -397,6 +399,7 @@ static void reomp_gate_out(int control, void* ptr, size_t lock_id, int lock)
     ap_write(fp, &tid, sizeof(int));
 #else
     if (tid == time_tid) tmp_time = reomp_util_get_time();
+    //MUTIL_DBG("CheckLevel: %d %d %d", tid, (long)(ptr), lock_id);
     ret = fwrite(&tid, sizeof(int), 1, fp);
     if (tid == time_tid) io_time += reomp_util_get_time() - tmp_time;
     if (ret != 1) MUTIL_ERR("fwrite failed");
@@ -529,9 +532,11 @@ static void reomp_debug_print(void* ptr, size_t size)
 
 void REOMP_CONTROL(int control, void* ptr, size_t size)
 {
+
   if (reomp_mode == REOMP_DISABLE) return;
 
   int tid = reomp_get_thread_num();
+  //  MUTIL_DBG("Tid: %d, control: %d", tid, control);
   if (tid == time_tid) tmp_time2 = reomp_util_get_time();
 
   switch(control) {

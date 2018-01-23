@@ -466,13 +466,13 @@ int ReOMP::ci_insert_on_load_store(Function &F, BasicBlock &BB, Instruction &I)
   if (StoreInst *SI = dyn_cast<StoreInst>(&I)) {
     if ((lock_id = this->is_data_racy_access(&F, &I)) != 0) {
       insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 31), ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
       modified_counter += 2;
     }
   } else if (LoadInst *LI = dyn_cast<LoadInst>(&I)) {
     if ((lock_id = this->is_data_racy_access(&F, &I)) != 0) {
       insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 32), ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
       modified_counter += 2;
     }    
   } else if (CallInst *CI = dyn_cast<CallInst>(&I)) {
