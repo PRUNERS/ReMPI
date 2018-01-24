@@ -465,22 +465,34 @@ int ReOMP::ci_insert_on_load_store(Function &F, BasicBlock &BB, Instruction &I)
   int modified_counter = 0;
   if (StoreInst *SI = dyn_cast<StoreInst>(&I)) {
     if ((lock_id = this->is_data_racy_access(&F, &I)) != 0) {
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 31), ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 31), 
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, 
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 31), 
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
       modified_counter += 2;
     }
   } else if (LoadInst *LI = dyn_cast<LoadInst>(&I)) {
     if ((lock_id = this->is_data_racy_access(&F, &I)) != 0) {
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 32), ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 32), 
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, 
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 32), 
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
       modified_counter += 2;
     }    
   } else if (CallInst *CI = dyn_cast<CallInst>(&I)) {
     string name = CI->getCalledValue()->getName();
     if (name == "reomp_control") return modified_counter;
     if ((lock_id = this->is_data_racy_access(&F, &I)) != 0) {
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 33), 
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, 
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 33), 
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
       modified_counter += 2;
     }
   } else if (InvokeInst *II = dyn_cast<InvokeInst>(&I)) {
@@ -489,10 +501,14 @@ int ReOMP::ci_insert_on_load_store(Function &F, BasicBlock &BB, Instruction &I)
     string name = II->getCalledValue()->getName();
     if (name == "reomp_control") return modified_counter;
     if ((lock_id = this->is_data_racy_access(&F, &I)) != 0) {
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 34), 
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
       nextBB  = II->getNormalDest();
       frontIN = &(nextBB->front());
-      insert_func(frontIN, nextBB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_OUT, NULL, ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+      insert_func(frontIN, nextBB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_OUT, 
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 34), 
+		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
       nextBB  = II->getUnwindDest();
       frontIN = &(nextBB->front());
       //insert_func(frontIN, nextBB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_OUT, NULL, NULL);
@@ -758,7 +774,6 @@ bool ReOMP::doInitialization(Module &M)
 
   init_inserted_functions(M);
   reomp_drace_parse(REOMP_DRACE_LOG_ARCHER);
-
 
   return true;
 }

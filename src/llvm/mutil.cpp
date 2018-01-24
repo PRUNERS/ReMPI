@@ -429,6 +429,7 @@ int MUTIL_FUNC(str_starts_with)(const char* base, const char* str)
   size_t base_len = strlen(base);
   size_t str_len  = strlen(str);
   if (base_len < str_len) return 0;
+  //  fprintf(stderr, "##### %s & %s #######\n", base, str);
   if (strncmp(str, base, str_len) != 0) return 0;
   return 1;
 }

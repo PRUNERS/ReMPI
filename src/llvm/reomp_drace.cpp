@@ -27,9 +27,9 @@
 
 #define DRACE_NULL (0)
 #define DRACE_WRITE_RACE (1)
-#define DRACE_READ_RACE (2)
-#define DRACE_PARALLEL (3)
-#define DRACE_SERIAL (4)
+#define DRACE_READ_RACE  (2)
+#define DRACE_PARALLEL   (3)
+#define DRACE_SERIAL     (4)
 
 
 unordered_set<const char*> racy_callstack_uset;
@@ -55,7 +55,7 @@ public:
   int is_stl; 
   int is_candidate;
   int is_noname;
-  int access; //DRACE_WRITE_RACE, DRACE_READ_RACE or DRACE_NULL
+  uint64_t access; //DRACE_WRITE_RACE, DRACE_READ_RACE or DRACE_NULL
   int call_stl = 0;
   static call_func* null_call_func;
   static call_func* get_null_call_func() {
@@ -160,7 +160,10 @@ private:
     //   candidate_cfunc->print();
     //   MUTIL_DBG("-----------------");
     // }
-    if (candidate_cfunc != NULL) candidate_cfunc->access = data_race_rw[index];
+    if (candidate_cfunc != NULL) {
+      candidate_cfunc->access  = (data_race_rw[index] == DRACE_WRITE_RACE)?(1 << 0):(1 << 1);
+      candidate_cfunc->access |= (candidate_cfunc->call_stl)?(1 << 2):0;
+    }
     return candidate_cfunc;
   }
 
@@ -438,6 +441,7 @@ static ssize_t drace_getline(char **lineptr, size_t *n, FILE *stream) {
       MUTIL_ERR("Archer output file includes FATAL error: %s", *lineptr);
     }
   }
+  //  MUTIL_DBG("--> %s (%d)", *lineptr, read_size);
   return read_size;
 }
 
@@ -451,7 +455,7 @@ static int drace_move_to_next_data_race(FILE *fd)
   while ((read_size = drace_getline(&drace_log_line, &drace_log_line_len, fd)) != -1) {
     if (reomp_util_str_starts_with(drace_log_line, SEPARATROR)) {
       read_size = drace_getline(&drace_log_line, &drace_log_line_len, fd);
-      if (reomp_util_str_starts_with(drace_log_line, TERMINATOR)) {    
+      if (reomp_util_str_starts_with(drace_log_line, TERMINATOR) || read_size == -1) {    
 	return 0;
       } else if (reomp_util_str_starts_with(drace_log_line, SEPARATROR)) {
 	read_size = drace_getline(&drace_log_line, &drace_log_line_len, fd);
@@ -509,11 +513,13 @@ static int drace_is_write_or_read(FILE *fd)
     }
   }
  end:
-  MUTIL_ERR("Archer file format is broken: '%s', '%s', '%s' and '%s' cannot be found", 
+  MUTIL_ERR("Archer file format is broken: '%s', '%s', '%s' '%s' '%s' and '%s' cannot be found", 
 	    ARCHRE_MSG_READ_OF_SIZE,
 	    ARCHRE_MSG_WRITE_OF_SIZE,
 	    ARCHRE_MSG_PREVIOUS_READ_OF_SIZE,
-	    ARCHRE_MSG_PREVIOUS_WRITE_OF_SIZE);
+	    ARCHRE_MSG_PREVIOUS_WRITE_OF_SIZE,
+	    ARCHRE_MSG_ATOMIC_READ_OF_SIZE,
+	    ARCHRE_MSG_ATOMIC_WRITE_OF_SIZE);
   return -1;
 }
 
@@ -551,9 +557,9 @@ static void drace_parse_archer_file(char* log_dir, char* log_file)
   int duplication = 0, sum=0;
 
   sprintf(log_file_path, "%s/%s", log_dir, log_file);
-  fd = fopen(log_file,"r");
+  fd = fopen(log_file_path,"r");
   if (fd == NULL) {
-    MUTIL_ERR("fopen failed");
+    MUTIL_ERR("fopen failed: %s", log_file_path);
   }
 
   while(drace_move_to_next_data_race(fd)) {
@@ -581,7 +587,7 @@ static void drace_parse_archer_file(char* log_dir, char* log_file)
     sum++;
   }
   fclose(fd);
-  MUTIL_DBG("%s has %d duplicated reports out of %d", log_file, duplication, sum);
+  MUTIL_DBG("%s has %d duplicated reports out of %d", log_file_path, duplication, sum);
   return;
 }
 
@@ -724,7 +730,7 @@ static void drace_parse_archer_log()
   char* env;
   char* log_path, *log_path_start, *log_path_end;
   char log_path_name[DRACE_PATH_MAX];
-  char* log_dir, *log_name;
+  char* log_dir, *log_name, *log_dir_dup, *log_name_dup;
   DIR *dir;
   int is_archer_file = 0;
   struct dirent *dp;
@@ -748,9 +754,15 @@ static void drace_parse_archer_log()
   }
   //  MUTIL_DBG("==> %s %p %p", log_path);
   /* e.g.)  log_name="rempi_drace_test.log" */
+
+
+  memset(log_path_name, 0, DRACE_PATH_MAX);
   strncpy(log_path_name, log_path_start + 1, log_path_end - log_path_start - 1);
-  log_dir  =  dirname(log_path_name);
-  log_name = basename(log_path_name);
+  //  log_path_name[log_path_end - log_path_start] = '\0';
+  log_dir_dup  = strdup(log_path_name);
+  log_dir      = dirname(log_dir_dup);
+  log_name_dup = strdup(log_path_name);
+  log_name = basename(log_name_dup);
   /* e.g.)  log_dir=".", log_name="rempi_drace_test.log" */
 
   dir = opendir(log_dir);
@@ -759,13 +771,20 @@ static void drace_parse_archer_log()
   while ((dp = readdir(dir)) != NULL) {
     is_archer_file = 1;
     size_t len = strlen(dp->d_name);
-    if (!reomp_util_str_starts_with(dp->d_name, log_name)) continue;
+    if (!reomp_util_str_starts_with(dp->d_name, log_name))  {
+      //      MUTIL_DBG("%s / %s", dp->d_name, log_name);
+      continue;
+    } else {
+      //      MUTIL_DBG("Matched: %s / %s", dp->d_name, log_name);
+    }
+
     for (size_t i = 1; i < len - log_name_len; i++) {
       if (!isdigit(dp->d_name[log_name_len + i])) {
 	is_archer_file = 0;
       }
     }
     if (is_archer_file) {
+      //      MUTIL_DBG("open: %s", dp->d_name);
       drace_parse_archer_file(log_dir, dp->d_name);
     }
   }
@@ -793,6 +812,7 @@ void reomp_drace_parse(reomp_drace_log_type type)
   }
 }
 
+//int  reomp_drace_is_data_race(const char* func, const char* dir, const char* file, int line, int column, uint64_t* access)
 int  reomp_drace_is_data_race(const char* func, const char* dir, const char* file, int line, int column)
 {
   unsigned int hash_val;
@@ -848,11 +868,16 @@ int  reomp_drace_is_data_race(const char* func, const char* dir, const char* fil
 
   if (drace_data_race_access_umap.find(hash_val) != drace_data_race_access_umap.end()) {
     int lock_set_id;
+    call_func *cfunc;
+
+    lock_set_id = drace_data_race_lock_set_id.at(hash_val);
+    cfunc       = drace_data_race_access_umap.at(hash_val);
+    
     MUTIL_DBG("############ HIT: %d #############", hash_val);
-    lock_set_id = drace_data_race_lock_set_id[hash_val];
-    MUTIL_DBG("    #0 %s:%d:%d (lock_set: %d)", file_path_real, line, column, lock_set_id);
-    drace_data_race_access_umap[hash_val]->print();
+    MUTIL_DBG(" Instrumented code of line: %s:%d:%d (lock_set: %d)", file_path_real, line, column, lock_set_id);
+    cfunc->print();
     MUTIL_DBG("##############################");
+    
     return lock_set_id;
   } 
   if (file_path != NULL) {

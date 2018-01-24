@@ -130,7 +130,6 @@ static void reomp_init_callstack()
   int tid;
   tid = reomp_get_thread_num();
   if (tid == 0) {
-    MUTIL_DBG("Init");
     callstack_hash.resize(128);
     for (int i = 0; i < 128; i++) {
       callstack.push_back(new list<char*>());
@@ -399,7 +398,7 @@ static void reomp_gate_out(int control, void* ptr, size_t lock_id, int lock)
     ap_write(fp, &tid, sizeof(int));
 #else
     if (tid == time_tid) tmp_time = reomp_util_get_time();
-    //MUTIL_DBG("CheckLevel: %d %d %d", tid, (long)(ptr), lock_id);
+    MUTIL_DBG("CheckLevel: %d %d %d", tid, (long)(ptr), lock_id);
     ret = fwrite(&tid, sizeof(int), 1, fp);
     if (tid == time_tid) io_time += reomp_util_get_time() - tmp_time;
     if (ret != 1) MUTIL_ERR("fwrite failed");

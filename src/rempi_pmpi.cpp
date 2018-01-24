@@ -3371,7 +3371,11 @@ _EXTERN_C_ MPI_Fint MPI_Request_c2f(MPI_Request request)
 _EXTERN_C_ double PMPI_Wtime(void);
 _EXTERN_C_ double MPI_Wtime(void)
 {
-  fprintf(stderr, "MPI_Wtime()\n");
-  exit(1);
-  return 0;
+  REMPI_PREPRINT;
+  double _wrap_py_return_val = 0;
+  {
+    _wrap_py_return_val = PMPI_Wtime();
+  }
+  REMPI_POSTPRINT;
+  return _wrap_py_return_val;
 }
