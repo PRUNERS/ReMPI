@@ -51,11 +51,12 @@ To build on the IBM BG/Q platform, you will need to add the --with-blugene optio
     
     $ REMPI_MODE=0 REMPI_DIR=./rempi_record LD_PRELOAD=<path to installation directory>/lib/librempi.so srun(or mpirun) -n 4 ./rempi_test_units matching
     
-For its convenience, ReMPI also provides a wapper script which execute the same command as the above
+For its convenience, ReMPI also provides a wapper script which execute the same command as the above. If you install ReMPI to a custom directory, you need to add "<path to installation directory>/bin/" path to the PATH environment variable.
 
     $ rempi_record srun(or mpirun) -n 4 ./rempi_test_units matching
     
-ReMPI produces one file per MPI processj.
+ReMPI produces one file per MPI process.
+
     
 ### Replay mode (REMPI_MODE=1)
     
