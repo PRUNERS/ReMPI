@@ -147,28 +147,38 @@ Since ReMPI is implemented via a PMPI wrapper, ReMPI works with Totalvew (Parall
 You can simply launch the TotalVew GUI with the "totalview -args" command. (LD_PRELOAD must be set thorught a TotalView command line option: -env variable=value)
 
     $ REMPI_MODE=1 REMPI_DIR=./rempi_record totalview -env LD_PRELOAD=<path to installation directory>/lib/librempi.so -args srun(or mpirun) -n 4 ./rempi_test_units matching
-OR
+
+or
 
     $ export REMPI_MODE=1
     $ export REMPI_DIR=./rempi_record
     $ totalview -env LD_PRELOAD=<path to installation directory>/lib/librempi.so -args srun(or mpirun) -n 4 ./rempi_test_units matching
-    
+  
+For its convenience, ReMPI provides a wapper script to lunch Totaiveiw with ReMPI.
+
+Firs, record a particular execution that you want to diagnose with Totaiview
+
+    $ rempi_record srun -n 4 ./rempi_test_units matching 
+ 
+Then, diagnose this recorded execution with Totalview under ReMPI replay
+
+    $ rempi_replay totalview -args srun -n 4 ./rempi_test_units matching
     
 ### Method 2: GUI
 
 You can also set the REMPI_MODE, REMPI_DIR and LD_PRELOAD variable after launching TotalView. 
+(Step 0) Record a particular execution that you want to diagnose with Totalview
+(Step 1) Run your application with TotalView
 
-(Step 1) Run yoru application with TotalView
-
-    $ REMPI_MODE=1 REMPI_DIR=./rempi_record totalview -args srun(or mpirun) -n 4 ./rempi_test_units matching
+    $ REMPI_MODE=1 totalview -args srun(or mpirun) -n 4 ./rempi_test_units matching
     
 (Step 2) Select [Process] => [Startup Parameters] in the GUI menu, and then select [Arguments] tab
 
-(Step 3) Specify the environment variables in the "Environment variables" textbox (One environment variable per line).
-
-    REMPI_MODE=1 
-    REMPI_DIR=./rempi_record
+(Step 3) Specify the environment variables in the "Environment variables" textbox (One environment variable per line)
+  
     LD_PRELOAD=<path to installation directory>/lib/librempi.so
+    
+(Step 4) Press "Run" button to execute
 
 
 # Configuration Options
