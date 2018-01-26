@@ -55,6 +55,8 @@ For its convenience, ReMPI also provides a wapper script which execute the same 
 
     $ rempi_record srun(or mpirun) -n 4 ./rempi_test_units matching
     
+ReMPI produces one file per MPI processj.
+    
 ### Replay mode (REMPI_MODE=1)
     
     $ REMPI_MODE=1 REMPI_DIR=./rempi_record LD_PRELOAD=<path to installation directory>/lib/librempi.so srun(or mpirun) -n 4 ./rempi_test_units matching
@@ -72,6 +74,35 @@ The following example script assumes the resource manager is SLURM and that ReMP
      cd example
      sh ./example_x86.sh 16
      ls -ltr .rempi # lists record files
+
+# Environment variables
+
+ * `REMPI_MODE`: Record mode OR Replay mode
+     * `0`: Record mode
+     * `1`: Replay mode
+ * `REMPI_DIR`: Directory path for record files
+ * `REMPI_ENCODE`: Encoding mode
+     * `0`: Simple recording 
+     * `1`: `0` + record format optimization
+     * `2` and `3`: (Experimental encoding)
+     * `4`: Clock Delta Compression (only when built with `--enable-cdc` option)
+     * `5`: Same as `4` (only when built with `--enable-cdc` option)
+ * `REMPI_GZIP`: Enable gzip compression
+     * `0`: Disable zlib
+     * `1`: Enable zlib
+ * `REMPI_TEST_ID`: Enable Matching Function (MF) Identification
+     * `0`: Disable MF Identification
+     * `1`: Enable MF Identification
+     
+By default, ReMPI stores record files to the current working directory. If you want to change the record directory (e.g., /tmp), use the REMPI_DIR environment variable.
+
+    $ rempi_record REMPI_DIR=/tmp srun(or mpirun) -n 4 ./rempi_test_units matching
+    $ rempi_replay REMPI_DIR=/tmp srun(or mpirun) -n 4 ./rempi_test_units matching
+    
+Record data is all interger values. If you enables gzip compression capability via REMPI_GZIP, you can reduce the record size while a certain runtime overhead due to compression engine.
+
+    $ rempi_record REMPI_DIR=/tmp REMPI_GZIP=1 srun(or mpirun) -n 4 ./rempi_test_units matching
+    $ rempi_replay REMPI_DIR=/tmp REMPI_GZIP=1 srun(or mpirun) -n 4 ./rempi_test_units matching
      
 # MPI functions that ReMPI records and relays
 ReMPI record and replay results of following MPI functions.
@@ -158,24 +189,7 @@ When the `--enable-cdc` option is specified, ReMPI require dependent software be
  * CLMPI: A PMPI tool for piggybacking Lamport clocks.
    * https://github.com/PRUNER/CLMPI.git 
 
-# Environment variables
 
- * `REMPI_MODE`: Record mode OR Replay mode
-     * `0`: Record mode
-     * `1`: Replay mode
- * `REMPI_DIR`: Directory path for record files
- * `REMPI_ENCODE`: Encoding mode
-     * `0`: Simple recording 
-     * `1`: `0` + record format optimization
-     * `2` and `3`: (Experimental encoding)
-     * `4`: Clock Delta Compression (only when built with `--enable-cdc` option)
-     * `5`: Same as `4` (only when built with `--enable-cdc` option)
- * `REMPI_GZIP`: Enable gzip compression
-     * `0`: Disable zlib
-     * `1`: Enable zlib
- * `REMPI_TEST_ID`: Enable Matching Function (MF) Identification
-     * `0`: Disable MF Identification
-     * `1`: Enable MF Identification
 
 # References
 
