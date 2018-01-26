@@ -47,13 +47,21 @@ To build on the IBM BG/Q platform, you will need to add the --with-blugene optio
     $ cd test
     $ mkdir rempi_record
     
-Record mode (REMPI_MODE=0)
+### Record mode (REMPI_MODE=0)
     
     $ REMPI_MODE=0 REMPI_DIR=./rempi_record LD_PRELOAD=<path to installation directory>/lib/librempi.so srun(or mpirun) -n 4 ./rempi_test_units matching
     
-Replay mode (REMPI_MODE=1)
+For its convenience, ReMPI also provides a wapper script which execute the same command as the above
+
+    $ rempi_record srun(or mpirun) -n 4 ./rempi_test_units matching
+    
+### Replay mode (REMPI_MODE=1)
     
     $ REMPI_MODE=1 REMPI_DIR=./rempi_record LD_PRELOAD=<path to installation directory>/lib/librempi.so srun(or mpirun) -n 4 ./rempi_test_units matching
+
+For its convenience, ReMPI also provides a wapper script which execute the same command as the above
+
+    $ rempi_replay srun(or mpirun) -n 4 ./rempi_test_units matching
     
 "REMPI::<hostname>:  0:  Global validation code: 1939202000" is a hash value computed based on the order of MPI events (e.g., Message receive order, message test results and etc.). If you run this example code several times with REMPI_MODE=0, you will see that this hash value changes from run to run. This means this example code is MPI non-deterministic. Once you run this example code and record MPI events with REMPI_MODE=0, you can reproduce this hash value with REMPI_MODE=1. This means MPI events are reproduced.
 
