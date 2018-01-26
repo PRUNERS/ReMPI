@@ -46,9 +46,10 @@ int main(int argc, char *argv[])
 
   for (dest = 0; dest < size; dest++) {
     if (my_rank == dest) {
+      fprintf(stderr, "----\n");
       for (i = 0; i < size-1; i++) {
 	MPI_Recv(&buf, 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
-	fprintf(stderr, "Rank %d: status.MPI_SOURCE = %d\n", my_rank, status.MPI_SOURCE);
+	fprintf(stderr, "Rank %d: MPI_Recv from Rank %d\n", my_rank, status.MPI_SOURCE);
       }
     } else {
       usleep(rand() % 10 * 10000);
