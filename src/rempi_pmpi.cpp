@@ -204,7 +204,7 @@ _EXTERN_C_ void *MPI_F_MPI_IN_PLACE WEAK_POSTFIX;
 #if defined(MPICH_NAME) && (MPICH_NAME == 1) /* MPICH has no MPI_IN_PLACE */
 //#define BufferC2F(x) (x)
 #define BufferC2F(x) (IsBottom(x) ? MPI_BOTTOM : (x))
-#define BufferC2F(x) (MPI_F_BOTTOM == x ? MPI_BOTTOM : (x))
+#define BufferC2F(x) ((void*)MPI_F_BOTTOM == x ? MPI_BOTTOM : (x))
 #else
 //#define BufferC2F(x) (x)
 #define BufferC2F(x) (IsBottom(x) ? MPI_BOTTOM : (IsInPlace(x) ? MPI_IN_PLACE : (x)))
