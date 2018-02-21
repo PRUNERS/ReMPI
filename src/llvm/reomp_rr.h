@@ -7,7 +7,7 @@
 #include <string.h>
 #include <omp.h>
 
-
+#define REOMP_RR_VERSION (2)
 
 #ifdef __cplusplus
 extern "C" {

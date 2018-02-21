@@ -446,6 +446,24 @@ int drace_5()
       int task_index = omp_get_thread_num();
       num_particles_by_thread[task_index]++;
     }
+  return 0;
+}
+
+void atomic()
+{
+  int a = 1;
+  int tid;
+#pragma omp parallel private(tid)
+  {
+    tid = omp_get_thread_num();
+#pragma omp parallel for schedule (static) shared(a)
+    for (int i = 1; i < 1000; i++ )  {
+#pragma omp atomic
+      a += a * i + 1;
+    }
+  }
+  fprintf(stderr, "a: %d\n", a);
+  return;
 }
 
 
@@ -467,6 +485,7 @@ int main(int argc, char **argv)
 
   //  fprintf(stderr, "==start=======\n");
   for (int i = 0; i < 10; i++) {
+    atomic();
     //        drace_6();
     //    drace_5();
     //    drace_4();

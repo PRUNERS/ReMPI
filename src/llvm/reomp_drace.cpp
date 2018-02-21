@@ -874,7 +874,7 @@ int  reomp_drace_is_data_race(const char* func, const char* dir, const char* fil
     cfunc       = drace_data_race_access_umap.at(hash_val);
     
     MUTIL_DBG("############ HIT: %d #############", hash_val);
-    MUTIL_DBG(" Instrumented code of line: %s:%d:%d (lock_set: %d)", file_path_real, line, column, lock_set_id);
+    MUTIL_DBG(" Line of instrumented code: %s:%d:%d (lock_set: %d)", file_path_real, line, column, lock_set_id);
     cfunc->print();
     MUTIL_DBG("##############################");
     
