@@ -426,10 +426,7 @@ int ReOMP::ci_rr_insert_rr_on_critical(Function &F, BasicBlock &BB, Instruction 
   string name;
   if ((CI = dyn_cast<CallInst>(&I)) != NULL) {
     name = CI->getCalledValue()->getName();
-    if (name == "__kmpc_critical" 
-	|| name == "__kmpc_reduce_nowait"
-	|| name == "__kmpc_single"
-	|| name == "__kmpc_master") {
+    if (name == "__kmpc_critical"  || name == "__kmpc_reduce_nowait") {
       //  if (name == "__kmpc_for_static_fini") {	     
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, NULL, NULL);
 #if REOMP_RR_VERSION == 1
@@ -440,6 +437,15 @@ int ReOMP::ci_rr_insert_rr_on_critical(Function &F, BasicBlock &BB, Instruction 
 #if REOMP_RR_VERSION == 2
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, NULL, NULL);
 #endif
+    } else if (name == "__kmpc_single" || name == "__kmpc_master") {
+      //  if (name == "__kmpc_for_static_fini") {	     
+      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, NULL, NULL);
+#if REOMP_RR_VERSION == 1
+      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_CRITICAL_BEGIN, NULL, NULL);
+#else
+      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, NULL, NULL);
+#endif
+      modified_counter = 2;
     }
   } else if ((AI = dyn_cast<AtomicRMWInst>(&I)) != NULL) {
       insert_func(AI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN, NULL, NULL);

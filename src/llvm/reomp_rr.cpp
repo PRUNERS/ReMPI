@@ -187,8 +187,8 @@ static FILE* reomp_get_fd(int my_tid)
 
   path = (char*)malloc(sizeof(char) * PATH_MAX);
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-  reomp_util_init(my_rank);
   sprintf(path, "%s/rank_%d-tid_%d.reomp", record_file_dir, my_rank, my_tid);
+  MUTIL_DBG("Open: %s", path);
 
   if (reomp_mode == REOMP_RECORD) {
     flags = O_CREAT | O_WRONLY;
@@ -425,12 +425,16 @@ static inline int reomp_get_clock_replay(int tid)
   return clock;
 }
 
-int cc = 0;
-
-static inline void reomp_gate_in_record(int control, void* ptr, size_t lock_id, int lock, int tid)
+static inline void reomp_gate_in_2(int control, void* ptr, size_t lock_id, int lock)
 {
   int clock;
+  int tid;
+
+  if(omp_get_num_threads() == 1) return;
+  tid = reomp_get_thread_num();
+
   if (tid == current_tid) {
+    //    MUTIL_DBG("REENTER: tid %d: gate_clock: %d", tid, gate_clock);
     nest_num++;
     return;
   }
@@ -438,84 +442,40 @@ static inline void reomp_gate_in_record(int control, void* ptr, size_t lock_id, 
   clock = (reomp_mode == REOMP_RECORD)? reomp_get_clock_record(tid):reomp_get_clock_replay(tid);
   while (clock != gate_clock);
   current_tid = tid;
-  if (0 == gate_clock % 1000000) MUTIL_DBG("tid %d: gate_clock: %d", tid, gate_clock);
-  return;
-}
-
-static inline void reomp_gate_out_record(int control, void* ptr, size_t lock_id, int lock, int tid)
-{
-  int clock = 1;
-  FILE *fd;
-  
-  if (nest_num) {
-    nest_num--;
-    return;
-  }
-
-  clock = gate_clock;
-  current_tid = -1;
-  __sync_synchronize();
-  gate_clock++;
-  fd = reomp_get_fd(tid);
-  fwrite(&clock, sizeof(int), 1, fd);
-  return;
-}
-
-static inline void reomp_gate_in_replay(int control, void* ptr, size_t lock_id, int lock, int tid)
-{
-  
-}
-
-static inline void reomp_gate_out_replay(int control, void* ptr, size_t lock_id, int lock, int tid)
-{
-  int tmp;
-  tmp = gate_clock;
-  gate_clock++;
-  return;
-}
-
-
-static inline void reomp_gate_in_2(int control, void* ptr, size_t lock_id, int lock)
-{
-  int tid;
-  if(omp_get_num_threads() == 1) return;
-  tid = reomp_get_thread_num();
-  switch(reomp_mode) {
-  case 0:
-    reomp_gate_in_record(control, ptr, lock_id, lock, tid);
-    break;
-  case 1:
-    reomp_gate_in_record(control, ptr, lock_id, lock, tid);
-    break;
-  case 2:
-    break;
-  default:
-    MUTIL_ERR("No such mode: REOMP_MODE=%d", reomp_mode);
-    break;
-  }
+  if (gate_clock % 1000000 == 0) MUTIL_DBG("IN: tid %d: gate_clock: %d", tid, gate_clock);
   return;
 }
 
 static inline void reomp_gate_out_2(int control, void* ptr, size_t lock_id, int lock)
 {
+  int clock;
   int tid;
+
   if(omp_get_num_threads() == 1) return;
   tid = reomp_get_thread_num();
-  switch(reomp_mode) {
-  case 0:
-    reomp_gate_out_record(control, ptr, lock_id, lock, tid);
-    break;
-  case 1:
-    reomp_gate_out_record(control, ptr, lock_id, lock, tid);
-    break;
-  case 2:
-    break;
-  default:
-    MUTIL_ERR("No such mode: REOMP_MODE=%d", reomp_mode);
-    break;
+  
+  if (nest_num) {
+    //    MUTIL_DBG("RELEAVE: tid %d: gate_clock: %d", tid, gate_clock);
+    nest_num--;
+    return;
   }
+
+  //  MUTIL_DBG("OUT: tid %d: gate_clock: %d", tid, gate_clock);
+
+  clock = gate_clock;
+  current_tid = -1;
+  __sync_synchronize();
+  gate_clock++;
+  __sync_synchronize();
+  if (reomp_mode == REOMP_RECORD) {
+    FILE *fd;
+    fd = reomp_get_fd(tid);
+    fwrite(&clock, sizeof(int), 1, fd);
+  }
+
   return;
 }
+
 
 
 
@@ -533,31 +493,8 @@ static void reomp_gate_in(int control, void* ptr, size_t lock_id, int lock)
   
   if (reomp_mode == REOMP_RECORD) {
     if (tid == time_tid) tmp_time = reomp_util_get_time();
-    //    if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&file_write_mutex_lock);
-
     if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&record_locks[lock_id]);
-    
-    // if (callstack_hash_umap.find(callstack_hash[tid]) == callstack_hash_umap.end()) {
-    //   int level = 0;
-    //   callstack_hash_umap[callstack_hash[tid]] = 0;
-    //   list<char*>::reverse_iterator it, it_end;
-    //   MUTIL_DBG("Callstack: hash: %lu", callstack_hash[tid]);
-    //   for (it = callstack[tid]->rbegin(), 
-    // 	     it_end = callstack[tid]->rend();
-    // 	   it != it_end;
-    // 	   it++) {
-    // 	char *func_name;
-    // 	func_name = *it;
-    // 	MUTIL_DBG("  #%d %s", level++, func_name);
-    //   }
-    // } else {
-    //   callstack_hash_umap.at(callstack_hash[tid])++;
-    // }
-
-    //    PrintBacktrace();
     REOMP_MON_SAMPLE_CALLSTACK();
-    //    MUTIL_DBG("LOCK");
-    //    if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&record_locks[tid]);
     if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_time;
   } else {
     //    MUTIL_DBG("  (tid: %d)", tid);    
@@ -765,6 +702,11 @@ void REOMP_CONTROL(int control, void* ptr, size_t size)
     break;
   case REOMP_AFT_MPI_INIT: // 2
     reomp_rr_init(control, size);
+#if REOMP_RR_VERSION == 2
+    int my_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    reomp_util_init(my_rank);    
+#endif
     break;
   case REOMP_GATE_IN: // 10
 #ifndef REOMP_USE_MULTI_LOCKS
@@ -810,6 +752,9 @@ void REOMP_CONTROL(int control, void* ptr, size_t size)
 #if REOMP_RR_VERSION == 2
     reomp_gate_out_2(control, ptr, size, REOMP_WITHOUT_LOCK);
 #endif
+    //#if REOMP_RR_VERSION == 2
+    //    reomp_gate_out_2(control, ptr, size, REOMP_WITHOUT_LOCK);
+    //#endif
     //    MUTIL_DBG("tid: %d: out", reomp_get_thread_num());
     break;
 
