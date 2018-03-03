@@ -21,6 +21,9 @@
 #define ARCHRE_MSG_PREVIOUS_READ_OF_SIZE ("  Previous read of size ")
 #define ARCHRE_MSG_ATOMIC_WRITE_OF_SIZE ("  Atomic write of size ")
 #define ARCHRE_MSG_ATOMIC_READ_OF_SIZE ("  Atomic read of size ")
+#define ARCHRE_MSG_PREVIOUS_ATOMIC_WRITE_OF_SIZE ("  Previous atomic write of size ")
+#define ARCHRE_MSG_PREVIOUS_ATOMIC_READ_OF_SIZE ("  Previous atomic read of size ")
+
 
 #define DRACE_PATH_MAX (4096)
 #define DRACE_STL_LEVEL_INSTRUMENTATION
@@ -395,10 +398,10 @@ static call_func* drace_extract_call_func(char* line, ssize_t line_length)
   file_path[length] = '\0';
   file_path_real = realpath(file_path, NULL);
   reomp_util_free(file_path);
-  if (file_path_real == NULL) {
-    MUTIL_DBG("%s", line);
-    MUTIL_ERR("%s: path = %s", strerror(errno), file_path);
-  }
+  //  if (file_path_real == NULL) {
+  //    MUTIL_DBG("%s", line);
+  //    MUTIL_ERR("%s: path = %s", strerror(errno), file_path);
+  //  }
 
   
   index++;
@@ -504,22 +507,26 @@ static int drace_is_write_or_read(FILE *fd)
       goto end;
     } else if (reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_READ_OF_SIZE) || 
 	       reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_PREVIOUS_READ_OF_SIZE) ||
-	       reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_ATOMIC_READ_OF_SIZE)) {
+	       reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_ATOMIC_READ_OF_SIZE) ||
+	       reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_PREVIOUS_ATOMIC_READ_OF_SIZE)) {
       return DRACE_READ_RACE;
     } else if (reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_WRITE_OF_SIZE) || 
 	       reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_PREVIOUS_WRITE_OF_SIZE) ||
-	       reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_ATOMIC_WRITE_OF_SIZE)) {
+	       reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_ATOMIC_WRITE_OF_SIZE) ||
+	       reomp_util_str_starts_with(drace_log_line, ARCHRE_MSG_PREVIOUS_ATOMIC_WRITE_OF_SIZE)) {
       return DRACE_WRITE_RACE;
     }
   }
  end:
-  MUTIL_ERR("Archer file format is broken: '%s', '%s', '%s' '%s' '%s' and '%s' cannot be found", 
+  MUTIL_ERR("Archer file format is broken: '$%s', '%s', '%s', '%s', '%s' '%s' '%s' and '%s' cannot be found", 
 	    ARCHRE_MSG_READ_OF_SIZE,
 	    ARCHRE_MSG_WRITE_OF_SIZE,
 	    ARCHRE_MSG_PREVIOUS_READ_OF_SIZE,
 	    ARCHRE_MSG_PREVIOUS_WRITE_OF_SIZE,
 	    ARCHRE_MSG_ATOMIC_READ_OF_SIZE,
-	    ARCHRE_MSG_ATOMIC_WRITE_OF_SIZE);
+	    ARCHRE_MSG_ATOMIC_WRITE_OF_SIZE,
+	    ARCHRE_MSG_PREVIOUS_ATOMIC_READ_OF_SIZE,
+	    ARCHRE_MSG_PREVIOUS_ATOMIC_WRITE_OF_SIZE);
   return -1;
 }
 

@@ -418,6 +418,110 @@ int ReOMP::ci_on_function_call(Function &F)
   return 1;
 }
 
+// int ReOMP::ci_rr_insert_rr_on_critical(Function &F, BasicBlock &BB, Instruction &I)
+// {
+//   int modified_counter = 0;
+//   CallInst *CI;
+//   AtomicRMWInst *AI;
+//   string name;
+//   if ((CI = dyn_cast<CallInst>(&I)) != NULL) {
+//     name = CI->getCalledValue()->getName();
+//     if (name == "__kmpc_critical"  || name == "__kmpc_reduce_nowait") {
+//       //  if (name == "__kmpc_for_static_fini") {	     
+//       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, NULL, NULL);
+// #if REOMP_RR_VERSION == 1
+//       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_CRITICAL_BEGIN, NULL, NULL);
+// #endif
+//       modified_counter = 2;
+//     } else if (name == "__kmpc_end_critical" || name == "__kmpc_end_reduce_nowait") {
+// #if REOMP_RR_VERSION == 2
+//       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, NULL, NULL);
+// #endif
+//     } else if (name == "__kmpc_single" || name == "__kmpc_master") {
+//       //  if (name == "__kmpc_for_static_fini") {	     
+//       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, NULL, NULL);
+// #if REOMP_RR_VERSION == 1
+//       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_CRITICAL_BEGIN, NULL, NULL);
+// #else
+//       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, NULL, NULL);
+// #endif
+//       modified_counter = 2;
+//     }
+//   } else if ((AI = dyn_cast<AtomicRMWInst>(&I)) != NULL) {
+//       insert_func(AI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN, NULL, NULL);
+//       insert_func(AI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
+//       modified_counter = 2;    
+//   }
+
+//   return modified_counter;
+// }
+
+int ReOMP::ci_rr_insert_rr_on_reduction(Function &F, BasicBlock &BB, Instruction &I)
+{
+  int modified_counter = 0;
+  int is_after_reduction_begin = 0;
+  string name;
+  CallInst *CI = NULL;
+  AtomicRMWInst *ARMWI;
+  AtomicCmpXchgInst *ACXI;
+  
+  //  BasicBlock tmp_BB = BB;
+  //  Instruction tmp_I = I;
+
+  /* Instrument to before __kmpc_reduce and __kmpc_reduce_nowait */
+  insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_REDUCE_BEGIN, NULL, NULL);
+  modified_counter++;
+  insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER, REOMP_AFT_REDUCE_BEGIN, NULL, &I);
+  modified_counter++;
+
+  /* Instrument to __kmpc_end_reduce and __kmpc_end_reduce_nowait 
+                 or atomic operations
+  */
+  Function::iterator BB_it     = F.begin();
+  Function::iterator BB_it_end = F.end();
+  for (; BB_it != BB_it_end; BB_it++) {
+    BasicBlock::iterator IN_it     = BB_it->begin();
+    BasicBlock::iterator IN_it_end = BB_it->end();
+    for (; IN_it != IN_it_end; IN_it++) {
+      if ((CI = dyn_cast<CallInst>(&I)) != NULL) {
+	name = CI->getCalledValue()->getName();
+	if (name == "__kmpc_reduce" || name == "__kmpc_reduce_nowait") is_after_reduction_begin = 1;
+      }
+      if (!is_after_reduction_begin) continue;
+
+      Instruction *IN = &(*IN_it);
+      //      errs() << " >>>>> " << IN->getCalledValue()->getName() << "\n"; 
+      IN->print(errs());
+      errs() << "\n";
+      if ((CI = dyn_cast<CallInst>(IN)) != NULL) {
+	name = CI->getCalledValue()->getName();	
+	if (name == "__kmpc_end_reduce" || name == "__kmpc_end_reduce_nowait") {
+	  /* Instrument to __kmpc_end_reduce or __kmpc_end_reduce_nowait */
+	  MUTIL_DBG("CI");
+	  insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_REDUCE_END, NULL, &I);
+	  modified_counter++;
+	  insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_REDUCE_END, NULL, &I);
+	  modified_counter++;
+	}
+      } else if ((ARMWI = dyn_cast<AtomicRMWInst>(IN)) != NULL) {
+	MUTIL_DBG("ARMWI");
+	insert_func(ARMWI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_REDUCE_END, NULL, &I);
+	modified_counter++;
+      } else if ((ACXI  = dyn_cast<AtomicCmpXchgInst>(IN)) != NULL) {
+	MUTIL_DBG("ACXI");
+	insert_func(ACXI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_REDUCE_END, NULL, &I);
+	modified_counter++;
+      }
+      if (modified_counter == 5) break;
+    }
+    if (modified_counter == 5) break;
+  }
+  if (modified_counter != 5) {
+    MUTIL_ERR("Modified counter is not 5 on reduction");
+  }
+  return modified_counter;
+}
+
 int ReOMP::ci_rr_insert_rr_on_critical(Function &F, BasicBlock &BB, Instruction &I)
 {
   int modified_counter = 0;
@@ -426,31 +530,26 @@ int ReOMP::ci_rr_insert_rr_on_critical(Function &F, BasicBlock &BB, Instruction 
   string name;
   if ((CI = dyn_cast<CallInst>(&I)) != NULL) {
     name = CI->getCalledValue()->getName();
-    if (name == "__kmpc_critical"  || name == "__kmpc_reduce_nowait") {
-      //  if (name == "__kmpc_for_static_fini") {	     
+    if (name == "__kmpc_critical") {
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, NULL, NULL);
-#if REOMP_RR_VERSION == 1
-      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_CRITICAL_BEGIN, NULL, NULL);
-#endif
-      modified_counter = 2;
-    } else if (name == "__kmpc_end_critical" || name == "__kmpc_end_reduce_nowait") {
-#if REOMP_RR_VERSION == 2
+      modified_counter = 1;
+    } else if (name == "__kmpc_end_critical") {
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, NULL, NULL);
-#endif
+      modified_counter = 1;
+    } else if (name == "__kmpc_reduce" || name == "__kmpc_reduce_nowait") {
+      modified_counter = this->ci_rr_insert_rr_on_reduction(F, BB, I);
+      //    } else if (name == "__kmpc_end_reduce_nowait") {
+      //      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, NULL, NULL);
+      // modified_counter = 1;
     } else if (name == "__kmpc_single" || name == "__kmpc_master") {
-      //  if (name == "__kmpc_for_static_fini") {	     
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, NULL, NULL);
-#if REOMP_RR_VERSION == 1
-      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_CRITICAL_BEGIN, NULL, NULL);
-#else
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, NULL, NULL);
-#endif
       modified_counter = 2;
     }
   } else if ((AI = dyn_cast<AtomicRMWInst>(&I)) != NULL) {
-      insert_func(AI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN, NULL, NULL);
-      insert_func(AI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
-      modified_counter = 2;    
+    // insert_func(AI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN, NULL, NULL);
+    //    insert_func(AI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
+    modified_counter = 2;    
   }
 
   return modified_counter;

@@ -33,9 +33,15 @@ void REOMP_CONTROL(int control, void* ptr, size_t size);
 #define REOMP_GATE_IN  (10)
 #define REOMP_GATE_OUT (11)
 #define REOMP_GATE     (12)
+
 #define REOMP_BEF_CRITICAL_BEGIN  (13)
 #define REOMP_AFT_CRITICAL_BEGIN  (14)
 #define REOMP_AFT_CRITICAL_END    (15)
+
+#define REOMP_BEF_REDUCE_BEGIN    (16)
+#define REOMP_AFT_REDUCE_BEGIN    (17)
+#define REOMP_BEF_REDUCE_END      (18)
+#define REOMP_AFT_REDUCE_END      (19)
 
 #define REOMP_BEF_FORK (20)
 #define REOMP_AFT_FORK (21)

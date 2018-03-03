@@ -86,6 +86,7 @@ class ReOMP: public FunctionPass
   int ci_mem_register_local_var_addr_on_alloca(Function &F, BasicBlock &BB, Instruction &I);
   int ci_rr_insert_rr_on_omp_func(Function &F, BasicBlock &BB, Instruction &I);
   int ci_rr_insert_rr_on_critical(Function &F, BasicBlock &BB, Instruction &I);
+  int ci_rr_insert_rr_on_reduction(Function &F, BasicBlock &BB, Instruction &I);
   int ci_insert_on_load_store(Function &F, BasicBlock &BB, Instruction &I);
   int ci_insert_on_fork(Function &F, BasicBlock &BB, Instruction &I);
 

@@ -5,6 +5,7 @@
 #include <omp.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <mpi.h>
 
 #include <iostream>
 #include <thread>
@@ -16,7 +17,7 @@
 using namespace std;
 
 
-#if 0 
+#if 0
 #define NUM_THREADS 16
  
 #ifdef FP_DOUBLE
@@ -62,6 +63,8 @@ double sum_global = 0.0;
 //   fprintf(stderr, "sum_global=%1.20f (nth: %d)\n", sum_global, nth);
 //   return 0;
 // }
+
+
 
 int reomp_test_reduction_local_primitive(int numThreads)
 {
@@ -466,6 +469,32 @@ void atomic()
   return;
 }
 
+float reomp_test_atomic_reduction_float(float nth)
+
+{
+  int   i, n, chunk;
+  float a = nth, result = 0;
+  fprintf(stderr, "-- Begin -- %f %f\n", result, a);
+#pragma omp parallel for private(i, a) reduction(+:result) 
+  for (i=0; i < nth; i++) {
+    result += a;
+  }
+  fprintf(stderr, "--  End  -- %f %f\n", result, a);
+  return result;
+}
+
+int reomp_test_atomic_reduction_int(int nth)
+
+{
+  int   i, n, chunk;
+  int a = nth, result = 0;
+#pragma omp parallel for private(i, a) reduction(+:result)
+  for (i=0; i < n; i++) {
+    result += a;
+  }
+  return result;
+}
+
 
 
 int main(int argc, char **argv)
@@ -475,7 +504,10 @@ int main(int argc, char **argv)
     fprintf(stderr, "%s <# of threads>\n", argv[0]);
     exit(0);
   }
+  MPI_Init(&argc, &argv);
+  
   nth = atoi(argv[1]);
+  fprintf(stderr, "%d\n", nth);
   omp_set_num_threads(nth);
 
   //  config_test(argc);
@@ -484,8 +516,8 @@ int main(int argc, char **argv)
   // free(data);
 
   //  fprintf(stderr, "==start=======\n");
-  for (int i = 0; i < 10; i++) {
-    atomic();
+  for (int i = 0; i < 2; i++) {
+    //atomic();
     //        drace_6();
     //    drace_5();
     //    drace_4();
@@ -494,6 +526,8 @@ int main(int argc, char **argv)
     //    drace_1();
     //    reomp_test_stack(nth);    
     //reomp_test_dynamic_alloc(nth);
+    reomp_test_atomic_reduction_float(nth);
+    //    reomp_test_atomic_reduction_int(nth);
     //    reomp_test_reduction_local_primitive(nth);
     //reomp_test_reduction_global_primitive();
     //reomp_test_critical();
