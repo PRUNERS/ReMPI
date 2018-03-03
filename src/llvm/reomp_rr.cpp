@@ -428,8 +428,64 @@ static inline int reomp_get_clock_replay(int tid)
   size_t s;
   fd = reomp_get_fd(tid);
   s = fread(&clock, sizeof(int), 1, fd);
-  MUTIL_DBG("tid: %d: Tnum: %d", tid, clock);
+  //  MUTIL_DBG("tid: %d: Tnum: %d", tid, clock);
   return clock;
+}
+
+static inline size_t reomp_read_reduction_method(int tid)
+{
+  FILE *fd;
+  size_t reduction_method;
+  fd = reomp_get_fd(tid);
+  fread(&reduction_method, sizeof(size_t), 1, fd);
+  MUTIL_DBG("tid: %d: Reduction: %lu (gk: %d)", tid, reduction_method, gate_clock);
+  return reduction_method;
+}
+
+static inline void reomp_gate_ticket_wait(int tid)
+{
+  int clock;
+  if (tid == current_tid) {
+    nest_num++;
+    return;
+  }
+  clock = (reomp_mode == REOMP_RECORD)? reomp_get_clock_record(tid):reomp_get_clock_replay(tid);
+  while (clock != gate_clock);
+  current_tid = tid;
+  if (gate_clock % 1000000 == 0) MUTIL_DBG("IN: tid %d: gate_clock: %d", tid, gate_clock);
+  return;
+}
+
+static inline int reomp_gate_leave(int *clock)
+{
+  if (nest_num) {
+    nest_num--;
+    return 1;
+  }
+  *clock = gate_clock;
+  current_tid = -1;
+  __sync_synchronize();
+  gate_clock++;
+  __sync_synchronize();
+  return 0;
+}
+
+static inline void reomp_gate_record_ticket_number(int tid, int clock)
+{
+  FILE *fd;
+  fd = reomp_get_fd(tid);
+  fwrite(&clock, sizeof(int), 1, fd);
+  // MUTIL_DBG("tid: %d: Tnum: %d", tid, clock);
+  return;
+}
+
+static inline void reomp_gate_record_reduction_method(int tid, size_t reduction_method)
+{
+  FILE *fd;
+  fd = reomp_get_fd(tid);
+  fwrite(&reduction_method, sizeof(size_t), 1, fd);
+  MUTIL_DBG("tid: %d: Reduction: %lu (gk: %d)", tid, reduction_method, gate_clock);
+  return;
 }
 
 static inline void reomp_gate_in_2(int control, void* ptr, size_t lock_id, int lock)
@@ -442,16 +498,16 @@ static inline void reomp_gate_in_2(int control, void* ptr, size_t lock_id, int l
   tid = reomp_get_thread_num();
   //  MUTIL_DBG("-- IN: tid %d: gate_clock: %d (current_tid: %d)", tid, gate_clock, current_tid);
 
-  if (tid == current_tid) {
-    //    MUTIL_DBG("REENTER: tid %d: gate_clock: %d", tid, gate_clock);
-    nest_num++;
-    return;
-  }
 
+
+#if 0
   clock = (reomp_mode == REOMP_RECORD)? reomp_get_clock_record(tid):reomp_get_clock_replay(tid);
   while (clock != gate_clock);
   current_tid = tid;
-  if (gate_clock % 1000000 == 0) MUTIL_DBG("IN: tid %d: gate_clock: %d", tid, gate_clock);
+#else
+  reomp_gate_ticket_wait(tid);
+#endif
+
   //  MUTIL_DBG("IN: tid %d: gate_clock: %d", tid, gate_clock);
   return;
 }
@@ -462,81 +518,42 @@ static inline void reomp_gate_out_2(int control, void* ptr, size_t lock_id, int 
 {
   int clock;
   int tid;
-
+  int is_nested;
 
   //  MUTIL_DBG("-- OUT");
   if(omp_get_num_threads() == 1) return;
   tid = reomp_get_thread_num();
   //  MUTIL_DBG("-- OUT: tid %d: gate_clock: %d", tid, gate_clock);
   
-  if (nest_num) {
-    //    MUTIL_DBG("RELEAVE: tid %d: gate_clock: %d", tid, gate_clock);
-    nest_num--;
-    return;
-  }
+
 
 
   //  MUTIL_DBG("OUT: tid %d: gate_clock: %d", tid, gate_clock);
+#if 0
   clock = gate_clock;
   current_tid = -1;
   __sync_synchronize();
   gate_clock++;
   __sync_synchronize();
+#else
+  is_nested = reomp_gate_leave(&clock);
+#endif
+
+#if 0
   if (reomp_mode == REOMP_RECORD) {
     FILE *fd;
     fd = reomp_get_fd(tid);
     fwrite(&clock, sizeof(int), 1, fd);
   }
+#else
+  if (!is_nested) {
+    reomp_gate_record_ticket_number(tid, clock);
+  }
+#endif
+
   return;
 }
 
-static inline size_t reomp_read_reduction_method(int tid)
-{
-  FILE *fd;
-  size_t reduction_method;
-  fd = reomp_get_fd(tid);
-  fread(&reduction_method, sizeof(size_t), 1, fd);
-  MUTIL_DBG("tid: %d: Reduction: %lu", tid, reduction_method);
-  return reduction_method;
-}
-
-static inline void reomp_gate_ticket_wait(int tid)
-{
-  int clock;
-  clock = (reomp_mode == REOMP_RECORD)? reomp_get_clock_record(tid):reomp_get_clock_replay(tid);
-  while (clock != gate_clock);
-  current_tid = tid;
-  return;
-}
-
-static inline int reomp_gate_leave()
-{
-  int clock;
-  clock = gate_clock;
-  current_tid = -1;
-  __sync_synchronize();
-  gate_clock++;
-  __sync_synchronize();
-  return clock;
-}
-
-static inline void reomp_gate_record_ticket_number(int tid, int clock)
-{
-  FILE *fd;
-  fd = reomp_get_fd(tid);
-  fwrite(&clock, sizeof(int), 1, fd);
-  MUTIL_DBG("tid: %d: Tnum: %d", tid, clock);
-  return;
-}
-
-static inline void reomp_gate_record_reduction_method(int tid, size_t reduction_method)
-{
-  FILE *fd;
-  fd = reomp_get_fd(tid);
-  fwrite(&reduction_method, sizeof(size_t), 1, fd);
-  MUTIL_DBG("tid: %d: Reduction: %lu", tid, reduction_method);
-  return;
-}
 
 static inline void reomp_gate_in_bef_reduce_begin(int control, void* ptr, size_t null)
 {
@@ -623,12 +640,15 @@ static inline void reomp_gate_out_reduce_end(int control, void* ptr, size_t redu
 {
   int tid;
   int clock;
+  int is_nested;
   tid = reomp_get_thread_num();
   if (reomp_mode == REOMP_RECORD) {
     if (reduction_method == REOMP_REDUCE_LOCK_MASTER) {
-      clock = reomp_gate_leave();
-      reomp_gate_record_reduction_method(tid, reduction_method);
-      reomp_gate_record_ticket_number(tid, clock);
+      is_nested = reomp_gate_leave(&clock);
+      if (!is_nested) {
+	reomp_gate_record_reduction_method(tid, reduction_method);
+	reomp_gate_record_ticket_number(tid, clock);
+      }
     } else if (reduction_method == REOMP_REDUCE_LOCK_WORKER) {
       /* Worker does not get involved in reduction. */
       /* Nothing to do */
@@ -636,21 +656,23 @@ static inline void reomp_gate_out_reduce_end(int control, void* ptr, size_t redu
       /* This section is not serialized by __kmpc_reduce and __kmpc_reduct_nowait.
 	 ReMPI needs to serialize this section.
        */
-      clock = reomp_gate_leave();
-      reomp_gate_record_reduction_method(tid, reduction_method);
-      reomp_gate_record_ticket_number(tid, clock);
+      is_nested = reomp_gate_leave(&clock);
+      if (is_nested) {
+	reomp_gate_record_reduction_method(tid, reduction_method);
+	reomp_gate_record_ticket_number(tid, clock);
+      }
     } else {
       MUTIL_ERR("No such reduction method: %lu", reduction_method);
     }
   } else if (reomp_mode == REOMP_REPLAY) {
     if (reduction_method == REOMP_REDUCE_LOCK_MASTER) {
-      reomp_gate_leave();
+      reomp_gate_leave(&clock);
     } else if (reduction_method == REOMP_REDUCE_LOCK_WORKER) {
       /* This section is not even executed by workers */
       /* Worker does not call __kmpc_end_reduce and any atomic operations */
       /* Nothing to do */
     } else if (reduction_method == REOMP_REDUCE_ATOMIC) {
-      reomp_gate_leave();
+      reomp_gate_leave(&clock);
     } else {
       MUTIL_ERR("No such reduction method: %lu", reduction_method);
     }
