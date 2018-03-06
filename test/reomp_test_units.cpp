@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <mpi.h>
+#include <string.h>
 
 #include <iostream>
 #include <thread>
@@ -36,6 +37,9 @@ float frand()
   float b = RAND_MAX;
   return a/b;
 }
+
+
+
 
 double sum_global = 0.0;
 // int reomp_test_reduction_global_primitive()
@@ -472,12 +476,12 @@ void atomic()
 float reomp_test_atomic_reduction_float(float nth)
 
 {
-  int   i, n, chunk;
+  int   i;
   float a = nth, result = 0;
   fprintf(stderr, "-- Begin -- %f %f\n", result, a);
 #pragma omp parallel for private(i, a) reduction(+:result) 
   for (i=0; i < nth; i++) {
-    result += a;
+    result += 1;
   }
   fprintf(stderr, "--  End  -- %f %f\n", result, a);
   return result;
@@ -486,7 +490,7 @@ float reomp_test_atomic_reduction_float(float nth)
 int reomp_test_atomic_reduction_int(int nth)
 
 {
-  int   i, n, chunk;
+  int   i, n;
   int a = nth, result = 0;
 #pragma omp parallel for private(i, a) reduction(+:result)
   for (i=0; i < n; i++) {
@@ -496,43 +500,145 @@ int reomp_test_atomic_reduction_int(int nth)
 }
 
 
+/* ============================== */
+
+typedef struct {
+  int int_val_1;
+  int int_val_2;
+} reomp_input_t;
+
+
+typedef struct {
+  char* name;
+  int(*func)(reomp_input_t*, int);
+  reomp_input_t input;
+} reomp_test_t;
+
+static int reomp_test_omp_reduction(reomp_input_t *input, int num_loops);
+static int reomp_test_omp_critical(reomp_input_t *input, int num_loops);
+static int reomp_test_omp_atomic(reomp_input_t *input, int num_loops);
+static int reomp_test_data_race(reomp_input_t *input, int num_loops);
+
+#define REOMP_NUM_LOOPS (3* 1000)
+reomp_test_t reomp_test_cases[] =
+  {
+    {(char*)"omp_critical", reomp_test_omp_critical, {1, 1}},
+    {(char*)"omp_reduction", reomp_test_omp_reduction, {1, 1}},
+    {(char*)"omp_atomic", reomp_test_omp_atomic, {1, 1}},
+    {(char*)"data_race", reomp_test_data_race, {1, 1}}
+  };
+
+
+static int reomp_test_omp_critical(reomp_input_t *input, int num_loops)
+{
+  int i;
+  int sum = 0;
+  int val = input->int_val_1;
+#pragma omp parallel for private(i)
+  for (i = 0; i < num_loops; i++) {
+#pragma omp critical
+    {
+      sum += 1;
+    }
+  }
+  return sum;
+}
+
+static int reomp_test_omp_reduction(reomp_input_t *input, int num_loops)
+{
+  int i;
+  int sum = 0;
+  //  int val = input->int_val_1;
+#pragma omp parallel for private(i) reduction(+: sum)
+  for (i = 0; i < num_loops; i++) {
+    sum += 1;
+  }
+  return sum;
+}
+
+static int reomp_test_omp_atomic(reomp_input_t *input, int num_loops)
+{
+  int i;
+  int sum = 0;
+  //  int val = input->int_val_1;
+#pragma omp parallel for private(i)
+  for (i = 0; i < num_loops; i++) {
+#pragma omp atomic
+    sum += 1;
+  }
+  return sum;
+}
+
+static int reomp_test_data_race(reomp_input_t *input, int num_loops)
+{
+  int i;
+  int sum = 0;
+  int val = input->int_val_1;
+#pragma omp parallel for private(i)
+  for (i = 0; i < num_loops; i++) {
+    sum += 1;
+  }
+  return sum;
+}
+
+
 
 int main(int argc, char **argv)
 {
+  int i;
   int nth;
-  if (argc != 2) {
-    fprintf(stderr, "%s <# of threads>\n", argv[0]);
+  char *test_name;
+  int num_loops;
+
+  MPI_Init(&argc, &argv);
+
+  if (argc < 2 && 4 < argc) {
+    fprintf(stderr, "%s <# of threads> <# of loops> [<test name>]\n", argv[0]);
     exit(0);
   }
-  MPI_Init(&argc, &argv);
   
   nth = atoi(argv[1]);
-  fprintf(stderr, "%d\n", nth);
+  num_loops = (argc == 3)? atoi(argv[2]):REOMP_NUM_LOOPS;
+  test_name = (argc == 4)? argv[3]:NULL;
+  fprintf(stderr, "=============================================\n");  
+  fprintf(stderr, "# of Thread   : %d\n", nth);
+  fprintf(stderr, "# of Loops    : %d\n", num_loops);
+  fprintf(stderr, "Test case name: %s\n",
+	  (test_name == NULL)?(char*)"Test all":test_name);
+  fprintf(stderr, "=============================================\n");  
+  
   omp_set_num_threads(nth);
 
-  //  config_test(argc);
-  // int *data = (int*)malloc(4 * sizeof(int));
-  // data = (int*)realloc(data, 5 * sizeof(int));
-  // free(data);
 
-  //  fprintf(stderr, "==start=======\n");
-  for (int i = 0; i < 2; i++) {
-    //atomic();
-    //        drace_6();
-    //    drace_5();
-    //    drace_4();
-    //    drace_3();
-    //    drace_2();
-    //    drace_1();
-    //    reomp_test_stack(nth);    
-    //reomp_test_dynamic_alloc(nth);
-    reomp_test_atomic_reduction_float(nth);
-    //    reomp_test_atomic_reduction_int(nth);
-    //    reomp_test_reduction_local_primitive(nth);
-    //reomp_test_reduction_global_primitive();
-    //reomp_test_critical();
-    //  reomp_test_dynamic_alloc_cpp(nth);
-    //  reomp_test_double_buff(argc);
+  int did_test = 0;
+  for (i = 0; i < sizeof(reomp_test_cases)/sizeof(reomp_test_t); i++) {
+    int do_this_test = 0;
+    reomp_test_t *test;
+    test = &reomp_test_cases[i];
+    if (test_name == NULL) {
+      do_this_test = 1;
+    } else if (!strcmp(test_name, test->name)) {
+      do_this_test = 1;
+    } else {
+      do_this_test = 0;
+    }    
+
+    if (do_this_test) {
+      double s, e;
+      int ret;
+      s = MPI_Wtime();
+      ret = test->func(&(test->input), num_loops);
+      e = MPI_Wtime();
+      fprintf(stderr, "Test: %s: time = %f (ret: %d)\n",
+	      test->name, e - s, ret);
+      did_test = 1;
+    }
   }
+
+  if (!did_test) {
+    fprintf(stderr, "No such test case: %s\n", test_name);
+    exit(0);
+  }
+
   return 0;
 }

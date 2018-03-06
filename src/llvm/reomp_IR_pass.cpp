@@ -418,43 +418,7 @@ int ReOMP::ci_on_function_call(Function &F)
   return 1;
 }
 
-// int ReOMP::ci_rr_insert_rr_on_critical(Function &F, BasicBlock &BB, Instruction &I)
-// {
-//   int modified_counter = 0;
-//   CallInst *CI;
-//   AtomicRMWInst *AI;
-//   string name;
-//   if ((CI = dyn_cast<CallInst>(&I)) != NULL) {
-//     name = CI->getCalledValue()->getName();
-//     if (name == "__kmpc_critical"  || name == "__kmpc_reduce_nowait") {
-//       //  if (name == "__kmpc_for_static_fini") {	     
-//       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, NULL, NULL);
-// #if REOMP_RR_VERSION == 1
-//       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_CRITICAL_BEGIN, NULL, NULL);
-// #endif
-//       modified_counter = 2;
-//     } else if (name == "__kmpc_end_critical" || name == "__kmpc_end_reduce_nowait") {
-// #if REOMP_RR_VERSION == 2
-//       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, NULL, NULL);
-// #endif
-//     } else if (name == "__kmpc_single" || name == "__kmpc_master") {
-//       //  if (name == "__kmpc_for_static_fini") {	     
-//       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, NULL, NULL);
-// #if REOMP_RR_VERSION == 1
-//       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_AFT_CRITICAL_BEGIN, NULL, NULL);
-// #else
-//       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, NULL, NULL);
-// #endif
-//       modified_counter = 2;
-//     }
-//   } else if ((AI = dyn_cast<AtomicRMWInst>(&I)) != NULL) {
-//       insert_func(AI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN, NULL, NULL);
-//       insert_func(AI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
-//       modified_counter = 2;    
-//   }
 
-//   return modified_counter;
-// }
 
 int ReOMP::ci_rr_insert_rr_on_reduction(Function &F, BasicBlock &BB, Instruction &I)
 {
@@ -491,8 +455,8 @@ int ReOMP::ci_rr_insert_rr_on_reduction(Function &F, BasicBlock &BB, Instruction
 
       Instruction *IN = &(*IN_it);
       //      errs() << " >>>>> " << IN->getCalledValue()->getName() << "\n"; 
-      IN->print(errs());
-      errs() << "\n";
+      //      IN->print(errs());
+      //      errs() << "\n";
       if ((CI = dyn_cast<CallInst>(IN)) != NULL) {
 	name = CI->getCalledValue()->getName();	
 	if (name == "__kmpc_end_reduce" || name == "__kmpc_end_reduce_nowait") {
@@ -538,16 +502,15 @@ int ReOMP::ci_rr_insert_rr_on_critical(Function &F, BasicBlock &BB, Instruction 
       modified_counter = 1;
     } else if (name == "__kmpc_reduce" || name == "__kmpc_reduce_nowait") {
       modified_counter = this->ci_rr_insert_rr_on_reduction(F, BB, I);
-      //    } else if (name == "__kmpc_end_reduce_nowait") {
-      //      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, NULL, NULL);
-      // modified_counter = 1;
     } else if (name == "__kmpc_single" || name == "__kmpc_master") {
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, NULL, NULL);
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, NULL, NULL);
-      modified_counter = 2;
+      modified_counter = 1;
+    } else if (name == "__kmpc_end_single" || name == "__kmpc_end_master") {
+      /*__kmpc_end_single/master is executed by an only thread executing __kmpc_single/master */
     }
   } else if ((AI = dyn_cast<AtomicRMWInst>(&I)) != NULL) {
-    // insert_func(AI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN, NULL, NULL);
+    //    insert_func(AI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN, NULL, NULL);
     //    insert_func(AI, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, NULL, NULL);
     modified_counter = 2;    
   }
@@ -623,15 +586,18 @@ int ReOMP::ci_insert_on_load_store(Function &F, BasicBlock &BB, Instruction &I)
       insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  
 		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 34), 
 		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+
       nextBB  = II->getNormalDest();
       frontIN = &(nextBB->front());
       insert_func(frontIN, nextBB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_OUT, 
 		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), 34), 
 		  ConstantInt::get(Type::getInt64Ty(*REOMP_CTX), lock_id));
+
       nextBB  = II->getUnwindDest();
       frontIN = &(nextBB->front());
-      //insert_func(frontIN, nextBB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_OUT, NULL, NULL);
       //NOTE: clang hangs when instrumenting reomp_control in unwind basicblock.
+      insert_func(frontIN, nextBB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_OUT, NULL, NULL);
+
       modified_counter += 3;
     }
   }
