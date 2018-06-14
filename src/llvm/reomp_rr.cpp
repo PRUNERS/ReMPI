@@ -25,6 +25,8 @@
 #include "apio.h"
 #include "mutil.h"
 
+//#define REOMP_INLINE inline
+#define REOMP_INLINE
 
 #define MODE "REOMP_MODE"
 #define REOMP_DIR "REOMP_DIR"
@@ -45,6 +47,10 @@
 #define REOMP_REDUCE_ATOMIC      (2)
 #define REOMP_REDUCE_NULL        (3)
 
+#define REOMP_TIMER_ENTIRE       (0)
+#define REOMP_TIMER_GATE_TIME    (1)
+#define REOMP_TIMER_IO_TIME      (2)
+
 //#define REOMP_USE_APIO
 //#define REOMP_SKIP_RECORD
 /* Multi lock is not implimented yet (only work with REOMP_SKIP_RECORD) */
@@ -64,17 +70,20 @@ typedef struct {
   char padding[128 - sizeof(size_t) * 2 - sizeof(FILE*)];
 } reomp_fd_t;
 
-reomp_fd_t reomp_fds[REOMP_MAX_THREAD];
-
 static int reomp_mode = -1;
 static int replay_thread_num = -1;
+reomp_fd_t reomp_fds[REOMP_MAX_THREAD];
+
+
+
 //static pthread_mutex_t file_read_mutex;
 //static pthread_mutex_t file_write_mutex;
 //static pthread_mutex_t reomp_omp_tid_umap_mutex;
 static omp_lock_t file_read_mutex_lock;
 static omp_nest_lock_t file_write_mutex_lock; // old
-static omp_nest_lock_t *record_locks = NULL; // new
+static omp_lock_t *record_locks = NULL; // new
 static omp_lock_t reomp_omp_tid_umap_mutex_lock; // not used
+static omp_lock_t reomp_omp_lock;
 static int critical_flag = 0;
 static int reomp_omp_call_depth;
 static unordered_map<int64_t, int> reomp_omp_tid_umap;
@@ -84,10 +93,10 @@ static char* record_file_dir = "/tmp";
 static char record_file_path[256];
 
 
-static double tmp_time = 0, tmp_time2 = 0;
-static double io_time = 0;
-static double lock_time = 0, tmp_lock_time = 0;
-static double control_time = 0;
+//static double tmp_time = 0, tmp_time2 = 0;
+//static double io_time = 0;
+//static double lock_time = 0, tmp_lock_time = 0;
+//static double control_time = 0;
 static int time_tid = 0;
 
 static vector<list<char*>*> callstack;
@@ -96,7 +105,8 @@ static unordered_map<size_t, size_t> callstack_hash_umap;
 static int is_callstack_init = 0;
 
 static volatile int reserved_clock = 0, gate_clock = 0;
-static volatile int current_tid = -1, nest_num = 0;
+static volatile int current_tid = -1;
+static volatile int nest_num = 0;
 
 
 static void reomp_record(void* ptr, size_t size) 
@@ -112,7 +122,7 @@ static void reomp_replay(void* ptr, size_t size)
 }
 
 #ifdef USE_OMP_GET_THREAD_NUM
-static inline int reomp_get_thread_num()
+static REOMP_INLINE int reomp_get_thread_num()
 {
   return omp_get_thread_num();
 }
@@ -166,12 +176,19 @@ static void reomp_init_callstack()
 static void reomp_init_env()
 {
   char *env;
+  struct stat st;
   
   if (!(env = getenv(REOMP_DIR))) {
     record_file_dir = (char*)".";
   } else {
     record_file_dir = env;    
-  }  
+  }
+
+  if (stat(record_file_dir, &st) != 0) {
+    if (mkdir(record_file_dir, S_IRWXU) < 0) {
+      MUTIL_ERR("Failded to make directory: %s", record_file_dir);
+    }
+  }
 
   if (!(env = getenv(MODE))) {
     reomp_mode = REOMP_DISABLE;
@@ -209,6 +226,7 @@ static FILE* reomp_get_fd(int my_tid)
     flags = O_CREAT | O_WRONLY;
     mode  = S_IRUSR | S_IWUSR;
     fmode = (char*)"w+";
+
   } else {
     flags = O_RDONLY;
     mode  = 0;
@@ -226,12 +244,13 @@ static FILE* reomp_get_fd(int my_tid)
 }
 
 static void reomp_init_file_2(int control)
-{
+{    
   for (int i = 0; i < REOMP_MAX_THREAD; i++) {
     reomp_fds[i].fd = NULL;
     reomp_fds[i].total_write_bytes = 0;
     reomp_fds[i].write_bytes_at_reduction = 0;
   }
+  omp_init_lock(&reomp_omp_lock);
   return;
 }
 
@@ -239,6 +258,14 @@ static void reomp_init_file_2(int control)
 static void reomp_init_file(int control)
 {
   int my_rank;
+  struct stat st;
+
+  if (stat(record_file_dir, &st) != 0) {
+    if (mkdir(record_file_dir, S_IRWXU) < 0) {
+      MUTIL_ERR("Failded to make directory: %s", record_file_dir);
+    }
+  }
+
   if (control == REOMP_BEF_MAIN) {
     sprintf(record_file_path, "%s/rank_x.reomp", record_file_dir);
   } else if (control == REOMP_AFT_MPI_INIT) {
@@ -298,9 +325,15 @@ static void reomp_init_file(int control)
 
 static void reomp_finalize_file_2()
 {
+  double entire_time = 0, gate_time = 0, io_time = 0;
+  MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_IO_TIME, NULL);
   for (int i = 0; i < REOMP_MAX_THREAD; i++) {
-    if (reomp_fds[i].fd != NULL) fclose(reomp_fds[i].fd);
+    if (reomp_fds[i].fd != NULL) {
+      fsync(fileno(reomp_fds[i].fd));
+      fclose(reomp_fds[i].fd);
+    }
   }
+  MUTIL_TIMER(MUTIL_TIMER_STOP , REOMP_TIMER_IO_TIME, NULL);
 
   REOMP_MON_SAMPLE_CALLSTACK_PRINT();
   unordered_map<size_t, size_t>::iterator it, it_end;
@@ -310,18 +343,35 @@ static void reomp_finalize_file_2()
        it++) {
     MUTIL_DBG("Hash: %lu, Count: %lu", it->first, it->second);
   }
+
+  MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_ENTIRE, NULL);
+  MUTIL_TIMER(MUTIL_TIMER_GET_TIME, REOMP_TIMER_ENTIRE, &entire_time);
+  MUTIL_TIMER(MUTIL_TIMER_GET_TIME, REOMP_TIMER_GATE_TIME, &gate_time);
+  MUTIL_TIMER(MUTIL_TIMER_GET_TIME, REOMP_TIMER_IO_TIME, &io_time);
+  MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_ENTIRE, NULL);
+  MUTIL_DBG("Overhead: %f (Gate: %f, IO: %f) VERSION: %d", entire_time, gate_time, io_time, REOMP_RR_VERSION);
   return;
 }
 
 static void reomp_finalize_file()
 {
+  double entire_time = 0, gate_time = 0, io_time = 0;
 #ifdef REOMP_USE_APIO
   ap_close(fp);
 #else
-  tmp_time = reomp_util_get_time();
+  //  tmp_time = reomp_util_get_time();
+  MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_IO_TIME, NULL);
+  fsync(fileno(fp));
   fclose(fp);
-  io_time += reomp_util_get_time() - tmp_time;
-  MUTIL_DBG("%f + %f = %f", lock_time, io_time, control_time);
+  //io_time += reomp_util_get_time() - tmp_time;
+  MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_IO_TIME, NULL);
+
+  MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_ENTIRE, NULL);
+  MUTIL_TIMER(MUTIL_TIMER_GET_TIME, REOMP_TIMER_ENTIRE, &entire_time);
+  MUTIL_TIMER(MUTIL_TIMER_GET_TIME, REOMP_TIMER_GATE_TIME, &gate_time);
+  MUTIL_TIMER(MUTIL_TIMER_GET_TIME, REOMP_TIMER_IO_TIME, &io_time);
+  MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_ENTIRE, NULL);
+  MUTIL_DBG("Overhead: %f (Gate: %f, IO: %f) VERSION: %d", entire_time, gate_time, io_time, REOMP_RR_VERSION);
 #endif
 
   REOMP_MON_SAMPLE_CALLSTACK_PRINT();
@@ -340,15 +390,18 @@ static void reomp_finalize_file()
 static void reomp_init_locks(size_t num_locks)
 {
   if (record_locks != NULL) return;
-  record_locks = (omp_nest_lock_t*)malloc(sizeof(omp_nest_lock_t) * num_locks);
+  record_locks = (omp_lock_t*)malloc(sizeof(omp_lock_t) * num_locks);
   for (int i = 0; i < num_locks; i++) {
-    omp_init_nest_lock(&record_locks[i]);
+    omp_init_lock(&record_locks[i]);
   }
   return;
 }
 
+
+double main_s, main_e;
 static void reomp_rr_init_2(int control, size_t num_locks)
 {
+  main_s = reomp_util_get_time();
   reomp_init_callstack();
   reomp_init_env();
   reomp_init_file_2(control);
@@ -362,6 +415,7 @@ static void reomp_rr_init_2(int control, size_t num_locks)
 
 static void reomp_rr_init(int control, size_t num_locks)
 {
+  main_s = reomp_util_get_time();
   reomp_init_callstack();
   reomp_init_env();
   reomp_init_file(control);
@@ -375,12 +429,16 @@ static void reomp_rr_init(int control, size_t num_locks)
 static void reomp_rr_finalize_2()
 {
   reomp_finalize_file_2();
+  main_e = reomp_util_get_time();
+  MUTIL_DBG("REOMP: main_time = %f", main_e - main_s);
   return;
 }
 
 static void reomp_rr_finalize()
 {
   reomp_finalize_file();
+  main_e = reomp_util_get_time();
+  MUTIL_DBG("REOMP: main_time = %f", main_e - main_s);
   return;
 }
 
@@ -417,7 +475,7 @@ end:
 
 
 
-static inline int reomp_get_clock_record(int tid)
+static REOMP_INLINE int reomp_get_clock_record(int tid)
 {
   int tmp;
 #if 0
@@ -425,93 +483,77 @@ static inline int reomp_get_clock_record(int tid)
   tmp = reserved_clock++;
   pthread_mutex_unlock(&lock);
 #else
-  //  tmp = reserved_clock++;                    
-  tmp = __sync_fetch_and_add(&reserved_clock, 1);
+  tmp = reserved_clock++;                    
+  //  tmp = __sync_fetch_and_add(&reserved_clock, 1);
   // if (previous == tmp) fprintf(stderr, "%d\n", tmp);
   // previous = tmp;
 #endif
   return tmp;
 }
 
-static inline int reomp_get_clock_replay(int tid)
-{
-  int clock;
-  FILE *fd;
-  size_t s;
-  fd = reomp_get_fd(tid);
-  s = fread(&clock, sizeof(int), 1, fd);
-  if (s != 1) {
-    if (feof(fd)) MUTIL_ERR("fread reached the end of record file");
-    if (ferror(fd))  MUTIL_ERR("fread failed");
-  }
-  //  if (!tid)  MUTIL_DBG("tid: %d: Tnum: %d (replay)", tid, clock);
-  return clock;
-}
-
-static inline size_t reomp_read_reduction_method(int tid)
-{
-  FILE *fd;
-  size_t reduction_method;
-  size_t s;
-  fd = reomp_get_fd(tid);
-  s = fread(&reduction_method, sizeof(size_t), 1, fd);
-  if (s != 1) {
-    if (feof(fd)) MUTIL_ERR("fread reached the end of record file");
-    if (ferror(fd))  MUTIL_ERR("fread failed");
-  }
-  if (!tid) MUTIL_DBG("tid: %d: Reduction: %lu (gk: %d)", tid, reduction_method, gate_clock);
-  return reduction_method;
-}
-
-static inline void reomp_gate_ticket_wait(int tid)
-{
-  int clock;
-  if (tid == current_tid) {
-    nest_num++;
-    return;
-  }
-  clock = (reomp_mode == REOMP_RECORD)? reomp_get_clock_record(tid):reomp_get_clock_replay(tid);
-  while (clock != gate_clock);
-  current_tid = tid;
-  if (gate_clock % 1000000 == 0) MUTIL_DBG("IN: tid %d: gate_clock: %d", tid, gate_clock);
-  //  MUTIL_DBG("IN: tid %d: gate_clock: %d", tid, gate_clock);
-  return;
-}
-
-static inline int reomp_gate_leave(int *clock)
-{
-  if (nest_num) {
-    nest_num--;
-    return 1;
-  }
-  *clock = gate_clock;
-  current_tid = -1;
-  __sync_synchronize();
-  gate_clock++;
-  __sync_synchronize();
-  return 0;
-}
-
-static inline void reomp_fwrite(const void * ptr, size_t size, size_t count, int tid)
+static REOMP_INLINE void reomp_fwrite(const void * ptr, size_t size, size_t count, int tid)
 {
   size_t write_count;
   FILE *stream;
+  if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_IO_TIME, NULL);
   stream = reomp_get_fd(tid);
   write_count = fwrite(ptr, size, count, stream);
   if (write_count != count) MUTIL_ERR("fwrite failed");
   reomp_fds[tid].total_write_bytes += write_count * size;
+  if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_IO_TIME, NULL);
   //  if (!tid) MUTIL_DBG("tid: %d: size: %lu", tid, reomp_fds[tid].total_write_bytes);
   return;
 }
 
-static inline void reomp_gate_record_ticket_number(int tid, int clock)
+static REOMP_INLINE void reomp_fread(void * ptr, size_t size, size_t count, int tid)
 {
-  reomp_fwrite(&clock, sizeof(int), 1, tid);
-  //  if (!tid) MUTIL_DBG("tid: %d: Tnum: %d", tid, clock);
+  FILE *fd;
+  size_t s;
+  if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_IO_TIME, NULL);
+  fd = reomp_get_fd(tid);
+  s = fread(ptr, size, 1, fd);
+  if (s != 1) {
+    if (feof(fd)) MUTIL_ERR("fread reached the end of record file");
+    if (ferror(fd))  MUTIL_ERR("fread failed");
+  }
+  if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_IO_TIME, NULL);
   return;
 }
 
-static inline void reomp_gate_record_reduction_method_init(int tid) 
+
+static REOMP_INLINE int reomp_get_clock_replay(int tid)
+{
+  int clock;
+  // FILE *fd;
+  // size_t s;
+  // fd = reomp_get_fd(tid);
+  // s = fread(&clock, sizeof(int), 1, fd);
+  // if (s != 1) {
+  //   if (feof(fd)) MUTIL_ERR("fread reached the end of record file");
+  //   if (ferror(fd))  MUTIL_ERR("fread failed");
+  // }
+  reomp_fread(&clock, sizeof(int), 1 , tid);
+  return clock;
+}
+
+static REOMP_INLINE size_t reomp_read_reduction_method(int tid)
+{
+  size_t reduction_method;
+  // FILE *fd;
+  // size_t s;
+  // fd = reomp_get_fd(tid);
+  // s = fread(&reduction_method, sizeof(size_t), 1, fd);
+  // if (s != 1) {
+  //   if (feof(fd)) MUTIL_ERR("fread reached the end of record file");
+  //   if (ferror(fd))  MUTIL_ERR("fread failed");
+  // }
+  //MUTIL_DBG("tid: %d: Reduction: %lu (gk: %d)", tid, reduction_method, gate_clock);
+  reomp_fread(&reduction_method, sizeof(size_t), 1 , tid);
+  return reduction_method;
+}
+
+
+static REOMP_INLINE void reomp_gate_record_reduction_method_init(int tid) 
 {
   size_t val;
   if (reomp_fds[tid].write_bytes_at_reduction != 0) {
@@ -523,7 +565,7 @@ static inline void reomp_gate_record_reduction_method_init(int tid)
   return;
 }
 
-static inline void reomp_gate_record_reduction_method(int tid, size_t reduction_method)
+static REOMP_INLINE void reomp_gate_record_reduction_method(int tid, size_t reduction_method)
 {
   FILE *fd;
   long offset;
@@ -540,7 +582,67 @@ static inline void reomp_gate_record_reduction_method(int tid, size_t reduction_
   return;
 }
 
-static inline void reomp_gate_in_2(int control, void* ptr, size_t lock_id, int lock)
+static REOMP_INLINE void reomp_gate_ticket_wait(int tid)
+{
+  int clock;
+  if (tid == current_tid) {
+    nest_num++;
+    return;
+  }
+
+  if (tid == time_tid)  {
+    MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_GATE_TIME, NULL);
+  }
+  if (reomp_mode == REOMP_RECORD) {
+    omp_set_lock(&reomp_omp_lock);
+  } else {
+    clock = reomp_get_clock_replay(tid);
+    while (clock != gate_clock);
+    // omp_set_lock(&reomp_omp_lock);
+    // gate_clock++;
+  }
+  current_tid = tid;
+  if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_GATE_TIME, NULL);
+  //MUTIL_DBG("==> WT: tid %d: clock: %d, gate_clock: %d", tid, clock, gate_clock);
+  //  MUTIL_DBG("  --> IN: tid %d: gate_clock: %d", tid, gate_clock);
+  //  if (gate_clock % 1000000 == 0) MUTIL_DBG("IN: tid %d: gate_clock: %d", tid, gate_clock);
+  //  MUTIL_DBG("IN: tid %d: gate_clock: %d", tid, gate_clock);
+  return;
+}
+
+static REOMP_INLINE void reomp_gate_record_ticket_number(int tid, int clock)
+{
+  reomp_fwrite((void*)&clock, sizeof(int), 1, tid);
+  //  if (!tid) MUTIL_DBG("tid: %d: Tnum: %d", tid, clock);
+  return;
+}
+
+static REOMP_INLINE void reomp_gate_leave(int tid)
+{
+  if (nest_num) {
+    nest_num--;
+    return;
+  }
+  
+  //  if (gate_clock % 100000 == 0) MUTIL_DBG("OUT: tid %d: gate_clock: %d", tid, gate_clock);
+  current_tid = -1;
+  if (reomp_mode == REOMP_RECORD) {
+    int clock;
+    clock = gate_clock++;
+    omp_unset_lock(&reomp_omp_lock);
+    reomp_gate_record_ticket_number(tid, clock);
+  } else {
+       __sync_synchronize();
+       gate_clock++;
+       __sync_synchronize();
+    //    omp_unset_lock(&reomp_omp_lock);
+  }
+
+  return ;
+}
+
+
+static REOMP_INLINE void reomp_gate_in_2(int control, void* ptr, size_t lock_id, int lock)
 {
   int clock;
   int tid;
@@ -548,66 +650,33 @@ static inline void reomp_gate_in_2(int control, void* ptr, size_t lock_id, int l
   //  MUTIL_DBG("-- IN");
   if(omp_get_num_threads() == 1) return;
   tid = reomp_get_thread_num();
-  //  MUTIL_DBG("-- IN: tid %d: gate_clock: %d (current_tid: %d)", tid, gate_clock, current_tid);
 
-
-
-#if 0
-  clock = (reomp_mode == REOMP_RECORD)? reomp_get_clock_record(tid):reomp_get_clock_replay(tid);
-  while (clock != gate_clock);
-  current_tid = tid;
-#else
   reomp_gate_ticket_wait(tid);
-#endif
 
-  //  MUTIL_DBG("IN: tid %d: gate_clock: %d", tid, gate_clock);
+
   return;
 }
 
 
 
-static inline void reomp_gate_out_2(int control, void* ptr, size_t lock_id, int lock)
+static REOMP_INLINE void reomp_gate_out_2(int control, void* ptr, size_t lock_id, int lock)
 {
-  int clock;
+
   int tid;
-  int is_nested;
 
   //  MUTIL_DBG("-- OUT");
   if(omp_get_num_threads() == 1) return;
   tid = reomp_get_thread_num();
   //  MUTIL_DBG("-- OUT: tid %d: gate_clock: %d", tid, gate_clock);
-  
+  reomp_gate_leave(tid);
 
 
-
-  //  MUTIL_DBG("OUT: tid %d: gate_clock: %d", tid, gate_clock);
-#if 0
-  clock = gate_clock;
-  current_tid = -1;
-  __sync_synchronize();
-  gate_clock++;
-  __sync_synchronize();
-#else
-  is_nested = reomp_gate_leave(&clock);
-#endif
-
-#if 0
-  if (reomp_mode == REOMP_RECORD) {
-    FILE *fd;
-    fd = reomp_get_fd(tid);
-    fwrite(&clock, sizeof(int), 1, fd);
-  }
-#else
-  if (!is_nested && reomp_mode == REOMP_RECORD) {
-    reomp_gate_record_ticket_number(tid, clock);
-  }
-#endif
 
   return;
 }
 
 
-static inline void reomp_gate_in_bef_reduce_begin(int control, void* ptr, size_t null)
+static REOMP_INLINE void reomp_gate_in_bef_reduce_begin(int control, void* ptr, size_t null)
 {
   size_t reduction_method = -1;
   int tid;
@@ -634,7 +703,7 @@ static inline void reomp_gate_in_bef_reduce_begin(int control, void* ptr, size_t
   return;
 }
 
-static inline void reomp_gate_in_aft_reduce_begin(int control, void* ptr, size_t reduction_method)
+static REOMP_INLINE void reomp_gate_in_aft_reduce_begin(int control, void* ptr, size_t reduction_method)
 {
   int tid;
   int clock;
@@ -690,17 +759,15 @@ static inline void reomp_gate_in_aft_reduce_begin(int control, void* ptr, size_t
 }
 
 
-static inline void reomp_gate_out_reduce_end(int control, void* ptr, size_t reduction_method)
+static REOMP_INLINE void reomp_gate_out_reduce_end(int control, void* ptr, size_t reduction_method)
 {
   int tid;
   int clock;
-  int is_nested;
   tid = reomp_get_thread_num();
   if (reomp_mode == REOMP_RECORD) {
     if (reduction_method == REOMP_REDUCE_LOCK_MASTER) {
-      is_nested = reomp_gate_leave(&clock);
+      reomp_gate_leave(tid);
       reomp_gate_record_reduction_method(tid, reduction_method);
-      if (!is_nested) reomp_gate_record_ticket_number(tid, clock);
     } else if (reduction_method == REOMP_REDUCE_LOCK_WORKER) {
       /* Worker does not get involved in reduction. */
       /* =================================================== */
@@ -710,21 +777,20 @@ static inline void reomp_gate_out_reduce_end(int control, void* ptr, size_t redu
       /* This section is not serialized by __kmpc_reduce and __kmpc_reduct_nowait.
 	 ReMPI needs to serialize this section.
        */
-      is_nested = reomp_gate_leave(&clock);
+      reomp_gate_leave(tid);
       reomp_gate_record_reduction_method(tid, reduction_method);
-      if (!is_nested) reomp_gate_record_ticket_number(tid, clock);
     } else {
       MUTIL_ERR("No such reduction method: %lu", reduction_method);
     }
   } else if (reomp_mode == REOMP_REPLAY) {
     if (reduction_method == REOMP_REDUCE_LOCK_MASTER) {
-      reomp_gate_leave(&clock);
+      reomp_gate_leave(tid);
     } else if (reduction_method == REOMP_REDUCE_LOCK_WORKER) {
       /* This section is not even executed by workers */
       /* Worker does not call __kmpc_end_reduce and any atomic operations */
       /* Nothing to do */
     } else if (reduction_method == REOMP_REDUCE_ATOMIC) {
-      reomp_gate_leave(&clock);
+      reomp_gate_leave(tid);
     } else {
       MUTIL_ERR("No such reduction method: %lu", reduction_method);
     }
@@ -734,7 +800,7 @@ static inline void reomp_gate_out_reduce_end(int control, void* ptr, size_t redu
   return;
 }
 
-static inline void reomp_gate_out_bef_reduce_end(int control, void* ptr, size_t reduction_method)
+static REOMP_INLINE void reomp_gate_out_bef_reduce_end(int control, void* ptr, size_t reduction_method)
 {
   // MUTIL_DBG("OUT bef: method: %d", reduction_method);
   // if (reomp_mode == REOMP_RECORD && reduction_method != REOMP_REDUCE_ATOMIC) {
@@ -743,7 +809,7 @@ static inline void reomp_gate_out_bef_reduce_end(int control, void* ptr, size_t 
   return;
 }
 
-static inline void reomp_gate_out_aft_reduce_end(int control, void* ptr, size_t reduction_method)
+static REOMP_INLINE void reomp_gate_out_aft_reduce_end(int control, void* ptr, size_t reduction_method)
 {
   // MUTIL_DBG("OUT aft: method: %d", reduction_method);
   // if (!(reomp_mode == REOMP_RECORD && reduction_method != REOMP_REDUCE_ATOMIC)) {
@@ -760,40 +826,58 @@ static void reomp_gate_in(int control, void* ptr, size_t lock_id, int lock)
   size_t ret;
 
   //if(omp_get_level() == 0) return;
-  if(omp_get_num_threads() == 1) return;
+  //  if(omp_get_num_threads() == 1) return;
+
+  //  MUTIL_DBG("sset lock_id: %d (tid: %d)", &record_locks[lock_id], t);
 
   tid = reomp_get_thread_num();
+  if (tid == current_tid) {
+    nest_num++;
+    return;
+  }
   
   if (reomp_mode == REOMP_RECORD) {
-    if (tid == time_tid) tmp_time = reomp_util_get_time();
-    if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&record_locks[lock_id]);
-    REOMP_MON_SAMPLE_CALLSTACK();
-    if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_time;
+    //    if (tid == time_tid) tmp_time = reomp_util_get_time();
+    if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_GATE_TIME, NULL);
+    //if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&record_locks[lock_id]);
+    //    MUTIL_DBG("set lock_id: %d", &record_locks[lock_id]);
+    omp_set_lock(&record_locks[lock_id]);
+//    if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_time;
+    if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_GATE_TIME, NULL);
   } else {
     //    MUTIL_DBG("  (tid: %d)", tid);    
-    if (tid == time_tid) tmp_lock_time = reomp_util_get_time();
+    if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_GATE_TIME, NULL);
     while (tid != replay_thread_num) {
       if(omp_test_lock(&file_read_mutex_lock) != 0) {
 #ifdef REOMP_USE_APIO	
 	ap_read(fp, &replay_thread_num, sizeof(int));
 #else 
-	if (tid == time_tid) tmp_time = reomp_util_get_time();
+	//	if (tid == time_tid) tmp_time = reomp_util_get_time();
+	if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_GATE_TIME, NULL);
+	if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_IO_TIME, NULL);
 	ret = fread(&replay_thread_num, sizeof(int), 1, fp);
-	if (tid == time_tid) io_time += reomp_util_get_time() - tmp_time;
+	//	replay_thread_num = (replay_thread_num + 1) % omp_get_num_threads();
 	if (feof(fp)) MUTIL_ERR("fread reached the end of record file");
 	if (ferror(fp))  MUTIL_ERR("fread failed");
+	//	if (tid == time_tid) io_time += reomp_util_get_time() - tmp_time;
+	if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_IO_TIME, NULL);
+	if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_GATE_TIME, NULL);
 #endif
       }
     }
-    if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_lock_time;
+    if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_GATE_TIME, NULL);
   }
 #ifdef ENABLE_MEM_SYNC
   __sync_synchronize();
 #endif
+  current_tid = tid;
   //  MUTIL_DBG("Gate-In: tid: %d: lock: %d, replay_thread_num: %d", tid, lock, replay_thread_num);
   //reomp_util_btrace();
   return;
 }
+
+
+
 
 
 static void reomp_gate_out(int control, void* ptr, size_t lock_id, int lock)
@@ -801,14 +885,21 @@ static void reomp_gate_out(int control, void* ptr, size_t lock_id, int lock)
   int tid;
   size_t ret;
 
-  if(omp_get_num_threads() == 1) return;
+  //  if(omp_get_num_threads() == 1) return;
+
+  if (nest_num) {
+    nest_num--;
+    return;
+  }
+  
+  current_tid = -1;
 
 #ifdef ENABLE_MEM_SYNC
   __sync_synchronize();
 #endif
 
   tid = reomp_get_thread_num();
-  //MUTIL_DBG("Gate-Out: tid: %d: lock: %d, replay_thread_num: %d", tid, lock, replay_thread_num);
+  //  MUTIL_DBG("Gate-Out: tid: %d: lock: %d, replay_thread_num: %d", tid, lock, replay_thread_num);
   if (reomp_mode == REOMP_RECORD) {
     //    MUTIL_DBG("unlock: %d", tid);
     //    write(fp, &tid, sizeof(int));
@@ -816,18 +907,22 @@ static void reomp_gate_out(int control, void* ptr, size_t lock_id, int lock)
 #ifdef REOMP_USE_APIO
     ap_write(fp, &tid, sizeof(int));
 #else
-    if (tid == time_tid) tmp_time = reomp_util_get_time();
+    //    if (tid == time_tid) tmp_time = reomp_util_get_time();
+    if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_IO_TIME, NULL);
     //    MUTIL_DBG("CheckLevel: %d %d %d", tid, (long)(ptr), lock_id);
     ret = fwrite(&tid, sizeof(int), 1, fp);
-    if (tid == time_tid) io_time += reomp_util_get_time() - tmp_time;
+    if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_IO_TIME, NULL);
+    //    if (tid == time_tid) io_time += reomp_util_get_time() - tmp_time;
     if (ret != 1) MUTIL_ERR("fwrite failed");
 #endif
 #endif
-    if (tid == time_tid) tmp_time = reomp_util_get_time();
-    //    if(lock == REOMP_WITH_LOCK) omp_unset_nest_lock(&file_write_mutex_lock);
-    if(lock == REOMP_WITH_LOCK) omp_unset_nest_lock(&record_locks[lock_id]);
-    //    if(lock == REOMP_WITH_LOCK) omp_unset_nest_lock(&record_locks[tid]);
-    if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_time;
+    //    if (tid == time_tid) tmp_time = reomp_util_get_time();
+    if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_GATE_TIME, NULL);
+    //if(lock == REOMP_WITH_LOCK) omp_unset_nest_lock(&record_locks[lock_id]);
+    //    MUTIL_DBG("lock_id: %d", &record_locks[lock_id]);
+    omp_unset_lock(&record_locks[lock_id]);
+    //    if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_time;
+    if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_GATE_TIME, NULL);
   } else {
     //    MUTIL_DBG("tid: %d: end: %d (unlock: %d)", tid, replay_thread_num, lock);
     //    fprintf(stderr, "%d\n", tid);
@@ -837,9 +932,11 @@ static void reomp_gate_out(int control, void* ptr, size_t lock_id, int lock)
     //    }
     replay_thread_num = -1;
     //    pthread_mutex_unlock(&file_read_mutex);
-    if (tid == time_tid) tmp_time = reomp_util_get_time();
+    //    if (tid == time_tid) tmp_time = reomp_util_get_time();
+    if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_GATE_TIME, NULL);
     omp_unset_lock(&file_read_mutex_lock);
-    if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_time;
+    //    if (tid == time_tid) lock_time += reomp_util_get_time() - tmp_time;
+    if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_GATE_TIME, NULL);
   }
   return;
 }
@@ -864,44 +961,40 @@ static void reomp_before_fork()
   return;
 }
 
-static void reomp_begin_omp()
+static REOMP_INLINE void reomp_begin_omp()
 {
+  //  MUTIL_DBG("Bgn: parallel reagion: (tid: %d)", omp_get_thread_num());
+#if 0  
   int64_t p_tid;
   int omp_tid;
   int level;
-  
   level = omp_get_level();
   if (level == 1) {
-    //    p_tid = (int64_t)pthread_self();
     p_tid = (int64_t)syscall(SYS_gettid);
     omp_tid = omp_get_thread_num();
-    //pthread_mutex_lock(&reomp_omp_tid_umap_mutex);
     omp_set_lock(&reomp_omp_tid_umap_mutex_lock);
     reomp_omp_tid_umap[p_tid] = omp_tid;
-    //    MUTIL_DBGI(0, "  (p_tid: %d --> tid: %d)", p_tid, omp_tid);    
-    //    pthread_mutex_unlock(&reomp_omp_tid_umap_mutex);
     omp_unset_lock(&reomp_omp_tid_umap_mutex_lock);
   }
+#endif
 
   return;
 }
 
-static void reomp_end_omp()
+static REOMP_INLINE void reomp_end_omp()
 {
+  //  MUTIL_DBG("End: parallel reagion (tid: %d)", omp_get_thread_num());
+#if 0
   int64_t p_tid;
   int level;
-  
   level = omp_get_level();
   if (level == 1) {
-    //    p_tid = (int64_t)pthread_self();
     p_tid = (int64_t)syscall(SYS_gettid);
-    //    pthread_mutex_lock(&reomp_omp_tid_umap_mutex);
     omp_set_lock(&reomp_omp_tid_umap_mutex_lock);
     reomp_omp_tid_umap.erase(p_tid);
-    //    MUTIL_DBGI(0, "  erase (p_tid: %d)", p_tid);
-    //    pthread_mutex_unlock(&reomp_omp_tid_umap_mutex);
     omp_unset_lock(&reomp_omp_tid_umap_mutex_lock);
   }
+#endif
 
   return;
 }
@@ -948,16 +1041,24 @@ static void reomp_debug_print(void* ptr, size_t size)
   return;
 }
 
-
+int counter=0;
 void REOMP_CONTROL(int control, void* ptr, size_t size)
 {
 
   if (reomp_mode == REOMP_DISABLE) return;
-  //  if (control == 10 || control == 11) return;
-
   int tid = reomp_get_thread_num();
-  //  if(!tid) MUTIL_DBG("tid: %d, control: %d", tid, control);
-  if (tid == time_tid) tmp_time2 = reomp_util_get_time();
+
+  if (control == 22 && tid == 0) {
+    counter++;
+    //    sleep(1);
+    //    if (counter == 10) exit(0);
+  }
+
+
+  //  MUTIL_DBG("tid: %d, control: %d (%d)", tid, control, counter);
+  //  MUTIL_DBG("tid: %d, control: %d", tid, control);
+  //  if (tid == time_tid) tmp_time2 = reomp_util_get_time();
+  if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_ENTIRE, NULL);
 
   switch(control) {
   case REOMP_BEF_MAIN: // 0
@@ -987,10 +1088,11 @@ void REOMP_CONTROL(int control, void* ptr, size_t size)
 #ifndef REOMP_USE_MULTI_LOCKS
     size = 0;
 #endif
-
+    
 #if REOMP_RR_VERSION == 1
     reomp_gate_in(control, ptr, size, REOMP_WITH_LOCK);
 #else
+
     reomp_gate_in_2(control, ptr, size, REOMP_WITH_LOCK);
 #endif
     //reomp_gate_in(control, ptr, size, REOMP_WITHOUT_LOCK);
@@ -1020,12 +1122,12 @@ void REOMP_CONTROL(int control, void* ptr, size_t size)
     break;
   case REOMP_AFT_CRITICAL_BEGIN: // 14
 #if REOMP_RR_VERSION == 1
-    reomp_gate_out(control, ptr, size, REOMP_WITHOUT_LOCK);
+    //    reomp_gate_out(control, ptr, size, REOMP_WITHOUT_LOCK);
 #endif
     break;
   case REOMP_AFT_CRITICAL_END: // 15
 #if REOMP_RR_VERSION == 1
-    //    reomp_gate_out(control, ptr, size, REOMP_WITH_LOCK);
+    reomp_gate_out(control, ptr, size, REOMP_WITH_LOCK);
 #else
     reomp_gate_out_2(control, ptr, size, REOMP_WITHOUT_LOCK);
 #endif
@@ -1054,14 +1156,12 @@ void REOMP_CONTROL(int control, void* ptr, size_t size)
   case REOMP_AFT_FORK: // 21
     reomp_after_fork();
     break;
-#ifndef USE_OMP_GET_THREAD_NUM
   case REOMP_BEG_OMP: // 22
     reomp_begin_omp();
     break;
   case REOMP_END_OMP: // 23
     reomp_end_omp();
     break;
-#endif
   case REOMP_BEG_FUNC_CALL: // 24
     //    reomp_begin_func_call(ptr, size);
     break;
@@ -1074,7 +1174,8 @@ void REOMP_CONTROL(int control, void* ptr, size_t size)
     break;
 
   }
-  if (tid == time_tid) control_time += reomp_util_get_time() - tmp_time2;
+//  if (tid == time_tid) control_time += reomp_util_get_time() - tmp_time2;
+  if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_ENTIRE, NULL);
 
   return;
 }

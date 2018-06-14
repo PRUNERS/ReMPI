@@ -14,6 +14,9 @@
 #include <list>
 
 #include "../config.h"
+#include "../src/llvm/mutil.h"
+#include "../src/llvm/reomp_rr.h"
+//#include "caliper/cali.h"
 
 using namespace std;
 
@@ -473,31 +476,31 @@ void atomic()
   return;
 }
 
-float reomp_test_atomic_reduction_float(float nth)
+// float reomp_test_atomic_reduction_float(float nth)
 
-{
-  int   i;
-  float a = nth, result = 0;
-  fprintf(stderr, "-- Begin -- %f %f\n", result, a);
-#pragma omp parallel for private(i, a) reduction(+:result) 
-  for (i=0; i < nth; i++) {
-    result += 1;
-  }
-  fprintf(stderr, "--  End  -- %f %f\n", result, a);
-  return result;
-}
+// {
+//   int   i;
+//   float a = nth, result = 0;
+//   fprintf(stderr, "-- Begin -- %f %f\n", result, a);
+// #pragma omp parallel for private(i, a) reduction(+:result) 
+//   for (i=0; i < nth; i++) {
+//     result += 1;
+//   }
+//   fprintf(stderr, "--  End  -- %f %f\n", result, a);
+//   return result;
+// }
 
-int reomp_test_atomic_reduction_int(int nth)
+// int reomp_test_atomic_reduction_int(int nth)
 
-{
-  int   i, n;
-  int a = nth, result = 0;
-#pragma omp parallel for private(i, a) reduction(+:result)
-  for (i=0; i < n; i++) {
-    result += a;
-  }
-  return result;
-}
+// {
+//   int   i, n;
+//   int a = nth, result = 0;
+// #pragma omp parallel for private(i, a) reduction(+:result)
+//   for (i=0; i < n; i++) {
+//     result += a;
+//   }
+//   return result;
+// }
 
 
 /* ============================== */
@@ -505,35 +508,40 @@ int reomp_test_atomic_reduction_int(int nth)
 typedef struct {
   int int_val_1;
   int int_val_2;
+  uint64_t num_loops;
 } reomp_input_t;
 
 
 typedef struct {
   char* name;
-  int(*func)(reomp_input_t*, int);
+  int(*func)(reomp_input_t*);
   reomp_input_t input;
 } reomp_test_t;
 
-static int reomp_test_omp_reduction(reomp_input_t *input, int num_loops);
-static int reomp_test_omp_critical(reomp_input_t *input, int num_loops);
-static int reomp_test_omp_atomic(reomp_input_t *input, int num_loops);
-static int reomp_test_data_race(reomp_input_t *input, int num_loops);
+static int reomp_test_omp_critical(reomp_input_t *input);
+static int reomp_test_omp_critical2(reomp_input_t *input);
+static int reomp_test_omp_reduction(reomp_input_t *input);
+static int reomp_test_omp_atomic(reomp_input_t *input);
+static int reomp_test_data_race(reomp_input_t *input);
 
-#define REOMP_NUM_LOOPS (3* 1000)
+static double num_loops_scale = 1;
+
+//#define REOMP_NUM_LOOPS (30 * 1000)
+#define REOMP_NUM_LOOPS_SCALE (1)
 reomp_test_t reomp_test_cases[] =
   {
-    {(char*)"omp_critical", reomp_test_omp_critical, {1, 1}},
-    {(char*)"omp_reduction", reomp_test_omp_reduction, {1, 1}},
-    {(char*)"omp_atomic", reomp_test_omp_atomic, {1, 1}},
-    {(char*)"data_race", reomp_test_data_race, {1, 1}}
+    {(char*)"omp_critical", reomp_test_omp_critical,   {0, 0,    3000000L}},
+    //    {(char*)"omp_critical2", reomp_test_omp_critical2, {1, 1}},
+    {(char*)"omp_atomic", reomp_test_omp_atomic,       {0, 0,   30000000L}},
+    {(char*)"data_race", reomp_test_data_race,         {0, 0,   30000000L}},
+    {(char*)"omp_reduction", reomp_test_omp_reduction, {0, 0,  300000000L}}
   };
 
-
-static int reomp_test_omp_critical(reomp_input_t *input, int num_loops)
+static int reomp_test_omp_critical(reomp_input_t *input)
 {
-  int i;
-  int sum = 0;
-  int val = input->int_val_1;
+  uint64_t i;
+  int sum;
+  uint64_t num_loops = input->num_loops * num_loops_scale;
 #pragma omp parallel for private(i)
   for (i = 0; i < num_loops; i++) {
 #pragma omp critical
@@ -544,11 +552,13 @@ static int reomp_test_omp_critical(reomp_input_t *input, int num_loops)
   return sum;
 }
 
-static int reomp_test_omp_reduction(reomp_input_t *input, int num_loops)
+static int reomp_test_omp_reduction(reomp_input_t *input)
 {
-  int i;
-  int sum = 0;
-  //  int val = input->int_val_1;
+  uint64_t i;
+  int sum;
+  //  uint64_t num_loops = input->num_loops * num_loops_scale;
+  uint64_t num_loops = omp_get_num_threads()  * num_loops_scale;
+  fprintf(stderr, "num_loops: %lu", num_loops);
 #pragma omp parallel for private(i) reduction(+: sum)
   for (i = 0; i < num_loops; i++) {
     sum += 1;
@@ -556,11 +566,12 @@ static int reomp_test_omp_reduction(reomp_input_t *input, int num_loops)
   return sum;
 }
 
-static int reomp_test_omp_atomic(reomp_input_t *input, int num_loops)
+
+static int reomp_test_omp_atomic(reomp_input_t *input)
 {
-  int i;
-  int sum = 0;
-  //  int val = input->int_val_1;
+  uint64_t i;
+  int sum = 1;
+  uint64_t num_loops = input->num_loops * num_loops_scale;
 #pragma omp parallel for private(i)
   for (i = 0; i < num_loops; i++) {
 #pragma omp atomic
@@ -569,17 +580,377 @@ static int reomp_test_omp_atomic(reomp_input_t *input, int num_loops)
   return sum;
 }
 
-static int reomp_test_data_race(reomp_input_t *input, int num_loops)
+
+static int reomp_test_data_race(reomp_input_t *input)
 {
-  int i;
-  int sum = 0;
-  int val = input->int_val_1;
+  uint64_t i;
+  int sum = 1;
+  uint64_t num_loops = input->num_loops * num_loops_scale;
 #pragma omp parallel for private(i)
   for (i = 0; i < num_loops; i++) {
     sum += 1;
   }
   return sum;
 }
+
+static int reomp_test_omp_critical2(reomp_input_t *input)
+{
+  int sum = 0;
+  uint64_t num_loops = input->num_loops * num_loops_scale;
+  for (int j = 0; j < 100; j++) {
+#pragma omp parallel
+    {
+      uint64_t i;
+      //      int val = input->int_val_1;
+      int num_threads = omp_get_num_threads();
+      for (i = 0; i < num_loops * 10 / num_threads; i++) {
+#pragma omp critical
+	{
+	  sum += 1;
+	}
+      }
+    }
+  }
+  return sum;
+}
+
+
+
+// static int test_a(int N)
+// {
+//   int *lock = (int*)malloc(sizeof(int) * N);
+//   for (int i = 0; i < N; i++) {
+//     lock[i] = 0;
+//   }
+    
+// #pragma omp parallel
+//   {
+//     int counter = 0;
+//     int tid = omp_get_thread_num();
+//     int nth = omp_get_num_threads();
+//     for (int j = 0; j < 10000; j++) {
+//       while (counter != N) {
+// 	counter = 0;
+// 	for (int i = 0; i < N; i++) {
+// 	  if(lock[i] == tid) counter++;
+// 	}
+//       }
+//       for (int i = 0; i < N; i++) {
+// 	lock[i] = (tid + 1) % nth;
+//       }
+//     }
+//   }
+//   return 0;
+// }
+
+int next_tid = 0;
+int next_tid_global = 0;
+FILE *fd;
+FILE *fds[24];
+omp_lock_t lock;
+
+const char* fmode;
+
+#if 0
+static void gate_in(int mode)
+{
+  omp_set_lock(&lock);
+}
+
+static void gate_out(int mode)
+{
+  omp_unset_lock(&lock);
+}
+#elif 0
+static void gate_in(int mode)
+{
+  if (next_tid < 0) next_tid = 0;
+  int tid = omp_get_thread_num();
+  while(tid != next_tid);
+}
+
+static void gate_out(int mode)
+{
+  int nth = omp_get_num_threads();
+  next_tid = (next_tid + 1) % nth;
+}
+
+#elif 1
+
+#include <setjmp.h>
+static jmp_buf env[6400];
+static int tmp_clock[6400];
+static int num_of_revoked_clock = 0;
+static int num_of_committed_clock = 0;
+static int tmp_num_of_revoked_clock[6400];
+
+static void gate_in(int mode)
+{
+  int tid = omp_get_thread_num();
+  int val;
+  fprintf(stderr, "tid: %d: start in\n", tid);
+  if (mode == 0) {
+    val = setjmp(env[tid * 64]);
+    tmp_clock[tid * 64] = __sync_fetch_and_add(&next_tid_global, 1);
+    fprintf(stderr, "tid: %d: val=%d clock=%d\n", tid, val, tmp_clock[tid * 64]);
+    if (val == 1) {
+      tmp_num_of_revoked_clock[tid * 64] = __sync_fetch_and_add(&num_of_revoked_clock, 1);
+    } else {
+      tmp_num_of_revoked_clock[tid * 64] = num_of_revoked_clock - 1;
+    }
+  } else {
+    int clock;
+    fread(&clock, sizeof(int), 1, fds[tid]);
+    while(clock != next_tid);
+  }
+  fprintf(stderr, "tid: %d: end in\n", tid);
+}
+
+static void gate_out(int mode)
+{
+  int tid = omp_get_thread_num();
+  fprintf(stderr, "tid: %d: start out\n", tid);
+  if (mode == 0) {
+  
+    int index = tid * 64;
+    //    fprintf(stderr, "tid: %d: %d %d", tmp_clock, );
+    //    if (tmp_clock[index] == next_tid_global -1) {
+    if (tmp_clock[index] > 3){
+      int c = tmp_clock[index] - tmp_num_of_revoked_clock[index] ;
+      fwrite(&c, sizeof(int), 1, fds[tid]);
+      fprintf(stderr, "tid: %d: fwrite %d\n", tid, c);
+    } else {
+      fprintf(stderr, "tid: %d: jmp %d\n", tid, tmp_clock[index]);
+      longjmp(env[tid * 64], 1);
+    }
+    // int clock = next_tid_global++;
+    // omp_unset_lock(&lock);
+    // fwrite(&clock, sizeof(int), 1, fds[tid]);
+  } else {
+    next_tid++;
+  }
+  fprintf(stderr, "tid: %d: end out\n", tid);
+}
+
+#elif 0
+
+static void gate_in(int mode)
+{
+  if (mode == 0) {
+    omp_set_lock(&lock);
+  } else if (mode == 1) {
+    int clock;
+    int tid = omp_get_thread_num();
+    fread(&clock, sizeof(int), 1, fds[tid]);
+    while(clock != next_tid);
+  } 
+}
+
+static void gate_out(int mode)
+{
+  if (mode == 0) {
+    int clock = next_tid_global++;
+    int tid = omp_get_thread_num();
+    omp_unset_lock(&lock);
+    fwrite(&clock, sizeof(int), 1, fds[tid]);
+  } else if (mode == 1) {
+    next_tid++;
+  }
+}
+
+#elif 0
+static void gate_in(int mode)
+{
+  int tid = omp_get_thread_num();
+  int nth = omp_get_num_threads();
+  while (tid != next_tid) {
+    if (omp_test_lock(&lock)) {
+	next_tid_global = (next_tid_global + 1) % nth;
+	next_tid = next_tid_global;
+    }
+  }
+  return;
+}
+
+static void gate_out(int mode)
+{
+  next_tid = -1;
+  omp_unset_lock(&lock);    
+}
+
+#elif 0
+
+static void gate_in(int mode)
+{
+  int tid = omp_get_thread_num();
+  int nth = omp_get_num_threads();
+  while (tid != next_tid) {
+    if (omp_test_lock(&lock)) {
+      if (mode == 0) {
+	next_tid_global = (next_tid_global + 1) % nth;
+	next_tid = next_tid_global;
+      } else {
+	fread(&next_tid, sizeof(int), 1, fd);
+	__sync_synchronize();
+	if (feof(fd)) fprintf(stderr,"fread reached the end of record file");
+	if (ferror(fd)) fprintf(stderr, "fread failed");
+      }
+    }
+  }
+}
+
+static void gate_out(int mode)
+{
+  int tid = omp_get_thread_num();
+  int nth = omp_get_num_threads();
+  if (mode == 0) {
+    fwrite(&tid, sizeof(int), 1, fd);
+  }
+  next_tid = -1;
+  omp_unset_lock(&lock);
+}
+#else
+static void gate_in(int mode)
+{
+  int tid = omp_get_thread_num();
+  if (mode == 0) {
+    omp_set_lock(&lock);
+  } else {
+    while (tid != next_tid) {
+      if (omp_test_lock(&lock)) {
+	fread(&next_tid, sizeof(int), 1, fd);
+	__sync_synchronize();
+	if (feof(fd)) fprintf(stderr,"fread reached the end of record file");
+	if (ferror(fd)) fprintf(stderr, "fread failed");
+      }
+    }
+  }
+}
+
+static void gate_out(int mode)
+{
+  int tid = omp_get_thread_num();
+  int nth = omp_get_num_threads();
+  if (mode == 0) {
+#if 0
+    next_tid_global = (next_tid_global + 1) % nth;
+    tid = next_tid_global;
+#endif
+    fwrite(&tid, sizeof(int), 1, fd);
+	
+    omp_unset_lock(&lock);
+  } else {
+    next_tid = -1;
+    omp_unset_lock(&lock);    
+  }
+}
+#endif
+
+
+static int test_b()
+{
+  uint64_t i;
+  int sum;
+  reomp_control(0, NULL, 0);
+#pragma omp parallel for private(i)
+  for (i = 0; i <  3000000L; i++) {
+    reomp_control(13, NULL, 0);
+    //    #pragma omp critical
+    {
+      sum = 1;
+    }
+    reomp_control(15, NULL, 0);
+  }
+  reomp_control(1, NULL, 0);
+  return sum;
+}
+
+
+int jmp = 0;
+static void test_a(int mode)
+{
+  uint64_t i;
+  int sum = 0;
+  double whole_s, whole_e, s, e;
+  char path[256];
+  int tid;
+  int index;
+  int val;
+  int tmp;
+  int sleep = 0;
+
+  int clock;
+  jmp_buf en;
+
+  fmode = (mode == 0)? "w+":"r";
+  fd = fopen("/tmp/test.reomp", fmode);
+  for (int i = 0; i < 24; i++) {
+    sprintf(path, "/tmp/test-%d.reomp", i);
+    fds[i] = fopen(path, fmode);    
+  }
+  whole_s = reomp_util_get_time();
+
+  omp_init_lock(&lock);
+
+#pragma omp parallel for private(i, tid, index,val, clock, en, sleep) shared(sum)
+  //  for (i = 0; i < 3000000L; i++) {
+  for (i = 0; i < 300000L; i++) {
+  //  for (i = 0; i < 30000L; i++) {
+    //  for (i = 0; i < 24L; i++) {
+    //    gate_in(mode);
+    //#pragma omp critical
+    if (mode == 0) {
+      do {
+	clock = next_tid_global; // tmp_clock[index] = next_tid_global;
+	sum = 1;
+      } while(!__sync_bool_compare_and_swap(&next_tid_global, clock, clock + 1));
+      tid = omp_get_thread_num();
+      fwrite(&clock, sizeof(int), 1, fds[tid]);
+      //      fprintf(stderr, "tid: %d clock: %d\n", tid, clock);
+    } else if (mode == 1) {
+      tid = omp_get_thread_num();
+      fread(&clock, sizeof(int), 1, fds[tid]);
+      while(clock != next_tid_global);
+      sum = 1;
+      next_tid_global++;
+    } else {
+      sum = 1;
+    }
+    sleep = 0;
+    while(sleep++ < 100000);
+    //    gate_out(mode);
+
+  }
+    
+  // #pragma omp parallel shared(next_tid, next_tid_global)
+//   {
+//     int nth = omp_get_num_threads();
+//     // fprintf(stderr, "next_tid: %d global: %d\n",
+//     // 	    next_tid, next_tid_global);
+//     for (int j = 0; j < 3000000 / nth; j++) {
+//       gate_in(mode);
+// #pragma omp critical
+//       {
+// 	sum += 1;
+//       }
+//       gate_out(mode);
+//     }
+//   }
+
+  
+  omp_destroy_lock(&lock);
+  s = reomp_util_get_time();
+  fflush(fd);
+  fsync(fileno(fd));
+  fclose(fd);
+  e = reomp_util_get_time();
+  whole_e = reomp_util_get_time();
+  fprintf(stderr, "time: %f (%f) sum= %d\n", whole_e - whole_s,e -s, sum);
+  //  fprintf(stderr, "time: %f (%f) sum= %d (jmp: %d)\n", whole_e - whole_s,e -s, sum, jmp/3000000L);
+  exit(0);
+  return;
+}
+
 
 
 
@@ -588,21 +959,54 @@ int main(int argc, char **argv)
   int i;
   int nth;
   char *test_name;
-  int num_loops;
+  double whole_s, whole_e, s, e;
 
+#if 0
+  test_jmp();
+  exit(0);
+#endif
+
+
+#if 0
+  MPI_Init(&argc, &argv);
+  s = reomp_util_get_time();
+  test_a(atoi(argv[1]));
+  //  test_b();
+  // //  test_b(&reomp_test_cases[0].input);
+  e = reomp_util_get_time();
+  fprintf(stderr, "time: %f\n", e -s);
+  exit(0);
+#endif
+  // return 0;
+
+  
+  //CALI_CXX_MARK_FUNCTION;
+
+  whole_s = reomp_util_get_time();
   MPI_Init(&argc, &argv);
 
-  if (argc < 2 && 4 < argc) {
-    fprintf(stderr, "%s <# of threads> <# of loops> [<test name>]\n", argv[0]);
+  // for (int i = 1; i < 24; i++) {
+  //   double s, e;
+  //   s = MPI_Wtime();
+  //   test_a(i);
+  //   e = MPI_Wtime();
+  //   fprintf(stderr, "N=%d: time = %f\n", i, e - s);
+  // }
+
+  // return 0;
+
+
+  if (argc < 2 || 4 < argc) {
+    fprintf(stderr, "%s <# of threads> <num_loops scale> [<test name>]\n", argv[0]);
     exit(0);
   }
   
   nth = atoi(argv[1]);
-  num_loops = (argc == 3)? atoi(argv[2]):REOMP_NUM_LOOPS;
-  test_name = (argc == 4)? argv[3]:NULL;
+  num_loops_scale = (argc >= 3)? atof(argv[2]):REOMP_NUM_LOOPS_SCALE;
+  test_name = (argc >= 4)? argv[3]:NULL;
   fprintf(stderr, "=============================================\n");  
   fprintf(stderr, "# of Thread   : %d\n", nth);
-  fprintf(stderr, "# of Loops    : %d\n", num_loops);
+  fprintf(stderr, "Scale for # of Loops    : %f\n", num_loops_scale);
   fprintf(stderr, "Test case name: %s\n",
 	  (test_name == NULL)?(char*)"Test all":test_name);
   fprintf(stderr, "=============================================\n");  
@@ -624,21 +1028,23 @@ int main(int argc, char **argv)
     }    
 
     if (do_this_test) {
-      double s, e;
       int ret;
       s = MPI_Wtime();
-      ret = test->func(&(test->input), num_loops);
+      ret = test->func(&(test->input));
       e = MPI_Wtime();
-      fprintf(stderr, "Test: %s: time = %f (ret: %d)\n",
-	      test->name, e - s, ret);
+      fprintf(stderr, "Test: %s: time = %f time per iter = %f usec (ret: %d)\n",
+	      test->name, e - s, (e - s) / (test->input.num_loops / 1000000.0), ret);
       did_test = 1;
     }
   }
-
+  
   if (!did_test) {
     fprintf(stderr, "No such test case: %s\n", test_name);
     exit(0);
   }
+
+  whole_e = reomp_util_get_time();
+  fprintf(stderr, "Test: main_time = %f\n", whole_e - whole_s);
 
   return 0;
 }

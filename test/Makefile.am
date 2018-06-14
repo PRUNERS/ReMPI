@@ -1,7 +1,8 @@
 SUBDIRS=../src
 
-AM_CFLAGS = -g -rdynamic
-AM_CXXFLAGS = -std=c++11
+#CALIPER= -I/g/g90/sato5/repo/caliper/install_catalyst/include -L/g/g90/sato5/repo/caliper/install_catalyst/lib64 -lcaliper
+AM_CFLAGS = -g -rdynamic $(CALIPER)
+AM_CXXFLAGS = -std=c++11 $(CALIPER)
 
 if WITH_BLUEGENE	
 LIBS += $(libz_a_LIB) 
@@ -70,17 +71,16 @@ rempi_test_msg_race_SOURCES = rempi_test_msg_race.c rempi_test_util.c
 rempi_test_msg_race_LDADD = $(librempi_LIB)
 reomp_test_units_SOURCES = reomp_test_units.cpp rempi_test_util.c
 #reomp_test_units_CCFLAGS = -O0 -g -Wall -fopenmp `llvm-config --cflags` -fno-inline
-reomp_test_units_CCFLAGS = -O2 -g -Wall -fopenmp -fno-inline -Wno-deprecated -std=c++11
-reomp_test_units_LDFLAGS = -L./ `llvm-config --ldflags` -L../src/llvm/.libs/ -lreomprr
+reomp_test_units_CCFLAGS = -O0 -g -Wall -fopenmp -fno-inline -Wno-deprecated -std=c++11 $(CALIPER)
+reomp_test_units_LDFLAGS = -L./ `llvm-config --ldflags` -L../src/llvm/.libs/ -lreomprr $(CALIPER)
 reomp_test_units_LLVMIRPASS = ../src/llvm/.libs/libreomp.so
 
 reomp_test_units$(EXEEXT): $(reomp_test_units_OBJECTS) $(reomp_test_units_DEPENDENCIES) $(EXTRA_reomp_test_units_DEPENDENCIES) $(reomp_test_units_LLVMIRPASS)
 	@rm -f reomp_test_units$(EXEEXT)
 	-rm rempi_drace_test.log.*
 #make binary with archer
-	mpicxx -fomit-frame-pointer -fsanitize=thread $(reomp_test_units_CCFLAGS) $(reomp_test_units_LDFLAGS) -o $@_archer $(reomp_test_units_SOURCES) 
-	export TSAN_OPTIONS="log_path=rempi_drace_test.log history_size=7" 
-	-./$@_archer 16
+	/usr/global/tools/pruners/toss_3_x86_64/archer-1.0.0b-clang-3.9.1/bin/clang-archer++ -I/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/include -L/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/lib -lmpicxx -Wl,-rpath -Wl,/usr/tce/packages/mvapich2/mvapich2-2.2-gcc-4.9.3/lib -lmpi -lpmi2 -fomit-frame-pointer -fsanitize=thread $(reomp_test_units_CCFLAGS) $(reomp_test_units_LDFLAGS) -o $@_archer $(reomp_test_units_SOURCES) 
+#	export TSAN_OPTIONS="log_path=rempi_drace_test.log history_size=7" && ./$@_archer 16 0.01
 
 #make .ll for test with instrumentation
 	export TSAN_OPTIONS="log_path=rempi_drace_test.log" && mpicxx -Xclang -load -Xclang $(reomp_test_units_LLVMIRPASS) $(reomp_test_units_CCFLAGS) $(reomp_test_units_LDFLAGS) -emit-llvm -S -o $@.ll $@.cpp

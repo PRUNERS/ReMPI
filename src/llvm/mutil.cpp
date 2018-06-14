@@ -16,12 +16,18 @@
 
 #include <string>
 #include <queue>
+#include <unordered_map>
 
 #include "mutil.h"
 
 #define DEBUG_STDOUT stderr
 
 
+typedef struct
+{
+  double start;
+  double sum;
+} timer_counters_t;
 
 using namespace std;
 int mutil_my_rank = -1;
@@ -364,6 +370,60 @@ double MUTIL_FUNC(get_time)(void)
   //  mutil_dbg(" -== > %f", t);
   return t;
 }
+
+void MUTIL_FUNC(timer)(int mode, int timerIndex, double *time)
+{
+  static unordered_map<int, timer_counters_t*> timer_umap;
+  timer_counters_t *tcs;
+  switch(mode) {
+  case MUTIL_TIMER_START:
+    if (timer_umap.find(timerIndex) == timer_umap.end()) {
+      tcs = (timer_counters_t*)malloc(sizeof(timer_counters_t));
+      tcs->start = 0;
+      tcs->sum = 0;
+      timer_umap[timerIndex] = tcs;
+    } else {
+      tcs = timer_umap[timerIndex];
+    }
+    if (tcs->start != 0) {
+      MUTIL_ERR("Double timer start: Timer is still running: timer index: %d", timerIndex);
+      exit(1);
+    }
+    tcs->start = MUTIL_FUNC(get_time)();
+    break;
+  case MUTIL_TIMER_STOP:
+    if (timer_umap.find(timerIndex) == timer_umap.end()) {
+      MUTIL_ERR("No such timer index");
+      exit(1);
+    }
+    tcs = timer_umap[timerIndex];
+    if (tcs->start == 0) {
+      MUTIL_ERR("Timer has not started yet");
+      exit(1);
+    }
+    tcs->sum += MUTIL_FUNC(get_time)() - tcs->start;
+    tcs->start = 0;
+    break;
+  case MUTIL_TIMER_GET_TIME:
+    if (timer_umap.find(timerIndex) == timer_umap.end()) {
+      MUTIL_ERR("No such timer index: %d", timerIndex);
+      exit(1);
+    }
+    tcs = timer_umap[timerIndex];
+    if (tcs->start != 0) {
+      MUTIL_ERR("Timer is still running: timer index: %d", timerIndex);
+      exit(1);
+    }
+    if (time == NULL) {
+      MUTIL_ERR("Time variable is NUL");
+      exit(1);
+    }
+    *time = tcs->sum;
+    break;
+  }
+  return;
+}
+
 
 void MUTIL_FUNC(dbg_sleep_sec)(int sec)
 {
