@@ -23,7 +23,6 @@
 #include "reomp_gate.h"
 #include "reomp_mem.h"
 #include "reomp_mon.h"
-#include "apio.h"
 #include "mutil.h"
 
 //#define REOMP_INLINE inline
@@ -432,7 +431,8 @@ static void reomp_debug_print(void* ptr, size_t size)
 void reomp_rr_init_2(int control, size_t size)
 {
   reomp_config_init();
-  reomp_gate = &reomp_gate_clock;
+  //  reomp_gate = &reomp_gate_clock;
+  reomp_gate = &reomp_gate_tid;
   reomp_gate->init(control, size);
   return;
 }

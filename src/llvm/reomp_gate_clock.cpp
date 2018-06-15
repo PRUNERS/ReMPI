@@ -24,7 +24,6 @@
 #include "reomp_gate_clock.h"
 #include "reomp_mem.h"
 #include "reomp_mon.h"
-#include "apio.h"
 #include "mutil.h"
 #include "reomp_config.h"
 

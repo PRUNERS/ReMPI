@@ -23,5 +23,8 @@ typedef struct {
   reomp_gate_out_aft_reduce_end_t out_are;
 } reomp_gate_t;
 
+extern reomp_gate_t reomp_gate_clock;
+extern reomp_gate_t reomp_gate_tid;
+
 #endif
 
