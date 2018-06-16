@@ -28,9 +28,8 @@
 #define DRACE_PATH_MAX (4096)
 #define DRACE_STL_LEVEL_INSTRUMENTATION
 
-#define DRACE_NULL (0)
-#define DRACE_WRITE_RACE (1)
-#define DRACE_READ_RACE  (2)
+
+
 #define DRACE_PARALLEL   (3)
 #define DRACE_SERIAL     (4)
 
@@ -58,7 +57,7 @@ public:
   int is_stl; 
   int is_candidate;
   int is_noname;
-  uint64_t access; //DRACE_WRITE_RACE, DRACE_READ_RACE or DRACE_NULL
+  uint64_t access; //DRACE_WRITE_RACE, DRACE_READ_RACE, DRACE_NULL or DRACE_WRITE_RACE | DRACE_READ_RACE
   int call_stl = 0;
   static call_func* null_call_func;
   static call_func* get_null_call_func() {
@@ -780,7 +779,7 @@ void reomp_drace_parse(reomp_drace_log_type type)
 }
 
 //int  reomp_drace_is_data_race(const char* func, const char* dir, const char* file, int line, int column, uint64_t* access)
-int  reomp_drace_is_data_race(const char* func, const char* dir, const char* file, int line, int column)
+int  reomp_drace_is_data_race(const char* func, const char* dir, const char* file, int line, int column, uint64_t* access)
 {
   unsigned int hash_val;
   char* file_path = NULL;
@@ -804,7 +803,6 @@ int  reomp_drace_is_data_race(const char* func, const char* dir, const char* fil
 
 
   hash_val = call_func::cf_hash(func, file_path_real, line, column, NULL);
-  
 
 
   if (drace_data_race_access_umap.find(hash_val) != drace_data_race_access_umap.end()) {
