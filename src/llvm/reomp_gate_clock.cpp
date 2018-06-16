@@ -19,7 +19,7 @@
 #include <atomic>
 #include <list>
 
-#include "reomp_rr.h"
+#include "reomp.h"
 #include "reomp_gate.h"
 #include "reomp_gate_clock.h"
 #include "reomp_mem.h"
@@ -75,6 +75,7 @@ static int reomp_get_thread_num()
 
 static void reomp_cgate_init_file(int control)
 {
+  MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_ENTIRE, NULL);
   for (int i = 0; i < REOMP_MAX_THREAD; i++) {
     reomp_fds[i].fd = NULL;
     reomp_fds[i].total_write_bytes = 0;
@@ -96,21 +97,12 @@ static void reomp_cgate_finalize_file()
     }
   }
   MUTIL_TIMER(MUTIL_TIMER_STOP , REOMP_TIMER_IO_TIME, NULL);
-
-  // REOMP_MON_SAMPLE_CALLSTACK_PRINT();
-  // unordered_map<size_t, size_t>::iterator it, it_end;
-  // for (it = callstack_hash_umap.begin(),
-  // 	 it_end = callstack_hash_umap.end();
-  //      it != it_end;
-  //      it++) {
-  //   MUTIL_DBG("Hash: %lu, Count: %lu", it->first, it->second);
-  // }
   MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_ENTIRE, NULL);
+  
   MUTIL_TIMER(MUTIL_TIMER_GET_TIME, REOMP_TIMER_ENTIRE, &entire_time);
   MUTIL_TIMER(MUTIL_TIMER_GET_TIME, REOMP_TIMER_GATE_TIME, &gate_time);
   MUTIL_TIMER(MUTIL_TIMER_GET_TIME, REOMP_TIMER_IO_TIME, &io_time);
-  MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_ENTIRE, NULL);
-  MUTIL_DBG("Overhead: %f (Gate: %f, IO: %f) VERSION: %d", entire_time, gate_time, io_time, REOMP_RR_VERSION);
+  MUTIL_DBG("Overhead: %f (Gate: %f, IO: %f) method= %d", entire_time, gate_time, io_time, reomp_config.method);
   return;
 }
 
@@ -143,7 +135,7 @@ static FILE* reomp_get_fd(int my_tid)
   sprintf(path, "%s/rank_%d-tid_%d.reomp", reomp_config.record_dir, my_rank, my_tid);
   //  MUTIL_DBG("Open: %s", path);
 
-  if (reomp_config.mode == REOMP_RECORD) {
+  if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
     flags = O_CREAT | O_WRONLY;
     mode  = S_IRUSR | S_IWUSR;
     fmode = (char*)"w+";
@@ -247,7 +239,7 @@ static void reomp_cgate_ticket_wait(int tid)
   if (tid == time_tid)  {
     MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_GATE_TIME, NULL);
   }
-  if (reomp_config.mode == REOMP_RECORD) {
+  if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
     omp_set_lock(&reomp_omp_lock);
   } else {
     clock = reomp_cgate_get_clock_replay(tid);
@@ -280,7 +272,7 @@ static  void reomp_cgate_leave(int tid)
   
   //  if (gate_clock % 100000 == 0) MUTIL_DBG("OUT: tid %d: gate_clock: %d", tid, gate_clock);
   current_tid = -1;
-  if (reomp_config.mode == REOMP_RECORD) {
+  if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
     int clock;
     clock = gate_clock++;
     omp_unset_lock(&reomp_omp_lock);
@@ -304,10 +296,7 @@ static  void reomp_cgate_in(int control, void* ptr, size_t lock_id, int lock)
   //  MUTIL_DBG("-- IN");
   if(omp_get_num_threads() == 1) return;
   tid = reomp_get_thread_num();
-
   reomp_cgate_ticket_wait(tid);
-
-
   return;
 }
 
@@ -336,10 +325,10 @@ static  void reomp_cgate_in_bef_reduce_begin(int control, void* ptr, size_t null
   int tid;
   
   tid = reomp_get_thread_num();
-  if (reomp_config.mode == REOMP_RECORD) {
+  if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
     /* Nothing to do */
     reomp_cgate_record_reduction_method_init(tid);
-  } else if (reomp_config.mode == REOMP_REPLAY) {
+  } else if (reomp_config.mode == REOMP_ENV_MODE_REPLAY) {
     reduction_method = reomp_cgate_read_reduction_method(tid);
     if (reduction_method == REOMP_REDUCE_LOCK_MASTER) {
       reomp_cgate_ticket_wait(tid);
@@ -362,7 +351,7 @@ static  void reomp_cgate_in_aft_reduce_begin(int control, void* ptr, size_t redu
   int tid;
   int clock;
   tid = reomp_get_thread_num();
-  if (reomp_config.mode == REOMP_RECORD) {
+  if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
     if (reduction_method == REOMP_REDUCE_LOCK_MASTER) {
       /* If all threads have REOMP_REDUCE_LOCK_MASTER: 
 	     This section is already serialized by __kmpc_reduce or __kmpc_reduce_nowait
@@ -384,7 +373,7 @@ static  void reomp_cgate_in_aft_reduce_begin(int control, void* ptr, size_t redu
     } else {
       MUTIL_ERR("No such reduction method: %lu", reduction_method);
     }
-  } else if (reomp_config.mode == REOMP_REPLAY) {
+  } else if (reomp_config.mode == REOMP_ENV_MODE_REPLAY) {
     if (reduction_method == REOMP_REDUCE_LOCK_MASTER) {
       /* If all threads have REOMP_REDUCE_LOCK_MASTER: 
              This section is already serialized by reomp_gate_in_bef_reduce_begin and (__kmpc_reduce or __kmpc_reduce_nowait)
@@ -415,7 +404,7 @@ static  void reomp_cgate_out_reduce_end(int control, void* ptr, size_t reduction
   int tid;
   int clock;
   tid = reomp_get_thread_num();
-  if (reomp_config.mode == REOMP_RECORD) {
+  if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
     if (reduction_method == REOMP_REDUCE_LOCK_MASTER) {
       reomp_cgate_leave(tid);
       reomp_cgate_record_reduction_method(tid, reduction_method);
@@ -433,7 +422,7 @@ static  void reomp_cgate_out_reduce_end(int control, void* ptr, size_t reduction
     } else {
       MUTIL_ERR("No such reduction method: %lu", reduction_method);
     }
-  } else if (reomp_config.mode == REOMP_REPLAY) {
+  } else if (reomp_config.mode == REOMP_ENV_MODE_REPLAY) {
     if (reduction_method == REOMP_REDUCE_LOCK_MASTER) {
       reomp_cgate_leave(tid);
     } else if (reduction_method == REOMP_REDUCE_LOCK_WORKER) {

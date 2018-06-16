@@ -41,7 +41,7 @@
 #include "rempi_request_mg.h"
 #include "rempi_sig_handler.h"
 
-#include "llvm/reomp_rr.h"
+#include "llvm/reomp.h"
 
 using namespace std;
 

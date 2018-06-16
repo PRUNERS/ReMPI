@@ -371,7 +371,7 @@ double MUTIL_FUNC(get_time)(void)
   return t;
 }
 
-void MUTIL_FUNC(timer)(int mode, int timerIndex, double *time)
+void MUTIL_FUNC(timer)(int mode, int timerIndex, double *time, char* file, int line)
 {
   static unordered_map<int, timer_counters_t*> timer_umap;
   timer_counters_t *tcs;
@@ -386,14 +386,14 @@ void MUTIL_FUNC(timer)(int mode, int timerIndex, double *time)
       tcs = timer_umap[timerIndex];
     }
     if (tcs->start != 0) {
-      MUTIL_ERR("Double timer start: Timer is still running: timer index: %d", timerIndex);
+      MUTIL_ERR("Double timer start: Timer is still running: timer index=%d at %s:%d", timerIndex, file, line);
       exit(1);
     }
     tcs->start = MUTIL_FUNC(get_time)();
     break;
   case MUTIL_TIMER_STOP:
     if (timer_umap.find(timerIndex) == timer_umap.end()) {
-      MUTIL_ERR("No such timer index");
+      MUTIL_ERR("No such timer index: %d at %s:%d", timerIndex, file, line);
       exit(1);
     }
     tcs = timer_umap[timerIndex];
@@ -406,8 +406,9 @@ void MUTIL_FUNC(timer)(int mode, int timerIndex, double *time)
     break;
   case MUTIL_TIMER_GET_TIME:
     if (timer_umap.find(timerIndex) == timer_umap.end()) {
-      MUTIL_ERR("No such timer index: %d", timerIndex);
-      exit(1);
+      *time = 0;
+      return;
+      //MUTIL_ERR("No such timer index: %d at %s:%d", timerIndex, file, line);
     }
     tcs = timer_umap[timerIndex];
     if (tcs->start != 0) {

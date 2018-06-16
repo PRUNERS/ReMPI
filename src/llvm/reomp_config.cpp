@@ -15,7 +15,29 @@ void reomp_config_init()
   char *env;
   struct stat st;
 
-  if (!(env = getenv(REOMP_DIR))) {
+  if (!(env = getenv(REOMP_ENV_NAME_MODE))) {
+    reomp_config.mode = REOMP_ENV_MODE_DISABLE;
+  } else if (!strcmp(env, "record") || atoi(env) == REOMP_ENV_MODE_RECORD) {
+    reomp_config.mode = REOMP_ENV_MODE_RECORD;
+  } else if (!strcmp(env, "replay") || atoi(env) == REOMP_ENV_MODE_REPLAY) {
+    reomp_config.mode = REOMP_ENV_MODE_REPLAY;
+  } else if (!strcmp(env, "disable") || atoi(env) == REOMP_ENV_MODE_DISABLE) {
+    reomp_config.mode = REOMP_ENV_MODE_DISABLE;
+  } else {
+    MUTIL_DBG("Unknown REOMP_MODE: %s", env);
+    MUTIL_ERR("Set REOMP_MODE=<0(record)|1(replay)\n");
+  }
+
+  if (!(env = getenv(REOMP_ENV_NAME_METHOD))) {
+    reomp_config.method = REOMP_ENV_METHOD_CLOCK;
+  } else if (atoi(env) == REOMP_ENV_METHOD_CLOCK) {
+    reomp_config.method = REOMP_ENV_METHOD_CLOCK;
+  } else if (atoi(env) == REOMP_ENV_METHOD_TID) {
+    reomp_config.method = REOMP_ENV_METHOD_TID;
+  }
+    
+
+  if (!(env = getenv(REOMP_ENV_NAME_DIR))) {
     reomp_config.record_dir = (char*)".";
   } else {
     reomp_config.record_dir = env;
@@ -23,21 +45,11 @@ void reomp_config_init()
 
   if (stat(reomp_config.record_dir, &st) != 0) {
     if (mkdir(reomp_config.record_dir, S_IRWXU) < 0) {
-      MUTIL_ERR("Failded to make directory: %s", reomp_config.record_dir);
+      if (errno != EEXIST) {
+	MUTIL_ERR("Failded to make directory: path=%s: %s", reomp_config.record_dir, strerror(errno));
+      }
     }
   }
 
-  if (!(env = getenv(MODE))) {
-    reomp_config.mode = REOMP_DISABLE;
-  } else if (!strcmp(env, "record") || atoi(env) == REOMP_RECORD) {
-    reomp_config.mode = REOMP_RECORD;
-  } else if (!strcmp(env, "replay") || atoi(env) == REOMP_REPLAY) {
-    reomp_config.mode = REOMP_REPLAY;
-  } else if (!strcmp(env, "disable") || atoi(env) == REOMP_DISABLE) {
-    reomp_config.mode = REOMP_DISABLE;
-  } else {
-    MUTIL_DBG("Unknown REOMP_MODE: %s", env);
-    MUTIL_ERR("Set REOMP_MODE=<0(record)|1(replay)\n");
-  }
   return;
 }

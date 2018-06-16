@@ -15,7 +15,7 @@
 
 #include "../config.h"
 #include "../src/llvm/mutil.h"
-#include "../src/llvm/reomp_rr.h"
+#include "../src/llvm/reomp.h"
 //#include "caliper/cali.h"
 
 using namespace std;

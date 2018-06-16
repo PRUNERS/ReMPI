@@ -8,14 +8,19 @@
 #define REOMP_TIMER_GATE_TIME  (2)
 #define REOMP_TIMER_IO_TIME    (3)
 
-#define MODE "REOMP_MODE"
-#define REOMP_DIR "REOMP_DIR"
-#define REOMP_RECORD (0)
-#define REOMP_REPLAY (1)
-#define REOMP_DISABLE (2)
+#define REOMP_ENV_NAME_MODE   "REOMP_MODE"
+#define REOMP_ENV_MODE_RECORD (0)
+#define REOMP_ENV_MODE_REPLAY (1)
+#define REOMP_ENV_MODE_DISABLE (2)
+#define REOMP_ENV_NAME_METHOD "REOMP_METHOD"
+#define REOMP_ENV_METHOD_CLOCK (0)
+#define REOMP_ENV_METHOD_TID   (1)  
+#define REOMP_ENV_NAME_DIR "REOMP_DIR"
+
 
 typedef struct {
   int   mode;
+  int method;
   char* record_dir;
 } reomp_config_t;
 

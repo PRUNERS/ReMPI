@@ -72,8 +72,8 @@ rempi_test_msg_race_LDADD = $(librempi_LIB)
 reomp_test_units_SOURCES = reomp_test_units.cpp rempi_test_util.c
 #reomp_test_units_CCFLAGS = -O0 -g -Wall -fopenmp `llvm-config --cflags` -fno-inline
 reomp_test_units_CCFLAGS = -O0 -g -Wall -fopenmp -fno-inline -Wno-deprecated -std=c++11 $(CALIPER)
-reomp_test_units_LDFLAGS = -L./ `llvm-config --ldflags` -L../src/llvm/.libs/ -lreomprr $(CALIPER)
-reomp_test_units_LLVMIRPASS = ../src/llvm/.libs/libreomp.so
+reomp_test_units_LDFLAGS = -L./ `llvm-config --ldflags` -L../src/llvm/.libs/ -lreomp $(CALIPER)
+reomp_test_units_LLVMIRPASS = ../src/llvm/.libs/libreompir.so
 
 reomp_test_units$(EXEEXT): $(reomp_test_units_OBJECTS) $(reomp_test_units_DEPENDENCIES) $(EXTRA_reomp_test_units_DEPENDENCIES) $(reomp_test_units_LLVMIRPASS)
 	@rm -f reomp_test_units$(EXEEXT)

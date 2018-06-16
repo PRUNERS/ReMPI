@@ -186,46 +186,6 @@ public:
     
   void filter_out_deterministic_call_stack() {
     this->print();
-    // if (this->hash_val == -94558048 ||
-    // 	this->hash_val == 1713692692 ||
-    // 	this->hash_val == 2117693404 ||
-    // 	this->hash_val == -298584430 ||
-    // 	this->hash_val == -405885346 ||
-    // 	this->hash_val == -717531008 ||
-    // 	this->hash_val == -407775644 ||
-
-    // 	this->hash_val == -1889054192 ||
-    // 	this->hash_val == -1828446340  ||
-
-    // 	this->hash_val == 1105719566 || <---- This race
-    // this->hash_val == 1286519038 ||
-
-    // 	this->hash_val == -343711326 || 
-    // 	this->hash_val == 2036164980 || 
-    // this->hash_val == -94558048 ||
-    // this->hash_val == 1713692692   ||
-
-    // this->hash_val == 2117693404 ||
-    // this->hash_val == -298584430 ||
-    // this->hash_val == -405885346 ||
-    // this->hash_val == -717531008  ||	
-    // this->hash_val == -407775644  ||
-    // this->hash_val ==  -1889054192 ||
-    // this->hash_val == -1828446340 ||
-    // this->hash_val == -94558048 ||	
-    // this->hash_val == 1713692692 ||
-    // this->hash_val == 2117693404 ||
-    // this->hash_val == -298584430  ||
-    // this->hash_val == -405885346  ||	
-    // this->hash_val == -717531008 ||
-    // this->hash_val == -407775644  ||
-    // this->hash_val == -1889054192  ||
-    //	this->hash_val == -1828446340 ||
-    // this->hash_val == 1105719566 ||
-    // this->hash_val == 1286519038 ||
-    // this->hash_val == -343711326 ||
-    // this->hash_val == 2036164980
-    //	) {return;}
     for (int sindex = 0; sindex < 2; sindex++) {
       if (data_race_rw[sindex] == DRACE_NULL || 
       	  parallel_or_serial[sindex] == DRACE_NULL) {
@@ -845,33 +805,7 @@ int  reomp_drace_is_data_race(const char* func, const char* dir, const char* fil
 
   hash_val = call_func::cf_hash(func, file_path_real, line, column, NULL);
   
-  if (line == 11) {
-    //    MUTIL_DBG("%d  %d %s %d %d", hash_val, 0, file_path_real, line, column);
-  // MUTIL_DBG("====== Racy accesses ========");
-  // unordered_map<size_t, call_func*>::iterator it, it_end;
-  // it     = drace_data_race_access_umap.begin();
-  // it_end = drace_data_race_access_umap.end();
-  // for (; it != it_end; it++) {
-  //   call_func *cfunc = it->second;
-  //   cfunc->print();
-  // }
-  // MUTIL_DBG("=============================");
-  //   exit(0);
-  // }
-  
-  // if (line == 240 && column == 10) {
-  //   MUTIL_DBG(" --> %s:%d:%d (%s %s)", file_path_real, line, column, dir, file);
-  // }
 
-  // if (!strcmp(func, ".omp_outlined.")) {
-  //   MUTIL_DBG("%s %s %d %d", func, file_path_real, line, column);
-  // }
-
-  //  MUTIL_DBG("%s %s %d %d", func, file_path_real, line, column);
-  // if (line == 322) {
-  //   MUTIL_DBG("%s %s %d %d", func, file_path_real, line, column);
-  // }
-  }
 
   if (drace_data_race_access_umap.find(hash_val) != drace_data_race_access_umap.end()) {
     int lock_set_id;

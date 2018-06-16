@@ -61,7 +61,7 @@ extern char mutil_hostname[256];
 #ifdef ENABLE_TIMER
 #define MUTIL_TIMER(mode, timerIndex, time) \
   do { \
-    MUTIL_FUNC(timer)(mode, timerIndex, time);	\
+    MUTIL_FUNC(timer)(mode, timerIndex, time, __FILE__, __LINE__);	\
   } while(0)
 #else
 #define MUTIL_TIMER(mode, timerIndex, time)
@@ -93,7 +93,7 @@ void* MUTIL_FUNC(malloc)(size_t size);
 void* MUTIL_FUNC(realloc)(void *ptr, size_t size);
 void MUTIL_FUNC(free)(void* addr);
 double MUTIL_FUNC(get_time)(void);
-void MUTIL_FUNC(timer)(int mode, int timerIndex, double *time);
+void MUTIL_FUNC(timer)(int mode, int timerIndex, double *time, char* file, int line);
 void MUTIL_FUNC(dbg_sleep_sec)(int sec);
 void MUTIL_FUNC(sleep_sec)(int sec);
 void MUTIL_FUNC(dbg_sleep_usec)(int sec);

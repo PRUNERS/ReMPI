@@ -19,7 +19,7 @@
 #include <atomic>
 #include <list>
 
-#include "reomp_rr.h"
+#include "reomp.h"
 #include "reomp_config.h"
 #include "reomp_gate.h"
 #include "reomp_mem.h"
@@ -105,7 +105,7 @@ static void reomp_tgate_init_file(int control)
   int mode = -1;
   char *fmode;
 
-  if (reomp_config.mode == REOMP_RECORD) {
+  if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
     flags = O_CREAT | O_WRONLY;
     mode  = S_IRUSR | S_IWUSR;
     fmode = (char*)"w+";
@@ -189,7 +189,7 @@ static void reomp_tgate_in(int control, void* ptr, size_t lock_id, int lock)
     return;
   }
   
-  if (reomp_config.mode == REOMP_RECORD) {
+  if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
     //    if (tid == time_tid) tmp_time = reomp_util_get_time();
     if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_GATE_TIME, NULL);
     //if(lock == REOMP_WITH_LOCK) omp_set_nest_lock(&record_locks[lock_id]);
@@ -243,7 +243,7 @@ static void reomp_tgate_out(int control, void* ptr, size_t lock_id, int lock)
 
   tid = reomp_tgate_get_thread_num();
   //  MUTIL_DBG("Gate-Out: tid: %d: lock: %d, replay_thread_num: %d", tid, lock, replay_thread_num);
-  if (reomp_config.mode == REOMP_RECORD) {
+  if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
     //    MUTIL_DBG("unlock: %d", tid);
     //    write(fp, &tid, sizeof(int));
 #ifndef REOMP_SKIP_RECORD
