@@ -35,7 +35,9 @@
 static void reomp_cgate_init(int control, size_t num_locks);
 static void reomp_cgate_finalize();
 static void reomp_cgate_in(int control, void* ptr, size_t lock_id, int lock);
+static void reomp_scgate_in(int control, void* ptr, size_t lock_id, int lock);
 static void reomp_cgate_out(int control, void* ptr, size_t lock_id, int lock);
+static void reomp_scgate_out(int control, void* ptr, size_t lock_id, int lock);
 static void reomp_cgate_in_bef_reduce_begin(int control, void* ptr, size_t null);
 static void reomp_cgate_in_aft_reduce_begin(int control, void* ptr, size_t reduction_method);
 static void reomp_cgate_out_reduce_end(int control, void* ptr, size_t reduction_method);
@@ -62,10 +64,36 @@ reomp_gate_t reomp_gate_clock = {
   reomp_cgate_out_aft_reduce_end,
 };
 
+reomp_gate_t reomp_gate_sclock = {
+  reomp_cgate_init,
+  reomp_cgate_finalize,
+  reomp_scgate_in,
+  reomp_scgate_out,
+  reomp_cgate_in_bef_reduce_begin,
+  reomp_cgate_in_aft_reduce_begin,
+  reomp_cgate_out_bef_reduce_end,
+  reomp_cgate_out_aft_reduce_end,
+};
+
 static volatile int current_tid = -1;
-static volatile int reserved_clock = 0, gate_clock = 0;
+static volatile int gate_clock = 0;
 static volatile int nest_num = 0;
 static int time_tid = 0;
+
+
+/* ---- For speculative cgate ---- */
+#include <setjmp.h>
+#define REOMP_SCGATE_LONGJMP (1)
+typedef struct {
+  jmp_buf jmpenv;
+  int speculative_clock = 0;
+  int num_aborted = 0;
+  //  char padding[128 - sizeof(jmp_buf) - sizeof(int) * 2];
+} reomp_scgate_t;
+static reomp_scgate_t reomp_scgate[REOMP_MAX_THREAD];
+static volatile int reomp_scgate_num_aborted = 0;
+static volatile int next_clock = 0;
+/* -------------------------------  */
 
 
 static int reomp_get_thread_num()
@@ -159,12 +187,12 @@ static void reomp_fwrite(const void * ptr, size_t size, size_t count, int tid)
 {
   size_t write_count;
   FILE *stream;
-  if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_IO_TIME, NULL);
+  //  if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_IO_TIME, NULL);
   stream = reomp_get_fd(tid);
   write_count = fwrite(ptr, size, count, stream);
   if (write_count != count) MUTIL_ERR("fwrite failed");
   reomp_fds[tid].total_write_bytes += write_count * size;
-  if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_IO_TIME, NULL);
+  //if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_IO_TIME, NULL);
   //  if (!tid) MUTIL_DBG("tid: %d: size: %lu", tid, reomp_fds[tid].total_write_bytes);
   return;
 }
@@ -312,11 +340,71 @@ static  void reomp_cgate_out(int control, void* ptr, size_t lock_id, int lock)
   tid = reomp_get_thread_num();
   //  MUTIL_DBG("-- OUT: tid %d: gate_clock: %d", tid, gate_clock);
   reomp_cgate_leave(tid);
-
-
-
   return;
 }
+
+static void reomp_scgate_in(int control, void* ptr, size_t lock_id, int lock)
+{
+  int tid;
+  int val;
+  reomp_scgate_t *scgate;
+
+  if(omp_get_num_threads() == 1) return;
+  
+  tid = omp_get_thread_num();
+  scgate =&reomp_scgate[tid];
+  if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
+#if 0
+    val = setjmp(scgate->jmpenv);
+    scgate->speculative_clock = __sync_fetch_and_add(&gate_clock, 1);
+    //    fprintf(stderr, "tid: %d: val=%d clock=%d\n", tid, val, tmp_clock[tid * 64]);
+    if (val == REOMP_SCGATE_LONGJMP) {
+      scgate->num_aborted = __sync_fetch_and_add(&reomp_scgate_num_aborted, 1);
+    } else {
+      scgate->num_aborted = reomp_scgate_num_aborted - 1;
+    }
+#else
+    scgate->speculative_clock = __sync_fetch_and_add(&next_clock, 1);
+    while(scgate->speculative_clock != gate_clock);
+#endif
+  } else {
+    reomp_cgate_ticket_wait(tid);
+  }
+  //  fprintf(stderr, "tid: %d: end in\n", tid);
+}
+
+static void reomp_scgate_out(int control, void* ptr, size_t lock_id, int lock)
+{
+  int tid;
+  reomp_scgate_t *scgate;
+  int clock_to_record;
+
+  if(omp_get_num_threads() == 1) return;
+  
+  tid = omp_get_thread_num();
+  scgate =&reomp_scgate[tid];
+  //  fprintf(stderr, "tid: %d: start out\n", tid);
+  if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
+#if 0    
+    if (scgate->speculative_clock == gate_clock -1) {
+      clock_to_record = scgate->speculative_clock - scgate->num_aborted;
+      reomp_cgate_record_ticket_number(tid, clock_to_record - 1);
+      fprintf(stderr, "Tid: %d: fwrite %d\n", tid, clock_to_record - 1);
+    } else {
+      //      fprintf(stderr, "tid: %d: jmp %d\n", tid, tmp_clock[index]);
+      longjmp(scgate->jmpenv, REOMP_SCGATE_LONGJMP);
+    }
+#else
+    gate_clock++;
+    reomp_cgate_record_ticket_number(tid,  scgate->speculative_clock);
+    //    fprintf(stderr, "Tid: %d: fwrite %d\n", tid, scgate->speculative_clock);
+#endif
+  } else {
+    reomp_cgate_leave(tid);
+  }
+  //  fprintf(stderr, "tid: %d: end out\n", tid);
+}
+
 
 
 static  void reomp_cgate_in_bef_reduce_begin(int control, void* ptr, size_t null)

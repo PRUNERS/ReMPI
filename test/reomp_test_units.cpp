@@ -522,7 +522,9 @@ static int reomp_test_omp_critical(reomp_input_t *input);
 static int reomp_test_omp_critical2(reomp_input_t *input);
 static int reomp_test_omp_reduction(reomp_input_t *input);
 static int reomp_test_omp_atomic(reomp_input_t *input);
+static int reomp_test_omp_atomic_load(reomp_input_t *input);
 static int reomp_test_data_race(reomp_input_t *input);
+static int reomp_test_mpmc(reomp_input_t *input);
 
 static double num_loops_scale = 1;
 
@@ -533,8 +535,11 @@ reomp_test_t reomp_test_cases[] =
     {(char*)"omp_critical", reomp_test_omp_critical,   {0, 0,    3000000L}},
     //    {(char*)"omp_critical2", reomp_test_omp_critical2, {1, 1}},
     {(char*)"omp_atomic", reomp_test_omp_atomic,       {0, 0,   30000000L}},
+    {(char*)"omp_atomic_load", reomp_test_omp_atomic_load,       {0, 0,   30000000L}},
     {(char*)"data_race", reomp_test_data_race,         {0, 0,   30000000L}},
-    {(char*)"omp_reduction", reomp_test_omp_reduction, {0, 0,  300000000L}}
+    //    {(char*)"data_race", reomp_test_data_race,         {0, 0,   900L}},
+    {(char*)"omp_reduction", reomp_test_omp_reduction, {0, 0,  300000000L}},
+    {(char*)"mpmc", reomp_test_mpmc, {0, 0,  30000000L}},
   };
 
 static int reomp_test_omp_critical(reomp_input_t *input)
@@ -558,7 +563,6 @@ static int reomp_test_omp_reduction(reomp_input_t *input)
   int sum;
   //  uint64_t num_loops = input->num_loops * num_loops_scale;
   uint64_t num_loops = omp_get_num_threads()  * num_loops_scale;
-  fprintf(stderr, "num_loops: %lu", num_loops);
 #pragma omp parallel for private(i) reduction(+: sum)
   for (i = 0; i < num_loops; i++) {
     sum += 1;
@@ -566,16 +570,30 @@ static int reomp_test_omp_reduction(reomp_input_t *input)
   return sum;
 }
 
-
 static int reomp_test_omp_atomic(reomp_input_t *input)
 {
   uint64_t i;
-  int sum = 1;
+  volatile int sum = 1;
   uint64_t num_loops = input->num_loops * num_loops_scale;
 #pragma omp parallel for private(i)
   for (i = 0; i < num_loops; i++) {
 #pragma omp atomic
-    sum += 1;
+    sum++;
+  }
+  return sum;
+}
+
+
+static int reomp_test_omp_atomic_load(reomp_input_t *input)
+{
+  uint64_t i;
+  static volatile size_t sum = 1;
+  static volatile size_t zero = 0;
+  uint64_t num_loops = input->num_loops * num_loops_scale;
+#pragma omp parallel for private(i)
+  for (i = 0; i < num_loops; i++) {
+#pragma omp atomic
+    sum = sum + zero;
   }
   return sum;
 }
@@ -584,7 +602,7 @@ static int reomp_test_omp_atomic(reomp_input_t *input)
 static int reomp_test_data_race(reomp_input_t *input)
 {
   uint64_t i;
-  int sum = 1;
+  volatile int sum = 1;
   uint64_t num_loops = input->num_loops * num_loops_scale;
 #pragma omp parallel for private(i)
   for (i = 0; i < num_loops; i++) {
@@ -593,25 +611,29 @@ static int reomp_test_data_race(reomp_input_t *input)
   return sum;
 }
 
-static int reomp_test_omp_critical2(reomp_input_t *input)
+static int reomp_test_mpmc(reomp_input_t *input)
 {
-  int sum = 0;
+  int counter = 1;
+  int tid;
   uint64_t num_loops = input->num_loops * num_loops_scale;
-  for (int j = 0; j < 100; j++) {
-#pragma omp parallel
-    {
-      uint64_t i;
-      //      int val = input->int_val_1;
-      int num_threads = omp_get_num_threads();
-      for (i = 0; i < num_loops * 10 / num_threads; i++) {
-#pragma omp critical
+#pragma omp parallel private(tid)
+  tid = omp_get_thread_num();
+  for (uint64_t i = 0; i < num_loops; i++) {
+    if (tid) {
+#pragma omp critical(sec)
+      {
+	counter++;
+      }
+    } else {
+      if (counter > 0) {
+#pragma omp critical(sec)
 	{
-	  sum += 1;
+	  if (counter > 0) counter--;
 	}
       }
     }
   }
-  return sum;
+  return counter;
 }
 
 
@@ -876,7 +898,6 @@ static void test_a(int mode)
   int tid;
   int index;
   int val;
-  int tmp;
   int sleep = 0;
 
   int clock;

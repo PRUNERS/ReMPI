@@ -24,7 +24,9 @@ typedef struct {
 } reomp_gate_t;
 
 extern reomp_gate_t reomp_gate_clock;
+extern reomp_gate_t reomp_gate_sclock;
 extern reomp_gate_t reomp_gate_tid;
+
 
 reomp_gate_t* reomp_gate_get(int method);
 

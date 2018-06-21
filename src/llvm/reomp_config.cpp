@@ -30,10 +30,8 @@ void reomp_config_init()
 
   if (!(env = getenv(REOMP_ENV_NAME_METHOD))) {
     reomp_config.method = REOMP_ENV_METHOD_CLOCK;
-  } else if (atoi(env) == REOMP_ENV_METHOD_CLOCK) {
-    reomp_config.method = REOMP_ENV_METHOD_CLOCK;
-  } else if (atoi(env) == REOMP_ENV_METHOD_TID) {
-    reomp_config.method = REOMP_ENV_METHOD_TID;
+  } else {
+    reomp_config.method = atoi(env);
   }
     
 
