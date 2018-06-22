@@ -18,9 +18,10 @@ AM_INIT_AUTOMAKE([foreign -Wall -Werror], [0.1])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 
 
-AC_SUBST([LIB_CURRENT], [1])
+AC_SUBST([LIB_CURRENT], [2])
 AC_SUBST([LIB_REVISION], [0])
-AC_SUBST([LIB_AGE], [0])
+AC_SUBST([LIB_AGE], [1])
+
 
 AC_ARG_ENABLE([cdc],
             [AS_HELP_STRING([--enable-cdc],
