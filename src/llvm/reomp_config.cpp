@@ -33,7 +33,12 @@ void reomp_config_init()
   } else {
     reomp_config.method = atoi(env);
   }
-    
+
+  if (!(env = getenv(REOMP_ENV_NAME_PROFILE))) {
+    reomp_config.profile_level = 0;
+  } else {
+    reomp_config.profile_level = atoi(env);
+  }    
 
   if (!(env = getenv(REOMP_ENV_NAME_DIR))) {
     reomp_config.record_dir = (char*)".";

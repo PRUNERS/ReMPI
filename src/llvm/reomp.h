@@ -27,12 +27,10 @@ void REOMP_CONTROL(int control, void* ptr, size_t size);
 /* #define REOMP_RR_INIT     (0) */
 /* #define REOMP_RR_FINALIZE (1) */
 
-
 #define REOMP_BEF_MAIN (0)
 #define REOMP_AFT_MAIN (1)
 #define REOMP_AFT_MPI_INIT (2)
 
-  
 #define REOMP_GATE_IN  (10)
 #define REOMP_GATE_OUT (11)
 #define REOMP_GATE     (12)
@@ -54,17 +52,16 @@ void REOMP_CONTROL(int control, void* ptr, size_t size);
 #define REOMP_BEG_FUNC_CALL (24)
 #define REOMP_END_FUNC_CALL (25)
 
-#define REOMP_RR_TYPE_MAIN        (100)
-#define REOMP_RR_TYPE_LOAD        (101)
-#define REOMP_RR_TYPE_STORE       (102)
-#define REOMP_RR_TYPE_REDUCTION   (103)
-#define REOMP_RR_TYPE_CRITICAL  ()
-#define REOMP_RR_TYPE_ ()
-#define REOMP_RR_TYPE_ ()
-#define REOMP_RR_TYPE_ ()
-#define REOMP_RR_TYPE_ ()
-#define REOMP_RR_TYPE_ ()
-#define REOMP_RR_TYPE_ ()
+#define REOMP_RR_TYPE_MAIN         (100)
+#define REOMP_RR_TYPE_LOAD         (101)
+#define REOMP_RR_TYPE_STORE        (102)
+#define REOMP_RR_TYPE_REDUCTION    (103)
+#define REOMP_RR_TYPE_CRITICAL     (104)
+#define REOMP_RR_TYPE_SINGLE       (105)
+#define REOMP_RR_TYPE_MASTER       (106)
+#define REOMP_RR_TYPE_ATOMIC       (107)
+#define REOMP_RR_TYPE_CPP_STL      (108)
+  
 
 
 #define REOMP_DEBUG_PRINT (90)

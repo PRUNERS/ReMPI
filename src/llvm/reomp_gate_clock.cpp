@@ -77,6 +77,7 @@ reomp_gate_t reomp_gate_sclock = {
 
 static volatile int current_tid = -1;
 static volatile int gate_clock = 0;
+static volatile int next_clock = 0;
 static volatile int nest_num = 0;
 static int time_tid = 0;
 
@@ -92,7 +93,7 @@ typedef struct {
 } reomp_scgate_t;
 static reomp_scgate_t reomp_scgate[REOMP_MAX_THREAD];
 static volatile int reomp_scgate_num_aborted = 0;
-static volatile int next_clock = 0;
+
 /* -------------------------------  */
 
 
@@ -187,12 +188,12 @@ static void reomp_fwrite(const void * ptr, size_t size, size_t count, int tid)
 {
   size_t write_count;
   FILE *stream;
-  //  if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_IO_TIME, NULL);
+  if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_IO_TIME, NULL);
   stream = reomp_get_fd(tid);
   write_count = fwrite(ptr, size, count, stream);
   if (write_count != count) MUTIL_ERR("fwrite failed");
   reomp_fds[tid].total_write_bytes += write_count * size;
-  //if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_IO_TIME, NULL);
+  if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_IO_TIME, NULL);
   //  if (!tid) MUTIL_DBG("tid: %d: size: %lu", tid, reomp_fds[tid].total_write_bytes);
   return;
 }
@@ -365,7 +366,9 @@ static void reomp_scgate_in(int control, void* ptr, size_t lock_id, int lock)
     }
 #else
     scgate->speculative_clock = __sync_fetch_and_add(&next_clock, 1);
+    if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_GATE_TIME, NULL);
     while(scgate->speculative_clock != gate_clock);
+    if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_GATE_TIME, NULL);
 #endif
   } else {
     reomp_cgate_ticket_wait(tid);

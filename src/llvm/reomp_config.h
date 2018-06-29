@@ -15,13 +15,15 @@
 #define REOMP_ENV_NAME_METHOD "REOMP_METHOD"
 #define REOMP_ENV_METHOD_CLOCK (0)
 #define REOMP_ENV_METHOD_SCLOCK (1)
-#define REOMP_ENV_METHOD_TID   (2)  
+#define REOMP_ENV_METHOD_TID   (2)
+#define REOMP_ENV_NAME_PROFILE "REOMP_PROFILE"
 #define REOMP_ENV_NAME_DIR "REOMP_DIR"
 
 
 typedef struct {
   int   mode;
   int method;
+  int profile_level = 0;
   char* record_dir;
 } reomp_config_t;
 

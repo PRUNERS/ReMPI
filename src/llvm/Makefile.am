@@ -23,6 +23,7 @@ libreompir_la_LDLIBS  = `llvm-config --ldlibs`
 
 reomp_SOURCES =  \
 		reomp_omp_wrapper.cpp \
+		reomp_profile.cpp \
 		reomp_gate.cpp \
 		reomp_gate_tid.cpp \
 		reomp_gate_clock.cpp \
