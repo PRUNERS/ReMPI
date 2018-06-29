@@ -36,7 +36,6 @@ void reomp_init(int control, size_t size)
 {
   reomp_config_init();
   REOMP_PROFILE(reomp_profile_init());
-  
   reomp_gate = reomp_gate_get(reomp_config.method);
   reomp_gate->init(control, size);
   return;
@@ -45,16 +44,16 @@ void reomp_init(int control, size_t size)
 void reomp_finalize()
 {
   reomp_gate->finalize();
+  REOMP_PROFILE(reomp_profile_print());
   REOMP_PROFILE(reomp_profile_finalize());
   return;
 }
 
-int counter=0;
 void REOMP_CONTROL(int control, void* ptr, size_t size)
 {
 
   if (reomp_config.mode == REOMP_ENV_MODE_DISABLE) return;
-  if (reomp_config.profile_level > 0) 
+  REOMP_PROFILE(reomp_profile((size_t)ptr, size));
 
   switch(control) {
   case REOMP_BEF_MAIN: // 0

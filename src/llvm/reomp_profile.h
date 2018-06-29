@@ -18,11 +18,13 @@
 
 #include <unordered_map>
 
+#include "reomp_config.h"
+
 #define REOMP_PROFILE_ENABLE
 #ifdef REOMP_PROFILE_ENABLE
 #define REOMP_PROFILE(profile_func)	    \
   do {					    \
-    profile_func;			    \
+    if (reomp_config.profile_level > 0) profile_func;			    \
   } while(0)
 #else
 #define REOMP_PROFILE(profile_func)
@@ -38,8 +40,7 @@ typedef struct {
 } reomp_profile_t;
 
 void reomp_profile_init();
-void reomp_profile_rr_type(size_t rr_type);
-void reomp_profile_rr_rw_seq(size_t rr_type, size_t lock_id);
+void reomp_profile(size_t rr_type, size_t lock_id);
 void reomp_profile_print();
 void reomp_profile_finalize();
 
