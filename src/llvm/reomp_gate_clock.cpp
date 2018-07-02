@@ -174,6 +174,7 @@ static FILE* reomp_get_fd(int my_tid)
     mode  = 0;
     fmode = (char*)"r";
   }
+  MUTIL_DBG("%s", path);
   tmp_fd = fopen(path, fmode);
   if (tmp_fd == NULL) {
     MUTIL_ERR("file fopen failed: errno=%d path=%s flags=%d moe=%d (%d %d)",
@@ -247,13 +248,13 @@ static void reomp_cgate_record_reduction_method(int tid, size_t reduction_method
   fd = reomp_get_fd(tid);
   offset = reomp_fds[tid].total_write_bytes - reomp_fds[tid].write_bytes_at_reduction;
   offset = -offset;
-  if (!tid) MUTIL_DBG("tid: %d: %lu - %lu", tid, reomp_fds[tid].write_bytes_at_reduction, reomp_fds[tid].total_write_bytes);
+  //  if (!tid) MUTIL_DBG("tid: %d: %lu - %lu", tid, reomp_fds[tid].write_bytes_at_reduction, reomp_fds[tid].total_write_bytes);
   fseek(fd, offset, SEEK_END);
   reomp_fwrite(&reduction_method, sizeof(size_t), 1, tid);
   fseek(fd, 0, SEEK_END);
   reomp_fds[tid].write_bytes_at_reduction = 0;
   //  if (!tid)  MUTIL_DBG("tid: %d: Reduction: %lu (gk: %d)", tid, reduction_method, gate_clock);
-  MUTIL_DBG("tid: %d: Reduction: %lu offset: %ld, (gk: %d)", tid, reduction_method, offset, gate_clock);
+  //  MUTIL_DBG("tid: %d: Reduction: %lu offset: %ld, (gk: %d)", tid, reduction_method, offset, gate_clock);
   return;
 }
 

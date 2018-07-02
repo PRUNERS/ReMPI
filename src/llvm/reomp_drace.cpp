@@ -650,7 +650,7 @@ static void drace_update_data_race_lock_sets(call_func *cfunc1, call_func *cfunc
 
 static void drace_create_data_race_lock_set_id()
 {
-  int id = 1;
+  int id = 1000;
   list<unordered_set<unsigned int>*>::iterator it, it_end;
   unordered_set<unsigned int>::iterator it2, it2_end;
   for (it     = drace_data_race_lock_sets.begin(),

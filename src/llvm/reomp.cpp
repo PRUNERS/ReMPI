@@ -49,9 +49,43 @@ void reomp_finalize()
   return;
 }
 
+char* reomp_get_rr_type_str(int rr_type)
+{
+  switch(rr_type) {
+  case REOMP_RR_TYPE_NONE:
+    return (char*)"none";
+  case REOMP_RR_TYPE_MAIN:
+    return (char*)"main";
+  case REOMP_RR_TYPE_LOAD:
+    return (char*)"load";
+  case REOMP_RR_TYPE_STORE:
+    return (char*)"store";
+  case REOMP_RR_TYPE_REDUCTION:
+    return (char*)"reduction";
+  case REOMP_RR_TYPE_CRITICAL:
+    return (char*)"critical";
+  case REOMP_RR_TYPE_SINGLE:
+    return (char*)"single";
+  case REOMP_RR_TYPE_MASTER:
+    return (char*)"master";
+  case REOMP_RR_TYPE_ATOMICOP:
+    return (char*)"atomicop";
+  case REOMP_RR_TYPE_ATOMICLOAD:
+    return (char*)"atomic_load";
+  case REOMP_RR_TYPE_ATOMICSTORE:
+    return (char*)"atomic_store";
+  case REOMP_RR_TYPE_CPP_STL:
+    return (char*)"cpp_stl";
+  default:
+    return (char*)"No such rr_type";
+  }
+  return NULL;
+}
+
+
+
 void REOMP_CONTROL(int control, void* ptr, size_t size)
 {
-
   if (reomp_config.mode == REOMP_ENV_MODE_DISABLE) return;
   REOMP_PROFILE(reomp_profile((size_t)ptr, size));
 

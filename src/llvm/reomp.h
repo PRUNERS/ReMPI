@@ -60,12 +60,14 @@ void REOMP_CONTROL(int control, void* ptr, size_t size);
 #define REOMP_RR_TYPE_CRITICAL     (104)
 #define REOMP_RR_TYPE_SINGLE       (105)
 #define REOMP_RR_TYPE_MASTER       (106)
-#define REOMP_RR_TYPE_ATOMIC       (107)
-#define REOMP_RR_TYPE_CPP_STL      (108)
+#define REOMP_RR_TYPE_ATOMICOP     (107)
+#define REOMP_RR_TYPE_ATOMICLOAD   (108)
+#define REOMP_RR_TYPE_ATOMICSTORE  (109)
+#define REOMP_RR_TYPE_CPP_STL      (110)
   
-
-
 #define REOMP_DEBUG_PRINT (90)
+
+char* reomp_get_rr_type_str(int rr_type);
 
 #ifdef __cplusplus
 }

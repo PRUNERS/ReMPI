@@ -30,14 +30,6 @@
 #define REOMP_PROFILE(profile_func)
 #endif
 
-using namespace std;
-
-typedef struct {
-  unordered_map<size_t, size_t> *rr_type_umap;
-  unordered_map<size_t, size_t> *lock_id_to_pre_rr_type_umap;
-  size_t load_seq_count = 0;
-  size_t store_seq_count = 0;
-} reomp_profile_t;
 
 void reomp_profile_init();
 void reomp_profile(size_t rr_type, size_t lock_id);

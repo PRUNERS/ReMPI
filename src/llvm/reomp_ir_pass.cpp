@@ -41,7 +41,9 @@
 #define REOMP_RR_REDUCTION (1)
 #define REOMP_RR_SINGLE (0)
 #define REOMP_RR_MASTER (0)
-#define REOMP_RR_ATOMIC (1)
+#define REOMP_RR_ATOMICOP (1)
+#define REOMP_RR_ATOMICLOAD (1)
+#define REOMP_RR_ATOMICSTORE (1)
 
 
 void ReOMP::insert_func(Instruction *I, BasicBlock *BB, int offset, int control, Value* ptr, Value* size)
@@ -91,10 +93,12 @@ int ReOMP::handle_function_on_main(Function &F)
 	  modified_counter++;
 	  is_hook_enabled = 1;
 	}
+		
 	if (dyn_cast<ReturnInst>(&I)) {
 	  insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_AFT_MAIN,  REOMP_CONST_INT64TY(REOMP_RR_TYPE_MAIN), REOMP_CONST_INT64TY(num_locks));
 	  modified_counter++;
-	} 
+	}
+	
       }
     }
   } 
@@ -109,9 +113,6 @@ int ReOMP::handle_instruction(Function &F, BasicBlock &BB, Instruction &I)
   modified_counter += handle_instruction_on_load_store(F, BB, I); /* */
   return modified_counter;
 }
-
-
-
 
 
 int ReOMP::handle_instruction_on_reduction(Function &F, BasicBlock &BB, Instruction &I)
@@ -180,12 +181,8 @@ int ReOMP::handle_instruction_on_reduction(Function &F, BasicBlock &BB, Instruct
 int ReOMP::handle_instruction_on_critical(Function &F, BasicBlock &BB, Instruction &I)
 {
   int modified_counter = 0;
-  CallInst *CI;
-  // AtomicRMWInst *AI;
-  // AtomicCmpXchgInst *ACXI;
   string name;
-  if ((CI = dyn_cast<CallInst>(&I)) != NULL) {
-
+  if (CallInst *CI = dyn_cast<CallInst>(&I)) {
     name = CI->getCalledValue()->getName();
     if (name == "__kmpc_critical" && REOMP_RR_CRITICAL) {
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, REOMP_CONST_INT64TY(REOMP_RR_TYPE_CRITICAL), NULL);
@@ -206,13 +203,38 @@ int ReOMP::handle_instruction_on_critical(Function &F, BasicBlock &BB, Instructi
     } else if ((name == "__kmpc_end_single" && REOMP_RR_SINGLE) ||
 	       (name == "__kmpc_end_master" && REOMP_RR_MASTER)) {
       /*__kmpc_end_single/master is executed by an only thread executing __kmpc_single/master */
+    } else  if (name == "exit") {
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_AFT_MAIN,  REOMP_CONST_INT64TY(REOMP_RR_TYPE_MAIN), REOMP_CONST_INT64TY(0));
+      modified_counter = 1;
     }
-  } else if (I.isAtomic() && REOMP_RR_ATOMIC) {
-    name = "atomic";
-    insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  REOMP_CONST_INT64TY(REOMP_RR_TYPE_ATOMIC), NULL);
-    insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, REOMP_CONST_INT64TY(REOMP_RR_TYPE_ATOMIC), NULL);
-    modified_counter = 2;    
+  } else if (AtomicRMWInst *ARMWI = dyn_cast<AtomicRMWInst>(&I)) {
+    if (REOMP_RR_ATOMICOP) {
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  REOMP_CONST_INT64TY(REOMP_RR_TYPE_ATOMICOP), REOMP_CONST_INT64TY(10));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, REOMP_CONST_INT64TY(REOMP_RR_TYPE_ATOMICOP), REOMP_CONST_INT64TY(10));
+      modified_counter = 2;
+    }
+  } else if (AtomicCmpXchgInst *ACXI  = dyn_cast<AtomicCmpXchgInst>(&I)) {
+    if (REOMP_RR_ATOMICOP) {
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  REOMP_CONST_INT64TY(REOMP_RR_TYPE_ATOMICOP), REOMP_CONST_INT64TY(10));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, REOMP_CONST_INT64TY(REOMP_RR_TYPE_ATOMICOP), REOMP_CONST_INT64TY(10));
+      modified_counter = 2;
+    }
+  } else if (StoreInst *SI = dyn_cast<StoreInst>(&I)) {
+    if (SI->isAtomic() && REOMP_RR_ATOMICSTORE) {
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  REOMP_CONST_INT64TY(REOMP_RR_TYPE_ATOMICSTORE), REOMP_CONST_INT64TY(10));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, REOMP_CONST_INT64TY(REOMP_RR_TYPE_ATOMICSTORE), REOMP_CONST_INT64TY(10));
+      modified_counter = 2;
+    }
+  } else if (LoadInst *LI = dyn_cast<LoadInst>(&I)) {
+    if (LI->isAtomic() && REOMP_RR_ATOMICLOAD) {
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_GATE_IN,  REOMP_CONST_INT64TY(REOMP_RR_TYPE_ATOMICLOAD), REOMP_CONST_INT64TY(10));
+      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_AFTER , REOMP_GATE_OUT, REOMP_CONST_INT64TY(REOMP_RR_TYPE_ATOMICLOAD), REOMP_CONST_INT64TY(10));
+      modified_counter = 2;
+    }
+  } else if (I.isAtomic()) {
+    MUTIL_ERR("Missing a atomic");
   }
+
   //  if (modified_counter > 0) MUTIL_DBG("INS: %s", name.c_str());    
   return modified_counter;
 }
