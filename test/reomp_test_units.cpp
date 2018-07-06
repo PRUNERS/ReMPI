@@ -537,9 +537,11 @@ reomp_test_t reomp_test_cases[] =
     {(char*)"omp_atomic", reomp_test_omp_atomic,       {0, 0,   30000000L}},
     {(char*)"omp_atomic_load", reomp_test_omp_atomic_load,       {0, 0,   30000000L}},
     {(char*)"data_race", reomp_test_data_race,         {0, 0,   30000000L}},
-    //    {(char*)"data_race", reomp_test_data_race,         {0, 0,   900L}},
     {(char*)"omp_reduction", reomp_test_omp_reduction, {0, 0,  300000000L}},
     {(char*)"mpmc", reomp_test_mpmc, {0, 0,  30000000L}},
+    /* ------------------- */
+    {(char*)"data_race_test", reomp_test_data_race,         {0, 0,   200L}},
+    {(char*)"data_race_test2", reomp_test_data_race,         {0, 0,  300000L}},
   };
 
 static int reomp_test_omp_critical(reomp_input_t *input)

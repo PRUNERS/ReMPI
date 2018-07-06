@@ -8,6 +8,8 @@
 reomp_gate_t* reomp_gate_get(int method)
 {
   switch(method) {
+  case REOMP_ENV_METHOD_CLOCK_CONCURRENT:
+    return &reomp_gate_cclock;
   case REOMP_ENV_METHOD_CLOCK:
     return &reomp_gate_clock;
   case REOMP_ENV_METHOD_SCLOCK:

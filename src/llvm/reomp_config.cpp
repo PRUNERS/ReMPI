@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "reomp_config.h"
+#include "reomp_profile.h"
 #include "mutil.h"
 
 reomp_config_t reomp_config;
@@ -15,6 +16,7 @@ void reomp_config_init()
   char *env;
   struct stat st;
 
+  /* RR mode */
   if (!(env = getenv(REOMP_ENV_NAME_MODE))) {
     reomp_config.mode = REOMP_ENV_MODE_DISABLE;
   } else if (!strcmp(env, "record") || atoi(env) == REOMP_ENV_MODE_RECORD) {
@@ -28,18 +30,22 @@ void reomp_config_init()
     MUTIL_ERR("Set REOMP_MODE=<0(record)|1(replay)\n");
   }
 
+  /* RR method*/
   if (!(env = getenv(REOMP_ENV_NAME_METHOD))) {
-    reomp_config.method = REOMP_ENV_METHOD_CLOCK;
+    reomp_config.method = REOMP_ENV_METHOD_CLOCK_CONCURRENT;
   } else {
     reomp_config.method = atoi(env);
   }
 
+  
+  /* RR profile */
   if (!(env = getenv(REOMP_ENV_NAME_PROFILE))) {
     reomp_config.profile_level = 0;
   } else {
     reomp_config.profile_level = atoi(env);
   }    
 
+  /* RR dir */
   if (!(env = getenv(REOMP_ENV_NAME_DIR))) {
     reomp_config.record_dir = (char*)".";
   } else {
@@ -53,6 +59,17 @@ void reomp_config_init()
       }
     }
   }
+
+  MUTIL_DBG("=============================");
+  MUTIL_DBG("ReOMP mode   : %s=%d", REOMP_ENV_NAME_MODE, reomp_config.mode);
+  MUTIL_DBG("ReOMP method : %s=%d", REOMP_ENV_NAME_METHOD, reomp_config.method);
+#ifdef REOMP_PROFILE_ENABLE
+  MUTIL_DBG("ReOMP profile level: %s=%d", REOMP_ENV_NAME_PROFILE, reomp_config.profile_level);
+#else
+  MUTIL_DBG("ReOMP profile level: %s is not defined", REOMP_ENV_NAME_PROFILE);
+#endif
+  MUTIL_DBG("ReOMP dir    : %s=%s", REOMP_ENV_NAME_DIR, reomp_config.record_dir);
+  MUTIL_DBG("=============================");
 
   return;
 }

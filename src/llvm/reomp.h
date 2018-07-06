@@ -52,6 +52,7 @@ void REOMP_CONTROL(int control, void* ptr, size_t size);
 #define REOMP_BEG_FUNC_CALL (24)
 #define REOMP_END_FUNC_CALL (25)
 
+/* This ID musbe be < 128 */
 #define REOMP_RR_TYPE_NONE         (000)
 #define REOMP_RR_TYPE_MAIN         (100)
 #define REOMP_RR_TYPE_LOAD         (101)
