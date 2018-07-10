@@ -61,7 +61,7 @@ extern char mutil_hostname[256];
 #ifdef ENABLE_TIMER
 #define MUTIL_TIMER(mode, timerIndex, time) \
   do { \
-    MUTIL_FUNC(timer)(mode, timerIndex, time, __FILE__, __LINE__);	\
+    MUTIL_FUNC(timer)(mode, timerIndex, time, (char*)__FILE__, __LINE__);	\
   } while(0)
 #else
 #define MUTIL_TIMER(mode, timerIndex, time)
