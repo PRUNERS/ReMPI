@@ -14,29 +14,29 @@
 extern int mutil_my_rank;
 extern char mutil_hostname[256];
 
-#define MUTIL_ASSERT(b)  \
-  do {                \
-    MUTIL_FUNC(asser)t(b);			\
-  } while(0)          \
+#define MUTIL_ASSERT(b)				\
+  do {						\
+    MUTIL_FUNC(assert)(b);			\
+  } while(0)					\
 
 
 /*if __VA_ARGS__ is empty, the previous comma can be removed by "##" statement*/
-#define MUTIL_ERR(err_fmt, ...)  \
-  do { \
-  MUTIL_FUNC(err)(" "		 \
-	    err_fmt	     \
-	  " (%s:%s:%d)",		\
-            ## __VA_ARGS__,     \
-            __FILE__, __func__, __LINE__); \
+#define MUTIL_ERR(err_fmt, ...)				\
+  do {							\
+    MUTIL_FUNC(err)(" "					\
+		    err_fmt				\
+		    " (%s:%s:%d)",			\
+		    ## __VA_ARGS__,			\
+		    __FILE__, __func__, __LINE__);	\
   } while(0)
 
-#define MUTIL_DBG(dbg_fmt, ...)  \
-  do { \
-    MUTIL_FUNC(dbg)(" "		 \
-	    dbg_fmt	     \
-	    " (%s:%d)",   \
-            ## __VA_ARGS__,     \
-            __FILE__, __LINE__); \
+#define MUTIL_DBG(dbg_fmt, ...)			\
+  do {						\
+    MUTIL_FUNC(dbg)(" "				\
+		    dbg_fmt			\
+		    " (%s:%d)",			\
+		    ## __VA_ARGS__,		\
+		    __FILE__, __LINE__);	\
   } while(0)
 
 
@@ -45,13 +45,13 @@ extern char mutil_hostname[256];
 
 /*if __VA_ARGS__ is empty, the previous comma can be removed by "##" statement*/
 #define MUTIL_DBGI(i, dbg_fmt, ...)		\
-  do { \
-  MUTIL_FUNC(dbgi)(i,				\
-	     " "				\
-	     dbg_fmt				\
-	     " (%s:%d)",			\
-	     ## __VA_ARGS__,			\
-            __FILE__, __LINE__); \
+  do {						\
+    MUTIL_FUNC(dbgi)(i,				\
+		     " "			\
+		     dbg_fmt			\
+		     " (%s:%d)",		\
+		     ## __VA_ARGS__,		\
+		     __FILE__, __LINE__);	\
   } while(0)
 
 #define ENABLE_TIMER

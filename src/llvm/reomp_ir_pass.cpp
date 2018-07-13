@@ -38,12 +38,16 @@
 #define REOMP_RR_RACY_CALLINST (1)
 #define REOMP_RR_RACY_INVOKEINST (1)
 #define REOMP_RR_CRITICAL (1)
+#define REOMP_RR_OMP_LOCK (1)
+#define REOMP_RR_OTHER_LOCK (1)
 #define REOMP_RR_REDUCTION (1)
 #define REOMP_RR_SINGLE (1)
 #define REOMP_RR_MASTER (1)
 #define REOMP_RR_ATOMICOP (1)
 #define REOMP_RR_ATOMICLOAD (1)
 #define REOMP_RR_ATOMICSTORE (1)
+/* Flag for debugging flag */
+#define REOMP_RR_FORK_CALL (0)
 
 
 void ReOMP::insert_func(Instruction *I, BasicBlock *BB, int offset, int control, Value* ptr, Value* size)
@@ -190,21 +194,36 @@ int ReOMP::handle_instruction_on_critical(Function &F, BasicBlock &BB, Instructi
     } else if (name == "__kmpc_end_critical" && REOMP_RR_CRITICAL) {      
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, REOMP_CONST_INT64TY(REOMP_RR_TYPE_CRITICAL), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
       modified_counter = 1;
-    } else if (name == "__kmpc_reduce" || name == "__kmpc_reduce_nowait" && REOMP_RR_REDUCTION) {
+    } else if (name == "omp_set_lock" && REOMP_RR_OMP_LOCK) {
+      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, REOMP_CONST_INT64TY(REOMP_RR_TYPE_OMP_LOCK), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
+      modified_counter = 1;
+    } else if (name == "omp_unset_lock" && REOMP_RR_OMP_LOCK) {
+      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, REOMP_CONST_INT64TY(REOMP_RR_TYPE_OMP_LOCK), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
+      modified_counter = 1;
+    } else if (name == "semop" && REOMP_RR_OTHER_LOCK) {
+      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, REOMP_CONST_INT64TY(REOMP_RR_TYPE_OTHER_LOCK), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
+      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, REOMP_CONST_INT64TY(REOMP_RR_TYPE_OTHER_LOCK), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
+      modified_counter = 2;
+    } else if ((name == "__kmpc_reduce" || name == "__kmpc_reduce_nowait") && REOMP_RR_REDUCTION) {
       modified_counter = this->handle_instruction_on_reduction(F, BB, I);
     } else if (name == "__kmpc_single" && REOMP_RR_SINGLE) {
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, REOMP_CONST_INT64TY(REOMP_RR_TYPE_SINGLE), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
-      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, REOMP_CONST_INT64TY(REOMP_RR_TYPE_SINGLE), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
+      //      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, REOMP_CONST_INT64TY(REOMP_RR_TYPE_SINGLE), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
       modified_counter = 1;
     } else if (name == "__kmpc_master" && REOMP_RR_MASTER) {
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, REOMP_CONST_INT64TY(REOMP_RR_TYPE_MASTER), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
-      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, REOMP_CONST_INT64TY(REOMP_RR_TYPE_MASTER), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
+      //insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, REOMP_CONST_INT64TY(REOMP_RR_TYPE_MASTER), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
       modified_counter = 1;
     } else if ((name == "__kmpc_end_single" && REOMP_RR_SINGLE) ||
 	       (name == "__kmpc_end_master" && REOMP_RR_MASTER)) {
       /*__kmpc_end_single/master is executed by an only thread executing __kmpc_single/master */
-    } else  if (name == "exit") {
-      insert_func(&I, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_AFT_MAIN,  REOMP_CONST_INT64TY(REOMP_RR_TYPE_MAIN), REOMP_CONST_INT64TY(REOMP_RR_LOCK_NULL));
+      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, REOMP_CONST_INT64TY(REOMP_RR_TYPE_SINGLE), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
+    } else if (name == "exit") {
+      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_AFT_MAIN,  REOMP_CONST_INT64TY(REOMP_RR_TYPE_MAIN), REOMP_CONST_INT64TY(REOMP_RR_LOCK_NULL));
+      modified_counter = 1;
+    } else if (name == "__kmpc_fork_call" && REOMP_RR_FORK_CALL) {
+      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_OTHER,  REOMP_CONST_INT64TY(0), REOMP_CONST_INT64TY(REOMP_RR_LOCK_NULL));
+      insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_OTHER,  REOMP_CONST_INT64TY(1), REOMP_CONST_INT64TY(REOMP_RR_LOCK_NULL));
       modified_counter = 1;
     }
   } else if (AtomicRMWInst *ARMWI = dyn_cast<AtomicRMWInst>(&I)) {
@@ -233,7 +252,7 @@ int ReOMP::handle_instruction_on_critical(Function &F, BasicBlock &BB, Instructi
     }
   } else if (I.isAtomic()) {
     MUTIL_ERR("Missing a atomic");
-  }
+  } 
 
   //  if (modified_counter > 0) MUTIL_DBG("INS: %s", name.c_str());    
   return modified_counter;

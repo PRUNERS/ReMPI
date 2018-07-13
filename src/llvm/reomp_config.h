@@ -17,8 +17,11 @@
 #define REOMP_ENV_METHOD_CLOCK (1)
 #define REOMP_ENV_METHOD_SCLOCK (2)
 #define REOMP_ENV_METHOD_TID   (3)
+#define REOMP_ENV_NAME_MULTI_CLOCK "REOMP_MULTI_CLOCK"
 #define REOMP_ENV_NAME_PROFILE "REOMP_PROFILE"
 #define REOMP_ENV_NAME_DIR "REOMP_DIR"
+
+#define REOMP_PATH_FORMAT ("%s/rank_%d-tid_%d.reomp")
 
 
 typedef struct {
@@ -26,6 +29,7 @@ typedef struct {
   int method;
   int profile_level = 0;
   char* record_dir;
+  int multi_clock;
 } reomp_config_t;
 
 extern reomp_config_t reomp_config;

@@ -12,6 +12,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <linux/limits.h>
+#include <sys/stat.h>
 
 #include <unordered_map>
 
@@ -42,11 +43,42 @@ typedef struct {
 static reomp_profile_t reomp_prof;
 static omp_lock_t reomp_prof_lock;
 
+typedef struct {
+  char path[PATH_MAX];
+  size_t file_size;
+  size_t read_size;
+  size_t prev_progress;
+} reomp_profile_io_t;
+reomp_profile_io_t reomp_prof_io;
+
+static void reomp_profile_io_init()
+{
+  struct stat st;
+  sprintf(reomp_prof_io.path, REOMP_PATH_FORMAT, reomp_config.record_dir, 0, 0);
+  stat(reomp_prof_io.path, &st);
+  reomp_prof_io.file_size = st.st_size;
+  reomp_prof_io.read_size = 0;
+  reomp_prof_io.prev_progress = -1;
+}
+
 void reomp_profile_init()
 {
   reomp_prof.rr_type_umap = new unordered_map<size_t, size_t>;
   reomp_prof.lock_id_to_access_umap = new unordered_map<size_t, reomp_profile_access_t*>;
   omp_init_lock(&reomp_prof_lock);
+  reomp_profile_io_init();
+  
+  return;
+}
+
+void reomp_profile_io(size_t s)
+{
+  size_t progress;
+  reomp_prof_io.read_size += s;
+  progress = reomp_prof_io.read_size * 100 / reomp_prof_io.file_size;
+  if (reomp_prof_io.prev_progress != progress) {
+    fprintf(stderr, "Replay progress = %lu\%\r", reomp_prof_io.read_size * 100 / reomp_prof_io.file_size);
+  }
   return;
 }
 
@@ -128,6 +160,7 @@ static void reomp_profile_whole(size_t rr_type, size_t lock_id)
 
 void reomp_profile(size_t rr_type, size_t lock_id)
 {
+  if (rr_type == REOMP_RR_TYPE_MAIN) return;
   omp_set_lock(&reomp_prof_lock);
   reomp_profile_whole(rr_type, lock_id);
   reomp_profile_rr_type(rr_type);
@@ -139,7 +172,7 @@ void reomp_profile_print()
 {
   size_t sum = 0;
   MUTIL_DBG("----------------------------");
-  MUTIL_DBG("rr_type\tcount");
+  MUTIL_DBG("        RR_TYPE COUNT");
   for (auto &kv: *(reomp_prof.rr_type_umap)) {
     size_t type  = kv.first;
     size_t count = kv.second;

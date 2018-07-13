@@ -25,6 +25,7 @@
 #include "reomp_mem.h"
 #include "reomp_mon.h"
 #include "mutil.h"
+#include "reomp_profile.h"
 #include "reomp_config.h"
 
 #define REOMP_REDUCE_LOCK_MASTER (1)
@@ -47,7 +48,6 @@ static void reomp_cgate_out_bef_reduce_end(int control, void* ptr, size_t reduct
 static void reomp_cgate_out_aft_reduce_end(int control, void* ptr, size_t reduction_method);
 
 
-static omp_lock_t reomp_omp_lock;
 reomp_gate_t reomp_gate_clock = {
   reomp_cgate_init,
   reomp_cgate_finalize,
@@ -91,13 +91,15 @@ typedef struct {
 reomp_fd_t reomp_fds[REOMP_MAX_THREAD];
 
 typedef struct {
+  omp_lock_t* omp_locks;
   volatile int current_tid = -1;
-  volatile int scheduling_clock = 0;
-  volatile int current_clock = 0;
+  //  volatile int scheduling_clock = 0;
+  //  volatile int current_clock = 0;
   volatile int nest_num = 0;
+  volatile int* scheduling_clocks = NULL;
+  volatile int* current_clocks = NULL;
 } reomp_cgate_t;
-reomp_cgate_t reomp_cgate;
-
+static reomp_cgate_t reomp_cgate;
 static int time_tid = 0;
 /* ----------------------------- */
 
@@ -127,7 +129,7 @@ static reomp_ccgate_t reomp_ccgate[REOMP_MAX_THREAD];
 #define REOMP_CCGATE_PREVIOUSE_SIZE (REOMP_MAX_THREAD * 4)
 #define REOMP_CCGATE_WINDOW_SIZE (10)
 //#define REOMP_CCGATE_PREVIOUSE_SIZE (64)
-static volatile char reomp_ccgate_previous[REOMP_CCGATE_PREVIOUSE_SIZE];
+static char** reomp_ccgate_previous;
 /* -------------------------------  */
 
 
@@ -144,7 +146,6 @@ static void reomp_cgate_init_file(int control)
     reomp_fds[i].total_write_bytes = 0;
     reomp_fds[i].write_bytes_at_reduction = 0;
   }
-  omp_init_lock(&reomp_omp_lock);
   return;
 }
 
@@ -172,6 +173,25 @@ static void reomp_cgate_finalize_file()
 static void reomp_cgate_init(int control, size_t num_locks)
 {
   reomp_cgate_init_file(control);
+  /*
+    lock_id = 0: Global clock (+1)
+    lock_id = 1: Reduction clock (+1)
+    lock_id > 1: Distributed clocks (num_locks)
+   */
+  reomp_cgate.omp_locks         = (omp_lock_t*)malloc(sizeof(omp_lock_t) * (num_locks + REOMP_RR_LOCK_DATARACE_BEGIN));
+  reomp_cgate.scheduling_clocks = (volatile int*)valloc(sizeof(int) * (num_locks + REOMP_RR_LOCK_DATARACE_BEGIN));
+  reomp_cgate.current_clocks    = (volatile int*)valloc(sizeof(int) * (num_locks + REOMP_RR_LOCK_DATARACE_BEGIN));
+  for (int i = 0; i < num_locks + REOMP_RR_LOCK_DATARACE_BEGIN; i++) {
+    omp_init_lock(&reomp_cgate.omp_locks[i]);
+    reomp_cgate.scheduling_clocks[i] = 0;
+    reomp_cgate.current_clocks[i] = 0;
+  }
+
+  reomp_ccgate_previous = (char**)valloc(sizeof(char*) * (num_locks + REOMP_RR_LOCK_DATARACE_BEGIN));
+  for (int i = 0 ; i < num_locks + REOMP_RR_LOCK_DATARACE_BEGIN; i++) {
+    reomp_ccgate_previous[i] = (char*)valloc(sizeof(char) * REOMP_CCGATE_PREVIOUSE_SIZE);
+  }
+
   return;
 }
 
@@ -195,7 +215,7 @@ static FILE* reomp_get_fd(int my_tid)
 
   path = (char*)malloc(sizeof(char) * PATH_MAX);
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-  sprintf(path, "%s/rank_%d-tid_%d.reomp", reomp_config.record_dir, my_rank, my_tid);
+  sprintf(path, REOMP_PATH_FORMAT, reomp_config.record_dir, my_rank, my_tid);
   //  MUTIL_DBG("Open: %s", path);
 
   if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
@@ -240,11 +260,13 @@ static void reomp_fread(void * ptr, size_t size, size_t count, int tid)
   if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_IO_TIME, NULL);
   fd = reomp_get_fd(tid);
   s = fread(ptr, size, 1, fd);
+
   if (s != 1) {
     if (feof(fd)) MUTIL_ERR("fread reached the end of record file");
     if (ferror(fd))  MUTIL_ERR("fread failed");
-  }
+  }  
   if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_IO_TIME, NULL);
+  REOMP_PROFILE(reomp_profile_io(size));
   return;
 }
 
@@ -292,7 +314,34 @@ static void reomp_cgate_record_reduction_method(int tid, size_t reduction_method
   return;
 }
 
-static void reomp_cgate_ticket_wait(int tid)
+static int reomp_cgate_filter_serial_region_inout()
+{
+  if(omp_get_num_threads() == 1) {
+    return 1;
+  }
+  return 0;
+}
+
+static int reomp_cgate_filter_reentry_in(int tid)
+{
+  if (tid == reomp_cgate.current_tid) {
+    reomp_cgate.nest_num++;
+    return 1;
+  }
+  return 0;
+}
+
+
+static int reomp_cgate_filter_reentry_out()
+{
+  if (reomp_cgate.nest_num) {
+    reomp_cgate.nest_num--;
+    return 1;
+  }
+  return 0;
+}
+
+static void reomp_cgate_ticket_wait(int tid, size_t lock_id)
 {
   int clock;
   if (tid == reomp_cgate.current_tid) {
@@ -304,13 +353,14 @@ static void reomp_cgate_ticket_wait(int tid)
     MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_GATE_TIME, NULL);
   }
   if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
-    omp_set_lock(&reomp_omp_lock);
+    //    MUTIL_DBG("GATE_IN: tid=%d  (TRY)", tid);
+    omp_set_lock(&reomp_cgate.omp_locks[lock_id]);
   } else {
     clock = reomp_cgate_get_clock_replay(tid);
+    //    MUTIL_DBG("GATE_IN: tid=%d  (TRY) aclock: %d", tid, clock);
     //    MUTIL_DBG("get clock: tid %d: clock: %d, reomp_cgate.current_clock: %d", tid, clock, reomp_cgate.current_clock);
-    while (clock != reomp_cgate.current_clock);
-    // omp_set_lock(&reomp_omp_lock);
-    // reomp_cgate.current_clock++;
+    while (clock != reomp_cgate.current_clocks[lock_id]);
+    //    MUTIL_DBG("GATE_IN: tid=%d, clock: %d", tid, clock);
   }
   reomp_cgate.current_tid = tid;
   if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_GATE_TIME, NULL);
@@ -335,7 +385,7 @@ static  void reomp_cgate_record_ticket_number(int tid, int clock)
   return;
 }
 
-static  void reomp_cgate_leave(int tid)
+static  void reomp_cgate_leave(int tid, size_t lock_id)
 {
   if (reomp_cgate.nest_num) {
     reomp_cgate.nest_num--;
@@ -346,13 +396,14 @@ static  void reomp_cgate_leave(int tid)
   reomp_cgate.current_tid = -1;
   if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
     int clock;
-    clock = reomp_cgate.current_clock++;
-    omp_unset_lock(&reomp_omp_lock);
+    clock = reomp_cgate.current_clocks[lock_id]++;
+    //    MUTIL_DBG("GATE_IN: tid=%d, clock: %d", tid, clock);
+    omp_unset_lock(&reomp_cgate.omp_locks[lock_id]);
     reomp_cgate_record_ticket_number(tid, clock);
   } else {
-       __sync_synchronize();
-       reomp_cgate.current_clock++;
-       __sync_synchronize();
+    __sync_synchronize();
+    reomp_cgate.current_clocks[lock_id]++;
+    __sync_synchronize();
     //    omp_unset_lock(&reomp_omp_lock);
   }
 
@@ -365,10 +416,11 @@ static  void reomp_cgate_in(int control, void* ptr, size_t lock_id, int lock)
   int clock;
   int tid;
 
-  //  MUTIL_DBG("-- IN");
+
   if(omp_get_num_threads() == 1) return;
   tid = reomp_get_thread_num();
-  reomp_cgate_ticket_wait(tid);
+  //  MUTIL_DBG("--TIN: tid=%d", tid);  
+  reomp_cgate_ticket_wait(tid, lock_id);
   return;
 }
 
@@ -383,7 +435,7 @@ static  void reomp_cgate_out(int control, void* ptr, size_t lock_id, int lock)
   if(omp_get_num_threads() == 1) return;
   tid = reomp_get_thread_num();
   //  MUTIL_DBG("-- OUT: tid %d: gate_clock: %d", tid, reomp_cgate.current_clock);
-  reomp_cgate_leave(tid);
+  reomp_cgate_leave(tid, lock_id);
   return;
 }
 
@@ -453,14 +505,14 @@ static  void reomp_cgate_out(int control, void* ptr, size_t lock_id, int lock)
 //   return;
 // }
 
-static void reomp_ccgate_set_concecutive_load_store(int clock, char rw)
+static void reomp_ccgate_set_concecutive_load_store(int clock, char rw, size_t lock_id)
 {
-  reomp_ccgate_previous[clock % REOMP_CCGATE_PREVIOUSE_SIZE] = rw;
+  reomp_ccgate_previous[lock_id][clock % REOMP_CCGATE_PREVIOUSE_SIZE] = rw;
   return;
 }
 
 
-static int reomp_ccgate_test_concecutive_load_store(int clock, char rw)
+static int reomp_ccgate_test_concecutive_load_store(int clock, char rw, size_t lock_id)
 {
   int index;
   int consecutive_count = 0;
@@ -476,7 +528,7 @@ static int reomp_ccgate_test_concecutive_load_store(int clock, char rw)
   for (int i = 1; i <= REOMP_CCGATE_WINDOW_SIZE; i++) {
     index = (clock + REOMP_CCGATE_PREVIOUSE_SIZE - i) % REOMP_CCGATE_PREVIOUSE_SIZE;
     //    while(reomp_ccgate_previous[index] == REOMP_RR_TYPE_NULL);
-    if (reomp_ccgate_previous[index] == rw) {
+    if (reomp_ccgate_previous[lock_id][index] == rw) {
       consecutive_count++;
     } else {
       break;
@@ -485,22 +537,22 @@ static int reomp_ccgate_test_concecutive_load_store(int clock, char rw)
   return consecutive_count;
 }
 
-static void reomp_ccgate_reset_concecutive_load_store(int clock)
+static void reomp_ccgate_reset_concecutive_load_store(int clock, size_t lock_id)
 {
   int index;
   //index = (clock + REOMP_CCGATE_PREVIOUSE_SIZE - (REOMP_CCGATE_WINDOW_SIZE + REOMP_MAX_THREAD * 2)) % REOMP_CCGATE_PREVIOUSE_SIZE;
   index = (clock + REOMP_CCGATE_PREVIOUSE_SIZE/3) % REOMP_CCGATE_PREVIOUSE_SIZE;
-  reomp_ccgate_previous[index] = REOMP_RR_TYPE_NULL;
+  reomp_ccgate_previous[lock_id][index] = REOMP_RR_TYPE_NULL;
   return;
 }
 
-static int reomp_ccgate_is_next_store(int clock)
+static int reomp_ccgate_is_next_store(int clock, size_t lock_id)
 {
   int index;
   char rw = -1;
 
   index = (clock + 1) % REOMP_CCGATE_PREVIOUSE_SIZE;
-  rw = reomp_ccgate_previous[index];
+  rw = reomp_ccgate_previous[lock_id][index];
   if (rw == REOMP_RR_TYPE_NULL) return -1;
   if (rw == REOMP_RR_TYPE_STORE || rw == REOMP_RR_TYPE_ATOMICSTORE ) return 1;
   return 0;
@@ -511,19 +563,21 @@ static int reomp_ccgate_is_next_store(int clock)
 static void reomp_ccgate_in(int control, void* ptr, size_t lock_id, int lock)
 {
   int tid;
-  
-  if(omp_get_num_threads() == 1) return;
 
-  //  ccgate =&reomp_ccgate[tid];
+  if (reomp_cgate_filter_serial_region_inout()) return;
+  tid = omp_get_thread_num();
+  if (reomp_cgate_filter_reentry_in(tid)) return;
+
   
   if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
-    omp_set_lock(&reomp_omp_lock);
+    omp_set_lock(&reomp_cgate.omp_locks[lock_id]);
   } else {
-    tid = omp_get_thread_num();
     int clock = reomp_cgate_get_clock_replay(tid);
     //    MUTIL_DBG("tid: %d: scheduled_clock: %d, current_clock: %d, type: %d", tid, clock, reomp_cgate.current_clock, rw);
-    while (clock > reomp_cgate.current_clock);
+    while (clock > reomp_cgate.current_clocks[lock_id]);
   }
+
+  reomp_cgate.current_tid = tid;
 }
 
 static void reomp_ccgate_out(int control, void* ptr, size_t lock_id, int lock)
@@ -533,16 +587,18 @@ static void reomp_ccgate_out(int control, void* ptr, size_t lock_id, int lock)
   int retry = 100;
   char rw = (size_t)ptr & 0xff;
 
-  if(omp_get_num_threads() == 1) return;
+  if (reomp_cgate_filter_serial_region_inout()) return;
+  if (reomp_cgate_filter_reentry_out()) return;
+  reomp_cgate.current_tid = -1;
 
   if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
     int count = 0;
-    clock = reomp_cgate.current_clock++;
+    clock = reomp_cgate.current_clocks[lock_id]++;
     /* -- set and test must be inside lock/unlock for correct replay -- */ 
-    reomp_ccgate_set_concecutive_load_store(clock, rw);
-    count = reomp_ccgate_test_concecutive_load_store(clock, rw);
+    reomp_ccgate_set_concecutive_load_store(clock, rw, lock_id);
+    count = reomp_ccgate_test_concecutive_load_store(clock, rw, lock_id);
     /* -----------------------------------------------------------------*/
-    omp_unset_lock(&reomp_omp_lock);
+    omp_unset_lock(&reomp_cgate.omp_locks[lock_id]);
     
 
     if (rw == REOMP_RR_TYPE_LOAD || rw == REOMP_RR_TYPE_ATOMICLOAD) {
@@ -550,20 +606,20 @@ static void reomp_ccgate_out(int control, void* ptr, size_t lock_id, int lock)
     } else if (rw == REOMP_RR_TYPE_STORE || rw == REOMP_RR_TYPE_ATOMICSTORE) {
       //      count = reomp_ccgate_test_concecutive_load_store(clock, rw);
       if (count > 0) {
-	while(reomp_ccgate_is_next_store(clock) == -1 && !retry) retry--;
-	if (reomp_ccgate_is_next_store(clock) != 1)  {
+	while(reomp_ccgate_is_next_store(clock, lock_id) == -1 && !retry) retry--;
+	if (reomp_ccgate_is_next_store(clock, lock_id) != 1)  {
 	  count = 0;
 	}
       }
       //      MUTIL_DBG("cout: %d", count);
     }
-    //    MUTIL_DBG("tid: %d now: %lu", tid, clock);
+    //    if (count > 0) MUTIL_DBG("tid: %d clock: %lu: epoch: %lu", tid, clock, clock - count);
     tid = omp_get_thread_num();
     reomp_cgate_record_ticket_number(tid,  clock - count);
-    reomp_ccgate_reset_concecutive_load_store(clock);
+    reomp_ccgate_reset_concecutive_load_store(clock, lock_id);
   } else {
     //    reomp_cgate_leave(tid);
-    __sync_add_and_fetch(&reomp_cgate.current_clock, 1);
+    __sync_add_and_fetch(&reomp_cgate.current_clocks[lock_id], 1);
   }
 }
 
@@ -683,13 +739,13 @@ static void reomp_scgate_in(int control, void* ptr, size_t lock_id, int lock)
       scgate->num_aborted = reomp_scgate_num_aborted - 1;
     }
 #else
-    scgate->speculative_clock = __sync_fetch_and_add(&reomp_cgate.scheduling_clock, 1);
+    scgate->speculative_clock = __sync_fetch_and_add(&reomp_cgate.scheduling_clocks[lock_id], 1);
     if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_START, REOMP_TIMER_GATE_TIME, NULL);
-    while(scgate->speculative_clock != reomp_cgate.current_clock);
+    while(scgate->speculative_clock != reomp_cgate.current_clocks[lock_id]);
     if (tid == time_tid) MUTIL_TIMER(MUTIL_TIMER_STOP, REOMP_TIMER_GATE_TIME, NULL);
 #endif
   } else {
-    reomp_cgate_ticket_wait(tid);
+    reomp_cgate_ticket_wait(tid, lock_id);
   }
   //  fprintf(stderr, "tid: %d: end in\n", tid);
 }
@@ -716,12 +772,12 @@ static void reomp_scgate_out(int control, void* ptr, size_t lock_id, int lock)
       longjmp(scgate->jmpenv, REOMP_SCGATE_LONGJMP);
     }
 #else
-    reomp_cgate.current_clock++;
+    reomp_cgate.current_clocks[lock_id]++;
     reomp_cgate_record_ticket_number(tid,  scgate->speculative_clock);
     //    fprintf(stderr, "Tid: %d: fwrite %d\n", tid, scgate->speculative_clock);
 #endif
   } else {
-    reomp_cgate_leave(tid);
+    reomp_cgate_leave(tid, lock_id);
   }
   //  fprintf(stderr, "tid: %d: end out\n", tid);
 }
@@ -743,7 +799,7 @@ static  void reomp_cgate_in_bef_reduce_begin(int control, void* ptr, size_t null
   } else if (reomp_config.mode == REOMP_ENV_MODE_REPLAY) {
     reduction_method = reomp_cgate_read_reduction_method(tid);
     if (reduction_method == REOMP_REDUCE_LOCK_MASTER) {
-      reomp_cgate_ticket_wait(tid);
+      reomp_cgate_ticket_wait(tid, REOMP_RR_LOCK_REDUCTION);
     } else if (reduction_method == REOMP_REDUCE_LOCK_WORKER) {
       /* Pass this gate to synchronize with master and the other workers */
     } else if (reduction_method == REOMP_REDUCE_ATOMIC) {
@@ -770,7 +826,7 @@ static  void reomp_cgate_in_aft_reduce_begin(int control, void* ptr, size_t redu
 	 If the other threads has REOMP_REDUCE_LOCK_WORKER
 	     This section is not even executed by workers
       */
-      reomp_cgate_ticket_wait(tid); /* To get ticket, and will not wait  */
+      reomp_cgate_ticket_wait(tid, REOMP_RR_LOCK_REDUCTION); /* To get ticket, and will not wait  */
     } else if (reduction_method == REOMP_REDUCE_LOCK_WORKER) {
       /* Worker does not get involved in reduction */
       /* Sicne workers do not execution neither __kmpc_end_reduce nor atomic, 
@@ -781,7 +837,7 @@ static  void reomp_cgate_in_aft_reduce_begin(int control, void* ptr, size_t redu
       /* This section is not serialized by __kmpc_reduce and __kmpc_reduct_nowait.
 	 ReMPI needs to serialize this section.
        */
-      reomp_cgate_ticket_wait(tid);
+      reomp_cgate_ticket_wait(tid, REOMP_RR_LOCK_REDUCTION);
     } else {
       MUTIL_ERR("No such reduction method: %lu", reduction_method);
     }
@@ -800,7 +856,7 @@ static  void reomp_cgate_in_aft_reduce_begin(int control, void* ptr, size_t redu
       /* This section is not serialized by __kmpc_reduce and __kmpc_reduct_nowait.
 	 ReMPI needs to serialize this section.
        */
-      reomp_cgate_ticket_wait(tid);
+      reomp_cgate_ticket_wait(tid, REOMP_RR_LOCK_REDUCTION);
     } else {
       MUTIL_ERR("No such reduction method: %lu", reduction_method);
     }
@@ -818,7 +874,7 @@ static  void reomp_cgate_out_reduce_end(int control, void* ptr, size_t reduction
   tid = reomp_get_thread_num();
   if (reomp_config.mode == REOMP_ENV_MODE_RECORD) {
     if (reduction_method == REOMP_REDUCE_LOCK_MASTER) {
-      reomp_cgate_leave(tid);
+      reomp_cgate_leave(tid, REOMP_RR_LOCK_REDUCTION);
       reomp_cgate_record_reduction_method(tid, reduction_method);
     } else if (reduction_method == REOMP_REDUCE_LOCK_WORKER) {
       /* Worker does not get involved in reduction. */
@@ -829,20 +885,20 @@ static  void reomp_cgate_out_reduce_end(int control, void* ptr, size_t reduction
       /* This section is not serialized by __kmpc_reduce and __kmpc_reduct_nowait.
 	 ReMPI needs to serialize this section.
        */
-      reomp_cgate_leave(tid);
+      reomp_cgate_leave(tid, REOMP_RR_LOCK_REDUCTION);
       reomp_cgate_record_reduction_method(tid, reduction_method);
     } else {
       MUTIL_ERR("No such reduction method: %lu", reduction_method);
     }
   } else if (reomp_config.mode == REOMP_ENV_MODE_REPLAY) {
     if (reduction_method == REOMP_REDUCE_LOCK_MASTER) {
-      reomp_cgate_leave(tid);
+      reomp_cgate_leave(tid, REOMP_RR_LOCK_REDUCTION);
     } else if (reduction_method == REOMP_REDUCE_LOCK_WORKER) {
       /* This section is not even executed by workers */
       /* Worker does not call __kmpc_end_reduce and any atomic operations */
       /* Nothing to do */
     } else if (reduction_method == REOMP_REDUCE_ATOMIC) {
-      reomp_cgate_leave(tid);
+      reomp_cgate_leave(tid, REOMP_RR_LOCK_REDUCTION);
     } else {
       MUTIL_ERR("No such reduction method: %lu", reduction_method);
     }

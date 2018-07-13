@@ -52,6 +52,8 @@ void reomp_finalize()
 char* reomp_get_rr_type_str(int rr_type)
 {
   switch(rr_type) {
+  case REOMP_RR_TYPE_NULL:
+    return (char*)"null";
   case REOMP_RR_TYPE_NONE:
     return (char*)"none";
   case REOMP_RR_TYPE_MAIN:
@@ -64,6 +66,10 @@ char* reomp_get_rr_type_str(int rr_type)
     return (char*)"reduction";
   case REOMP_RR_TYPE_CRITICAL:
     return (char*)"critical";
+  case REOMP_RR_TYPE_OMP_LOCK:
+    return (char*)"omp_lock";
+  case REOMP_RR_TYPE_OTHER_LOCK:
+    return (char*)"other lock";
   case REOMP_RR_TYPE_SINGLE:
     return (char*)"single";
   case REOMP_RR_TYPE_MASTER:
@@ -82,11 +88,24 @@ char* reomp_get_rr_type_str(int rr_type)
   return NULL;
 }
 
-
+static void reomp_gate_other(int control, void* ptr, size_t size)
+{
+  char rw = (size_t)ptr & 0xff;
+  if (rw == 0) {
+    MUTIL_DBG("__kmpc_fork_call begin");
+  } else if (rw == 1) {
+    MUTIL_DBG("__kmpc_fork_call end");
+  }
+  return;
+}
 
 void REOMP_CONTROL(int control, void* ptr, size_t size)
 {
   if (reomp_config.mode == REOMP_ENV_MODE_DISABLE) return;
+  if (control == REOMP_GATE_IN || control == REOMP_GATE_OUT) {
+    if (!reomp_config.multi_clock) size = 0;
+  }
+
   REOMP_PROFILE(reomp_profile((size_t)ptr, size));
 
   switch(control) {
@@ -133,6 +152,11 @@ void REOMP_CONTROL(int control, void* ptr, size_t size)
   case REOMP_AFT_REDUCE_END:   // 19
     reomp_gate->out_are(control, ptr, size);
     break;
+  case REOMP_OTHER:
+    reomp_gate_other(control, ptr, size);
+    break;
+  default:
+    MUTIL_ERR("No such control: %d", control);
   }
   return;
 }

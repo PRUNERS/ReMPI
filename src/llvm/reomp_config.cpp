@@ -37,6 +37,12 @@ void reomp_config_init()
     reomp_config.method = atoi(env);
   }
 
+  /* RR multi clock*/
+  if (!(env = getenv(REOMP_ENV_NAME_MULTI_CLOCK))) {
+    reomp_config.multi_clock = 1;
+  } else {
+    reomp_config.multi_clock = atoi(env);
+  }
   
   /* RR profile */
   if (!(env = getenv(REOMP_ENV_NAME_PROFILE))) {

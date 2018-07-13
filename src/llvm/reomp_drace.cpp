@@ -11,6 +11,7 @@
 
 #include "mutil.h"
 #include "reomp_drace.h"
+#include "reomp.h"
 
 #define CALL_FUNC_TYPE_FAILED_TO_RESTORE (-1) // CALL_FUNC_TYPE_XXXX must be a negative number
 
@@ -650,7 +651,7 @@ static void drace_update_data_race_lock_sets(call_func *cfunc1, call_func *cfunc
 
 static void drace_create_data_race_lock_set_id()
 {
-  int id = 1000;
+  int id = REOMP_RR_LOCK_DATARACE_BEGIN;
   list<unordered_set<unsigned int>*>::iterator it, it_end;
   unordered_set<unsigned int>::iterator it2, it2_end;
   for (it     = drace_data_race_lock_sets.begin(),

@@ -524,7 +524,9 @@ static int reomp_test_omp_reduction(reomp_input_t *input);
 static int reomp_test_omp_atomic(reomp_input_t *input);
 static int reomp_test_omp_atomic_load(reomp_input_t *input);
 static int reomp_test_data_race(reomp_input_t *input);
+static int reomp_test_data_race_2(reomp_input_t *input);
 static int reomp_test_mpmc(reomp_input_t *input);
+
 
 static double num_loops_scale = 1;
 
@@ -533,15 +535,15 @@ static double num_loops_scale = 1;
 reomp_test_t reomp_test_cases[] =
   {
     {(char*)"omp_critical", reomp_test_omp_critical,   {0, 0,    3000000L}},
-    //    {(char*)"omp_critical2", reomp_test_omp_critical2, {1, 1}},
     {(char*)"omp_atomic", reomp_test_omp_atomic,       {0, 0,   30000000L}},
-    {(char*)"omp_atomic_load", reomp_test_omp_atomic_load,       {0, 0,   30000000L}},
     {(char*)"data_race", reomp_test_data_race,         {0, 0,   30000000L}},
     {(char*)"omp_reduction", reomp_test_omp_reduction, {0, 0,  300000000L}},
-    {(char*)"mpmc", reomp_test_mpmc, {0, 0,  30000000L}},
     /* ------------------- */
-    {(char*)"data_race_test", reomp_test_data_race,         {0, 0,   20L}},
-    {(char*)"data_race_test2", reomp_test_data_race,         {0, 0,  300000L}},
+    //    {(char*)"omp_atomic_load", reomp_test_omp_atomic_load,       {0, 0,   30000000L}},
+    //    {(char*)"data_race_test", reomp_test_data_race,         {0, 0,   20L}},
+    //    {(char*)"data_race_test2", reomp_test_data_race,         {0, 0,  300000L}},
+    {(char*)"data_race_test3", reomp_test_data_race_2,         {0, 0,  3000000L}},
+    //    {(char*)"mpmc", reomp_test_mpmc, {0, 0,  30000000L}},
   };
 
 
@@ -612,6 +614,20 @@ static int reomp_test_data_race(reomp_input_t *input)
     sum += 1;
   }
   return sum;
+}
+
+
+static int reomp_test_data_race_2(reomp_input_t *input)
+{
+  uint64_t i;
+  volatile int sum1 = 1, sum2 = 1;
+  uint64_t num_loops = input->num_loops * num_loops_scale;
+#pragma omp parallel for private(i)
+  for (i = 0; i < num_loops; i++) {
+    sum1 += 1;
+    sum2 += 1;
+  }
+  return sum1 + sum2;
 }
 
 static int reomp_test_mpmc(reomp_input_t *input)

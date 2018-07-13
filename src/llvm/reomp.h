@@ -43,14 +43,13 @@ void REOMP_CONTROL(int control, void* ptr, size_t size);
 #define REOMP_AFT_REDUCE_BEGIN    (17)
 #define REOMP_BEF_REDUCE_END      (18)
 #define REOMP_AFT_REDUCE_END      (19)
-
-
 #define REOMP_BEF_FORK (20)
 #define REOMP_AFT_FORK (21)
 #define REOMP_BEG_OMP (22)
 #define REOMP_END_OMP (23)
 #define REOMP_BEG_FUNC_CALL (24)
 #define REOMP_END_FUNC_CALL (25)
+#define REOMP_OTHER (50)
 
 /* This ID musbe be 0 < X < 128 */
 #define REOMP_RR_TYPE_NULL         (000)
@@ -60,12 +59,15 @@ void REOMP_CONTROL(int control, void* ptr, size_t size);
 #define REOMP_RR_TYPE_STORE        (102)
 #define REOMP_RR_TYPE_REDUCTION    (103)
 #define REOMP_RR_TYPE_CRITICAL     (104)
-#define REOMP_RR_TYPE_SINGLE       (105)
-#define REOMP_RR_TYPE_MASTER       (106)
-#define REOMP_RR_TYPE_ATOMICOP     (107)
-#define REOMP_RR_TYPE_ATOMICLOAD   (108)
-#define REOMP_RR_TYPE_ATOMICSTORE  (109)
-#define REOMP_RR_TYPE_CPP_STL      (110)
+#define REOMP_RR_TYPE_OMP_LOCK     (105)
+#define REOMP_RR_TYPE_OTHER_LOCK   (106)
+#define REOMP_RR_TYPE_SINGLE       (107)
+#define REOMP_RR_TYPE_MASTER       (108)
+#define REOMP_RR_TYPE_ATOMICOP     (109)
+#define REOMP_RR_TYPE_ATOMICLOAD   (110)
+#define REOMP_RR_TYPE_ATOMICSTORE  (111)
+#define REOMP_RR_TYPE_CPP_STL      (112)
+#define REOMP_RR_TYPE_OTHER     (127)
 
 /* Lock ID*/
 /* NOTE: 
@@ -74,10 +76,11 @@ void REOMP_CONTROL(int control, void* ptr, size_t size);
    So both critical section, reduction and atomic operation use the same lock.
 */
 #define REOMP_RR_LOCK_NULL   (-1)
-#define REOMP_RR_LOCK_GLOBAL   (1)
-  //#define REOMP_RR_LOCK_ATOMIC   (2)
-#define REOMP_RR_LOCK_DATARACE_BEGIN (2)
-  
+enum reomp_lock_id{
+  REOMP_RR_LOCK_GLOBAL,
+  REOMP_RR_LOCK_REDUCTION,
+  REOMP_RR_LOCK_DATARACE_BEGIN
+};
   
 #define REOMP_DEBUG_PRINT (90)
 

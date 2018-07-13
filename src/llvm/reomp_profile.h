@@ -20,11 +20,11 @@
 
 #include "reomp_config.h"
 
-//#define REOMP_PROFILE_ENABLE
+#define REOMP_PROFILE_ENABLE
 #ifdef REOMP_PROFILE_ENABLE
-#define REOMP_PROFILE(profile_func)	    \
-  do {					    \
-    if (reomp_config.profile_level > 0) profile_func;			    \
+#define REOMP_PROFILE(profile_func)			\
+  do {							\
+    if (reomp_config.profile_level > 0) profile_func;	\
   } while(0)
 #else
 #define REOMP_PROFILE(profile_func)
@@ -32,6 +32,7 @@
 
 
 void reomp_profile_init();
+void reomp_profile_io(size_t s);
 void reomp_profile(size_t rr_type, size_t lock_id);
 void reomp_profile_print();
 void reomp_profile_finalize();
