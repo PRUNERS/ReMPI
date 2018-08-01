@@ -547,6 +547,7 @@ reomp_test_t reomp_test_cases[] =
   };
 
 
+
 static int reomp_test_omp_critical(reomp_input_t *input)
 {
   uint64_t i;

@@ -20,7 +20,7 @@
 
 #include "reomp_config.h"
 
-#define REOMP_PROFILE_ENABLE
+//#define REOMP_PROFILE_ENABLE
 #ifdef REOMP_PROFILE_ENABLE
 #define REOMP_PROFILE(profile_func)			\
   do {							\

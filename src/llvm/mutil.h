@@ -54,7 +54,7 @@ extern char mutil_hostname[256];
 		     __FILE__, __LINE__);	\
   } while(0)
 
-#define ENABLE_TIMER
+//#define ENABLE_TIMER
 #define MUTIL_TIMER_START     (0)
 #define MUTIL_TIMER_STOP      (1)
 #define MUTIL_TIMER_GET_TIME  (2)

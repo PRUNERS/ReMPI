@@ -31,9 +31,11 @@
 #define REOMP_WITHOUT_LOCK (2)
 
 static reomp_gate_t *reomp_gate = NULL;
+static double start_time, end_time;
 
 void reomp_init(int control, size_t size)
 {
+  start_time = reomp_util_get_time();
   reomp_config_init();
   REOMP_PROFILE(reomp_profile_init());
   reomp_gate = reomp_gate_get(reomp_config.method);
@@ -46,6 +48,8 @@ void reomp_finalize()
   reomp_gate->finalize();
   REOMP_PROFILE(reomp_profile_print());
   REOMP_PROFILE(reomp_profile_finalize());
+  end_time = reomp_util_get_time();
+  MUTIL_DBG("ReOMP time: %f", end_time - start_time);
   return;
 }
 
@@ -102,11 +106,11 @@ static void reomp_gate_other(int control, void* ptr, size_t size)
 void REOMP_CONTROL(int control, void* ptr, size_t size)
 {
   if (reomp_config.mode == REOMP_ENV_MODE_DISABLE) return;
+  REOMP_PROFILE(reomp_profile((size_t)ptr, size));
   if (control == REOMP_GATE_IN || control == REOMP_GATE_OUT) {
     if (!reomp_config.multi_clock) size = 0;
   }
 
-  REOMP_PROFILE(reomp_profile((size_t)ptr, size));
 
   switch(control) {
   case REOMP_BEF_MAIN: // 0
@@ -116,9 +120,15 @@ void REOMP_CONTROL(int control, void* ptr, size_t size)
     reomp_finalize();
     break;
   case REOMP_AFT_MPI_INIT: // 2
+    int flag;
     int my_rank;
     if (reomp_config.method == REOMP_ENV_METHOD_TID)reomp_gate->init(control, size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    MPI_Initialized(&flag);
+    if (flag) {
+      MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    } else {
+      MUTIL_ERR("MPI is not initialized yet");
+    }
     reomp_util_init(my_rank);    
     break;
     
