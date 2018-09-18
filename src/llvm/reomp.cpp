@@ -106,7 +106,9 @@ static void reomp_gate_other(int control, void* ptr, size_t size)
 void REOMP_CONTROL(int control, void* ptr, size_t size)
 {
   if (reomp_config.mode == REOMP_ENV_MODE_DISABLE) return;
-  REOMP_PROFILE(reomp_profile((size_t)ptr, size));
+  if (control == REOMP_GATE_IN || control == REOMP_BEF_CRITICAL_BEGIN || control == REOMP_BEF_REDUCE_BEGIN) {
+    REOMP_PROFILE(reomp_profile((size_t)ptr, size));
+  }
   if (control == REOMP_GATE_IN || control == REOMP_GATE_OUT) {
     if (!reomp_config.multi_clock) size = 0;
   }

@@ -20,7 +20,7 @@
 
 #include "reomp_config.h"
 
-//#define REOMP_PROFILE_ENABLE
+#define REOMP_PROFILE_ENABLE
 #ifdef REOMP_PROFILE_ENABLE
 #define REOMP_PROFILE(profile_func)			\
   do {							\
@@ -33,6 +33,7 @@
 
 void reomp_profile_init();
 void reomp_profile_io(size_t s);
+void reomp_profile_epoch(size_t epoch);
 void reomp_profile(size_t rr_type, size_t lock_id);
 void reomp_profile_print();
 void reomp_profile_finalize();

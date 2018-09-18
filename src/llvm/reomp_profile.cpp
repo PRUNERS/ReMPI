@@ -15,12 +15,21 @@
 #include <sys/stat.h>
 
 #include <unordered_map>
+#include <map>
+#include <vector>
 
 #include "mutil.h"
 #include "reomp.h"
 #include "reomp_profile.h"
 
 using namespace std;
+
+typedef struct {
+  map<size_t, size_t> *hist_map;
+  size_t hist_map_max = 0;
+  vector<size_t> *ws_dist_vec;
+} reomp_profile_epoch_t;
+static reomp_profile_epoch_t reomp_prof_epoch;
 
 typedef struct {
   size_t previous_rr_type;
@@ -51,6 +60,12 @@ typedef struct {
 } reomp_profile_io_t;
 reomp_profile_io_t reomp_prof_io;
 
+static void reomp_profile_epoch_init()
+{
+  reomp_prof_epoch.hist_map = new map<size_t, size_t>();
+  return;
+}
+
 static void reomp_profile_io_init()
 {
   struct stat st;
@@ -67,7 +82,7 @@ void reomp_profile_init()
   reomp_prof.lock_id_to_access_umap = new unordered_map<size_t, reomp_profile_access_t*>;
   omp_init_lock(&reomp_prof_lock);
   reomp_profile_io_init();
-  
+  reomp_profile_epoch_init();
   return;
 }
 
@@ -168,6 +183,19 @@ void reomp_profile(size_t rr_type, size_t lock_id)
   omp_unset_lock(&reomp_prof_lock);
 }
 
+void reomp_profile_epoch(size_t epoch)
+{
+  omp_set_lock(&reomp_prof_lock);
+  if (reomp_prof_epoch.hist_map->find(epoch) == reomp_prof_epoch.hist_map->end()) {
+    reomp_prof_epoch.hist_map->insert(make_pair(epoch, 0));
+  }
+  reomp_prof_epoch.hist_map->at(epoch)++;
+  if (reomp_prof_epoch.hist_map->at(epoch) > reomp_prof_epoch.hist_map_max) {
+    reomp_prof_epoch.hist_map_max = reomp_prof_epoch.hist_map->at(epoch);
+  }
+  omp_unset_lock(&reomp_prof_lock);
+}
+
 void reomp_profile_print()
 {
   size_t sum = 0;
@@ -201,6 +229,21 @@ void reomp_profile_print()
 	    reomp_prof.load_seq_count + reomp_prof.store_seq_count,
 	    reomp_prof.count,
 	    (reomp_prof.load_seq_count + reomp_prof.store_seq_count) * 100 / reomp_prof.count);  
+  MUTIL_DBG("----------------------------");
+  reomp_prof_epoch.ws_dist_vec = new vector<size_t>(reomp_prof_epoch.hist_map_max + 1);
+  for (size_t i = 0; i < reomp_prof_epoch.ws_dist_vec->size(); i++) {
+    reomp_prof_epoch.ws_dist_vec->at(i) = 0;
+  }
+  for (auto &kv: *(reomp_prof_epoch.hist_map)) {
+    size_t epoch = kv.first;
+    size_t window_size = kv.second;
+    reomp_prof_epoch.ws_dist_vec->at(window_size)++;
+  }
+  MUTIL_DBG("# of epoch: %lu", reomp_prof_epoch.hist_map->size());
+  for (size_t i = 1; i < reomp_prof_epoch.ws_dist_vec->size(); i++) {
+    MUTIL_DBG("   %lu  %lu", i, reomp_prof_epoch.ws_dist_vec->at(i));
+  }
+  
   MUTIL_DBG("----------------------------");  
 
   

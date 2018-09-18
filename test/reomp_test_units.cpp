@@ -551,7 +551,7 @@ reomp_test_t reomp_test_cases[] =
 static int reomp_test_omp_critical(reomp_input_t *input)
 {
   uint64_t i;
-  int sum;
+  volatile int sum;
   uint64_t num_loops = input->num_loops * num_loops_scale;
 #pragma omp parallel for private(i)
   for (i = 0; i < num_loops; i++) {
@@ -566,9 +566,9 @@ static int reomp_test_omp_critical(reomp_input_t *input)
 static int reomp_test_omp_reduction(reomp_input_t *input)
 {
   uint64_t i;
-  int sum;
-  //  uint64_t num_loops = input->num_loops * num_loops_scale;
-  uint64_t num_loops = omp_get_num_threads()  * num_loops_scale;
+  volatile int sum;
+  uint64_t num_loops = input->num_loops * num_loops_scale;
+  //  uint64_t num_loops = omp_get_num_threads()  * num_loops_scale;
 #pragma omp parallel for private(i) reduction(+: sum)
   for (i = 0; i < num_loops; i++) {
     sum += 1;

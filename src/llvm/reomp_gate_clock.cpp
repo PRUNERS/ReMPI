@@ -372,6 +372,7 @@ static int reomp_cgate_filter_reentry_out(int tid)
 
 static  void reomp_cgate_record_ticket_number(int tid, int clock)
 {
+  REOMP_PROFILE(reomp_profile_epoch(clock));
   reomp_fwrite((void*)&clock, sizeof(int), 1, tid);
   //  MUTIL_DBG("tid: %d: clock: %d", tid, clock);
   return;
@@ -384,7 +385,7 @@ static void reomp_cgate_ticket_wait(int tid, size_t lock_id)
 
   //  MUTIL_DBG("in GATE_IN: tid=%d lock_id: %lu", tid, lock_id);
   if (reomp_cgate_filter_reentry_in(tid)) {
-    MUTIL_DBG("lock_id: %lu", lock_id);
+    //    MUTIL_DBG("lock_id: %lu", lock_id);
     return;
   }
   
