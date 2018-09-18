@@ -85,10 +85,10 @@ extern int rempi_my_rank;
 
 
 #define REMPI_PREPRINT \
-  //  REMPI_DBG("__func__: %s Entered", __func__);
+  //  REMPI_DBG("%s (%d) Entered", __func__, (int)pthread_self());
 
 #define REMPI_POSTPRINT \
-  //  REMPI_DBG("__func__: %s Left", __func__);
+  //  REMPI_DBG("%s (%d) Left", __func__, (int)pthread_self());
 
 
 

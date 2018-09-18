@@ -41,6 +41,8 @@
 #include "rempi_request_mg.h"
 #include "rempi_sig_handler.h"
 
+#include "llvm/reomp.h"
+
 using namespace std;
 
 #define CHECK_MPI_STATUS(count, statuses)	\
@@ -67,6 +69,8 @@ int rempi_re::init_after_pmpi_init(int *argc, char ***argv)
   rempi_mpi_comm_get_id(MPI_COMM_WORLD);
 
   rempi_err_init(my_rank);
+
+  reomp_control(REOMP_AFT_MPI_INIT, NULL, 0);
   //  rempi_set_configuration(argc, argv);
 
   return 0;
@@ -95,11 +99,20 @@ int rempi_re::re_init_thread(
 			     int required, int *provided, int fortran_init_thread)
 {
   int ret;
-  ret = rempi_mpi_init_thread(argc, argv, MPI_THREAD_MULTIPLE, provided, fortran_init_thread);
-  if (*provided < MPI_THREAD_SERIALIZED) {
-    REMPI_ERR("MPI supports only MPI_THREAD_SINGLE, and ReMPI does not work on this MPI");
+  int rempi_required = MPI_THREAD_FUNNELED;
+  int rempi_provided = MPI_THREAD_FUNNELED;
+  int all_required;
+  if (required > rempi_required) {
+    all_required = required;
+  } else {
+    all_required = rempi_required;
   }
-
+  ret = rempi_mpi_init_thread(argc, argv, all_required, provided, fortran_init_thread);
+  if (*provided < rempi_required) {
+    REMPI_ERR("ReMPI does not work for MPI_THREAD_SERIALIZED nor MPI_THREAD_MULTIPLE");
+  } else {
+    *provided = rempi_provided;
+  }
 
   /*Init from configuration and for valiables for errors*/
   init_after_pmpi_init(argc, argv);
