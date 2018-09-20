@@ -49,7 +49,7 @@ void reomp_finalize()
   REOMP_PROFILE(reomp_profile_print());
   REOMP_PROFILE(reomp_profile_finalize());
   end_time = reomp_util_get_time();
-  MUTIL_DBG("ReOMP time: %f", end_time - start_time);
+  //  MUTIL_DBG("ReOMP time: %f", end_time - start_time);
   return;
 }
 

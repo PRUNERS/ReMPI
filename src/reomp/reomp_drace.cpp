@@ -703,8 +703,9 @@ static void drace_parse_archer_log()
   struct dirent *dp;
 
   if (NULL == (env = getenv("TSAN_OPTIONS"))) {
-    drace_parse_archer_error();
-  }
+    // drace_parse_archer_error();
+    return;
+  } 
   /* e.g.)  env="history_size=7 log_path=rempi_drace_test.log" */
   log_path = strstr(env, "log_path");
   if(log_path == NULL) {

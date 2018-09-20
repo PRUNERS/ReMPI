@@ -39,9 +39,10 @@ extern char mutil_hostname[256];
 		    __FILE__, __LINE__);	\
   } while(0)
 
-
-
-
+#define MUTIL_PRT(prt_fmt, ...)					\
+  do {								\
+    MUTIL_FUNC(print)(" "	prt_fmt, ## __VA_ARGS__);	\
+  } while(0)
 
 /*if __VA_ARGS__ is empty, the previous comma can be removed by "##" statement*/
 #define MUTIL_DBGI(i, dbg_fmt, ...)		\
@@ -76,6 +77,7 @@ void MUTIL_FUNC(set_configuration)(int *argc, char ***argv);
 void MUTIL_FUNC(assert)(int b);
 void MUTIL_FUNC(init)(int r);
 void MUTIL_FUNC(err)(const char* fmt, ...);
+void MUTIL_FUNC(print)(const char* fmt, ...);
 void MUTIL_FUNC(erri)(int r, const char* fmt, ...);
 void MUTIL_FUNC(alert)(const char* fmt, ...);
 void MUTIL_FUNC(dbg_log_print)();

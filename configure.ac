@@ -139,9 +139,14 @@ fi
 AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_FILES([
 	Makefile 
-	src/Makefile 
-	src/llvm/Makefile 
+	src/Makefile
+	src/common/Makefile
+	src/rempi/Makefile
+	src/reomp/Makefile
 	test/Makefile
+	test/common/Makefile
+	test/rempi/Makefile
+	test/reomp/Makefile
 	scripts/Makefile
 	scripts/rempi
 	scripts/rempi_record

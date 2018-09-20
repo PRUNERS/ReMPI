@@ -1,7 +1,6 @@
 AM_CFLAGS = -fPIC -g -Wall -pthread -std=c++0x -rdynamic
 AM_CXXFLAGS = $(AM_CFLAGS)
 
-
 lib_LTLIBRARIES = libreompir.la libreomp.la
 
 reompir_SOURCES =  \

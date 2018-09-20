@@ -9,7 +9,4 @@ touch NEWS README AUTHORS ChangeLog
 echo "Running libtoolize --automake --copy ... "
 libtoolize --automake --copy 
 echo "Running autoreconf --verbose --install"
-autoreconf --verbose --install
-echo "Cleaning up ..."
-rm -rf autom4te.cache 
-echo "Now run ./configure."
+autoreconf --verbose --install && echo "Cleaning up ..." && rm -rf autom4te.cache && echo "Now run ./configure."

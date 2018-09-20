@@ -30,7 +30,7 @@ typedef struct
 } timer_counters_t;
 
 using namespace std;
-int mutil_my_rank = -1;
+int mutil_my_rank = 0;
 char mutil_hostname[256];
 char header[128];
 char message[2048];

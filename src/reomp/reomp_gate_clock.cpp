@@ -169,7 +169,7 @@ static void reomp_cgate_finalize_file()
   MUTIL_TIMER(MUTIL_TIMER_GET_TIME, REOMP_TIMER_ENTIRE, &entire_time);
   MUTIL_TIMER(MUTIL_TIMER_GET_TIME, REOMP_TIMER_GATE_TIME, &gate_time);
   MUTIL_TIMER(MUTIL_TIMER_GET_TIME, REOMP_TIMER_IO_TIME, &io_time);
-  MUTIL_DBG("Overhead: %f (Gate: %f, IO: %f) method= %d", entire_time, gate_time, io_time, reomp_config.method);
+  //  MUTIL_DBG("Overhead: %f (Gate: %f, IO: %f) method= %d", entire_time, gate_time, io_time, reomp_config.method);
   return;
 }
 

@@ -66,16 +66,16 @@ void reomp_config_init()
     }
   }
 
-  MUTIL_DBG("=============================");
-  MUTIL_DBG("ReOMP mode   : %s=%d", REOMP_ENV_NAME_MODE, reomp_config.mode);
-  MUTIL_DBG("ReOMP method : %s=%d", REOMP_ENV_NAME_METHOD, reomp_config.method);
+  MUTIL_PRT("=============================");
+  MUTIL_PRT("ReOMP mode   : %s=%d", REOMP_ENV_NAME_MODE, reomp_config.mode);
+  MUTIL_PRT("ReOMP method : %s=%d", REOMP_ENV_NAME_METHOD, reomp_config.method);
 #ifdef REOMP_PROFILE_ENABLE
-  MUTIL_DBG("ReOMP profile level: %s=%d", REOMP_ENV_NAME_PROFILE, reomp_config.profile_level);
+  MUTIL_PRT("ReOMP profile level: %s=%d", REOMP_ENV_NAME_PROFILE, reomp_config.profile_level);
 #else
-  MUTIL_DBG("ReOMP profile level: %s is not defined", REOMP_ENV_NAME_PROFILE);
+  MUTIL_PRT("ReOMP profile level: %s is not defined", REOMP_ENV_NAME_PROFILE);
 #endif
-  MUTIL_DBG("ReOMP dir    : %s=%s", REOMP_ENV_NAME_DIR, reomp_config.record_dir);
-  MUTIL_DBG("=============================");
+  MUTIL_PRT("ReOMP dir    : %s=%s", REOMP_ENV_NAME_DIR, reomp_config.record_dir);
+  MUTIL_PRT("=============================");
 
   return;
 }

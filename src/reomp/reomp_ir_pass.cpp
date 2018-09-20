@@ -344,22 +344,28 @@ void ReOMP::init_inserted_functions(Module &M)
 {
 
   LLVMContext &ctx = M.getContext();
-  reomp_func_umap["reomp_rr"] = M.getOrInsertFunction("reomp_rr", 
-							 Type::getInt64PtrTy(ctx), 
-							 Type::getInt64Ty(ctx), 
-							 NULL);
+
+  // reomp_func_umap["reomp_rr"] = M.getOrInsertFunction("reomp_rr", 
+  // 						      Type::getInt64PtrTy(ctx), 
+  // 						      Type::getInt64Ty(ctx)
+  // 						      );
+
   
   reomp_func_umap[REOMP_CONTROL_STR] =  M.getOrInsertFunction(REOMP_CONTROL_STR,
 							      Type::getVoidTy(ctx),
 							      Type::getInt32Ty(ctx),
 							      Type::getInt64PtrTy(ctx),
-							      Type::getInt64Ty(ctx),
-							      NULL);
+							      Type::getInt64Ty(ctx)
+#if __clang_major__ <= 4
+							      , NULL);
+#else
+							      );
+#endif
   
   /* For debugging ReOMP */
-  reomp_func_umap[REOMP_MEM_PRINT_ADDR] = M.getOrInsertFunction(REOMP_MEM_PRINT_ADDR,
-								  Type::getInt64PtrTy(ctx),
-								  NULL);
+  // reomp_func_umap[REOMP_MEM_PRINT_ADDR] = M.getOrInsertFunction(REOMP_MEM_PRINT_ADDR,
+  // 								Type::getVoidTy(ctx),
+  // 								Type::getInt64PtrTy(ctx));
 
   return;
 }
