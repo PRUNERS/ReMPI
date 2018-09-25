@@ -1,10 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
 #include <omp.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <string.h>
 #include <stdint.h>
 
 static int reomp_example_omp_critical()
