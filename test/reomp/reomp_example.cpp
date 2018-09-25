@@ -3,13 +3,12 @@
 #include <omp.h>
 #include <stdint.h>
 
-static int reomp_example_omp_critical()
+static int reomp_example_omp_critical(int nth)
 {
   uint64_t i;
   volatile int sum;
-  uint64_t num_loops = 1000000L;
 #pragma omp parallel for private(i)
-  for (i = 0; i < num_loops; i++) {
+  for (i = 0; i < 10000000L / nth; i++) {
 #pragma omp critical
     {
       sum = sum * omp_get_thread_num() + 1;
@@ -18,14 +17,13 @@ static int reomp_example_omp_critical()
   return sum;
 }
 
-static int reomp_example_data_race()
+static int reomp_example_data_race(int nth)
 {
   uint64_t i;
   volatile int sum = 1;
-  uint64_t num_loops = 10000000L;
 #pragma omp parallel for private(i)
-  for (i = 0; i < num_loops; i++) {
-    sum += 1;
+  for (i = 0; i < 3000000L / nth; i++) {
+    sum += nth;
   }
   return sum;
 }
@@ -43,8 +41,8 @@ int main(int argc, char **argv)
   fprintf(stderr, "=============================================\n");  
   omp_set_num_threads(nth);
 
-  int ret1 = reomp_example_omp_critical();
-  int ret2 = reomp_example_data_race();
+  int ret1 = reomp_example_omp_critical(nth);
+  int ret2 = reomp_example_data_race(nth);
 
   fprintf(stderr, "omp_critical: ret = %15d\n", ret1);
   fprintf(stderr, "data_race:    ret = %15d\n", ret2);

@@ -194,10 +194,10 @@ int ReOMP::handle_instruction_on_critical(Function &F, BasicBlock &BB, Instructi
     } else if (name == "__kmpc_end_critical" && REOMP_RR_CRITICAL) {      
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, REOMP_CONST_INT64TY(REOMP_RR_TYPE_CRITICAL), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
       modified_counter = 1;
-    } else if (name == "omp_set_lock" && REOMP_RR_OMP_LOCK) {
+    } else if ((name == "omp_set_lock" || name == "omp_set_nest_lock") && REOMP_RR_OMP_LOCK) {
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_BEFORE, REOMP_BEF_CRITICAL_BEGIN, REOMP_CONST_INT64TY(REOMP_RR_TYPE_OMP_LOCK), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
       modified_counter = 1;
-    } else if (name == "omp_unset_lock" && REOMP_RR_OMP_LOCK) {
+    } else if ((name == "omp_unset_lock" || name == "omp_unset_nest_lock") && REOMP_RR_OMP_LOCK) {
       insert_func(CI, &BB, REOMP_IR_PASS_INSERT_AFTER,  REOMP_AFT_CRITICAL_END, REOMP_CONST_INT64TY(REOMP_RR_TYPE_OMP_LOCK), REOMP_CONST_INT64TY(REOMP_RR_LOCK_GLOBAL));
       modified_counter = 1;
     } else if (name == "semop" && REOMP_RR_OTHER_LOCK) {
@@ -410,6 +410,7 @@ static void registerReOMP(const PassManagerBuilder &, legacy::PassManagerBase &P
 }
 
 static RegisterStandardPasses RegisterReOMP(PassManagerBuilder::EP_EarlyAsPossible, registerReOMP);
+//static RegisterStandardPasses RegisterReOMP(PassManagerBuilder::EP_OptimizerLast, registerReOMP);
 
 
 /* ============== End of class ================================= */
