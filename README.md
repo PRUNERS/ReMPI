@@ -6,12 +6,14 @@
 
 # Introduction
 
- * ReMPI is a record-and-replay tool for MPI applications written in C/C++ and/or fortran.
+ * ReMPI is a record-and-replay tool for MPI+OpenMP applications written in C/C++ and/or fortra
+     * In a broad sense, "ReMPI" means a record-and-replay tool for MPI+OpenMP applications 
+     * In a narrow sense,  "ReMPI" means MPI record-and-replay and "ReOMP" means OpenMP record-and-replay
  * (Optional) ReMPI implements Clock Delta Compression (CDC) for compressing records.
 
 # Quick Start
 
-## 1. Building ReMPI 
+## 1. Building ReMPI
 
 ### From Spack
 
@@ -44,7 +46,7 @@ To build on the IBM BG/Q platform, you will need to add the --with-blugene optio
     $ make install
 
 ## 2. Running with ReMPI
-    $ cd test
+    $ cd test/rempi
     $ mkdir rempi_record
     
 ### Record mode (REMPI_MODE=0)
@@ -75,9 +77,105 @@ The following example script assumes the resource manager is SLURM and that ReMP
      cd example
      sh ./example_x86.sh 16
      ls -ltr .rempi # lists record files
+     
+## 4. Running with ReOMP
+Let us take the program below and follow the steps to compile, run the proram, record and replay.
+This example code is in test/reomp/reomp_example.cpp and the seriease of the steps are scripted in test/reomp/build_run_reomp_example.sh
+
+
+
+	#include <stdlib.h>
+	#include <stdio.h>
+	#include <omp.h>
+	#include <stdint.h>
+	 
+	static int reomp_example_omp_critical(int nth)
+	{ 
+	  	uint64_t i;
+	  	volatile int sum;
+	#pragma omp parallel for private(i)
+		for (i = 0; i < 10000000L / nth; i++) {
+	#pragma omp critical
+			{ 
+      			sum = sum * omp_get_thread_num() + 1;
+    			}
+		}
+		return sum;
+	}
+	 
+	static int reomp_example_data_race(int nth)
+	{ 
+	uint64_t i;
+	volatile int sum = 1;
+	#pragma omp parallel for private(i)
+		for (i = 0; i < 3000000L / nth ; i++) {
+			sum += nth;
+		}
+		return sum;
+	}
+	 
+	int main(int argc, char **argv)
+	{ 
+		int nth = atoi(argv[1]);
+		omp_set_num_threads(nth);
+		int ret1 = reomp_example_omp_critical(nth);
+		int ret2 = reomp_example_data_race(nth);
+		fprintf(stderr, "omp_critical: ret = %15d\n", ret1);
+		fprintf(stderr, "data_race:    ret = %15d\n", ret2);
+		return 0;
+	}
+
+First let's compile and run without ReOMP.
+Note that two functions, reomp_example_omp_critical and reomp_example_data_race, return non-deterministic values (i.e., sum).
+If you run the program several times, you will see the different numerical results from run to run. 
+In reomp_example_omp_critical, the numerical resutls changes depending on the order of threads entering the critical section.
+In reomp_example_data_race, the non-deterministic numerical reuslts are produceds due to data races.   
+
+	$ clang++ -O3 -fopenmp -o reomp_example_without_reomp reomp_example.cpp
+	$ ./reomp_example_without_reomp 16   # 16 is the number of threads
+	omp_critical: ret =           17116
+	data_race:    ret =          191889	
+	$ ./reomp_example_without_reomp 16   
+	omp_critical: ret =      -456407940
+	data_race:    ret =          188801
+	
+To reproduce the numerical results, compile the program with the ReOMP IR pass shared library.
+Now, we can reproduce the numerical reuslt in reomp_example_omp_critical since ReOMP find the critical sections and record the order of threads entering the critical sections.
+However, we still see inconsistent numerical results in reomp_example_data_race sicne ReOMP itself cannnot find where the data races occur.
+
+	$ clang++ -Xclang -load -Xclang ../../src/reomp/.libs/libreompir.so -L../../src/reomp/.libs/ -lreomp -O3 -fopenmp -o reomp_example_with_reomp reomp_example.cpp
+	$ export LD_LIBRARY_PATH=../../src/reomp/.libs/
+	$ REOMP_MODE=0 ./reomp_example_with_reomp 16   # REOMP_MODE=0 means the ReOMP record mode.
+	omp_critical: ret =     -2116977392
+	data_race:    ret =          198769
+	$ REOMP_MODE=1 ./reomp_example_with_reomp 16   # REOMP_MODE=0 means the ReOMP record mode.
+	omp_critical: ret =     -2116977392
+	data_race:    ret =          187489
+	
+ReOMP replys on a data race detector to find data races.
+Let's detect the data races with Thread Sanitizer (or Archer).
+
+	$ clang++ -g -fomit-frame-pointer -fsanitize=thread -O3 -fopenmp -o reomp_example_with_tsan reomp_example.cpp
+	$ export 'TSAN_OPTIONS=log_path=reomp_tsan.log history_size=7'
+	$ ./reomp_example_with_tsan 2
+	
+Let's re-compile the probram with ReOMP IR pass and the report file (reomp_tsan.log.xxxxx) from Thread Sanitizer and run.
+Now, you will see the consistent numerical resutls from run to run.
+
+	$ export TSAN_OPTIONS=log_path=reomp_tsan.log  # To let the ReOMP IR pass know where the TSAN report file is.
+	$ clang++ -Xclang -load -Xclang ../../src/reomp/.libs/libreompir.so -L../../src/reomp/.libs/ -lreomp -L/usr/tce/packages/clang/clang-4.0.0/lib -O3 -fopenmp -o reomp_example_with_reomp_data_race reomp_example.cpp
+	$ REOMP_MODE=0 ./reomp_example_with_reomp_data_race 16
+	omp_critical: ret =     -1833974251
+	data_race:    ret =          191793
+	$ REOMP_MODE=1 ./reomp_example_with_reomp_data_race 16
+	omp_critical: ret =     -1833974251
+	data_race:    ret =          191793
+	$ REOMP_MODE=1 ./reomp_example_with_reomp_data_race 16
+	omp_critical: ret =     -1833974251
+	data_race:    ret =          191793	
 
 # Environment variables
-
+## ReMPI
  * `REMPI_MODE`: Record mode OR Replay mode
      * `0`: Record mode
      * `1`: Replay mode
@@ -104,15 +202,26 @@ Record data is all interger values. If you enables gzip compression capability v
 
     $ rempi_record REMPI_DIR=/tmp REMPI_GZIP=1 srun(or mpirun) -n 4 ./rempi_test_units matching
     $ rempi_replay REMPI_DIR=/tmp REMPI_GZIP=1 srun(or mpirun) -n 4 ./rempi_test_units matching
+    
+## ReOMP
+ * `REOMP_MODE`: Record mode OR Replay mode
+     * `0` or `record`: Record mode
+     * `1` or `replay`: Replay mode
+     * `2` or `diable`: Disable ReOMP (Run your applicaiton with instrumented binary but ReOMP doest not record adn replay anything)
+ * `REOMP_DIR`: Directory path for record files (Default is current directory)
+ * `REOMP_METHOD`: Record-and-Replay method
+     * `0`: Distributed epoch reocrding (default) 
+     * `1`: Distributed clock recording
+     * `2`: Serialized thread ID recording
      
-# MPI functions that ReMPI records and relays
+# Non-determinism that ReMPI records and relays
 ReMPI record and replay results of following MPI functions.
 
-### Blocking Receive
+### MPI: Blocking Receive
 
   * MPI_Recv
 
-### Message Completion Wait/Test
+### MPI: Message Completion Wait/Test
 
   * MPI_{Wait|Waitany|Waitsome|Waitall}
   * MPI_{Test|Testany|Testsome|Testall}
@@ -128,13 +237,28 @@ In current ReMPI, MPI_Request must be initialized by following "Supported" MPI f
     * MPI_{Start|Startall}
     * All non-blocking collectives (e.g., MPI_Ibarrier) 
       
-### Message Arrival Probe
+### MPI: Message Arrival Probe
 
   * MPI_{Probe|Iprobe}
   
-### Other sources of non-determinism
+### MPI: Other sources of non-determinism
 
 Current ReMPI version record and replay only MPI and does not record and repaly other sources of non-determinism suca as OpenMP and other non-deterministic libc functions (e.g., gettimeofday(), clock() and etc.).
+
+### OpenMP:
+ReOMP records and replays
+  * OpenMP clauses 
+    * Critical Section (#omp critical)
+    * Reduction (#omp reduction)
+    * Master (#omp master)
+    * Single (#omp single)
+  * OpenMP runtime
+    * omp_set_lock() and omp_unset_lock()
+    * omp_set_nest_lock() and omp_unset_nest_lock()
+  * Atomic instructions
+    * Atomic load/store
+    * Atomic operations (cmpxchg and atomicrmw)
+  * Data-racy load/store instructions (If TSAN data-race report files are provided when compiling)
 
 
 # Using ReMPI with TotalView
@@ -191,7 +315,6 @@ For more details, run ./configure -h
     * `--with-clmpi`: (Required when `--enable-cdc` is specified) path to CLMPI directory
   * `--with-bluegene`: (Required in BG/Q) build codes with static library for BG/Q system
   * `--with-zlib-static`: (Required in BG/Q) path to installation directory for libz.a
-
 
 When the `--enable-cdc` option is specified, ReMPI require dependent software below:
 
