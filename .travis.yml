@@ -7,6 +7,7 @@ addons:
       - apport
       - autoconf
       - ccache
+      - binutils-dev
       - gdb
       - libmpich-dev
       - libopenmpi-dev
