@@ -77,7 +77,7 @@ void rempi_io_thread::write_record()
       //      input_format->debug_print();
       /*Then, write to file.*/
       encoder->write_record_file();
-      count++;
+      ::count++;
       e = rempi_get_time();
       delete input_format; //TODO: also delete iternal data in this variable
       input_format = encoder->create_encoder_input_format();
